@@ -26,6 +26,7 @@
 
 static char zero_sect[PAGE_SIZE];
 
+
 static int verbose = 0;
 #define VPRINTF(_v, _a...) if (_v < verbose) printf(_a)
 
