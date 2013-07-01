@@ -140,7 +140,7 @@ class Util:
                 if resultFlag.test("success"):
                     Util.log("  Child process completed successfully")
                     resultFlag.clear("success")
-                    return
+                    return True
                 if resultFlag.test("failure"):
                     resultFlag.clear("failure")
                     raise util.SMException("Child process exited with error")
