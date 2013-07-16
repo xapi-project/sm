@@ -26,17 +26,19 @@ import shutil, xmlrpclib
 import scsiutil, iscsilib
 import xs_errors, errno
 
-CAPABILITIES = ["SR_PROBE","VDI_CREATE","VDI_DELETE","VDI_ATTACH",
+CAPABILITIES = ["SR_PROBE", "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH",
                 "VDI_DETACH", "VDI_INTRODUCE"]
 
-CONFIGURATION = [ [ 'target', 'IP address or hostname of the iSCSI target (required)' ], \
-                  [ 'targetIQN', 'The IQN of the target LUN group to be attached (required)' ], \
-                  [ 'chapuser', 'The username to be used during CHAP authentication (optional)' ], \
-                  [ 'chappassword', 'The password to be used during CHAP authentication (optional)' ], \
-                  [ 'incoming_chapuser', 'The incoming username to be used during bi-directional CHAP authentication (optional)' ], \
-                  [ 'incoming_chappassword', 'The incoming password to be used during bi-directional CHAP authentication (optional)' ], \
-                  [ 'port', 'The network port number on which to query the target (optional)' ], \
-                  [ 'multihomed', 'Enable multi-homing to this target, true or false (optional, defaults to same value as host.other_config:multipathing)' ] ]
+CONFIGURATION = [
+    ['target', 'IP address or hostname of the iSCSI target (required)'],
+    ['targetIQN', 'The IQN of the target LUN group to be attached (required)'],
+    ['chapuser', 'The username to be used during CHAP authentication (optional)'],
+    ['chappassword', 'The password to be used during CHAP authentication (optional)'],
+    ['incoming_chapuser', 'The incoming username to be used during bi-directional CHAP authentication (optional)'],
+    ['incoming_chappassword', 'The incoming password to be used during bi-directional CHAP authentication (optional)'],
+    ['port', 'The network port number on which to query the target (optional)'],
+    ['multihomed', 'Enable multi-homing to this target, true or false (optional, defaults to same value as host.other_config:multipathing)']
+]
 
 DRIVER_INFO = {
     'name': 'iSCSI',
@@ -47,7 +49,7 @@ DRIVER_INFO = {
     'required_api_version': '1.0',
     'capabilities': CAPABILITIES,
     'configuration': CONFIGURATION
-    }
+}
 
 INITIATORNAME_FILE = '/etc/iscsi/initiatorname.iscsi'
 SECTOR_SHIFT = 9
@@ -57,6 +59,7 @@ MAXPORT = 65535
 MAX_TIMEOUT = 15
 MAX_LUNID_TIMEOUT = 60
 ISCSI_PROCNAME = "iscsi_tcp"
+
 
 class ISCSISR(SR.SR):
     """ISCSI storage repository"""
@@ -95,14 +98,13 @@ class ISCSISR(SR.SR):
             except:
                 pass
 
-
     def load(self, sr_uuid):
         self.sr_vditype = 'phy'
         self.discoverentry = 0
         self.default_vdi_visibility = False
 
         # Required parameters
-        if not self.dconf.has_key('target') or  not self.dconf['target']:
+        if not self.dconf.has_key('target') or not self.dconf['target']:
             raise xs_errors.XenError('ConfigTargetMissing')
 
         # we are no longer putting hconf in the xml.
@@ -169,7 +171,7 @@ class ISCSISR(SR.SR):
         elif self.mpath == 'true':
             self.multihomed = True
 
-        if not self.dconf.has_key('targetIQN') or  not self.dconf['targetIQN']:
+        if not self.dconf.has_key('targetIQN') or not self.dconf['targetIQN']:
             self._scan_IQNs()
             raise xs_errors.XenError('ConfigTargetIQNMissing')
 
@@ -187,13 +189,13 @@ class ISCSISR(SR.SR):
         self.pathdict = {}
         addrlist = []
         rec = {}
-        key = "%s:%d" % (self.target,self.port)
+        key = "%s:%d" % (self.target, self.port)
         rec['ipaddr'] = self.target
         rec['port'] = self.port
-        rec['path'] = os.path.join("/dev/iscsi",self.targetIQN,\
+        rec['path'] = os.path.join("/dev/iscsi", self.targetIQN,
                                    key)
         self.pathdict[key] = rec
-        util.SMlog("PATHDICT: key %s: %s" % (key,rec))
+        util.SMlog("PATHDICT: key %s: %s" % (key, rec))
         self.tgtidx = key
         addrlist.append(key)
 
@@ -204,18 +206,18 @@ class ISCSISR(SR.SR):
 
         if self.multihomed:
             map = iscsilib.get_node_records(targetIQN=self.targetIQN)
-            for i in range(0,len(map)):
-                (portal,tpgt,iqn) = map[i]
+            for i in range(0, len(map)):
+                (portal, tpgt, iqn) = map[i]
                 (ipaddr, port) = iscsilib.parse_IP_port(portal)
                 if self.target != ipaddr:
-                    key = "%s:%s" % (ipaddr,port)
+                    key = "%s:%s" % (ipaddr, port)
                     rec = {}
                     rec['ipaddr'] = ipaddr
                     rec['port'] = long(port)
-                    rec['path'] = os.path.join("/dev/iscsi",self.targetIQN,\
-                                   key)
+                    rec['path'] = os.path.join("/dev/iscsi", self.targetIQN,
+                                               key)
                     self.pathdict[key] = rec
-                    util.SMlog("PATHDICT: key %s: %s" % (key,rec))
+                    util.SMlog("PATHDICT: key %s: %s" % (key, rec))
                     addrlist.append(key)
 
         # Try to detect an active path in order of priority
@@ -240,7 +242,7 @@ class ISCSISR(SR.SR):
                 if targetIQN != self.targetIQN:
                     continue
                 (addr, port) = iscsilib.get_targetIP_and_port(host)
-                entry = "%s:%s" % (addr,port)
+                entry = "%s:%s" % (addr, port)
                 self.adapter[entry] = host
             except:
                 pass
@@ -249,13 +251,13 @@ class ISCSISR(SR.SR):
     def attach(self, sr_uuid):
         self._mpathHandle()
 
-        npaths=0
+        npaths = 0
         if not self.attached:
             # Verify iSCSI target and port
             if self.dconf.has_key('multihomelist') and not self.dconf.has_key('multiSession'):
                 targetlist = self.dconf['multihomelist'].split(',')
             else:
-                targetlist = ['%s:%d' % (self.target,self.port)]
+                targetlist = ['%s:%d' % (self.target, self.port)]
             conn = False
             for val in targetlist:
                 (target, port) = iscsilib.parse_IP_port(val)
@@ -286,21 +288,21 @@ class ISCSISR(SR.SR):
                             pass
                     if len(map) == 0:
                         map = iscsilib.discovery(self.target, self.port,
-                                                  self.chapuser, self.chappassword,
-                                                  self.targetIQN,
-                                                  self._get_iscsi_interfaces())
+                                                 self.chapuser, self.chappassword,
+                                                 self.targetIQN,
+                                                 self._get_iscsi_interfaces())
                     if len(map) == 0:
                         self._scan_IQNs()
                         raise xs_errors.XenError('ISCSIDiscovery',
                                                  opterr='check target settings')
-                    for i in range(0,len(map)):
-                        (portal,tpgt,iqn) = map[i]
+                    for i in range(0, len(map)):
+                        (portal, tpgt, iqn) = map[i]
                         try:
                             (ipaddr, port) = iscsilib.parse_IP_port(portal)
                             if not self.multihomed and ipaddr != self.target:
                                 continue
                             util._testHost(ipaddr, long(port), 'ISCSITarget')
-                            util.SMlog("Logging in to [%s:%s]" % (ipaddr,port))
+                            util.SMlog("Logging in to [%s:%s]" % (ipaddr, port))
                             iscsilib.login(portal, iqn, self.chapuser, self.chappassword, self.incoming_chapuser, self.incoming_chappassword)
                             npaths = npaths + 1
                         except Exception, e:
@@ -313,14 +315,14 @@ class ISCSISR(SR.SR):
                                 pass
 
                     if not iscsilib._checkTGT(self.targetIQN):
-                        raise xs_errors.XenError('ISCSIDevice', \
+                        raise xs_errors.XenError('ISCSIDevice',
                                                  opterr='during login')
 
                     # Allow the devices to settle
                     time.sleep(5)
 
                 except util.CommandException, inst:
-                    raise xs_errors.XenError('ISCSILogin', \
+                    raise xs_errors.XenError('ISCSILogin',
                                              opterr='code is %d' % inst.code)
             self.attached = True
         self._initPaths()
@@ -329,7 +331,8 @@ class ISCSISR(SR.SR):
         if self.dconf.has_key("multiSession"):
             IQNs = ""
             for iqn in self.dconf['multiSession'].split("|"):
-                if len(iqn): IQNs += iqn.split(',')[2]
+                if len(iqn):
+                    IQNs += iqn.split(',')[2]
         else:
             IQNs.append(self.targetIQN)
         sessions = 0
@@ -340,7 +343,7 @@ class ISCSISR(SR.SR):
                     sessions += 1
                     util.SMlog("IQN match. Incrementing sessions to %d" % sessions)
             except:
-                util.SMlog("Failed to read targetname path," \
+                util.SMlog("Failed to read targetname path,"
                            + "iscsi_sessions value may be incorrect")
 
         try:
@@ -353,11 +356,10 @@ class ISCSISR(SR.SR):
             pass
 
         if self.mpath == 'true' and self.dconf.has_key('SCSIid'):
-            self.mpathmodule.refresh(self.dconf['SCSIid'],npaths)
+            self.mpathmodule.refresh(self.dconf['SCSIid'], npaths)
             # set the device mapper's I/O scheduler
             self.block_setscheduler('/dev/disk/by-scsid/%s/mapper'
-                    % self.dconf['SCSIid'])
-
+                                    % self.dconf['SCSIid'])
 
     def detach(self, sr_uuid):
         keys = []
@@ -367,7 +369,7 @@ class ISCSISR(SR.SR):
         except:
             pass
         if self.dconf.has_key('SCSIid'):
-            self.mpathmodule.reset(self.dconf['SCSIid'], True) # explicitly unmap
+            self.mpathmodule.reset(self.dconf['SCSIid'], True)  # explicitly unmap
             keys.append("mpath-" + self.dconf['SCSIid'])
 
         # Remove iscsi_sessions and multipathed keys
@@ -390,11 +392,11 @@ class ISCSISR(SR.SR):
             try:
                 iscsilib.logout(self.target, self.targetIQN, all=True)
             except util.CommandException, inst:
-                    raise xs_errors.XenError('ISCSIQueryDaemon', \
-                          opterr='error is %d' % inst.code)
+                    raise xs_errors.XenError('ISCSIQueryDaemon',
+                                             opterr='error is %d' % inst.code)
             if iscsilib._checkTGT(self.targetIQN):
-                raise xs_errors.XenError('ISCSIQueryDaemon', \
-                    opterr='Failed to logout from target')
+                raise xs_errors.XenError('ISCSIQueryDaemon',
+                                         opterr='Failed to logout from target')
 
         self.attached = False
 
@@ -404,8 +406,7 @@ class ISCSISR(SR.SR):
         for sr in SRs:
             record = SRs[sr]
             sm_config = record["sm_config"]
-            if sm_config.has_key('targetIQN') and \
-               sm_config['targetIQN'] == self.targetIQN:
+            if sm_config.has_key('targetIQN') and sm_config['targetIQN'] == self.targetIQN:
                 raise xs_errors.XenError('SRInUse')
         self.attach(sr_uuid)
         # Wait up to MAX_TIMEOUT for devices to appear
@@ -437,18 +438,16 @@ class ISCSISR(SR.SR):
         for sr in SRs:
             record = SRs[sr]
             sm_config = record["sm_config"]
-            if sm_config.has_key('targetIQN') and \
-               sm_config['targetIQN'] == self.targetIQN:
+            if sm_config.has_key('targetIQN') and sm_config['targetIQN'] == self.targetIQN:
                 Recs[record["uuid"]] = sm_config
         return self.srlist_toxml(Recs)
-
 
     def scan(self, sr_uuid):
         if not self.passthrough:
             if not self.attached:
                 raise xs_errors.XenError('SRUnavailable')
             self.refresh()
-            time.sleep(2) # it seems impossible to tell when a scan's finished
+            time.sleep(2)  # it seems impossible to tell when a scan's finished
             self._loadvdis()
             self.physical_utilisation = self.physical_size
             for uuid, vdi in self.vdis.iteritems():
@@ -470,7 +469,7 @@ class ISCSISR(SR.SR):
         map = iscsilib.discovery(self.target, self.port, self.chapuser,
                                  self.chappassword,
                                  interfaceArray=self._get_iscsi_interfaces())
-        map.append(("%s:%d" % (self.targetlist,self.port),"0","*"))
+        map.append(("%s:%d" % (self.targetlist, self.port), "0", "*"))
         self.print_entries(map)
 
     def _attach_LUN_bylunid(self, lunid):
@@ -481,7 +480,7 @@ class ISCSISR(SR.SR):
             if not self.pathdict.has_key(val):
                 continue
             rec = self.pathdict[val]
-            path = os.path.join(rec['path'],"LUN%s" % lunid)
+            path = os.path.join(rec['path'], "LUN%s" % lunid)
             realpath = os.path.realpath(path)
             host = self.adapter[val]
             l = [realpath, host, 0, 0, lunid]
@@ -497,23 +496,24 @@ class ISCSISR(SR.SR):
 
                 if real_SCSIid != None:
                     # make sure this is the same scsiid, if not remove the device
-                    cur_scsibuspath = glob.glob('/dev/disk/by-scsibus/*-%s:0:0:%s' % (host,lunid))
+                    cur_scsibuspath = glob.glob('/dev/disk/by-scsibus/*-%s:0:0:%s' % (host, lunid))
                     cur_SCSIid = os.path.basename(cur_scsibuspath[0]).split("-")[0]
                     if cur_SCSIid != real_SCSIid:
                         # looks stale, remove it
-                        scsiutil.scsi_dev_ctrl(l,"remove")
+                        scsiutil.scsi_dev_ctrl(l, "remove")
                     else:
-                        util.SMlog("Not attaching LUNID %s for adapter %s"\
-                            " since the device exists and the scsi id %s seems"\
+                        util.SMlog(
+                            "Not attaching LUNID %s for adapter %s"
+                            " since the device exists and the scsi id %s seems"
                             " to be valid. " % (lunid, val, real_SCSIid))
                         addDevice = False
                 else:
                     # looks stale, remove it
-                    scsiutil.scsi_dev_ctrl(l,"remove")
+                    scsiutil.scsi_dev_ctrl(l, "remove")
 
             if addDevice:
                 # add the device
-                scsiutil.scsi_dev_ctrl(l,"add")
+                scsiutil.scsi_dev_ctrl(l, "add")
                 if not util.wait_for_path(path, MAX_LUNID_TIMEOUT):
                     util.SMlog("Unable to detect LUN attached to host on path [%s]" % path)
                     continue
@@ -528,7 +528,7 @@ class ISCSISR(SR.SR):
             if not self.pathdict.has_key(val):
                 continue
             rec = self.pathdict[val]
-            path = os.path.join(rec['path'],"SERIAL-%s" % serialid)
+            path = os.path.join(rec['path'], "SERIAL-%s" % serialid)
             realpath = os.path.realpath(path)
             if not self.devs.has_key(realpath):
                 if not util.wait_for_path(path, 5):
@@ -547,17 +547,17 @@ class ISCSISR(SR.SR):
             if not self.pathdict.has_key(val):
                 continue
             rec = self.pathdict[val]
-            path = os.path.join(rec['path'],"LUN%s" % lunid)
+            path = os.path.join(rec['path'], "LUN%s" % lunid)
             realpath = os.path.realpath(path)
             if self.devs.has_key(realpath):
-		util.SMlog("Found key: %s" % realpath)
+                util.SMlog("Found key: %s" % realpath)
                 scsiutil.scsi_dev_ctrl(self.devs[realpath], 'remove')
                 # Wait for device to disappear
                 if not util.wait_for_nopath(realpath, MAX_LUNID_TIMEOUT):
-                    util.SMlog("Device has not disappeared after %d seconds" % \
+                    util.SMlog("Device has not disappeared after %d seconds" %
                                MAX_LUNID_TIMEOUT)
                 else:
-                    util.SMlog("Device [%s,%s] disappeared" % (realpath,path))
+                    util.SMlog("Device [%s,%s] disappeared" % (realpath, path))
 
     def _attach_LUN_bySCSIid(self, SCSIid):
         if not self.attached:
@@ -567,11 +567,10 @@ class ISCSISR(SR.SR):
         if not util.pathexists(path):
             self.refresh()
             if not util.wait_for_path(path, MAX_TIMEOUT):
-                util.SMlog("Unable to detect LUN attached to host [%s]" \
+                util.SMlog("Unable to detect LUN attached to host [%s]"
                            % path)
                 return False
         return True
-
 
     # This function queries the session for the attached LUNs
     def _loadvdis(self):
@@ -579,8 +578,8 @@ class ISCSISR(SR.SR):
         if not os.path.exists(self.path):
             return 0
         for file in filter(self.match_lun, util.listdir(self.path)):
-            vdi_path = os.path.join(self.path,file)
-            LUNid = file.replace("LUN","")
+            vdi_path = os.path.join(self.path, file)
+            LUNid = file.replace("LUN", "")
             uuid = scsiutil.gen_uuid_from_string(scsiutil.getuniqueserial(vdi_path))
             obj = self.vdi(uuid)
             obj._query(vdi_path, LUNid)
@@ -601,7 +600,7 @@ class ISCSISR(SR.SR):
         LUNid = long(sm_config['LUNid'])
         if not len(self._attach_LUN_bylunid(LUNid)):
             raise xs_errors.XenError('VDIUnavailable')
-        return os.path.join(self.path,"LUN%d" % LUNid)
+        return os.path.join(self.path, "LUN%d" % LUNid)
 
     # This function takes an ISCSI device and populate it with
     # a dictionary of available LUNs on that target.
@@ -610,8 +609,8 @@ class ISCSISR(SR.SR):
         if os.path.exists(self.path):
             for file in util.listdir(self.path):
                 if file.find("LUN") != -1 and file.find("_") == -1:
-                    vdi_path = os.path.join(self.path,file)
-                    LUNid = file.replace("LUN","")
+                    vdi_path = os.path.join(self.path, file)
+                    LUNid = file.replace("LUN", "")
                     obj = self.vdi(self.uuid)
                     obj._query(vdi_path, LUNid)
                     self.LUNs[obj.uuid] = obj
@@ -621,7 +620,7 @@ class ISCSISR(SR.SR):
         element = dom.createElement("iscsi-target-iqns")
         dom.appendChild(element)
         count = 0
-        for address,tpgt,iqn in map:
+        for address, tpgt, iqn in map:
             entry = dom.createElement('TGT')
             element.appendChild(entry)
             subentry = dom.createElement('Index')
@@ -652,7 +651,7 @@ class ISCSISR(SR.SR):
             textnode = dom.createTextNode(str(iqn))
             subentry.appendChild(textnode)
             count += 1
-        print >>sys.stderr,dom.toprettyxml()
+        print >> sys.stderr, dom.toprettyxml()
 
     def srlist_toxml(self, SRs):
         dom = xml.dom.minidom.Document()
@@ -682,27 +681,26 @@ class ISCSISR(SR.SR):
 
     def match_lun(self, s):
         regex = re.compile("_")
-        if regex.search(s,0):
+        if regex.search(s, 0):
             return False
         regex = re.compile("LUN")
         return regex.search(s, 0)
-
 
     def _get_iscsi_interfaces(self):
         result = []
         try:
             # Get all configured iscsiadm interfaces
             cmd = ["iscsiadm", "-m", "iface"]
-            (stdout,stderr)= iscsilib.exn_on_failure(cmd,
-                                                    "Failure occured querying iscsi daemon");
+            (stdout, stderr) = iscsilib.exn_on_failure(
+                cmd, "Failure occured querying iscsi daemon")
             # Get the interface (first column) from a line such as default
             # tcp,<empty>,<empty>,<empty>,<empty>
             for line in stdout.split("\n"):
                 line_element = line.split(" ")
-                interface_name = line_element[0];
+                interface_name = line_element[0]
                 # ignore interfaces which aren't marked as starting with
                 # c_.
-                if len(line_element)==2 and interface_name[:2]=="c_":
+                if len(line_element) == 2 and interface_name[:2] == "c_":
                     result.append(interface_name)
         except:
             # Ignore exception from exn on failure, still return the default
