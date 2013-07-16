@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -94,13 +94,13 @@ class ISCSISR(SR.SR):
                     self.session.xenapi.PBD.set_device_config(pbd, device_config)
             except:
                 pass
-                
+
 
     def load(self, sr_uuid):
         self.sr_vditype = 'phy'
         self.discoverentry = 0
         self.default_vdi_visibility = False
-        
+
         # Required parameters
         if not self.dconf.has_key('target') or  not self.dconf['target']:
             raise xs_errors.XenError('ConfigTargetMissing')
@@ -114,16 +114,16 @@ class ISCSISR(SR.SR):
                 self.localIQN = self.dconf['localIQN']
         except:
             raise xs_errors.XenError('ConfigISCSIIQNMissing')
-        
+
         # Check for empty string
         if not self.localIQN:
             raise xs_errors.XenError('ConfigISCSIIQNMissing')
-        
+
         try:
             self.target = util._convertDNS(self.dconf['target'].split(',')[0])
         except:
             raise xs_errors.XenError('DNSError')
-        
+
         self.targetlist = self.target
         if self.dconf.has_key('targetlist'):
             self.targetlist = self.dconf['targetlist']
@@ -201,7 +201,7 @@ class ISCSISR(SR.SR):
         self.address = self.tgtidx
         if not self.attached:
             return
-        
+
         if self.multihomed:
             map = iscsilib.get_node_records(targetIQN=self.targetIQN)
             for i in range(0,len(map)):
@@ -291,7 +291,7 @@ class ISCSISR(SR.SR):
                                                   self._get_iscsi_interfaces())
                     if len(map) == 0:
                         self._scan_IQNs()
-                        raise xs_errors.XenError('ISCSIDiscovery', 
+                        raise xs_errors.XenError('ISCSIDiscovery',
                                                  opterr='check target settings')
                     for i in range(0,len(map)):
                         (portal,tpgt,iqn) = map[i]
@@ -304,7 +304,7 @@ class ISCSISR(SR.SR):
                             iscsilib.login(portal, iqn, self.chapuser, self.chappassword, self.incoming_chapuser, self.incoming_chappassword)
                             npaths = npaths + 1
                         except Exception, e:
-                            # Exceptions thrown in login are acknowledged, 
+                            # Exceptions thrown in login are acknowledged,
                             # the rest of exceptions are ignored since some of the
                             # paths in multipath may not be reachable
                             if str(e) == 'ISCSI login failed, verify CHAP credentials':
@@ -315,10 +315,10 @@ class ISCSISR(SR.SR):
                     if not iscsilib._checkTGT(self.targetIQN):
                         raise xs_errors.XenError('ISCSIDevice', \
                                                  opterr='during login')
-                
+
                     # Allow the devices to settle
                     time.sleep(5)
-                
+
                 except util.CommandException, inst:
                     raise xs_errors.XenError('ISCSILogin', \
                                              opterr='code is %d' % inst.code)
@@ -410,7 +410,7 @@ class ISCSISR(SR.SR):
         self.attach(sr_uuid)
         # Wait up to MAX_TIMEOUT for devices to appear
         util.wait_for_path(self.path, MAX_TIMEOUT)
-        
+
         if self._loadvdis() > 0:
             scanrecord = SR.ScanRecord(self)
             scanrecord.synchronise()
@@ -441,8 +441,8 @@ class ISCSISR(SR.SR):
                sm_config['targetIQN'] == self.targetIQN:
                 Recs[record["uuid"]] = sm_config
         return self.srlist_toxml(Recs)
-                
-    
+
+
     def scan(self, sr_uuid):
         if not self.passthrough:
             if not self.attached:
@@ -456,7 +456,7 @@ class ISCSISR(SR.SR):
                     self.physical_utilisation += vdi.size
             self.virtual_allocation = self.physical_utilisation
         return super(ISCSISR, self).scan(sr_uuid)
-                
+
     def vdi(self, uuid):
         return LUNperVDI.RAWVDI(self, uuid)
 
@@ -485,8 +485,8 @@ class ISCSISR(SR.SR):
             realpath = os.path.realpath(path)
             host = self.adapter[val]
             l = [realpath, host, 0, 0, lunid]
-            
-            addDevice = True            
+
+            addDevice = True
             if self.devs.has_key(realpath):
                 # if the device is stale remove it before adding again
                 real_SCSIid = None
@@ -494,11 +494,11 @@ class ISCSISR(SR.SR):
                     real_SCSIid = scsiutil.getSCSIid(realpath)
                 except:
                     pass
-                
+
                 if real_SCSIid != None:
-                    # make sure this is the same scsiid, if not remove the device                    
+                    # make sure this is the same scsiid, if not remove the device
                     cur_scsibuspath = glob.glob('/dev/disk/by-scsibus/*-%s:0:0:%s' % (host,lunid))
-                    cur_SCSIid = os.path.basename(cur_scsibuspath[0]).split("-")[0]                    
+                    cur_SCSIid = os.path.basename(cur_scsibuspath[0]).split("-")[0]
                     if cur_SCSIid != real_SCSIid:
                         # looks stale, remove it
                         scsiutil.scsi_dev_ctrl(l,"remove")
@@ -547,7 +547,7 @@ class ISCSISR(SR.SR):
             if not self.pathdict.has_key(val):
                 continue
             rec = self.pathdict[val]
-            path = os.path.join(rec['path'],"LUN%s" % lunid)            
+            path = os.path.join(rec['path'],"LUN%s" % lunid)
             realpath = os.path.realpath(path)
             if self.devs.has_key(realpath):
 		util.SMlog("Found key: %s" % realpath)
@@ -648,7 +648,7 @@ class ISCSISR(SR.SR):
                 subentry.appendChild(textnode)
 
             subentry = dom.createElement('TargetIQN')
-            entry.appendChild(subentry)           
+            entry.appendChild(subentry)
             textnode = dom.createTextNode(str(iqn))
             subentry.appendChild(textnode)
             count += 1
@@ -685,8 +685,8 @@ class ISCSISR(SR.SR):
         if regex.search(s,0):
             return False
         regex = re.compile("LUN")
-        return regex.search(s, 0)    
-        
+        return regex.search(s, 0)
+
 
     def _get_iscsi_interfaces(self):
         result = []
