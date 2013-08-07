@@ -43,10 +43,11 @@ class IPCFlag:
 
     def set(self, name, soft=False):
         """Set the flag
-        
+
         name: the file to set
-        soft: If set to False and the file already exists it is overwritten.
-        
+        soft: If set to False and the file gets created while this function is
+        trying to set create, the file MAY be overwritten.
+
         returns: False, if soft is set to True and the file already exists,
         True otherwise."""
         if not soft and self.test(name): # FIXME this is broken!
