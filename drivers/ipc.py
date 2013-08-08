@@ -48,9 +48,8 @@ class IPCFlag:
         soft: If set to False and the file gets created while this function is
         trying to set create, the file MAY be overwritten.
 
-        returns: False, if soft is set to True and the file already exists,
-        True otherwise."""
-        if not soft and self.test(name): # FIXME this is broken!
+        returns: True if the file is written, False otherwise."""
+        if not soft and self.test(name): # XXX this is broken!
             return
         flagFile = os.path.join(self.nsDir, name)
         try:
