@@ -33,7 +33,6 @@ import re
 iscsi_mpath_file = "/etc/iscsi/iscsid-mpath.conf"
 iscsi_default_file = "/etc/iscsi/iscsid-default.conf"
 iscsi_file = "/etc/iscsi/iscsid.conf"
-hba_script = "/opt/xensource/sm/mpathHBA"
 
 DMPBIN = "/sbin/multipath"
 DEVMAPPERPATH = "/dev/mapper"
@@ -206,9 +205,6 @@ def _refresh_MPP(sid, npaths):
 
 def activate():
     util.SMlog("MPATH: multipath activate called")
-    # Adjust any HBAs on the host
-    cmd = [hba_script, "enable"]
-    util.SMlog(util.pread2(cmd))
     cmd = ['ln', '-sf', iscsi_mpath_file, iscsi_file]
     try:
         util.pread2(cmd)
@@ -224,12 +220,12 @@ def activate():
         
     # Start the updatempppathd daemon
     if not _is_mpp_daemon_running():
-        cmd = ["/etc/init.d/updatempppathd", "start"]
+        cmd = ["service", "updatempppathd", "start"]
         util.pread2(cmd)
 
     if not _is_mpath_daemon_running():
         util.SMlog("Warning: multipath daemon not running.  Starting daemon!")
-        cmd = ["/etc/init.d/multipathd", "start"]
+        cmd = ["service", "multipathd", "start"]
         util.pread2(cmd)
 
     for i in range(0,120):
@@ -243,15 +239,12 @@ def activate():
 
 def deactivate():
     util.SMlog("MPATH: multipath deactivate called")
-    # Adjust any HBAs on the host
-    cmd = [hba_script, "disable"]
-    util.SMlog(util.pread2(cmd))
     cmd = ['ln', '-sf', iscsi_default_file, iscsi_file]
     util.pread2(cmd)
 
     # Stop the updatempppathd daemon
     if _is_mpp_daemon_running():
-        cmd = ["/etc/init.d/updatempppathd", "stop"]
+        cmd = ["service", "updatempppathd", "stop"]
         util.pread2(cmd)
 
     if _is_mpath_daemon_running():

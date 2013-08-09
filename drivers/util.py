@@ -381,6 +381,13 @@ def pathexists(path):
             raise CommandException(errno.EIO, "os.stat(%s)" % path, "failed")
         return False
 
+def silent_noent(fn, func=os.unlink):
+    try:
+        func(fn)
+    except OSError, e:
+        if e.errno != errno.ENOENT:
+            raise
+
 def create_secret(session, secret):
     ref = session.xenapi.secret.create({'value' : secret})
     return session.xenapi.secret.get_uuid(ref)
@@ -634,6 +641,10 @@ def get_all_slaves(session):
     return filter(lambda x: x != master_ref, host_refs)
 
 def get_nfs_timeout(session, sr_uuid):
+    if not isinstance(session, XenAPI.Session):
+        SMlog("No XAPI session for getting nfs timeout config")
+        return 0
+
     try:
         sr_ref = session.xenapi.SR.get_by_uuid(sr_uuid)
         other_config = session.xenapi.SR.get_other_config(sr_ref)
@@ -1166,7 +1177,9 @@ fistpoint = FistPoint( ["LVHDRT_finding_a_suitable_pair",
                         "LVHDRT_coaleaf_delay_2",
                         "LVHDRT_coaleaf_delay_3",
                         "testsm_clone_allow_raw",
-                        "xenrt_default_vdi_type_legacy"] )
+                        "xenrt_default_vdi_type_legacy",
+                        "blktap_activate_inject_failure",
+                        "blktap_activate_error_handling"] )
 
 def set_dirty(session, sr):
     try:
@@ -1623,3 +1636,6 @@ def open_atomic(path, mode=None):
     except:
         os.close(fd)
         raise
+
+def inject_failure():
+    raise Exception('injected failure')
