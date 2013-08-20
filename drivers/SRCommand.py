@@ -23,7 +23,7 @@ import sys, errno, syslog
 import xs_errors
 import xmlrpclib
 import SR, VDI, util
-import blktap2
+import blktap3
 import resetvdis
 import os
 import copy
@@ -119,12 +119,12 @@ class SRCommand:
                 excType = "SMGeneral"
             raise xs_errors.XenError(excType, opterr=msg)
 
-        except blktap2.TapdiskFailed, e:
+        except blktap3.TapdiskFailed, e:
             util.logException('tapdisk failed exception: %s' % e)
             raise xs_errors.XenError('TapdiskFailed',
                 os.strerror(e.get_error().get_error_code()))
 
-        except blktap2.TapdiskExists, e:            
+        except blktap3.TapdiskExists, e:            
             util.logException('tapdisk exists exception: %s' % e)
             raise xs_errors.XenError('TapdiskAlreadyRunning', e.__str__())
 
@@ -170,9 +170,9 @@ class SRCommand:
                 util.SMlog("%s %s" % (self.cmd, repr(self.params)))
 
         caching_params = dict((k, self.params.get(k)) for k in \
-                [blktap2.VDI.CONF_KEY_ALLOW_CACHING,
-                 blktap2.VDI.CONF_KEY_MODE_ON_BOOT,
-                 blktap2.VDI.CONF_KEY_CACHE_SR])
+                [blktap3.VDI.CONF_KEY_ALLOW_CACHING,
+                 blktap3.VDI.CONF_KEY_MODE_ON_BOOT,
+                 blktap3.VDI.CONF_KEY_CACHE_SR])
 
         if self.cmd == 'vdi_create':
             # These are the fields owned by the backend, passed on the
@@ -223,12 +223,12 @@ class SRCommand:
             return target.delete(self.params['sr_uuid'], self.vdi_uuid)
 
         elif self.cmd == 'vdi_attach':
-            target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
+            target = blktap3.VDI(self.vdi_uuid, target, self.driver_info)
             writable = self.params['args'][0] == 'true'
             return target.attach(self.params['sr_uuid'], self.vdi_uuid, writable)
 
         elif self.cmd == 'vdi_detach':
-            target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
+            target = blktap3.VDI(self.vdi_uuid, target, self.driver_info)
             return target.detach(self.params['sr_uuid'], self.vdi_uuid)
 
         elif self.cmd == 'vdi_snapshot':
@@ -243,19 +243,19 @@ class SRCommand:
         elif self.cmd == 'vdi_resize_online':
             return target.resize_online(self.params['sr_uuid'], self.vdi_uuid, long(self.params['args'][0]))
         
-        elif self.cmd == 'vdi_activate':
-            target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
+        elif self.cmd == 'vdi_activate':            
+            target = blktap3.VDI(self.vdi_uuid, target, self.driver_info)
             writable = self.params['args'][0] == 'true'
             return target.activate(self.params['sr_uuid'], self.vdi_uuid,
                                    writable, caching_params)
 
         elif self.cmd == 'vdi_deactivate':
-            target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
+            target = blktap3.VDI(self.vdi_uuid, target, self.driver_info)
             return target.deactivate(self.params['sr_uuid'], self.vdi_uuid,
                     caching_params)
 
         elif self.cmd == 'vdi_epoch_begin':
-            if caching_params.get(blktap2.VDI.CONF_KEY_MODE_ON_BOOT) != "reset":
+            if caching_params.get(blktap3.VDI.CONF_KEY_MODE_ON_BOOT) != "reset":
                 return
             if not "VDI_RESET_ON_BOOT/2" in self.driver_info['capabilities']:
                 raise xs_errors.XenError('Unimplemented')
@@ -275,7 +275,7 @@ class SRCommand:
             ret = target.attach_from_config(self.params['sr_uuid'], self.vdi_uuid)
             if not target.sr.driver_config.get("ATTACH_FROM_CONFIG_WITH_TAPDISK"):
                 return ret
-            target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
+            target = blktap3.VDI(self.vdi_uuid, target, self.driver_info)
             return target.attach(self.params['sr_uuid'], self.vdi_uuid, True, True)
 
         elif self.cmd == 'sr_create':

@@ -43,7 +43,7 @@ rm -rf $RPM_BUILD_ROOT
 /etc/xapi.d/plugins/vss_control
 /etc/xapi.d/plugins/intellicache-clean
 /etc/xensource/master.d/02-vhdcleanup
-/opt/xensource/bin/blktap2
+/opt/xensource/bin/blktap3
 /opt/xensource/bin/tapdisk-cache-stats
 /opt/xensource/debug/tp
 /opt/xensource/libexec/check-device-sharing
@@ -105,9 +105,9 @@ rm -rf $RPM_BUILD_ROOT
 /opt/xensource/sm/VDI.pyc
 /opt/xensource/sm/VDI.pyo
 /opt/xensource/sm/XE_SR_ERRORCODES.xml
-/opt/xensource/sm/blktap2.py
-/opt/xensource/sm/blktap2.pyc
-/opt/xensource/sm/blktap2.pyo
+/opt/xensource/sm/blktap3.py
+/opt/xensource/sm/blktap3.pyc
+/opt/xensource/sm/blktap3.pyo
 /opt/xensource/sm/cleanup.py
 /opt/xensource/sm/cleanup.pyc
 /opt/xensource/sm/cleanup.pyo

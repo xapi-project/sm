@@ -21,7 +21,7 @@ import os
 import sys
 import XenAPIPlugin
 sys.path.append("/opt/xensource/sm/")
-import blktap2, util
+import blktap3, util
 from lock import Lock
 import xs_errors
 import XenAPI
@@ -146,12 +146,12 @@ class Tapdisk:
             util.SMlog("No %s: nothing to pause" % self.path)
             return str(True)
         self.major, self.minor = _getDevMajor_minor(self.path)
-        if self.major != blktap2.Tapdisk.major():
+        if self.major != blktap3.Tapdisk.major():
             util.SMlog("Non-tap major number: %d" % self.major)
             return str(False)
         tapargs = {"minor":self.minor}
         util.SMlog("Calling tap pause with minor %d" % self.minor)
-        tapdisk = blktap2.Tapdisk.get(**tapargs)
+        tapdisk = blktap3.Tapdisk.get(**tapargs)
         tapdisk.pause()
         return str(True)
 
@@ -163,7 +163,7 @@ class Tapdisk:
             return str(True)
         self._pathRefresh()
         self.major, self.minor = _getDevMajor_minor(self.path)    
-        if self.major != blktap2.Tapdisk.major():
+        if self.major != blktap3.Tapdisk.major():
             util.SMlog("Non-tap major number: %d" % self.major)
             return str(False)
         if self.activate_parents:
@@ -181,7 +181,7 @@ class Tapdisk:
 
         tapargs = {"minor":self.minor}
         util.SMlog("Calling tap unpause with minor %d" % self.minor)
-        tapdisk = blktap2.Tapdisk.get(**tapargs)
+        tapdisk = blktap3.Tapdisk.get(**tapargs)
         tapdisk.unpause(self.vdi_type, self.realpath, self.secondary)
         return str(True)
 

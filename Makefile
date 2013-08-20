@@ -45,7 +45,7 @@ SM_LIBS += ipc
 SM_LIBS += srmetadata
 SM_LIBS += metadata
 SM_LIBS += lvmanager
-SM_LIBS += blktap2
+SM_LIBS += blktap3
 SM_LIBS += mpp_mpathutil
 SM_LIBS += mpp_luncheck
 SM_LIBS += updatempppathd
@@ -121,7 +121,7 @@ install:
 	$(MAKE) -C snapwatchd install DESTDIR=$(SM_STAGING)
 	$(MAKE) -C mpathroot install DESTDIR=$(SM_STAGING)
 	$(MAKE) -C diskdatatest
-	ln -sf $(SM_DEST)blktap2.py $(SM_STAGING)$(BIN_DEST)/blktap2
+	ln -sf $(SM_DEST)blktap3.py $(SM_STAGING)$(BIN_DEST)/blktap3
 	install -m 755 -d $(SM_STAGING)$(CRON_DEST)
 	install -m 644 $(CRON_JOBS:%=etc/cron.d/%) -t $(SM_STAGING)$(CRON_DEST)
 	ln -sf $(SM_DEST)lcache.py $(SM_STAGING)$(BIN_DEST)tapdisk-cache-stats

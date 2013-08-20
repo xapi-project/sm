@@ -16,7 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 import os
-import blktap2
+import blktap3
 import glob
 import SR
 from stat import * # S_ISBLK(), ...
@@ -252,7 +252,7 @@ class CacheFileSR(object):
 
         tapdisks = []
 
-        for tapdisk in blktap2.Tapdisk.list():
+        for tapdisk in blktap3.Tapdisk.list():
             try:
                 ext = os.path.splitext(tapdisk.path)[1]
             except:
@@ -262,7 +262,7 @@ class CacheFileSR(object):
 
             try:
                 stats = tapdisk.stats()
-            except blktap2.TapCtl.CommandFailure, e:
+            except blktap3.TapCtl.CommandFailure, e:
                 if e.errno != errno.ENOENT: raise
                 continue # shut down
 

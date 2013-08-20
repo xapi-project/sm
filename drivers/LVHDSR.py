@@ -33,7 +33,7 @@ import xml.dom.minidom
 import errno
 import xs_errors
 import cleanup
-import blktap2
+import blktap3
 from journaler import Journaler
 from lock import Lock
 from refcounter import RefCounter
@@ -1446,12 +1446,12 @@ class LVHDVDI(VDI.VDI):
         if self.sr.srcmd.params['driver_params'].get("mirror"):
             secondary = self.sr.srcmd.params['driver_params']["mirror"]
 
-        if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
+        if not blktap3.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
             raise util.SMException("failed to pause VDI %s" % vdi_uuid)
         try:
             return self._snapshot(snapType)
         finally:
-            blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
+            blktap3.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
 
     def clone(self, sr_uuid, vdi_uuid):
         return self._snapshot(self.SNAPSHOT_DOUBLE, True)
@@ -1472,7 +1472,7 @@ class LVHDVDI(VDI.VDI):
         vhdutil.setParent(self.path, parent_path, False)
         vhdutil.setHidden(parent_path)
 
-        if not blktap2.VDI.tap_refresh(self.session, self.sr.uuid, self.uuid,
+        if not blktap3.VDI.tap_refresh(self.session, self.sr.uuid, self.uuid,
                 True):
             raise util.SMException("failed to refresh VDI %s" % self.uuid)
 

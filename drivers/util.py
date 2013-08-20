@@ -317,7 +317,7 @@ def sr_get_driver_info(driver_info):
                  'driver_version', 'required_api_version' ]:
         results[key] = driver_info[key]
     # add the capabilities (xmlrpc array)
-    # enforcing activate/deactivate for blktap2
+    # enforcing activate/deactivate for blktap3
     caps = driver_info['capabilities']
     if "ATOMIC_PAUSE" in caps:
         for cap in ("VDI_ACTIVATE", "VDI_DEACTIVATE"):
@@ -1602,3 +1602,10 @@ def splitXmlText( xmlData, segmentLen = DEFAULT_SEGMENT_LEN, showContd = False )
 
 def inject_failure():
     raise Exception('injected failure')
+
+def winpdb(passwd='xenroot'):
+    import sys
+    if not sys.modules.has_key('rpdb2'):
+        import rpdb2;
+        rpdb2.start_embedded_debugger(passwd, fAllowUnencrypted = True,
+                fAllowRemote = True)

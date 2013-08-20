@@ -24,7 +24,7 @@ import errno
 import xml.dom.minidom
 import xs_errors
 import cleanup
-import blktap2
+import blktap3
 import XenAPI
 from lock import Lock
 
@@ -609,12 +609,12 @@ class FileVDI(VDI.VDI):
         if self.sr.srcmd.params['driver_params'].get("mirror"):
             secondary = self.sr.srcmd.params['driver_params']["mirror"]
 
-        if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
+        if not blktap3.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
             raise util.SMException("failed to pause VDI %s" % vdi_uuid)
         try:
             return self._snapshot(snap_type)
         finally:
-            blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
+            blktap3.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
         
     def clone(self, sr_uuid, vdi_uuid):
         if self.vdi_type != vhdutil.VDI_TYPE_VHD:
@@ -632,7 +632,7 @@ class FileVDI(VDI.VDI):
         util.pread2([vhdutil.VHD_UTIL, "modify", "-p", parent_path,
             "-n", self.path])
         # Tell tapdisk the chain has changed
-        if not blktap2.VDI.tap_refresh(self.session, sr_uuid, vdi2):
+        if not blktap3.VDI.tap_refresh(self.session, sr_uuid, vdi2):
             raise util.SMException("failed to refresh VDI %s" % self.uuid)
         util.SMlog("VDI.compose: relinked %s->%s" % (vdi2, vdi1))
 

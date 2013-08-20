@@ -39,11 +39,11 @@ import lvmcache
 import journaler
 import fjournaler
 import lock
-import blktap2
+import blktap3
 from refcounter import RefCounter
 from ipc import IPCFlag
 from lvmanager import LVActivator
-import blktap2
+import blktap3
 from srmetadata import LVMMetadataHandler
 
 # Disable automatic leaf-coalescing. Online leaf-coalesce is currently not 
@@ -487,12 +487,12 @@ class VDI:
             self.unpause()
 
     def pause(self):
-        if not blktap2.VDI.tap_pause(self.sr.xapi.session, self.sr.uuid,
+        if not blktap3.VDI.tap_pause(self.sr.xapi.session, self.sr.uuid,
                 self.uuid):
             raise util.SMException("Failed to pause VDI %s" % self)
 
     def unpause(self):
-        if not blktap2.VDI.tap_unpause(self.sr.xapi.session, self.sr.uuid,
+        if not blktap3.VDI.tap_unpause(self.sr.xapi.session, self.sr.uuid,
                 self.uuid):
             raise util.SMException("Failed to unpause VDI %s" % self)
 
@@ -501,7 +501,7 @@ class VDI:
         self.sr.lock()
         try:
             try:
-                if not blktap2.VDI.tap_refresh(self.sr.xapi.session,
+                if not blktap3.VDI.tap_refresh(self.sr.xapi.session,
                         self.sr.uuid, self.uuid):
                     raise util.SMException("Failed to refresh %s" % self)
             except XenAPI.Failure, e:
@@ -1931,7 +1931,7 @@ class FileSR(SR):
             if parentUuid:
                 lockId = parentUuid
 
-            cacheLock = lock.Lock(blktap2.VDI.LOCK_CACHE_SETUP, lockId)
+            cacheLock = lock.Lock(blktap3.VDI.LOCK_CACHE_SETUP, lockId)
             cacheLock.acquire()
             try:
                 if self._cleanupCache(uuid, action):
@@ -1948,7 +1948,7 @@ class FileSR(SR):
             return False
 
         fullPath = os.path.join(self.path, uuid + self.CACHE_FILE_EXT)
-        tapdisk = blktap2.Tapdisk.find_by_path(fullPath)
+        tapdisk = blktap3.Tapdisk.find_by_path(fullPath)
         if tapdisk:
             if action == self.CACHE_ACTION_REMOVE_IF_INACTIVE:
                 Util.log("Cache %s still in use" % uuid)
