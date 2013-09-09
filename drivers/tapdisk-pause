@@ -58,10 +58,6 @@ def locking(excType, override=True):
         return wrapper
     return locking2
 
-def _getDevMajor_minor(dev):
-    st = os.stat(dev)
-    return [os.major(st.st_rdev),os.minor(st.st_rdev)]
-
 def _mkphylink(sr_uuid, vdi_uuid, path):
     sympath = "/dev/sm/phy/%s/%s" % (sr_uuid,vdi_uuid)
     cmd = ['ln', '-sf', path, sympath]
@@ -145,12 +141,8 @@ class Tapdisk:
         if not os.path.exists(self.path):
             util.SMlog("No %s: nothing to pause" % self.path)
             return str(True)
-        self.major, self.minor = _getDevMajor_minor(self.path)
-        if self.major != blktap3.Tapdisk.major():
-            util.SMlog("Non-tap major number: %d" % self.major)
-            return str(False)
-        tapargs = {"minor":self.minor}
-        util.SMlog("Calling tap pause with minor %d" % self.minor)
+        tapargs = {"uuid": self.vdi_uuid}
+        util.SMlog("Calling tap pause with VDI UUID %s" % self.vdi_uuid)
         tapdisk = blktap3.Tapdisk.get(**tapargs)
         tapdisk.pause()
         return str(True)
@@ -162,10 +154,6 @@ class Tapdisk:
             util.SMlog("No %s: nothing to unpause" % self.path)
             return str(True)
         self._pathRefresh()
-        self.major, self.minor = _getDevMajor_minor(self.path)    
-        if self.major != blktap3.Tapdisk.major():
-            util.SMlog("Non-tap major number: %d" % self.major)
-            return str(False)
         if self.activate_parents:
             util.SMlog("Activating parents of %s" % self.vdi_uuid)
             vg_name = lvhdutil.VG_PREFIX + self.sr_uuid
@@ -179,8 +167,8 @@ class Tapdisk:
                     continue
                 lvm_cache.activate(ns, uuid, lv_name, False)
 
-        tapargs = {"minor":self.minor}
-        util.SMlog("Calling tap unpause with minor %d" % self.minor)
+        tapargs = {"minor": self.vdi_uuid}
+        util.SMlog("Calling tap unpause with VDI UUID %s" % self.vdi_uuid)
         tapdisk = blktap3.Tapdisk.get(**tapargs)
         tapdisk.unpause(self.vdi_type, self.realpath, self.secondary)
         return str(True)
