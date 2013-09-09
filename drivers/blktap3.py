@@ -569,9 +569,8 @@ class Tapdisk(object):
     def get_arg(self):
         return self.Arg(self.type, self.path)
  
-    # FIXME tapdisk should create a socket named after the UUID
     def get_devpath(self):
-        return '/var/run/blktap-control/nbd%s' % self.pid
+        return '/var/run/blktap-control/nbd%s.%s' % (self.pid, self.uuid)
 
     @classmethod
     def launch_from_arg(cls, arg):
