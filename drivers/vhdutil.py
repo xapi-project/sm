@@ -156,6 +156,7 @@ def getParentChain(lvName, extractUuidFunction, vgName):
     #util.SMlog("Parent chain for %s: %s" % (lvName, chain))
     return chain
 
+# TODO remove trailing whitespace
 def getParent(path, extractUuidFunction):
     cmd = [VHD_UTIL, "query", OPT_LOG_ERR, "-p", "-n", path]
     ret = ioretry(cmd)
