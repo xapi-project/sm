@@ -167,7 +167,7 @@ class Tapdisk:
                     continue
                 lvm_cache.activate(ns, uuid, lv_name, False)
 
-        tapargs = {"minor": self.vdi_uuid}
+        tapargs = {"uuid": self.vdi_uuid}
         util.SMlog("Calling tap unpause with VDI UUID %s" % self.vdi_uuid)
         tapdisk = blktap3.Tapdisk.get(**tapargs)
         tapdisk.unpause(self.vdi_type, self.realpath, self.secondary)
