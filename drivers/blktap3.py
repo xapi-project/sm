@@ -928,11 +928,6 @@ class VDI(object):
             target_rdev = self._real_stat(target).st_rdev
             return self.stat().st_rdev == target_rdev
 
-        def rdev(self):
-            st = self.stat()
-            assert S_ISBLK(st.st_mode)
-            return os.major(st.st_rdev), os.minor(st.st_rdev)
-
         class NotABlockDevice(Exception):
 
             def __init__(self, path, st):
@@ -948,11 +943,6 @@ class VDI(object):
             VDI.Link.__init__(self, path)
             self._devnode = VDI.DeviceNode(path)
             self._symlink = VDI.SymLink(path)
-
-        def rdev(self):
-            st = self.stat()
-            if S_ISBLK(st.st_mode): return self._devnode.rdev()
-            raise self._devnode.NotABlockDevice(self.path(), st)
 
         def mklink(self, target):
             if self._devnode.is_block(target):
