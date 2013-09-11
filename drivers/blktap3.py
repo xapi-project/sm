@@ -1455,15 +1455,17 @@ class VDI(object):
 
         vdi_type = self.target.get_vdi_type()
 
+        prt_tapdisk_created = False
         prt_tapdisk = Tapdisk.find_by_path(read_cache_path)
         if not prt_tapdisk:
             parent_options = copy.deepcopy(options)
             parent_options["rdonly"] = False
             parent_options["lcache"] = True
 
-            # FIXME
-            prt_tapdisk = Tapdisk.launch_on_tap("parent for %s" % vdi_uuid,
+            # FIXME find a better name for the parent UUID
+            prt_tapdisk = Tapdisk.launch_on_tap("parent_of_%s" % vdi_uuid,
                     read_cache_path, 'vhd', parent_options)
+            prt_tapdisk_created = True
 
         secondary = "%s:%s" % (self.target.get_vdi_type(),
                 self.PhyLink.from_uuid(sr_uuid, vdi_uuid).readlink())
@@ -1474,12 +1476,16 @@ class VDI(object):
             child_options = copy.deepcopy(options)
             child_options["rdonly"] = False
             child_options["lcache"] = False
-            child_options["existing_uuid"] = prt_tapdisk.uuid
+            child_options["existing_prt"] = prt_tapdisk.get_devpath()
             child_options["secondary"] = secondary
             child_options["standby"] = scratch_mode
-            # FIXME uuid argument
-            leaf_tapdisk = Tapdisk.launch_on_tap("leaf for %s" % vdi_uuid,
-                    local_leaf_path, 'vhd', child_options)
+            try:
+                leaf_tapdisk = Tapdisk.launch_on_tap(vdi_uuid,
+                        local_leaf_path, 'vhd', child_options)
+            except:
+                if prt_tapdisk_created:
+                    prt_tapdisk.shutdown()
+                raise
 
         lock.release()
 
