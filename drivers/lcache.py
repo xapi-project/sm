@@ -51,11 +51,12 @@ class CachingTap(object):
 
             return ParentCachingTap(tapdisk, stats)
 
-        elif _type == 'aio':
+        elif _type == 'nbd':
             # leaf
             return LeafCachingTap(tapdisk, stats, os.path.basename(path))
 
-        __assert(0)
+        else:
+            raise Exception("invalid VDI type %s" % _type)
 
     class NotACachingTapdisk(Exception):
 
