@@ -44,13 +44,6 @@ import vhdutil
 
 PLUGIN_TAP_PAUSE = "tapdisk-pause"
 
-NUM_PAGES_PER_RING = 32 * 11
-MAX_FULL_RINGS = 8
-
-# FIXME no pools anymore
-POOL_NAME_KEY = "mem-pool"
-POOL_SIZE_KEY = "mem-pool-size-rings"
-
 ENABLE_MULTIPLE_ATTACH = "/etc/xensource/allow_multiple_vdi_attach"
 NO_MULTIPLE_ATTACH = not (os.path.exists(ENABLE_MULTIPLE_ATTACH)) 
 
@@ -569,9 +562,8 @@ class Tapdisk(object):
     def get_arg(self):
         return self.Arg(self.type, self.path)
  
-    # FIXME tapdisk should create a socket named after the UUID
     def get_devpath(self):
-        return '/var/run/blktap-control/nbd%s' % self.pid
+        return '/var/run/blktap-control/nbd%s.%s' % (self.pid, self.uuid)
 
     @classmethod
     def launch_from_arg(cls, arg):
@@ -929,11 +921,6 @@ class VDI(object):
             target_rdev = self._real_stat(target).st_rdev
             return self.stat().st_rdev == target_rdev
 
-        def rdev(self):
-            st = self.stat()
-            assert S_ISBLK(st.st_mode)
-            return os.major(st.st_rdev), os.minor(st.st_rdev)
-
         class NotABlockDevice(Exception):
 
             def __init__(self, path, st):
@@ -949,11 +936,6 @@ class VDI(object):
             VDI.Link.__init__(self, path)
             self._devnode = VDI.DeviceNode(path)
             self._symlink = VDI.SymLink(path)
-
-        def rdev(self):
-            st = self.stat()
-            if S_ISBLK(st.st_mode): return self._devnode.rdev()
-            raise self._devnode.NotABlockDevice(self.path(), st)
 
         def mklink(self, target):
             if self._devnode.is_block(target):
@@ -1473,15 +1455,17 @@ class VDI(object):
 
         vdi_type = self.target.get_vdi_type()
 
+        prt_tapdisk_created = False
         prt_tapdisk = Tapdisk.find_by_path(read_cache_path)
         if not prt_tapdisk:
             parent_options = copy.deepcopy(options)
             parent_options["rdonly"] = False
             parent_options["lcache"] = True
 
-            # FIXME uuid argument
-            prt_tapdisk = Tapdisk.launch_on_tap(blktap, read_cache_path,
-                    'vhd', parent_options)
+            # FIXME find a better name for the parent UUID
+            prt_tapdisk = Tapdisk.launch_on_tap("parent_of_%s" % vdi_uuid,
+                    read_cache_path, 'vhd', parent_options)
+            prt_tapdisk_created = True
 
         secondary = "%s:%s" % (self.target.get_vdi_type(),
                 self.PhyLink.from_uuid(sr_uuid, vdi_uuid).readlink())
@@ -1489,20 +1473,18 @@ class VDI(object):
         util.SMlog("Parent tapdisk: %s" % prt_tapdisk)
         leaf_tapdisk = Tapdisk.find_by_path(local_leaf_path)
         if not leaf_tapdisk:
-            blktap = Blktap.allocate()
             child_options = copy.deepcopy(options)
             child_options["rdonly"] = False
             child_options["lcache"] = False
-            child_options["existing_prt"] = prt_tapdisk.minor
+            child_options["existing_prt"] = prt_tapdisk.get_devpath()
             child_options["secondary"] = secondary
             child_options["standby"] = scratch_mode
             try:
-                # FIXME uuid argument
-                leaf_tapdisk = \
-                    Tapdisk.launch_on_tap(blktap, local_leaf_path,
-                            'vhd', child_options)
+                leaf_tapdisk = Tapdisk.launch_on_tap(vdi_uuid,
+                        local_leaf_path, 'vhd', child_options)
             except:
-                blktap.free()
+                if prt_tapdisk_created:
+                    prt_tapdisk.shutdown()
                 raise
 
         lock.release()
@@ -1532,14 +1514,16 @@ class VDI(object):
         self._updateCacheRecord(session, self.target.vdi.uuid, None, None)
         session.xenapi.session.logout()
 
-    def _is_tapdisk_in_use(self, minor):
+    def _is_tapdisk_in_use(self, uuid):
         (retVal, links) = util.findRunningProcessOrOpenFile("tapdisk")
         if not retVal:
             # err on the side of caution
             return True
 
+        # FIXME Assuming that tapdisk process is using
+        # /dev/sm/backend/<SR UUID>/<VDI UUID>
         for link in links:
-            if link.find("tapdev%d" % minor) != -1:
+            if link.find(uuid) != -1:
                 return True
         return False
 
@@ -1581,7 +1565,7 @@ class VDI(object):
         prt_tapdisk = Tapdisk.find_by_path(read_cache_path)
         if not prt_tapdisk:
             util.SMlog("Parent tapdisk not found")
-        elif not self._is_tapdisk_in_use(prt_tapdisk.minor):
+        elif not self._is_tapdisk_in_use(prt_tapdisk.uuid):
             util.SMlog("Parent tapdisk not in use: shutting down %s" % \
                     read_cache_path)
             try:
@@ -1611,10 +1595,10 @@ if __name__ == '__main__':
 
     def usage(stream):
         print >>stream, \
-            "usage: %s tap.{list|major}" % prog
+            "usage: %s tap.{list}" % prog
         print >>stream, \
             "       %s tap.{launch|find|get|pause|" % prog + \
-            "unpause|shutdown|stats} {[<tt>:]<path>} | [minor=]<int> | .. }"
+            "unpause|shutdown|stats} {[<tt>:]<path>} | [uuid=]<str> | .. }"
         print >>stream, \
             "       %s vbd.uevent" % prog
 
@@ -1635,11 +1619,7 @@ if __name__ == '__main__':
     #
     from pprint import pprint
 
-    if cmd == 'tap.major':
-
-        print "%d" % Tapdisk.major()
-
-    elif cmd == 'tap.launch':
+    if cmd == 'tap.launch':
 
         tapdisk = Tapdisk.launch_from_arg(sys.argv[2])
         print >> sys.stderr, "Launched %s" % tapdisk
@@ -1656,7 +1636,7 @@ if __name__ == '__main__':
                 pass
 
             try:
-                attrs['minor'] = int(item)
+                attrs['uuid'] = item
                 continue
             except ValueError:
                 pass
@@ -1673,25 +1653,13 @@ if __name__ == '__main__':
 
         if cmd == 'tap.list':
 
+            # FIXME If some script uses this output it must be updated
+            # accordingly.
             for tapdisk in Tapdisk.list(**attrs):
-                blktap = tapdisk.get_blktap()
-                print tapdisk,
-                print "%s: task=%s pool=%s" % \
-                    (blktap,
-                     blktap.get_task_pid(),
-                     blktap.get_pool_name())
-
-        elif cmd == 'tap.vbds':
-            # Find all Blkback instances for a given tapdisk
-
-            for tapdisk in Tapdisk.list(**attrs):
-                print "%s:" % tapdisk,
-                for vbd in Blkback.find_by_tap(tapdisk): 
-                    print vbd,
-                print
+                print tapdisk
 
         else:
-
+            
             if not attrs:
                 usage(sys.stderr)
                 sys.exit(1)
@@ -1726,33 +1694,6 @@ if __name__ == '__main__':
             else:
                 usage(sys.stderr)
                 sys.exit(1)
-
-    elif cmd == 'vbd.uevent':
-
-        hnd = BlkbackEventHandler(cmd)
-
-        if not sys.stdin.isatty():
-            try:
-                hnd.run()
-            except Exception, e:
-                hnd.error("Unhandled Exception: %s" % e)
-
-                import traceback
-                _type, value, tb = sys.exc_info()
-                trace = traceback.format_exception(_type, value, tb)
-                for entry in trace:
-                    for line in entry.rstrip().split('\n'):
-                        util.SMlog(line)
-        else:
-            hnd.run()
-
-    elif cmd == 'vbd.list':
-
-        for vbd in Blkback.find(): 
-            print vbd, \
-                "physical-device=%s" % vbd.get_physical_device(), \
-                "pause=%s" % vbd.pause_requested()
-
     else:
         usage(sys.stderr)
         sys.exit(1)

@@ -51,20 +51,12 @@ class CachingTap(object):
 
             return ParentCachingTap(tapdisk, stats)
 
-        elif _type == 'aio':
+        elif _type == 'nbd':
             # leaf
-            st = os.stat(path)
+            return LeafCachingTap(tapdisk, stats, os.path.basename(path))
 
-            __assert(S_ISBLK(st.st_mode))
-
-            major = os.major(st.st_rdev)
-            minor = os.minor(st.st_rdev)
-
-            __assert(major == tapdisk.major())
-
-            return LeafCachingTap(tapdisk, stats, minor)
-
-        __assert(0)
+        else:
+            raise Exception("invalid VDI type %s" % _type)
 
     class NotACachingTapdisk(Exception):
 
@@ -117,18 +109,18 @@ class ParentCachingTap(CachingTap):
         return rd_hits, rd_miss, wr_rdir
 
     def __str__(self):
-        return "%s(%s, minor=%s)" % \
+        return "%s(%s, uuid=%s)" % \
             (self.__class__.__name__,
-             self.tapdisk.path, self.tapdisk.minor)
+             self.tapdisk.path, self.tapdisk.uuid)
 
 class LeafCachingTap(CachingTap):
 
-    def __init__(self, tapdisk, stats, parent_minor):
+    def __init__(self, tapdisk, stats, parent_uuid):
         CachingTap.__init__(self, tapdisk, stats)
-        self.parent_minor = parent_minor
+        self.parent_uuid = parent_uuid
 
     def is_child_of(self, parent):
-        return parent.tapdisk.minor == self.parent_minor
+        return parent.tapdisk.uuid == self.parent_uuid
 
     def vdi_stats(self):
         images = self.stats['images']
@@ -144,9 +136,9 @@ class LeafCachingTap(CachingTap):
         return rd_hits, rd_miss, wr_rdir
 
     def __str__(self):
-        return "%s(%s, minor=%s)" % \
+        return "%s(%s, uuid=%s)" % \
             (self.__class__.__name__,
-             self.tapdisk.path, self.tapdisk.minor)
+             self.tapdisk.path, self.tapdisk.uuid)
 
 class CacheFileSR(object):
 
