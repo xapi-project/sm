@@ -98,7 +98,7 @@ class SR(object):
                 if 'subtask_of' in self.srcmd.params:
                     self.session.transport.add_extra_header('Subtask-of', self.srcmd.params['subtask_of'])
             else:
-                self.session = ""
+                self.session = None
 
             if 'host_ref' not in self.srcmd.params:
                 self.host_ref = ""
