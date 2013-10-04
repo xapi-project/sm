@@ -1252,9 +1252,10 @@ def findRunningProcessOrOpenFile(name, process = True):
                 fd_dir = os.path.join('/proc', pid, 'fd')
                 files = os.listdir(fd_dir)
             except Exception, e:
-                if e.errno != errno.ENOENT:
-                    SMlog("ERROR %s reading %s, ignore" % (e.errno, pid))
-                continue
+                if isinstance(e, OSError) and e.errno == errno.ENOENT:
+                    continue
+                else:
+                    raise Exception(str(e))
             
             for file in files:
                 try:
