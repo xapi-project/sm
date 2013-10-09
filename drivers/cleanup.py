@@ -715,8 +715,9 @@ class VDI:
                 % (vdi.sr.uuid, msg_name, msg_body))
 
         # Create a XenCenter message, but don't spam.
-        sr_ref = vdi.sr.xapi.session.xenapi.SR.get_by_uuid(vdi.sr.uuid)
-        oth_cfg = vdi.sr.xapi.session.xenapi.SR.get_other_config(sr_ref)
+        xapi = vdi.sr.xapi.session.xenapi
+        sr_ref = xapi.SR.get_by_uuid(vdi.sr.uuid)
+        oth_cfg = xapi.SR.get_other_config(sr_ref)
         if COALESCE_ERR_RATE_TAG in oth_cfg:
             coalesce_err_rate = float(oth_cfg[COALESCE_ERR_RATE_TAG])
         else:
@@ -727,24 +728,24 @@ class VDI:
             xcmsg = True
         elif coalesce_err_rate > 0:
             now = datetime.datetime.now()
-            sm_cfg = vdi.sr.xapi.session.xenapi.SR.get_sm_config(sr_ref)
+            sm_cfg = xapi.SR.get_sm_config(sr_ref)
             if COALESCE_LAST_ERR_TAG in sm_cfg:
-                # minimum distance in time between two messages (in seconds)
+                # seconds per message (minimum distance in time between two
+                # messages in seconds)
                 spm = datetime.timedelta(seconds=(1.0/coalesce_err_rate)*60)
                 last = datetime.datetime.fromtimestamp(
                         float(sm_cfg[COALESCE_LAST_ERR_TAG]))
                 if now - last >= spm:
-                    vdi.sr.xapi.session.xenapi.SR.remove_from_sm_config(
-                            sr_ref, COALESCE_LAST_ERR_TAG)
+                    xapi.SR.remove_from_sm_config(sr_ref,
+                            COALESCE_LAST_ERR_TAG)
                     xcmsg = True
             else:
                 xcmsg = True
             if xcmsg:
-                vdi.sr.xapi.session.xenapi.SR.add_to_sm_config(sr_ref,
-                        COALESCE_LAST_ERR_TAG, str(now.strftime('%s')))
+                xapi.SR.add_to_sm_config(sr_ref, COALESCE_LAST_ERR_TAG,
+                        str(now.strftime('%s')))
         if xcmsg:
-            vdi.sr.xapi.session.xenapi.message.create(msg_name, "3", "SR",
-                    vdi.sr.uuid, msg_body)
+            xapi.message.create(msg_name, "3", "SR", vdi.sr.uuid, msg_body)
     _reportCoalesceError = staticmethod(_reportCoalesceError)
 
     def _doCoalesceVHD(vdi):
