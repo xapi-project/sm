@@ -183,7 +183,8 @@ class ISCSISR(SR.SR):
             self._scan_IQNs()
             raise xs_errors.XenError('ConfigTargetIQNMissing')
 
-        self.targetIQN = self.dconf['targetIQN']
+        # CA-118899: Ensure that the targetIQN is encoded in UTF-8 format.
+        self.targetIQN = unicode(self.dconf['targetIQN']).encode('utf-8')
         self.attached = False
         try:
             self.attached = iscsilib._checkTGT(self.targetIQN)
