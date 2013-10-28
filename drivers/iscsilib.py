@@ -313,7 +313,7 @@ def get_luns(targetIQN, portal):
         raise xs_errors.XenError('ISCSIDevice', opterr='Failed to find any LUNs')
 
 def is_iscsi_daemon_running():
-    cmd = ["/sbin/pidof", "-s", "/sbin/iscsid"]
+    cmd = ["pidof", "-s", "iscsid"]
     (rc,stdout,stderr) = util.doexec(cmd)
     return (rc==0)
 

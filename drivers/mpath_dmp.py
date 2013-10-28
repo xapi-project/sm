@@ -47,7 +47,7 @@ MP_INUSEDIR = "/dev/disk/mpInuse"
 MPPGETAIDLNOBIN = "/opt/xensource/bin/xe-get-arrayid-lunnum"
 
 def _is_mpath_daemon_running():
-    cmd = ["/sbin/pidof", "-s", "/sbin/multipathd"]
+    cmd = ["pidof", "-s", "multipathd"]
     (rc,stdout,stderr) = util.doexec(cmd)
     return (rc==0)
 
