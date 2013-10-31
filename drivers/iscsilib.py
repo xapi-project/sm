@@ -248,7 +248,7 @@ def get_current_initiator_name():
             for line in f.readlines():
                 if line.strip().startswith("#"):
                     continue 
-                if "InitiatorName" in line:
+                if line.strip().startswith("InitiatorName") and "=" in line:
                     IQN = line.split("=")[1]
                     currentIQN = IQN.strip()
                     f.close()
