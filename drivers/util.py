@@ -1256,7 +1256,7 @@ def findRunningProcessOrOpenFile(name, process = True):
                     # Ignore pid that are no longer valid
                     continue
                 else:
-                    raise Exception(str(e))
+                    raise
             
             for file in files:
                 try:
