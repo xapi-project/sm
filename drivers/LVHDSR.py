@@ -1452,16 +1452,15 @@ class LVHDVDI(VDI.VDI):
         if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
             raise util.SMException("failed to pause VDI %s" % vdi_uuid)
 
-        temp = None
+        snapResult = None
         try:
-            temp = self._snapshot(snapType)
+            snapResult = self._snapshot(snapType)
         except:
-            util.SMlog("Caught exception in snapshot, make sure secondary device set to null to unpause tapdisk")
             blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, None)
             raise
             
         blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
-        return temp
+        return snapResult
 
     def clone(self, sr_uuid, vdi_uuid):
         return self._snapshot(self.SNAPSHOT_DOUBLE, True)
