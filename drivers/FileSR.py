@@ -126,6 +126,9 @@ class FileSR(SR.SR):
                 # remove everything else, there are no vdi's
                 for name in util.ioretry(lambda: util.listdir(self.path)):
                     fullpath =  os.path.join(self.path,name)
+                    # subdirs are not our territories
+                    if util.ioretry(lambda: util.isdir(fullpath)):
+                        continue
                     try:
                         util.ioretry(lambda: os.unlink(fullpath))
                     except util.CommandException, inst:
