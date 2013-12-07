@@ -71,9 +71,7 @@ class EXTSR(FileSR.FileSR):
         self.attached = self._checkmount()
 
     def delete(self, sr_uuid):
-        self.attach(sr_uuid)
         super(EXTSR, self).delete(sr_uuid)
-        self.detach(sr_uuid)
 
         # Check PVs match VG
         try:
@@ -127,13 +125,12 @@ class EXTSR(FileSR.FileSR):
 
             try:
                 util.pread(["mount", self.remotepath, self.path])
-
-                FileSR.FileSR.attach(self, sr_uuid)
-
-                self.attached = True
             except util.CommandException, inst:
                 raise xs_errors.XenError('LVMMount', \
                       opterr='Failed to mount FS. Errno is %d' % inst.code)
+
+        self.attached = True
+        
         #Update SCSIid string
         scsiutil.add_serial_record(self.session, self.sr_ref, \
                 scsiutil.devlist_to_serialstring(self.root.split(',')))
