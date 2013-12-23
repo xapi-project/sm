@@ -52,4 +52,5 @@ class TestISOSR(unittest.TestCase):
         soft_mount.assert_called_once_with('/var/run/sr-mount/asr_uuid',
                                            'aServer',
                                            '/aLocation',
-                                           'tcp')
+                                           'tcp',
+                                           nfsversion='3')
