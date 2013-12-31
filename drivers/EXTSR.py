@@ -139,34 +139,14 @@ class EXTSR(FileSR.FileSR):
         for dev in self.root.split(','): self.block_setscheduler(dev)
 
     def detach(self, sr_uuid):
-        if not self._checkmount():
-            return
-        cleanup.abort(self.uuid)
+        super(EXTSR, self).detach(sr_uuid)            
         try:
-            # Change directory to avoid unmount conflicts
-            os.chdir(SR.MOUNT_BASE)
-            
-            # unmount the device
-            util.pread(["umount", self.path])
-
-            # remove the mountpoint
-            os.rmdir(self.path)
-            self.path = None
-
             # deactivate SR
-            try:
-                cmd = ["lvchange", "-an", self.remotepath]
-                util.pread2(cmd)
-            except util.CommandException, inst:
-                raise xs_errors.XenError('LVMUnMount', \
-                      opterr='lvm -an failed errno is %d' % inst.code)
-
-            self.attached = False
+            cmd = ["lvchange", "-an", self.remotepath]
+            util.pread2(cmd)
         except util.CommandException, inst:
             raise xs_errors.XenError('LVMUnMount', \
-                  opterr='errno is %d' % inst.code)
-        except:
-            raise xs_errors.XenError('LVMUnMount')
+                  opterr='lvm -an failed errno is %d' % inst.code)
 
     def probe(self):
         return lvutil.srlist_toxml(lvutil.scan_srlist(EXT_PREFIX, self.root),

@@ -141,12 +141,13 @@ class FileSR(SR.SR):
 
     def attach(self, sr_uuid):
         if not self._checkmount():
-            if not util.ioretry(lambda: util.isdir(self.remotepath)):
-                raise xs_errors.XenError('SRUnavailable', \
-                                         opterr='no such directory %s' % self.remotepath)
             try:
-                if not util.ioretry(lambda: util.isdir(self.path)):
-                    util.ioretry(lambda: util.makedirs(self.path))
+                util.ioretry(lambda: util.makedirs(self.path))
+            except util.CommandException, inst:
+                if inst.code != errno.EEXIST:
+                    raise xs_errors.XenError("FileSRCreate", \
+                                             opterr='fail to create mount point. Errno is %s' % inst.code)
+            try:
                 util.pread(["mount", "--bind", self.remotepath, self.path])
             except util.CommandException, inst:
                 raise xs_errors.XenError('FileSRCreate', \
