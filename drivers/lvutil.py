@@ -58,7 +58,6 @@ LVM_SIZE_INCREMENT = 4 * 1024 * 1024
 LV_TAG_HIDDEN = "hidden"
 LVM_FAIL_RETRIES = 10
 
-MASTER_LVM_CONF = '/etc/lvm/master'
 DEF_LVM_CONF = '/etc/lvm'
 
 class LVInfo:
@@ -483,7 +482,7 @@ def activateNoRefcount(path, refresh):
         raise util.CommandException(-1, str(cmd), "LV not activated")
     if refresh:
         # Override slave mode lvm.conf for this command
-        os.environ['LVM_SYSTEM_DIR'] = MASTER_LVM_CONF
+        os.environ['LVM_SYSTEM_DIR'] = SR.MASTER_LVM_CONF
         cmd = [CMD_LVCHANGE, "--refresh", path]
         text = util.pread2(cmd)
         mapperDevice = path[5:].replace("-", "--").replace("/", "-")
