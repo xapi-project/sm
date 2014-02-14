@@ -823,10 +823,13 @@ class Tapdisk(object):
 
         TapCtl.close(self.pid, self.minor, force)
 
-        util.SMlog("Deregister tapdisk with RRDD.")
-        pluginName = "tap" + str(self.pid) + "-" + str(self.minor)
-        proxy = ServerProxy('http://' + SOCKPATH, transport=UnixStreamTransport())
-        proxy.Plugin.deregister({'uid': pluginName})
+        try:
+            util.SMlog('Attempt to deregister tapdisk with RRDD.')
+            pluginName = "tap" + str(self.pid) + "-" + str(self.minor)
+            proxy = ServerProxy('http://' + SOCKPATH, transport=UnixStreamTransport())
+            proxy.Plugin.deregister({'uid': pluginName})
+        except Exception, e:
+            util.SMlog('ERROR: Failed to deregister tapdisk with RRDD due to %s' % e)
 
         TapCtl.detach(self.pid, self.minor)
 
@@ -1255,10 +1258,13 @@ class VDI(object):
                 raise
             util.SMlog("tap.activate: Launched %s" % tapdisk)
             #Register tapdisk as rrdd plugin
-            util.SMlog("Register tapdisk with rrdd as plugin.")
-            pluginName = "tap-" + str(tapdisk.pid) + "-" + str(tapdisk.minor)
-            proxy = ServerProxy('http://' + SOCKPATH, transport=UnixStreamTransport())
-            proxy.Plugin.register({'uid': pluginName, 'frequency': 'Five_seconds'})
+            try:
+                util.SMlog('Attempt to register tapdisk with RRDD as a plugin.')
+                pluginName = "tap-" + str(tapdisk.pid) + "-" + str(tapdisk.minor)
+                proxy = ServerProxy('http://' + SOCKPATH, transport=UnixStreamTransport())
+                proxy.Plugin.register({'uid': pluginName, 'frequency': 'Five_seconds'})
+            except Exception, e:
+                util.SMlog('ERROR: Failed to register tapdisk with RRDD due to %s' % e)
         else:
             util.SMlog("tap.activate: Found %s" % tapdisk)
 
