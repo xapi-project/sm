@@ -26,12 +26,12 @@ import vhdutil
 import lvhdutil
 from lvmcache import LVMCache
 from journaler import Journaler
-import SR
+import lvutil
 import os
 
 def attach(session, args):
     if util.is_master(session):
-        os.environ['LVM_SYSTEM_DIR'] = SR.MASTER_LVM_CONF
+        os.environ['LVM_SYSTEM_DIR'] = lvutil.MASTER_LVM_CONF
     srUuid = args["srUuid"]
     vdiUuid = args["vdiUuid"]
     vgName = "%s%s" % (lvhdutil.VG_PREFIX, srUuid)
@@ -46,7 +46,7 @@ def attach(session, args):
 
 def detach(session, args):
     if util.is_master(session):
-        os.environ['LVM_SYSTEM_DIR'] = SR.MASTER_LVM_CONF
+        os.environ['LVM_SYSTEM_DIR'] = lvutil.MASTER_LVM_CONF
     srUuid = args["srUuid"]
     vdiUuid = args["vdiUuid"]
     vgName = "%s%s" % (lvhdutil.VG_PREFIX, srUuid)
