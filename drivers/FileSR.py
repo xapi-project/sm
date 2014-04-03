@@ -650,9 +650,19 @@ class FileVDI(VDI.VDI):
             blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
         
     def clone(self, sr_uuid, vdi_uuid):
+        secondary = None
+        if self.sr.srcmd.params['driver_params'].get("mirror"):
+            secondary = self.sr.srcmd.params['driver_params']["mirror"]
+
         if self.vdi_type != vhdutil.VDI_TYPE_VHD:
             raise xs_errors.XenError('Unimplemented')
-        return self._snapshot(self.SNAPSHOT_DOUBLE)
+
+        if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
+            raise util.SMException("failed to pause VDI %s" % vdi_uuid)
+        try:
+            return self._snapshot(self.SNAPSHOT_DOUBLE)
+        finally:
+            blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
 
     def compose(self, sr_uuid, vdi1, vdi2):
         if self.vdi_type != vhdutil.VDI_TYPE_VHD:

@@ -1479,7 +1479,25 @@ class LVHDVDI(VDI.VDI):
         return snapResult
 
     def clone(self, sr_uuid, vdi_uuid):
-        return self._snapshot(self.SNAPSHOT_DOUBLE, True)
+        secondary = None
+        if self.sr.srcmd.params['driver_params'].get("mirror"):
+            secondary = self.sr.srcmd.params['driver_params']["mirror"]
+
+        if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
+            raise util.SMException("failed to pause VDI %s" % vdi_uuid)
+        
+        snapResult = None
+        try:
+            snapResult = self._snapshot(self.SNAPSHOT_DOUBLE, True)
+        except Exception, e1:
+            try:
+                blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, None)
+            except Exception, e2:
+                util.SMlog('WARNING: failed to clean up failed snapshot: '
+                        '%s (error ignored)' % e2)
+                raise e1
+        blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
+        return snapResult
 
     def compose(self, sr_uuid, vdi1, vdi2):
         util.SMlog("LVHDSR.compose for %s -> %s" % (vdi2, vdi1))
