@@ -166,8 +166,9 @@ class Util:
                     resultFlag.set("success")
                 else:
                     resultFlag.set("failure")
-            except:
+            except Exception, e:
                 resultFlag.set("failure")
+                Util.log("Child process %s failed with : (%s)" % (os.getpid(), e))
             os._exit(0)
     runAbortable = staticmethod(runAbortable)
 
@@ -754,6 +755,27 @@ class VDI:
             # in a separate process context and errors will not be caught and
             # reported by anyone.
             try:
+                # An error in vhd-util coalesce could only result in 
+                # CommandException, try a repair parent at this stage.
+                try:
+                    if vdi.sr.TYPE == vdi.sr.TYPE_FILE:
+                        parent = os.path.join(vdi.sr.path, "%s.%s" % \
+                                              (vdi.parentUuid, vhdutil.VDI_TYPE_VHD))
+                    elif vdi.sr.TYPE == vdi.sr.TYPE_LVHD:
+                        parent = lvhdutil.generateLVPath( \
+                                              vdi.sr.uuid, vdi.parentUuid)
+                    else:
+                        util.SMlog("Unknown SR Type: %s on vdi: %s" % 
+                                  (vdi.uuid, vdi.sr.TYPE))
+                        raise
+                    # Repair error is logged and ignored. Error reraised later
+                    util.SMlog('Coalesce failed on %s, attempting repair on ' \
+                               'parent %s' % (vdi.uuid, parent))
+                    vhdutil.repair(parent)
+                except Exception, e2:
+                    util.SMlog('Failed to repair parent after failed coalesce '\
+                               'on %s, err: %s' % (vdi.path, e2))
+                # Report coalesce errors back to user via XC
                 VDI._reportCoalesceError(vdi, ce)
             except Exception, e:
                 util.SMlog('failed to create XenCenter message: %s' % e)
