@@ -168,7 +168,7 @@ class Util:
                     resultFlag.set("failure")
             except Exception, e:
                 resultFlag.set("failure")
-                Util.log("Child process %s failed with : (%s)" % (os.getpid(), e))
+                Util.log("Child process failed with : (%s)" % e)
             os._exit(0)
     runAbortable = staticmethod(runAbortable)
 
@@ -757,6 +757,7 @@ class VDI:
             try:
                 # An error in vhd-util coalesce could only result in 
                 # CommandException, try a repair parent at this stage.
+                parent = ""
                 try:
                     if vdi.sr.TYPE == vdi.sr.TYPE_FILE:
                         parent = os.path.join(vdi.sr.path, "%s.%s" % \
@@ -773,8 +774,9 @@ class VDI:
                                'parent %s' % (vdi.uuid, parent))
                     vhdutil.repair(parent)
                 except Exception, e2:
-                    util.SMlog('Failed to repair parent after failed coalesce '\
-                               'on %s, err: %s' % (vdi.path, e2))
+                    util.SMlog('(error ignored) Failed to repair parent %s ' \
+                               'after failed coalesce on %s, err: %s' % 
+                               (parent, vdi.path, e2))
                 # Report coalesce errors back to user via XC
                 VDI._reportCoalesceError(vdi, ce)
             except Exception, e:
