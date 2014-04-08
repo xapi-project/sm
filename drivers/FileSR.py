@@ -628,41 +628,16 @@ class FileVDI(VDI.VDI):
         return VDI.VDI.get_params(self)
 
     def snapshot(self, sr_uuid, vdi_uuid):
-        if self.vdi_type != vhdutil.VDI_TYPE_VHD:
-            raise xs_errors.XenError('Unimplemented')
-
         snap_type = self.SNAPSHOT_DOUBLE
         if self.sr.srcmd.params['driver_params'].get("type"):
             if self.sr.srcmd.params['driver_params']["type"] == "single":
                 snap_type = self.SNAPSHOT_SINGLE
             elif self.sr.srcmd.params['driver_params']["type"] == "internal":
                 snap_type = self.SNAPSHOT_INTERNAL
-
-        secondary = None
-        if self.sr.srcmd.params['driver_params'].get("mirror"):
-            secondary = self.sr.srcmd.params['driver_params']["mirror"]
-
-        if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
-            raise util.SMException("failed to pause VDI %s" % vdi_uuid)
-        try:
-            return self._snapshot(snap_type)
-        finally:
-            blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
+        return self._do_snapshot(sr_uuid, vdi_uuid, snap_type)
         
     def clone(self, sr_uuid, vdi_uuid):
-        secondary = None
-        if self.sr.srcmd.params['driver_params'].get("mirror"):
-            secondary = self.sr.srcmd.params['driver_params']["mirror"]
-
-        if self.vdi_type != vhdutil.VDI_TYPE_VHD:
-            raise xs_errors.XenError('Unimplemented')
-
-        if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
-            raise util.SMException("failed to pause VDI %s" % vdi_uuid)
-        try:
-            return self._snapshot(self.SNAPSHOT_DOUBLE)
-        finally:
-            blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
+            return self._do_snapshot(sr_uuid, vdi_uuid, self.SNAPSHOT_DOUBLE)
 
     def compose(self, sr_uuid, vdi1, vdi2):
         if self.vdi_type != vhdutil.VDI_TYPE_VHD:
@@ -689,6 +664,21 @@ class FileVDI(VDI.VDI):
                     "will not reset contents" % self.uuid)
 
         vhdutil.killData(self.path)
+
+    def _do_snapshot(self, sr_uuid, vdi_uuid, snap_type):
+        if self.vdi_type != vhdutil.VDI_TYPE_VHD:
+            raise xs_errors.XenError('Unimplemented')
+
+        secondary = None
+        if self.sr.srcmd.params['driver_params'].get("mirror"):
+            secondary = self.sr.srcmd.params['driver_params']["mirror"]
+
+        if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
+            raise util.SMException("failed to pause VDI %s" % vdi_uuid)
+        try:
+            return self._snapshot(snap_type)
+        finally:
+            blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
 
     def _snapshot(self, snap_type):
         util.SMlog("FileVDI._snapshot for %s (type %s)" % (self.uuid, snap_type))
