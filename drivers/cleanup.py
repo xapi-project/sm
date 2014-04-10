@@ -755,28 +755,6 @@ class VDI:
             # in a separate process context and errors will not be caught and
             # reported by anyone.
             try:
-                # An error in vhd-util coalesce could only result in 
-                # CommandException, try a repair parent at this stage.
-                parent = ""
-                try:
-                    if vdi.sr.TYPE == vdi.sr.TYPE_FILE:
-                        parent = os.path.join(vdi.sr.path, "%s.%s" % \
-                                              (vdi.parentUuid, vhdutil.VDI_TYPE_VHD))
-                    elif vdi.sr.TYPE == vdi.sr.TYPE_LVHD:
-                        parent = lvhdutil.generateLVPath( \
-                                              vdi.sr.uuid, vdi.parentUuid)
-                    else:
-                        util.SMlog("Unknown SR Type: %s on vdi: %s" % 
-                                  (vdi.uuid, vdi.sr.TYPE))
-                        raise
-                    # Repair error is logged and ignored. Error reraised later
-                    util.SMlog('Coalesce failed on %s, attempting repair on ' \
-                               'parent %s' % (vdi.uuid, parent))
-                    vhdutil.repair(parent)
-                except Exception, e2:
-                    util.SMlog('(error ignored) Failed to repair parent %s ' \
-                               'after failed coalesce on %s, err: %s' % 
-                               (parent, vdi.path, e2))
                 # Report coalesce errors back to user via XC
                 VDI._reportCoalesceError(vdi, ce)
             except Exception, e:
@@ -789,8 +767,35 @@ class VDI:
     def _coalesceVHD(self, timeOut):
         Util.log("  Running VHD coalesce on %s" % self)
         abortTest = lambda:IPCFlag(self.sr.uuid).test(FLAG_TYPE_ABORT)
-        Util.runAbortable(lambda: VDI._doCoalesceVHD(self), None,
-                self.sr.uuid, abortTest, VDI.POLL_INTERVAL, timeOut)
+        try:
+            Util.runAbortable(lambda: VDI._doCoalesceVHD(self), None,
+                    self.sr.uuid, abortTest, VDI.POLL_INTERVAL, timeOut)
+        except:
+            #exception at this phase could indicate a failure in vhd coalesce
+            # or a kill of vhd coalesce by runAbortable due to  timeOut
+            # Try a repair and reraise the exception
+            parent = ""
+            try:
+                if self.sr.TYPE == self.sr.TYPE_FILE:
+                    parent = os.path.join(self.sr.path, "%s.%s" % \
+                                          (self.parentUuid, vhdutil.VDI_TYPE_VHD))
+                elif self.sr.TYPE == self.sr.TYPE_LVHD:
+                    parent = lvhdutil.generateLVPath( \
+                                          self.sr.uuid, self.parentUuid)
+                else:
+                    util.SMlog("Unknown SR Type: %s on vdi: %s" % 
+                              (self.uuid, self.sr.TYPE))
+                    raise
+                # Repair error is logged and ignored. Error reraised later
+                util.SMlog('Coalesce failed on %s, attempting repair on ' \
+                           'parent %s' % (self.uuid, parent))
+                vhdutil.repair(parent)
+            except Exception, e:
+                util.SMlog('(error ignored) Failed to repair parent %s ' \
+                           'after failed coalesce on %s, err: %s' % 
+                           (parent, self.path, e))
+            raise
+
         util.fistpoint.activate("LVHDRT_coalescing_VHD_data",self.sr.uuid)
 
     def _relinkSkip(self):
