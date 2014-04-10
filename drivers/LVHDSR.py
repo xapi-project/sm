@@ -1457,11 +1457,15 @@ class LVHDVDI(VDI.VDI):
             elif self.sr.srcmd.params['driver_params']["type"] == "internal":
                 snapType = self.SNAPSHOT_INTERNAL
 
-        return self._do_snapshot(sr_uuid, vdi_uuid, snapType)
+        secondary = None
+        if self.sr.srcmd.params['driver_params'].get("mirror"):
+            secondary = self.sr.srcmd.params['driver_params']["mirror"]
+
+        return self._do_snapshot(sr_uuid, vdi_uuid, snapType, secondary=secondary)
 
     def clone(self, sr_uuid, vdi_uuid):
         return self._do_snapshot(
-                     sr_uuid, vdi_uuid, self.SNAPSHOT_DOUBLE, True)
+                     sr_uuid, vdi_uuid, self.SNAPSHOT_DOUBLE, cloneOp=True)
 
     def compose(self, sr_uuid, vdi1, vdi2):
         util.SMlog("LVHDSR.compose for %s -> %s" % (vdi2, vdi1))
@@ -1522,11 +1526,7 @@ class LVHDVDI(VDI.VDI):
         self._chainSetActive(False, True)
         self.attached = False
 
-    def _do_snapshot(self, sr_uuid, vdi_uuid, snapType, cloneOp = False):
-        secondary = None
-        if self.sr.srcmd.params['driver_params'].get("mirror"):
-            secondary = self.sr.srcmd.params['driver_params']["mirror"]
-
+    def _do_snapshot(self, sr_uuid, vdi_uuid, snapType, cloneOp=False, secondary=None):
         if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
             raise util.SMException("failed to pause VDI %s" % vdi_uuid)
         
