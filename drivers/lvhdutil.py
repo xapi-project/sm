@@ -340,11 +340,6 @@ def setInnerNodeRefcounts(lvmCache, srUuid):
 
     return pathsNotInUse
 
-def generateLVPath(sr_uuid, vdi_uuid):
-    lvName = LV_PREFIX[vhdutil.VDI_TYPE_VHD] + vdi_uuid
-    vgName = VG_PREFIX + sr_uuid
-    return os.path.join(VG_LOCATION, vgName, lvName)
-
 if __name__ == "__main__":
     # used by the master changeover script
     from lvmcache import LVMCache

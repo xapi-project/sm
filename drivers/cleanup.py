@@ -776,16 +776,7 @@ class VDI:
             # Try a repair and reraise the exception
             parent = ""
             try:
-                if self.sr.TYPE == self.sr.TYPE_FILE:
-                    parent = os.path.join(self.sr.path, "%s.%s" % \
-                                          (self.parentUuid, vhdutil.VDI_TYPE_VHD))
-                elif self.sr.TYPE == self.sr.TYPE_LVHD:
-                    parent = lvhdutil.generateLVPath( \
-                                          self.sr.uuid, self.parentUuid)
-                else:
-                    util.SMlog("Unknown SR Type: %s on vdi: %s" % 
-                              (self.uuid, self.sr.TYPE))
-                    raise
+                parent = vhdutil.getParent(self.path, lambda x: x.strip())
                 # Repair error is logged and ignored. Error reraised later
                 util.SMlog('Coalesce failed on %s, attempting repair on ' \
                            'parent %s' % (self.uuid, parent))
