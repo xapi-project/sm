@@ -227,9 +227,9 @@ class RefCounter:
             f = open(fn, 'w')
             f.write("%d %d\n" % (count, binaryCount))
             f.close()
-        except IOError, e:
-            raise RefCounterException("failed to write '(%d %d)' to '%s': %s" \
-                    % (count, binaryCount, fn, e))
+        except IOError:
+            raise RefCounterException("failed to write '(%d %d)' to '%s'" % \
+                    (count, binaryCount, fn))
     _writeCount = staticmethod(_writeCount)
 
 

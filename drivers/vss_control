@@ -16,7 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 # A plugin which is called to enable/disable VSS based quiesced VSS snapshots
-# for a particular VM.
+# for a particular VM.  
 
 import os
 import sys

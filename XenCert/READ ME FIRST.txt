@@ -1,0 +1,5 @@
+README
+
+Updated Notes:
+• Previous versions of XenCert required installing and running XenCert from an external Linux host. With XenCert 2.0 for Feature Pack 1, there is no external Linux host required.  XenCert 2.0 should be copied to and run from the XenServer host.
+

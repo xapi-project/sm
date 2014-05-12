@@ -1,0 +1,16 @@
+#!/bin/bash
+( echo open ${1}
+  sleep 5
+  echo ${2}
+  sleep 1
+  echo ${3}
+  sleep 1
+  echo admin start
+  sleep 1
+  echo set port ${4} state ${5}
+  sleep 1
+  echo admin stop
+  sleep 1
+  echo quit 
+ ) | telnet
+

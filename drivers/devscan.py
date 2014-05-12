@@ -123,8 +123,13 @@ def adapters(filterstr="any"):
                         dir = os.path.join(sysfs,lun)
                     else:
                         dir = os.path.join(sysfs,lun,"device")
-                    (dev, entry) = _extract_dev(dir, proc, id, lun)
-                    devs[dev] = entry
+                    for dev in filter(match_dev,os.listdir(dir)):
+                        key = dev.replace("block:","")
+                        entry = {}
+                        entry['procname'] = proc
+                        entry['host'] =id
+                        entry['target'] = lun
+                        devs[key] = entry
             # for new qlogic sysfs layout (rport under device, then target)
             for i in filter(match_rport,os.listdir(path)):
                 newpath = os.path.join(path, i)
@@ -135,8 +140,13 @@ def adapters(filterstr="any"):
                         if not match_LUNs(lun,tgt):
                             continue
                         dir = os.path.join(sysfs,lun,"device")
-                        (dev, entry) = _extract_dev(dir, proc, id, lun)
-                        devs[dev] = entry
+                        for dev in filter(match_dev,os.listdir(dir)):
+                            key = dev.replace("block:","")
+                            entry = {}
+                            entry['procname'] = proc
+                            entry['host'] = id
+                            entry['target'] = lun
+                            devs[key] = entry
 
             # for new mptsas sysfs entries, check for phy* node
             for i in filter(match_phy,os.listdir(path)):
@@ -147,17 +157,22 @@ def adapters(filterstr="any"):
                     if not match_LUNs(lun,tgt):
                         continue
                     dir = os.path.join(sysfs,lun,"device")
-                    (dev, entry) = _extract_dev(dir, proc, id, lun)
-                    devs[dev] = entry
+                    for dev in filter(match_dev,os.listdir(dir)):
+                        key = dev.replace("block:","")
+                        entry = {}
+                        entry['procname'] = proc
+                        entry['host'] = id
+                        entry['target'] = lun
+                        devs[key] = entry
             if path.startswith(SYSFS_PATH2):
-                os.path.join(path,"device","block:*")
-                dev = _extract_dev_name(os.path.join(path, 'device'))
-                if devs.has_key(dev):
+                key = os.path.basename(\
+                    glob.glob(os.path.join(path,"device","block:*"))[0]).split(':')[1]
+                if devs.has_key(key):
                     continue
                 hbtl = os.path.basename(path)
                 (h,b,t,l) = hbtl.split(':')
                 entry = {'procname':proc, 'host':id, 'target':l}
-                devs[dev] = entry
+                devs[key] = entry
 
     dict['devs'] = devs
     dict['adt'] = adt
@@ -241,33 +256,6 @@ def match_LUNs(s, prefix):
 def match_dev(s):
     regex = re.compile("^block:")
     return regex.search(s, 0)
-
-def _extract_dev_name(device_dir):
-    """Returns the name of the block device from sysfs e.g. 'sda'"""
-    kernel_version = os.uname()[2]
-
-    if kernel_version.startswith('2.6'):
-        # sub-directory of form block:sdx/
-        dev = filter(match_dev, os.listdir(device_dir))[0]
-        # remove 'block:' from entry and return
-        return dev.lstrip('block:')
-    elif kernel_version.startswith('3.'):
-        # directory for device name lives inside block directory e.g. block/sdx
-        dev = glob.glob(os.path.join(device_dir, 'block/*'))[0]
-        # prune path to extract the device name
-        return os.path.basename(dev)
-    else:
-        msg = 'Kernel version detected: %s' % kernel_version
-        raise xs_errors.XenError('UnsupportedKernel', msg)
-
-def _extract_dev(device_dir, procname, host, target):
-    """Returns device name and creates dictionary entry for it"""
-    dev = _extract_dev_name(device_dir)
-    entry = {}
-    entry['procname'] = procname
-    entry['host'] = host
-    entry['target'] = target
-    return (dev, entry)
 
 def scan(srobj):
     systemrootID = util.getrootdevID()

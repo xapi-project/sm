@@ -1,0 +1,187 @@
+#!/usr/bin/python -u
+#
+# Copyright (c) 2010 Citrix Systems, Inc. All use and distribution of this
+# copyrighted material is governed by and subject to terms and conditions
+# as licensed by Citrix Systems, Inc. All other rights reserved.
+# Xen, XenSource and XenEnterprise are either registered trademarks or
+# trademarks of Citrix Systems, Inc. in the United States and/or other countries.
+#
+
+"""Manual Xen Certification script"""
+
+import os
+import sys
+import XenCertCommon
+from StorageHandlerUtil import Print
+from StorageHandlerUtil import PrintToLog
+from StorageHandlerUtil import InitLogging
+from StorageHandlerUtil import UnInitLogging
+from StorageHandlerUtil import GetLogFileName
+from datetime import datetime
+import time, commands
+
+def main():
+    """Main Routine"""
+
+    pass_all = True
+    g_storage_conf = {}
+    InitLogging()
+    PrintToLog("***********************************************************************\n")
+    PrintToLog("The XenCert command executed is: \n\n")
+    for arg in sys.argv:
+	PrintToLog(arg)
+	PrintToLog(' ')
+    PrintToLog('\n\n')
+    (options, args) = XenCertCommon.parse_args("%prog 2.0, build 4. \nCitrix Systems, Storage Certification.\n")
+   
+    if args:
+        Print("Unknown arguments found: %s" % args)
+        sys.exit(1)
+
+    if options.help:
+	XenCertCommon.DisplayUsage()
+	return 0
+	
+    if not XenCertCommon.valid_arguments(options, g_storage_conf):
+        return 1
+
+    XenCertCommon.store_configuration(g_storage_conf, options)
+    
+    # Now is the time to instantiate the right handler based on the
+    # requested storage type and hand it over to the handler to
+    # perform the certification process
+    handler = XenCertCommon.GetStorageHandler(g_storage_conf)
+    build = commands.getoutput('cat /etc/xensource-inventory | grep BUILD_NUMBER')
+    Print("********************** Welcome to XenCert 2.0 %s *****************"%build)  
+    Print("Test start time: %s" % time.asctime(time.localtime()))
+    start = datetime.now()
+    Print("***********************************************************************")  
+    testAll = False
+    
+    if not options.functional and not options.control and not options.multipath and not options.pool and not options.data and not options.metadata:
+	    testAll = True
+    
+    if options.multipath or testAll:
+	Print("Performing multipath configuration verification.")
+    	(retValMP, checkPointsMP, totalCheckPointsMP) = handler.MPConfigVerificationTests()
+        if checkPointsMP != totalCheckPointsMP:
+            pass_all = False
+	Print("***********************************************************************")
+	timeOfCompletionMP = time.asctime(time.localtime())
+
+    if options.control or testAll: 
+    	Print("Performing control path stress tests.")
+        (retValControl, checkPointsControl, totalCheckPointsControl) = handler.ControlPathStressTests()
+        if checkPointsControl != totalCheckPointsControl:
+            pass_all = False
+    	Print("***********************************************************************")
+	timeOfCompletionControl = time.asctime(time.localtime())
+
+    if options.pool or testAll:
+	Print("Performing pool tests to ensure consistency.")
+    	(retValPool, checkPointsPool, totalCheckPointsPool) = handler.PoolTests()
+        if checkPointsPool != totalCheckPointsPool:
+            pass_all = False
+	Print("***********************************************************************")
+	timeOfCompletionPool = time.asctime(time.localtime())
+    	
+    if options.functional or testAll: 
+    	Print("Performing functional tests.")
+    	(retValFunctional, checkPointsFunctional, totalCheckPointsFunctional) = handler.FunctionalTests()
+        if checkPointsFunctional != checkPointsFunctional:
+            pass_all = False
+    	Print("***********************************************************************")
+	timeOfCompletionFunctional = time.asctime(time.localtime())
+
+    if options.data or testAll: 
+    	Print("Performing data IO tests.")
+    	(retValData, checkPointsData, totalCheckPointsData) = handler.DataIntegrityTests()
+        if checkPointsData != checkPointsData:
+            pass_all = False
+        Print("***********************************************************************")
+    timeOfCompletionData = time.asctime(time.localtime())
+    
+    if options.metadata:
+        Print("Performing metadata tests.")
+        retValMetadata = handler.MetaDataTests()        
+        Print("***********************************************************************")
+    timeOfCompletionMetadata = time.asctime(time.localtime())
+
+    # Now display all the results
+    if options.multipath or testAll:
+	Print("***********************************************************************")
+	if retValMP: 
+            Print("%-50s: PASS, Pass percentage: %d, Completed: %s" %
+		  ('Multipath configuration verification results', int((checkPointsMP * 100)/totalCheckPointsMP), timeOfCompletionMP))
+	else:
+            Print("%-50s: FAIL, Pass percentage: %d, Completed: %s" %
+		  ('Multipath configuration verification results', int((checkPointsMP * 100)/totalCheckPointsMP), timeOfCompletionMP))
+    	
+    if options.control or testAll:     	
+    	Print("***********************************************************************")
+	if retValControl: 
+            Print("%-50s: PASS, Pass percentage: %d, Completed: %s" %
+		  ('Control path stress test results', int((checkPointsControl * 100)/totalCheckPointsControl), timeOfCompletionControl))
+	else:
+            Print("%-50s: FAIL, Pass percentage: %d, Completed: %s" %
+		  ('Control path stress test results', int((checkPointsControl * 100)/totalCheckPointsControl), timeOfCompletionControl))
+    	
+    if options.pool or testAll:	
+    	Print("***********************************************************************")
+	if retValPool: 
+            Print("%-50s: PASS, Pass percentage: %d, Completed: %s" % ('Pool test results', int((checkPointsPool * 100)/totalCheckPointsPool), timeOfCompletionPool))
+	else:
+            Print("%-50s: FAIL, Pass percentage: %d, Completed: %s" % ('Pool test results', int((checkPointsPool * 100)/totalCheckPointsPool), timeOfCompletionPool))
+    	
+    if options.functional or testAll:     	
+    	Print("***********************************************************************")
+	if retValFunctional: 
+            Print("%-50s: PASS, Pass percentage: %d, Completed: %s" %
+		  ('Functional test results', int((checkPointsFunctional * 100)/totalCheckPointsFunctional), timeOfCompletionFunctional))
+	else:
+            Print("%-50s: FAIL, Pass percentage: %d, Completed: %s" %
+		  ('Functional test results', int((checkPointsFunctional * 100)/totalCheckPointsFunctional), timeOfCompletionFunctional))
+
+    if options.data or testAll:         
+        Print("***********************************************************************")
+        if retValData: 
+            Print("%-50s: PASS, Pass percentage: %d, Completed: %s" %
+          ('Data test results', int((checkPointsData * 100)/totalCheckPointsData), timeOfCompletionData))
+    	else:
+            Print("%-50s: FAIL, Pass percentage: %d, Completed: %s" %
+          ('Data test results', int((checkPointsData * 100)/totalCheckPointsData), timeOfCompletionData))
+        
+    if options.metadata:
+        Print("***********************************************************************")
+        if retValMetadata: 
+            Print("%-50s: PASS" % ('Metadata test results'))
+    	else:
+            Print("%-50s: FAIL" % ('Metadata test results'))
+            
+    Print("***********************************************************************")
+    Print("End of XenCert certification suite.")
+    Print("Please find the report for this test run at: %s" % GetLogFileName())
+    Print("***********************************************************************")
+    end = datetime.now()
+    Print("Test end time: %s" % time.asctime(time.localtime()))
+    timed = end - start
+    hr = timed.seconds/3600
+    min = timed.seconds%3600/60
+    sec = timed.seconds%60
+    if hr > 0:
+	Print("Execution time: %d hours, %d minutes, %d seconds." % (hr, min, sec))
+    elif min > 0:
+	Print("Execution time: %d minutes, %d seconds." % (min, sec))
+    elif sec > 0:
+        Print("Execution time: %d seconds." % sec)	    
+    
+    Print("***********************************************************************")  
+    UnInitLogging()
+
+    if pass_all:
+        sys.exit(0)
+    else:
+        sys.exit(1)
+    
+if __name__ == "__main__":
+    main()
