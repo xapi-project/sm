@@ -1,6 +1,6 @@
 #!/usr/bin/python
-#
-# Copyright (C) Citrix Systems Inc.
+# Copyright (C) 2006-2007 XenSource Ltd.
+# Copyright (C) 2008-2009 Citrix Ltd.
 #
 # This program is free software; you can redistribute it and/or modify 
 # it under the terms of the GNU Lesser General Public License as published 
@@ -10,10 +10,6 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of 
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
 # GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 # Persistent reference counter. This refcounter can maintain two separate 
 # refcounts: one binary (which can have a value of 0 or 1) and one normal. The 
@@ -227,9 +223,9 @@ class RefCounter:
             f = open(fn, 'w')
             f.write("%d %d\n" % (count, binaryCount))
             f.close()
-        except IOError, e:
-            raise RefCounterException("failed to write '(%d %d)' to '%s': %s" \
-                    % (count, binaryCount, fn, e))
+        except IOError:
+            raise RefCounterException("failed to write '(%d %d)' to '%s'" % \
+                    (count, binaryCount, fn))
     _writeCount = staticmethod(_writeCount)
 
 

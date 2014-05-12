@@ -1,0 +1,13 @@
+#!/bin/bash
+( echo open ${1}
+  sleep 5
+  echo ${2}
+  sleep 1
+  echo ${3}
+  sleep 1
+  echo ${5} ${4}
+  sleep 1
+  sleep 1
+  echo exit 
+ ) | telnet
+

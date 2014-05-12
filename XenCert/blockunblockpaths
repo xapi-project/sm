@@ -1,0 +1,55 @@
+#!/usr/bin/python
+# Copyright (C) 2006-2007 XenSource Ltd.
+# Copyright (C) 2008-2009 Citrix Ltd.
+#
+# This program is free software; you can redistribute it and/or modify 
+# it under the terms of the GNU Lesser General Public License as published 
+# by the Free Software Foundation; version 2.1 only.
+# This utility should be called as:
+# blockunblockpaths block/unblock <script to block paths> <passthrough information>
+# This script puts a flag on xenstore and then
+# either runs the script mentioned with the block/unblock flag and the passthrough
+#     information, then waits until the xenstore flag is set.
+# or just waits till the flag is set. 
+import sys
+sys.path.insert(0, "/opt/xensource/sm")
+sys.path.insert(0, "/opt/xensource/sm/snapwatchd")
+import util
+import xslib
+import os
+import time
+from StorageHandler import XenCertPrint
+from StorageHandler import Print
+
+def help():
+    Print("Usage: blockunblockpaths <blockunblockscript> <block/unblock> <noOfPaths> <passthrough-information>")
+    sys.exit(-1)
+	
+# Test Cmdline args
+XenCertPrint("Entering blockunblockpaths")
+if len(sys.argv) != 5 and len(sys.argv) != 1 :
+    help()
+
+retVal = ''
+xs_handle = xslib.xs_daemon_open()
+xslib.setval(xs_handle, '/xencert/block-unblock-over', '0')
+block_unblock_over = xslib.getval(xs_handle, '/xencert/block-unblock-over')
+if len(sys.argv) == 5:
+    cmd = [sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]]
+    XenCertPrint('blockunblockpaths - now call %s and wait for block/unblock to finish.' % cmd)
+    (rc, stdout, stderr) = util.doexec(cmd, '')
+    if rc == 0:
+	retVal = stdout
+    else:
+	retVal = stderr
+elif len(sys.argv) == 1:
+    XenCertPrint('blockunblockpaths - called without any arguments, just wait for block/unblock to finish.')
+    
+while block_unblock_over != '1':
+    time.sleep(1)
+    block_unblock_over = xslib.getval(xs_handle, '/xencert/block-unblock-over')
+    
+os.system('xenstore-rm /xencert')
+xslib.xs_daemon_close(xs_handle)
+sys.stdout.write(retVal)    
+sys.exit(0)

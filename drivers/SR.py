@@ -1,6 +1,6 @@
 #!/usr/bin/python
-#
-# Copyright (C) Citrix Systems Inc.
+# Copyright (C) 2006-2007 XenSource Ltd.
+# Copyright (C) 2008-2009 Citrix Ltd.
 #
 # This program is free software; you can redistribute it and/or modify 
 # it under the terms of the GNU Lesser General Public License as published 
@@ -10,10 +10,6 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of 
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
 # GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 # SR: Base class for storage repositories
 #
@@ -104,8 +100,7 @@ class SR(object):
             else:
                 self.host_ref = self.srcmd.params['host_ref']
 
-            if 'sr_ref' in self.srcmd.params:
-                self.sr_ref = self.srcmd.params['sr_ref']
+            self.sr_ref = self.srcmd.params.get('sr_ref')
 
 	    if 'device_config' in self.srcmd.params:
 		if self.srcmd.params['device_config'].has_key('SCSIid'):

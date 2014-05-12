@@ -1,6 +1,6 @@
 #!/usr/bin/python
-#
-# Copyright (C) Citrix Systems Inc.
+# Copyright (C) 2006-2007 XenSource Ltd.
+# Copyright (C) 2008-2009 Citrix Ltd.
 #
 # This program is free software; you can redistribute it and/or modify 
 # it under the terms of the GNU Lesser General Public License as published 
@@ -10,10 +10,6 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of 
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
 # GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 INITIATORNAME_FILE = '/etc/iscsi/initiatorname.iscsi'
 
@@ -22,24 +18,7 @@ import xs_errors, socket, re
 import shutil
 import xs_errors
 import lock
-import glob
 from cleanup import LOCK_TYPE_RUNNING
-
-# The 3.x kernel brings with it some iSCSI path changes in sysfs
-_KERNEL_VERSION = os.uname()[2]
-if _KERNEL_VERSION.startswith('2.6'):
-    _GENERIC_SESSION_PATH = ('/sys/class/iscsi_host/host%s/device/session*/' +
-            'iscsi_session*/')
-    _GENERIC_CONNECTION_PATH = ('/sys/class/iscsi_host/host%s/device/' +
-            'session*/connection*/iscsi_connection*/')
-elif _KERNEL_VERSION.startswith('3.'):
-    _GENERIC_SESSION_PATH = ('/sys/class/iscsi_host/host%s/device/session*/' +
-            'iscsi_session/session*/')
-    _GENERIC_CONNECTION_PATH = ('/sys/class/iscsi_host/host%s/device/' +
-            'session*/connection*/iscsi_connection/connection*/')
-else:
-    _msg = 'Kernel version detected: %s' % _KERNEL_VERSION
-    raise xs_errors.XenError('UnsupportedKernel', _msg)
 
 def exn_on_failure(cmd, message):
     '''Executes via util.doexec the command specified. If the return code is 
@@ -291,25 +270,6 @@ def refresh_luns(targetIQN, portal):
         time.sleep(2) # FIXME
     except:
         pass
-
-def get_IQN_paths():
-    """Return the list of iSCSI session directories"""
-    return glob.glob(_GENERIC_SESSION_PATH % '*')
-
-def get_targetIQN(iscsi_host):
-    """Get target IQN from sysfs for given iSCSI host number"""
-    iqn_file = os.path.join(_GENERIC_SESSION_PATH % iscsi_host, 'targetname')
-    targetIQN = util.get_single_entry(glob.glob(iqn_file)[0])
-    return targetIQN
-
-def get_targetIP_and_port(iscsi_host):
-    """Get target IP address and port for given iSCSI host number"""
-    connection_dir = _GENERIC_CONNECTION_PATH % iscsi_host
-    ip = util.get_single_entry(glob.glob(os.path.join(
-            connection_dir, 'persistent_address'))[0])
-    port = util.get_single_entry(glob.glob(os.path.join(
-            connection_dir, 'persistent_port'))[0])
-    return (ip, port)
 
 def get_path(targetIQN, portal, lun):
     """Gets the path of a specified LUN - this should be e.g. '1' or '5'"""

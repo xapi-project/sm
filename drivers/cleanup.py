@@ -1,6 +1,6 @@
 #!/usr/bin/python
-#
-# Copyright (C) Citrix Systems Inc.
+# Copyright (C) 2006-2007 XenSource Ltd.
+# Copyright (C) 2008-2009 Citrix Ltd.
 #
 # This program is free software; you can redistribute it and/or modify 
 # it under the terms of the GNU Lesser General Public License as published 
@@ -10,10 +10,6 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of 
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
 # GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 # Script to coalesce and garbage collect VHD-based SR's in the background
 #
@@ -407,6 +403,7 @@ class VDI:
     DB_VHD_BLOCKS = "vhd-blocks"
     DB_VDI_PAUSED = "paused"
     DB_GC = "gc"
+    DB_COALESCE = "coalesce"
     DB_LEAFCLSC = "leaf-coalesce" # config key
     LEAFCLSC_DISABLED = "false"  # set by user; means do not leaf-coalesce
     LEAFCLSC_FORCE = "force"     # set by user; means skip snap-coalesce
@@ -422,6 +419,7 @@ class VDI:
             DB_VHD_BLOCKS:   XAPI.CONFIG_SM,
             DB_VDI_PAUSED:   XAPI.CONFIG_SM,
             DB_GC:           XAPI.CONFIG_OTHER,
+            DB_COALESCE:     XAPI.CONFIG_OTHER,
             DB_LEAFCLSC:     XAPI.CONFIG_OTHER,
             DB_ONBOOT:       XAPI.CONFIG_ON_BOOT,
     }
@@ -1326,6 +1324,14 @@ class SR:
         """Find a coalesceable VDI. Return a vdi that should be coalesced
         (choosing one among all coalesceable candidates according to some
         criteria) or None if there is no VDI that could be coalesced"""
+
+        candidates = []
+
+        srSwitch = self.xapi.srRecord["other_config"].get(VDI.DB_COALESCE)
+        if srSwitch == "false":
+            Util.log("Coalesce disabled for this SR")
+            return candidates
+
         # finish any VDI for which a relink journal entry exists first
         journals = self.journaler.getAll(VDI.JRN_RELINK)
         for uuid in journals.iterkeys():
@@ -1333,7 +1339,6 @@ class SR:
             if vdi and vdi not in self._failedCoalesceTargets:
                 return vdi
 
-        candidates = []
         for vdi in self.vdis.values():
             if vdi.isCoalesceable() and vdi not in self._failedCoalesceTargets:
                 candidates.append(vdi)
@@ -1364,6 +1369,10 @@ class SR:
     def findLeafCoalesceable(self):
         """Find leaf-coalesceable VDIs in each VHD tree"""
         candidates = []
+        srSwitch = self.xapi.srRecord["other_config"].get(VDI.DB_COALESCE)
+        if srSwitch == "false":
+            Util.log("Coalesce disabled for this SR")
+            return candidates
         srSwitch = self.xapi.srRecord["other_config"].get(VDI.DB_LEAFCLSC)
         if srSwitch == VDI.LEAFCLSC_DISABLED:
             Util.log("Leaf-coalesce disabled for this SR")
@@ -1926,7 +1935,7 @@ class FileSR(SR):
 
             lockId = uuid
             parentUuid = None
-            if rec and rec["managed"]:
+            if rec["managed"]:
                 parentUuid = rec["sm_config"].get("vhd-parent")
             if parentUuid:
                 lockId = parentUuid

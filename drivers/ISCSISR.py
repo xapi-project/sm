@@ -1,6 +1,6 @@
 #!/usr/bin/python
-#
-# Copyright (C) Citrix Systems Inc.
+# Copyright (C) 2006-2007 XenSource Ltd.
+# Copyright (C) 2008-2009 Citrix Ltd.
 #
 # This program is free software; you can redistribute it and/or modify 
 # it under the terms of the GNU Lesser General Public License as published 
@@ -10,10 +10,6 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of 
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
 # GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 # ISCSISR: ISCSI software initiator SR driver
 #
@@ -236,10 +232,14 @@ class ISCSISR(SR.SR):
         self.adapter = {}
         for host in ids:
             try:
-                targetIQN = iscsilib.get_targetIQN(host)
+                targetIQN = util.get_single_entry(glob.glob(\
+                    '/sys/class/iscsi_host/host%s/device/session*/iscsi_session*/targetname' % host)[0])
                 if targetIQN != self.targetIQN:
                     continue
-                (addr, port) = iscsilib.get_targetIP_and_port(host)
+                addr = util.get_single_entry(glob.glob(\
+                    '/sys/class/iscsi_host/host%s/device/session*/connection*/iscsi_connection*/persistent_address' % host)[0])
+                port = util.get_single_entry(glob.glob(\
+                    '/sys/class/iscsi_host/host%s/device/session*/connection*/iscsi_connection*/persistent_port' % host)[0])
                 entry = "%s:%s" % (addr,port)
                 self.adapter[entry] = host
             except:
@@ -333,10 +333,11 @@ class ISCSISR(SR.SR):
         else:
             IQNs.append(self.targetIQN)
         sessions = 0
-        paths = iscsilib.get_IQN_paths()
+        paths = glob.glob(\
+                    '/sys/class/iscsi_host/host*/device/session*/iscsi_session*/targetname')
         for path in paths:
             try:
-                if util.get_single_entry(os.path.join(path, 'targetname')) in IQNs:
+                if util.get_single_entry(path) in IQNs:
                     sessions += 1
                     util.SMlog("IQN match. Incrementing sessions to %d" % sessions)
             except:
@@ -346,9 +347,12 @@ class ISCSISR(SR.SR):
         try:
             pbdref = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
             if pbdref <> None:
-                other_conf = self.session.xenapi.PBD.get_other_config(pbdref)
-                other_conf['iscsi_sessions'] = str(sessions)
-                self.session.xenapi.PBD.set_other_config(pbdref, other_conf)
+                # Just to be safe in case of garbage left during crashes
+                # we remove the key and add it
+                self.session.xenapi.PBD.remove_from_other_config(
+                    pbdref, "iscsi_sessions")
+                self.session.xenapi.PBD.add_to_other_config(
+                    pbdref, "iscsi_sessions", str(sessions))
         except:
             pass
 
@@ -630,7 +634,9 @@ class ISCSISR(SR.SR):
             subentry.appendChild(textnode)
 
             try:
-                (addr, port) = iscsilib.parse_IP_port(address)
+                # We always expect a port so this holds
+                # regardless of IP version
+                (addr, port) = address.rsplit(':', 1)
             except:
                 addr = address
                 port = DEFAULT_PORT

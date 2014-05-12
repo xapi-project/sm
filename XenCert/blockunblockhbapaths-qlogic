@@ -1,0 +1,75 @@
+#!/usr/bin/python
+# Copyright (C) 2006-2007 XenSource Ltd.
+# Copyright (C) 2008-2009 Citrix Ltd.
+#
+# This program is free software; you can redistribute it and/or modify 
+# it under the terms of the GNU Lesser General Public License as published 
+# by the Free Software Foundation; version 2.1 only.
+#
+import sys
+sys.path.insert(0, "/opt/xensource/sm")
+sys.path.insert(0, "/opt/xensource/sm/snapwatchd")
+import util
+import xslib
+import random
+import os
+from StorageHandlerUtil import XenCertPrint
+
+NO_OF_PATHS_PER_PORT = 1
+
+def help():
+    print "Usage: blockunblockhbapaths <block/unblock> <noOfPaths> switch-ip:username:password:port1,port2..."
+    sys.exit(-1)
+    
+def blockUnblockPort(blockOrUnblock, ip, username, password, port):
+    try:
+        XenCertPrint("In blockUnblockPort with options: %s, %s, %s, %s" % (ip, username, password, port))
+        if blockOrUnblock:
+            cmd = [os.path.join(os.getcwd(),'blockunblockHBAPort.sh'), ip, username, password, port, 'offline']
+        else:
+            cmd = [os.path.join(os.getcwd(),'blockunblockHBAPort.sh'), ip, username, password, port, 'online']
+    
+        XenCertPrint("calling %s" % cmd)
+        util.doexec(cmd, '')
+    except Exception, e:
+        util.SMlog("There was an exception in blocking port: %s" % port)
+
+# Test Cmdline args
+if len(sys.argv) != 4:
+    help()
+    
+# Now extract all parameters from the command line
+op = sys.argv[1]
+ip = sys.argv[3].split(':')[0]
+username = sys.argv[3].split(':')[1]
+password = sys.argv[3].split(':')[2]
+portList = sys.argv[3].split(':')[3].split(',')
+sampled_portlist = portList
+
+if op == 'block':
+    sampled_portlist = random.sample(portList, random.randint(1, len(portList) - 1))
+    XenCertPrint("Blocking ports: %s" % sampled_portlist) 
+    retVal=ip + ':' + username + ':' + password + ':'
+    
+for port in sampled_portlist:
+    if op == 'block':
+        blockUnblockPort(True, ip, username, password, port)
+        retVal += port
+        retVal += ','
+    elif op == 'unblock':
+        blockUnblockPort(False, ip, username, password, port)
+
+xs_handle = xslib.xs_daemon_open()
+xslib.setval(xs_handle, '/xencert/block-unblock-over', '1')
+xslib.xs_daemon_close(xs_handle)
+
+if op == 'block':
+    retVal = retVal.strip(',')
+    retVal += '::'
+    retVal += str(len(sampled_portlist) * NO_OF_PATHS_PER_PORT)
+    retVal += ','
+    retVal += str(len(portList) * NO_OF_PATHS_PER_PORT)
+    XenCertPrint(retVal)
+    sys.stdout.write(retVal)
+
+sys.exit(0)

@@ -1,6 +1,6 @@
 #!/usr/bin/python
-#
-# Copyright (C) Citrix Systems Inc.
+# Copyright (C) 2006-2007 XenSource Ltd.
+# Copyright (C) 2008-2009 Citrix Ltd.
 #
 # This program is free software; you can redistribute it and/or modify 
 # it under the terms of the GNU Lesser General Public License as published 
@@ -10,10 +10,6 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of 
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
 # GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 # ISOSR: remote iso storage repository
 
@@ -109,11 +105,6 @@ class ISOSR(SR.SR):
 
         for name in filter(is_image_utf8_compatible,
                 util.listdir(self.path, quiet = True)):
-	    fileName = self.path + "/" + name
-            if os.path.isdir(fileName):
-                util.SMlog("_loadvdis : %s is a directory. Ignore" % fileName)
-                continue
-
             # CA-80254: Check for iso/img files whose name consists of extended
             # characters.
             try:
