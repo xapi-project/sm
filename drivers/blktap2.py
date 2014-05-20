@@ -392,6 +392,8 @@ class TapCtl(object):
             args.append(options["secondary"])
         if options.get("standby"):
             args.append("-s")
+        if not options.get("o_direct", True):
+            args.append("-D")
         if options.get("timeout"):
             args.append("-t")
             args.append(str(options["timeout"]))
@@ -958,6 +960,7 @@ class VDI(object):
     CONF_KEY_ALLOW_CACHING = "vdi_allow_caching"
     CONF_KEY_MODE_ON_BOOT = "vdi_on_boot"
     CONF_KEY_CACHE_SR = "local_cache_sr"
+    CONF_KEY_O_DIRECT = "o_direct"
     LOCK_CACHE_SETUP = "cachesetup"
 
     ATTACH_DETACH_RETRY_SECS = 120
@@ -1555,6 +1558,9 @@ class VDI(object):
             # Maybe launch a tapdisk on the physical link
             if self.tap_wanted():
                 vdi_type = self.target.get_vdi_type()
+                options["o_direct"] = options.get(self.CONF_KEY_O_DIRECT)
+                if options["o_direct"] is None: 
+                    options["o_direct"] = True
                 dev_path = self._tap_activate(phy_path, vdi_type, sr_uuid,
                         options,
                         self._get_pool_config(sr_uuid).get("mem-pool-size"))
