@@ -61,6 +61,7 @@ cp -f /etc/lvm/lvm.conf.orig /etc/lvm/lvm.conf || exit $?
 %files
 %defattr(-,root,root,-)
 /etc/cron.d/*
+/etc/modprobe.d/blacklist-rpcsec_gss_krb5.conf
 /etc/rc.d/init.d/snapwatchd
 /etc/rc.d/init.d/mpathroot
 /etc/xapi.d/plugins/coalesce-leaf
