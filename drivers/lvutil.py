@@ -397,9 +397,10 @@ def setActiveVG(path, active):
     cmd = [CMD_VGCHANGE, "-a" + val, "--master", path]
     text = util.pread2(cmd)
 
-def create(name, size, vgname, tag=None, activate=True, size_in_percetage=None):
-    if size_in_percetage:
-        cmd = [CMD_LVCREATE, "-n", name, "-l", size_in_percetage, vgname]
+def create(name, size, vgname, tag=None, activate=True, 
+           size_in_percentage=None):
+    if size_in_percentage:
+        cmd = [CMD_LVCREATE, "-n", name, "-l", size_in_percentage, vgname]
     else:
         size_mb = size / 1024 / 1024
         cmd = [CMD_LVCREATE, "-n", name, "-L", str(size_mb), vgname]
@@ -409,11 +410,11 @@ def create(name, size, vgname, tag=None, activate=True, size_in_percetage=None):
         cmd.extend(["--inactive", "--zero=n"])
     util.pread2(cmd)
 
-def remove(path, config_array=None):
+def remove(path, config_param=None):
     # see deactivateNoRefcount()
     for i in range(LVM_FAIL_RETRIES):
         try:
-            _remove(path, config_array)
+            _remove(path, config_param)
             break
         except util.CommandException, e:
             if i >= LVM_FAIL_RETRIES - 1:
@@ -421,13 +422,11 @@ def remove(path, config_array=None):
             util.SMlog("*** lvremove failed on attempt #%d" % i)
     _lvmBugCleanup(path)
 
-def _remove(path, config_array=None):
+def _remove(path, config_param=None):
     CONFIG_TAG = "--config"
     cmd = [CMD_LVREMOVE, "-f", path]
-    if config_array:
-        for item in config_array:
-            config_option = "global{" + item + "}"
-            cmd.extend([CONFIG_TAG, config_option])
+    if config_param:
+        cmd.extend([CONFIG_TAG, "global{" + config_param + "}"])
     ret = util.pread2(cmd)
 
 def rename(path, newName):

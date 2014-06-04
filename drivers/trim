@@ -15,7 +15,8 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
-# A plugin for synchronizing slaves when something changes on the Master
+# A plugin for enabling trim on LVM based SRs to free up storage space 
+# in Storage arrays.
 
 import sys
 import os
@@ -53,8 +54,8 @@ def do_trim(session, args):
 
             # Perform a lvcreate and lvremove to trigger trim on the array
             lvutil.create(lv_name, 0, vg_name, activate=True,
-                          size_in_percetage="100%F")
-            lvutil.remove(lv_path,  config_array=["issue_discards=1"])
+                          size_in_percentage="100%F")
+            lvutil.remove(lv_path,  config_param="issue_discards=1")
             util.SMlog("Trim on SR: %s complete. " % sr_uuid)
             return str(True)
         finally:
