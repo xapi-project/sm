@@ -248,16 +248,13 @@ class TestTestContext(unittest.TestCase):
 
     @testlib.with_context
     def test_getaddrinfo_replies_with_callable_as_sockaddr(self, context):
-        def the_server():
-            pass
-
-        context.setup_server('somehost', 80, the_server)
+        context.setup_server('somehost', 80)
 
         import socket
 
         sockinfo = socket.getaddrinfo('somehost', 80)
 
-        self.assertEquals(the_server, sockinfo[0][4])
+        self.assertEquals(('somehost', 80), sockinfo[0][4])
 
     @testlib.with_context
     def test_socket_could_be_created(self, context):

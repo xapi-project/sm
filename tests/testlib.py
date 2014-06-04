@@ -118,9 +118,9 @@ class TestContext(object):
 
     def fake_getaddrinfo(self, host, port):
         self.log("getaddrinfo", host, str(port))
-        for hostname, port, serve_function in self._servers:
+        for hostname, port in self._servers:
             if (host, port) == (hostname, port):
-                return [[None, None, None, None, serve_function]]
+                return [[None, None, None, None, (hostname, port)]]
 
     def fake_makedirs(self, path):
         if path in self.get_filesystem():
@@ -128,8 +128,8 @@ class TestContext(object):
         self._created_directories.append(path)
         self.log("Recursively created directory", path)
 
-    def setup_server(self, hostname, port, serve_function):
-        self._servers.append((hostname, port, serve_function))
+    def setup_server(self, hostname, port):
+        self._servers.append((hostname, port))
 
     def setup_modinfo(self):
         self.add_executable('/sbin/modinfo', self.fake_modinfo)
