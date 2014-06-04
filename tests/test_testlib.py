@@ -246,6 +246,78 @@ class TestTestContext(unittest.TestCase):
 
         self.assertTrue(fileno_1 != fileno_2)
 
+    @testlib.with_context
+    def test_getaddrinfo_replies_with_callable_as_sockaddr(self, context):
+        def the_server():
+            pass
+
+        context.setup_server('somehost', 80, the_server)
+
+        import socket
+
+        sockinfo = socket.getaddrinfo('somehost', 80)
+
+        self.assertEquals(the_server, sockinfo[0][4])
+
+    @testlib.with_context
+    def test_socket_could_be_created(self, context):
+        import socket
+
+        sock = socket.socket(None, socket.SOCK_STREAM)
+
+    @testlib.with_context
+    def test_socket_return_value_has_settimeout(self, context):
+        import socket
+
+        sock = socket.socket(None, socket.SOCK_STREAM)
+
+        self.assertTrue(hasattr(sock, 'settimeout'))
+        self.assertTrue(callable(sock.settimeout))
+
+    @testlib.with_context
+    def test_socket_return_value_has_connect(self, context):
+        import socket
+
+        sock = socket.socket(None, socket.SOCK_STREAM)
+
+        self.assertTrue(hasattr(sock, 'connect'))
+        self.assertTrue(callable(sock.connect))
+
+    @testlib.with_context
+    def test_socket_return_value_has_send(self, context):
+        import socket
+
+        sock = socket.socket(None, socket.SOCK_STREAM)
+
+        self.assertTrue(hasattr(sock, 'send'))
+        self.assertTrue(callable(sock.send))
+
+    @testlib.with_context
+    def test_socket_return_value_has_close(self, context):
+        import socket
+
+        sock = socket.socket(None, socket.SOCK_STREAM)
+
+        self.assertTrue(hasattr(sock, 'close'))
+        self.assertTrue(callable(sock.close))
+
+    @testlib.with_context
+    def test_socket_can_connect_to_callable(self, context):
+        import socket
+
+        sock = socket.socket(None, socket.SOCK_STREAM)
+
+        sock.connect(lambda: None)
+
+    @testlib.with_context
+    def test_socket_can_send_callable(self, context):
+        import socket
+
+        sock = socket.socket(None, socket.SOCK_STREAM)
+
+        sock.connect(lambda: None)
+        sock.send('blah')
+
     def test_get_created_directories(self):
         context = testlib.TestContext()
 

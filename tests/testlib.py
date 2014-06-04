@@ -79,6 +79,7 @@ class TestContext(object):
         self._created_directories = []
         self._path_content = {}
         self._next_fileno = 0
+        self._servers = []
 
     def _get_inc_fileno(self):
         result = self._next_fileno
@@ -106,15 +107,29 @@ class TestContext(object):
             mock.patch('glob.glob', new=self.fake_glob),
             mock.patch('os.uname', new=self.fake_uname),
             mock.patch('subprocess.Popen', new=self.fake_popen),
+            mock.patch('socket.getaddrinfo', new=self.fake_getaddrinfo),
+            mock.patch('socket.socket', new=self.fake_socket),
         ]
         map(lambda patcher: patcher.start(), self.patchers)
         self.setup_modinfo()
+
+    def fake_socket(self, serve_function, *ignored):
+        return FakeSocket()
+
+    def fake_getaddrinfo(self, host, port):
+        self.log("getaddrinfo", host, str(port))
+        for hostname, port, serve_function in self._servers:
+            if (host, port) == (hostname, port):
+                return [[None, None, None, None, serve_function]]
 
     def fake_makedirs(self, path):
         if path in self.get_filesystem():
             raise OSError(path + " Already exists")
         self._created_directories.append(path)
         self.log("Recursively created directory", path)
+
+    def setup_server(self, hostname, port, serve_function):
+        self._servers.append((hostname, port, serve_function))
 
     def setup_modinfo(self):
         self.add_executable('/sbin/modinfo', self.fake_modinfo)
@@ -193,8 +208,9 @@ class TestContext(object):
                 result.add(path)
 
         for executable_path in self.executables:
-            for path in filesystem_for(executable_path):
-                result.add(path)
+            if executable_path.startswith('/'):
+                for path in filesystem_for(executable_path):
+                    result.add(path)
 
         for directory in self.get_created_directories():
             result.add(directory)
@@ -350,3 +366,20 @@ class WriteableFile(object):
     def close(self):
         self._context._path_content[self._fname] = self._file.getvalue()
         self._file.close()
+
+
+class FakeSocket(object):
+    def __init__(self):
+        self._serve_function = None
+
+    def settimeout(self, timeout_value):
+        pass
+
+    def connect(self, _serve_function):
+        self._serve_function = _serve_function
+
+    def send(self, data):
+        pass
+
+    def close(self):
+        pass
