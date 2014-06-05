@@ -135,6 +135,18 @@ class TestTestContext(unittest.TestCase):
         self.assertTrue(os.path.exists('/'))
 
     @testlib.with_context
+    def test_stat_raises_for_non_existing(self, context):
+        self.assertRaises(
+            OSError,
+            lambda: self.assertFalse(os.stat('/somefile')))
+
+    @testlib.with_context
+    def test_stat_does_not_fail_on_existing_file(self, context):
+        os.makedirs('/somefile')
+
+        os.stat('/somefile')
+
+    @testlib.with_context
     def test_error_codes_read(self, context):
         context.setup_error_codes()
         errorcodes_file = open('/opt/xensource/sm/XE_SR_ERRORCODES.xml', 'rb')

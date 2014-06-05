@@ -103,15 +103,29 @@ class TestContext(object):
             mock.patch('__builtin__.file', new=self.fake_open),
             mock.patch('os.path.exists', new=self.fake_exists),
             mock.patch('os.makedirs', new=self.fake_makedirs),
+            mock.patch('os.mkdir', new=self.fake_mkdir),
             mock.patch('os.listdir', new=self.fake_listdir),
             mock.patch('glob.glob', new=self.fake_glob),
             mock.patch('os.uname', new=self.fake_uname),
             mock.patch('subprocess.Popen', new=self.fake_popen),
             mock.patch('socket.getaddrinfo', new=self.fake_getaddrinfo),
             mock.patch('socket.socket', new=self.fake_socket),
+            mock.patch('os.stat', new=self.fake_stat),
         ]
         map(lambda patcher: patcher.start(), self.patchers)
         self.setup_modinfo()
+
+    def fake_mkdir(self, path, mode):
+        assert path.startswith(PATHSEP)
+
+        if self.fake_exists(path):
+            raise OSError()
+
+        self._created_directories.append(path)
+
+    def fake_stat(self, path):
+        if not self.fake_exists(path):
+            raise OSError()
 
     def fake_socket(self, serve_function, *ignored):
         return FakeSocket()
