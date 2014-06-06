@@ -61,14 +61,18 @@ def check_server_tcp(server):
                            inst.code)
 
 
-def soft_mount(mountpoint, remoteserver, remotepath, transport):
-    """Mount the remote NFS export at 'mountpoint'"""
+def soft_mount(mountpoint, remoteserver, remotepath, transport, timeout = 0):
+    """Mount the remote NFS export at 'mountpoint'.
+    The 'timeout' param here is in seconds."""
     try:
         if not util.ioretry(lambda: util.isdir(mountpoint)):
             util.ioretry(lambda: util.makedirs(mountpoint))
     except util.CommandException, inst:
         raise NfsException("Failed to make directory: code is %d" % 
                             inst.code)
+
+    if timeout < 1:
+        timeout = SOFTMOUNT_TIMEOUT
 
     options = "soft,timeo=%d,retrans=%d,%s" % (SOFTMOUNT_TIMEOUT,
                                                SOFTMOUNT_RETRANS,

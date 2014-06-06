@@ -113,9 +113,9 @@ class NFSSR(FileSR.FileSR):
                                      opterr=exc.errstr)
 
 
-    def mount(self, mountpoint, remotepath):
+    def mount(self, mountpoint, remotepath, timeout = 0):
         try:
-            nfs.soft_mount(mountpoint, self.remoteserver, remotepath, self.transport)
+            nfs.soft_mount(mountpoint, self.remoteserver, remotepath, self.transport, timeout)
         except nfs.NfsException, exc:
             raise xs_errors.XenError('NFSMount', opterr=exc.errstr)
 
@@ -124,14 +124,15 @@ class NFSSR(FileSR.FileSR):
         if not self._checkmount():
             self.validate_remotepath(False)
             util._testHost(self.dconf['server'], NFSPORT, 'NFSTarget')
-            self.mount_remotepath(sr_uuid)
+            io_timeout = util.get_nfs_timeout(self.session, sr_uuid)
+            self.mount_remotepath(sr_uuid, io_timeout)
         self.attached = True
 
 
-    def mount_remotepath(self, sr_uuid):
+    def mount_remotepath(self, sr_uuid, timeout = 0):
         if not self._checkmount():
             self.check_server()
-            self.mount(self.path, self.remotepath)
+            self.mount(self.path, self.remotepath, timeout)
 
 
     def probe(self):

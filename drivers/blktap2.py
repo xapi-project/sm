@@ -959,6 +959,8 @@ class VDI(object):
 
     ATTACH_DETACH_RETRY_SECS = 120
 
+    TAPDISK_TIMEOUT_MARGIN = 30
+
     def __init__(self, uuid, target, driver_info):
         self.target      = self.TargetDriver(target, driver_info)
         self._vdi_uuid   = uuid
@@ -1459,6 +1461,12 @@ class VDI(object):
 
     def activate(self, sr_uuid, vdi_uuid, writable, caching_params):
         util.SMlog("blktap2.activate")
+        options = {"rdonly": not writable}
+        options.update(caching_params)
+        timeout = util.get_nfs_timeout(self.target.vdi.session, sr_uuid)
+        if timeout:
+            options["timeout"] = timeout + self.TAPDISK_TIMEOUT_MARGIN
+        
         for i in range(self.ATTACH_DETACH_RETRY_SECS):
             try:
                 if self._activate_locked(sr_uuid, vdi_uuid,
