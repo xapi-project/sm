@@ -36,7 +36,9 @@ CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_CACHING",
                 "VDI_RESET_ON_BOOT/2", "ATOMIC_PAUSE"]
 
 CONFIGURATION = [ [ 'server', 'hostname or IP address of NFS server (required)' ], \
-                  [ 'serverpath', 'path on remote server (required)' ] ]
+                  [ 'serverpath', 'path on remote server (required)' ],
+                  [ 'nfsversion',
+                    'NFS protocol version - 3, 4 (optional)' ] ]
 
                   
 DRIVER_INFO = {
@@ -86,10 +88,11 @@ class NFSSR(FileSR.FileSR):
                                            not self.nosubdir and sr_uuid or "")
         self.path = os.path.join(SR.MOUNT_BASE, sr_uuid)
 
-        # Test for the optional 'nfsoptions' dconf attribute
+        # Handle optional dconf attributes
         self.transport = DEFAULT_TRANSPORT
         if self.dconf.has_key('useUDP') and self.dconf['useUDP'] == 'true':
             self.transport = "udp"
+        self.nfsversion = nfs.validate_nfsversion(self.dconf.get('nfsversion'))
 
 
     def validate_remotepath(self, scan):
@@ -115,7 +118,7 @@ class NFSSR(FileSR.FileSR):
     def mount(self, mountpoint, remotepath, timeout = 0):
         try:
             nfs.soft_mount(mountpoint, self.remoteserver, remotepath,
-                    self.transport, timeout)
+                    self.transport, self.nfsversion, timeout)
         except nfs.NfsException, exc:
             raise xs_errors.XenError('NFSMount', opterr=exc.errstr)
 

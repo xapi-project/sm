@@ -63,6 +63,8 @@ MPATH_CONF = multipath.conf
 
 CRON_JOBS += ringwatch
 
+MODPROBE_RULES += blacklist-rpcsec_gss_krb5.conf
+
 SM_XML := XE_SR_ERRORCODES
 
 SM_DEST := /opt/xensource/sm/
@@ -72,6 +74,7 @@ MASTER_SCRIPT_DEST := /etc/xensource/master.d/
 PLUGIN_SCRIPT_DEST := /etc/xapi.d/plugins/
 LIBEXEC := /opt/xensource/libexec/
 CRON_DEST := /etc/cron.d/
+MODPROBE_DEST := /etc/modprobe.d/
 UDEV_RULES_DIR := /etc/udev/rules.d/
 INIT_DIR := /etc/rc.d/init.d/
 MPATH_CONF_DIR := /etc/multipath.xenserver/
@@ -169,6 +172,9 @@ install: precheck
 	ln -sf $(SM_DEST)blktap2.py $(SM_STAGING)$(BIN_DEST)/blktap2
 	install -m 755 -d $(SM_STAGING)$(CRON_DEST)
 	install -m 644 $(CRON_JOBS:%=etc/cron.d/%) -t $(SM_STAGING)$(CRON_DEST)
+	install -m 755 -d $(SM_STAGING)$(MODPROBE_DEST)
+	install -m 644 $(MODPROBE_RULES:%=etc/modprobe.d/%) \
+	        -t $(SM_STAGING)$(MODPROBE_DEST)
 	ln -sf $(SM_DEST)lcache.py $(SM_STAGING)$(BIN_DEST)tapdisk-cache-stats
 
 .PHONY: clean
