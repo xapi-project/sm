@@ -919,4 +919,9 @@
             <description>Unsupported kernel: neither 2.6 nor 3.x.</description>
             <value>448</value>
         </code>
+        <code>
+            <name>UnsupportedSRForTrim</name>
+            <description>Trim not supported on the SR</description>
+            <value>449</value>
+        </code>
 </SM-errorcodes>
