@@ -106,9 +106,14 @@ class TestContext(object):
             mock.patch('glob.glob', new=self.fake_glob),
             mock.patch('os.uname', new=self.fake_uname),
             mock.patch('subprocess.Popen', new=self.fake_popen),
+            mock.patch('os.stat', new=self.fake_stat),
         ]
         map(lambda patcher: patcher.start(), self.patchers)
         self.setup_modinfo()
+
+    def fake_stat(self, path):
+        if not self.fake_exists(path):
+            raise OSError()
 
     def fake_makedirs(self, path):
         if path in self.get_filesystem():
