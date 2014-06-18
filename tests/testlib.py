@@ -79,6 +79,7 @@ class TestContext(object):
         self._created_directories = []
         self._path_content = {}
         self._next_fileno = 0
+        self._servers = []
 
     def _get_inc_fileno(self):
         result = self._next_fileno
@@ -102,19 +103,47 @@ class TestContext(object):
             mock.patch('__builtin__.file', new=self.fake_open),
             mock.patch('os.path.exists', new=self.fake_exists),
             mock.patch('os.makedirs', new=self.fake_makedirs),
+            mock.patch('os.mkdir', new=self.fake_mkdir),
             mock.patch('os.listdir', new=self.fake_listdir),
             mock.patch('glob.glob', new=self.fake_glob),
             mock.patch('os.uname', new=self.fake_uname),
             mock.patch('subprocess.Popen', new=self.fake_popen),
+            mock.patch('socket.getaddrinfo', new=self.fake_getaddrinfo),
+            mock.patch('socket.socket', new=self.fake_socket),
+            mock.patch('os.stat', new=self.fake_stat),
         ]
         map(lambda patcher: patcher.start(), self.patchers)
         self.setup_modinfo()
+
+    def fake_mkdir(self, path, mode):
+        assert path.startswith(PATHSEP)
+
+        if self.fake_exists(path):
+            raise OSError()
+
+        self._created_directories.append(path)
+
+    def fake_stat(self, path):
+        if not self.fake_exists(path):
+            raise OSError()
+
+    def fake_socket(self, serve_function, *ignored):
+        return FakeSocket()
+
+    def fake_getaddrinfo(self, host, port):
+        self.log("getaddrinfo", host, str(port))
+        for hostname, port in self._servers:
+            if (host, port) == (hostname, port):
+                return [[None, None, None, None, (hostname, port)]]
 
     def fake_makedirs(self, path):
         if path in self.get_filesystem():
             raise OSError(path + " Already exists")
         self._created_directories.append(path)
         self.log("Recursively created directory", path)
+
+    def setup_server(self, hostname, port):
+        self._servers.append((hostname, port))
 
     def setup_modinfo(self):
         self.add_executable('/sbin/modinfo', self.fake_modinfo)
@@ -193,8 +222,9 @@ class TestContext(object):
                 result.add(path)
 
         for executable_path in self.executables:
-            for path in filesystem_for(executable_path):
-                result.add(path)
+            if executable_path.startswith('/'):
+                for path in filesystem_for(executable_path):
+                    result.add(path)
 
         for directory in self.get_created_directories():
             result.add(directory)
@@ -350,3 +380,20 @@ class WriteableFile(object):
     def close(self):
         self._context._path_content[self._fname] = self._file.getvalue()
         self._file.close()
+
+
+class FakeSocket(object):
+    def __init__(self):
+        self._serve_function = None
+
+    def settimeout(self, timeout_value):
+        pass
+
+    def connect(self, _serve_function):
+        self._serve_function = _serve_function
+
+    def send(self, data):
+        pass
+
+    def close(self):
+        pass
