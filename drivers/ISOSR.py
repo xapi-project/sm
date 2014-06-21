@@ -32,9 +32,9 @@ CONFIGURATION = \
       [ 'options', 
         'extra options to pass to mount (deprecated) (e.g. \'-o ro\')' ],
       [ 'type','cifs or nfs'],
-      [ 'nfsversion',
-        'for type=nfs, NFS protocol version - 3, 4 (optional)' ] ]
-                  
+      nfs.NFS_VERSION,
+    ]
+
 DRIVER_INFO = {
     'name': 'ISO',
     'description': 'Handles CD images stored as files in iso format',

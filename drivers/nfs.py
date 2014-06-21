@@ -45,6 +45,10 @@ SHOWMOUNT_BIN = "/usr/sbin/showmount"
 
 DEFAULT_NFSVERSION = '3'
 
+NFS_VERSION = [
+    'nfsversion', 'for type=nfs, NFS protocol version - 3, 4 (optional)']
+
+
 class NfsException(Exception):
     def __init__(self, errstr):
         self.errstr = errstr

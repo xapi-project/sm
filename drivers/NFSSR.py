@@ -37,8 +37,8 @@ CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_CACHING",
 
 CONFIGURATION = [ [ 'server', 'hostname or IP address of NFS server (required)' ], \
                   [ 'serverpath', 'path on remote server (required)' ],
-                  [ 'nfsversion',
-                    'NFS protocol version - 3, 4 (optional)' ] ]
+                  nfs.NFS_VERSION,
+                ]
 
                   
 DRIVER_INFO = {
