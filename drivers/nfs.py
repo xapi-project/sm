@@ -72,7 +72,7 @@ def validate_nfsversion(nfsversion):
 
 
 def soft_mount(mountpoint, remoteserver, remotepath, transport,
-               timeout=0, nfsversion='3'):
+               timeout=0, nfsversion=DEFAULT_NFSVERSION):
     """Mount the remote NFS export at 'mountpoint'.
     The 'timeout' param here is in seconds"""
     try:
