@@ -98,6 +98,7 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, timeout=0,
                                                SOFTMOUNT_RETRANS,
                                                transport)
     options += ',acdirmin=0,acdirmax=0'
+    options += ',vers=%s' % nfsversion
 
     try:
         util.ioretry(lambda: 
