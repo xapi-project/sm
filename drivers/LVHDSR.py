@@ -1579,7 +1579,8 @@ class LVHDVDI(VDI.VDI):
 
     def _do_snapshot(self, sr_uuid, vdi_uuid, snapType, cloneOp=False, secondary=None):
         if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
-             raise util.SMException("failed to pause VDI %s" % vdi_uuid)
+            blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
+            raise util.SMException("failed to pause VDI %s" % vdi_uuid)
 
         snapResult = None
         try:
