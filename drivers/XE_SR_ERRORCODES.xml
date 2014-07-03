@@ -741,4 +741,11 @@
             <description>Unsupported kernel: neither 2.6 nor 3.x.</description>
             <value>448</value>
         </code>
+
+        <code>
+            <name>TapdiskFailed</name>
+            <description>tapdisk experienced an error</description>
+            <value>449</value>
+        </code>
+
 </SM-errorcodes>
