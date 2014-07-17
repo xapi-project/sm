@@ -18,11 +18,13 @@
 # A plugin which is called to enable/disable VSS based quiesced VSS snapshots
 # for a particular VM.
 
+SM_DEST='/opt/xensource/sm/'
+
 import os
 import sys
 import XenAPIPlugin
-sys.path.append("/opt/xensource/sm/")
-sys.path.append("/opt/xensource/sm/snapwatchd/")
+sys.path.append(SM_DEST)
+sys.path.append(os.path.join(SM_DEST, 'snapwatchd'))
 import util
 import xslib
 import time 

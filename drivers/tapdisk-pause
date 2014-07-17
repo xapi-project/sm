@@ -17,10 +17,12 @@
 #
 # Pause/unpause tapdisk on the local host
 
+SM_DEST='/opt/xensource/sm/'
+
 import os
 import sys
 import XenAPIPlugin
-sys.path.append("/opt/xensource/sm/")
+sys.path.append(SM_DEST)
 import blktap2, util
 from lock import Lock
 import xs_errors

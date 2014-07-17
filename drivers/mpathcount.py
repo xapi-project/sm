@@ -23,6 +23,7 @@ import mpath_cli
 import mpp_luncheck
 import mpp_mpathutil
 import glob
+import constants
 
 supported = ['iscsi','lvmoiscsi','rawhba','lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp','cslg']
 
@@ -87,7 +88,7 @@ def match_host_id(s):
     return regex.search(s, 0)
 
 def get_localhost_uuid():
-    filename = '/etc/xensource-inventory'
+    filename = constants.INVENTORY
     try:
         f = open(filename, 'r')
     except:

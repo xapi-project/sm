@@ -26,6 +26,7 @@ import SR, VDI, SRCommand, HBASR, LUNperVDI
 import util, scsiutil, devscan
 import xs_errors
 import os
+import constants
 
 CAPABILITIES = ["SR_PROBE", "VDI_ATTACH", "VDI_DETACH", "VDI_DELETE"]
 
@@ -371,7 +372,7 @@ class RawHBAVDI(LUNperVDI.RAWVDI):
             # The SCSIid is already stored inside SR sm_config.
             # We need only to trigger mpathcount
             try:
-                cmd = ['/opt/xensource/sm/mpathcount.py', scsi_id]
+                cmd = [os.path.join(constants.SM_DEST, 'mpathcount.py'), scsi_id]
                 util.pread2(cmd)
             except:
                 util.SMlog("RawHBA: something wrong with mpathcount")

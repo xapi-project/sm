@@ -16,6 +16,7 @@
 #         root is multipathed
 ### END INIT INFO
 
+SM_DEST=/opt/xensource/sm/
 DAEMON=/sbin/multipathd
 MP_UTIL=/sbin/mpathconf
 prog=sm-multipath
@@ -79,7 +80,7 @@ start() {
 				WWID=$(basename ${n})
 				ROOT_SLAVES=$(/bin/ls /sys/block/dm-$NODE_MINOR/slaves)
 				for i in $ROOT_SLAVES; do
-					/opt/xensource/sm/wwid_conf.py -d /dev/${i} -w $WWID && break
+					${SM_DEST}wwid_conf.py -d /dev/${i} -w $WWID && break
 				done
 			fi
 		done

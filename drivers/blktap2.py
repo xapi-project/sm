@@ -134,8 +134,8 @@ def retried(**args): return RetryLoop(**args)
 
 class TapCtl(object):
     """Tapdisk IPC utility calls."""
-
-    PATH = "/usr/sbin/tap-ctl"
+    BLKTAP_ROOT = '/usr'
+    PATH = os.path.join(BLKTAP_ROOT, 'sbin', 'tap-ctl')
 
     def __init__(self, cmd, p):
         self.cmd    = cmd

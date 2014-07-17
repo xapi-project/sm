@@ -137,7 +137,7 @@ def checkAllVHD(sr_uuid):
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         print("Usage:")
-        print("/opt/xensource/sm/verifyVHDsOnSR.py <sr_uuid>")
+        print("verifyVHDsOnSR.py <sr_uuid>")
     else:
         checkAllVHD(sys.argv[1])
 

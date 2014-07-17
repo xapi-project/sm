@@ -17,9 +17,11 @@
 #
 # A plugin for synchronizing slaves when something changes on the Master
 
+SM_DEST='/opt/xensource/sm/'
+
 import sys
 import XenAPIPlugin
-sys.path.append("/opt/xensource/sm/")
+sys.path.append(SM_DEST)
 import util
 import lock
 from lvmcache import LVMCache

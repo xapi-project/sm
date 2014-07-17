@@ -18,10 +18,12 @@
 # Script to coalesce the leaf VDIs for a given VM
 #
 
+SM_DEST='/opt/xensource/sm/'
+
 import sys
 import XenAPIPlugin
-sys.path.append("/opt/xensource/sm/")
-sys.path.insert(0, "/opt/xensource/sm")
+sys.path.append(SM_DEST)
+sys.path.insert(0, SM_DEST)
 import getopt
 import XenAPI
 import cleanup

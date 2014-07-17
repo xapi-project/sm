@@ -17,19 +17,22 @@
 #
 # XS VM.snapshot watch daemon
 
+SM_DEST='/opt/xensource/sm/'
+
 import xslib, sys, re, select
 import os
 import XenAPI
 import xml.dom.minidom
 import datetime, time
 import resource
-sys.path.insert(0, "/opt/xensource/sm")
+sys.path.insert(0, SM_DEST)
 import util
 import gc
 import xs_errors
 import glob
 import xmlrpclib
 import snapdebug
+import constants
 from threading import Thread
 from xml.dom.minidom import parseString
 
@@ -165,7 +168,7 @@ def _getSnapUUIDlist(h,uuid):
     return vdi_uuids
 
 def get_dom0_uuid():
-    filename = '/etc/xensource-inventory'
+    filename = constants.INVENTORY
     try:
         f = open(filename, 'r')
     except:

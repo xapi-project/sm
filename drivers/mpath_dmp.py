@@ -52,7 +52,7 @@ def _is_mpath_daemon_running():
     return (rc==0)
 
 def _is_mpp_daemon_running():
-    #cmd = ["/sbin/pidof", "-s", "/opt/xensource/sm/updatempppathd.py"]
+    #cmd = ["/sbin/pidof", "-s", os.path.join(constants.SM_DEST, "/updatempppathd.py")]
     #(rc,stdout,stderr) = util.doexec(cmd)
     if os.path.exists(UMPD_PATH):
         return True

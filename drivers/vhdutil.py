@@ -24,11 +24,12 @@ import util
 import errno
 import zlib
 import re
+import constants
 
 
 MAX_VHD_JOURNAL_SIZE = 6 * 1024 * 1024 # 2MB VHD block size, max 2TB VHD size
 MAX_CHAIN_SIZE = 30 # max VHD parent chain size
-VHD_UTIL = "/usr/bin/vhd-util"
+VHD_UTIL = os.path.join(constants.BLKTAP_ROOT, 'bin', 'vhd-util')
 OPT_LOG_ERR = "--debug"
 VHD_BLOCK_SIZE = 2 * 1024 * 1024
 VHD_FOOTER_SIZE = 512
@@ -324,7 +325,7 @@ def _parseVHDInfo(line, extractUuidFunction):
     return vhdInfo
 
 def _getVHDParentNoCheck(path):
-    cmd = ["vhd-util", "read", "-p", "-n", "%s" % path]
+    cmd = [VHD_UTIL, "read", "-p", "-n", "%s" % path]
     text = util.pread(cmd)
     util.SMlog(text)
     for line in text.split('\n'):
