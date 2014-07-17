@@ -15,17 +15,9 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
-# Extract debugging from snapwatchd components
+# Constants for finding files
 #
 
 SM_DEST='/opt/xensource/sm/'
-
-import sys
-sys.path.append(SM_DEST)
-import util
-
-DEBUG_OUT = False
-
-def DEBUG(str, identifier = "snapwatchd"):
-    if DEBUG_OUT:
-        util.SMlog(str, ident=identifier, priority=util.LOG_DEBUG)
+BLKTAP_ROOT='/usr/'
+INVENTORY='/etc/xensource-inventory'

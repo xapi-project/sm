@@ -24,7 +24,9 @@
 # processname: snapwatchd
 # pidfile: /var/run/snapwatchd.pid
 
-DAEMON=/opt/xensource/sm/snapwatchd/snapwatchd
+SM_DEST='/opt/xensource/sm/'
+
+DAEMON=${SM_DEST}snapwatchd/snapwatchd
 prog=`basename $DAEMON`
 pidfile=/var/run/${prog}.pid
 

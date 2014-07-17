@@ -34,6 +34,7 @@ import exceptions
 import traceback
 import glob
 import copy
+import constants
 
 NO_LOGGING_STAMPFILE='/etc/xensource/no_sm_log'
 
@@ -532,7 +533,7 @@ def match_rootdev(s):
     return regex.search(s, 0)
 
 def getrootdev():
-    filename = '/etc/xensource-inventory'
+    filename = constants.INVENTORY
     try:
         f = open(filename, 'r')
     except:
@@ -571,7 +572,7 @@ def get_localAPI_session():
 
 def get_this_host():
     uuid = None
-    f = open("/etc/xensource-inventory", 'r')
+    f = open(constants.INVENTORY, 'r')
     for line in f.readlines():
         if line.startswith("INSTALLATION_UUID"):
             uuid = line.split("'")[1]
@@ -585,7 +586,7 @@ def is_master(session):
 
 # XXX: this function doesn't do what it claims to do
 def get_localhost_uuid(session):
-    filename = '/etc/xensource-inventory'
+    filename = constants.INVENTORY
     try:
         f = open(filename, 'r')
     except:
@@ -1060,7 +1061,7 @@ def p_id_fork():
             print "Fork failed: %s (%d)" % (e.strerror,e.errno)
             sys.exit(-1)
         if (p_id == 0):
-            os.chdir('/opt/xensource/sm')
+            os.chdir(constants.SM_DEST)
             os.umask(0)
         else:
             os._exit(0)                             

@@ -17,7 +17,9 @@
 #
 # A plugin for synchronizing slaves when something changes on the Master
 
-import sys; sys.path.append("/opt/xensource/sm/")
+SM_DEST='/opt/xensource/sm/'
+
+import sys; sys.path.append(SM_DEST)
 import util
 import os, glob, errno, re
 

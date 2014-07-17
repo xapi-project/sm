@@ -20,8 +20,9 @@
 # Source function library.
 . /etc/init.d/functions
 
-CLEANUP_SCRIPT="/opt/xensource/sm/cleanup.py"
-LVHD_UTIL_SCRIPT="/opt/xensource/sm/lvhdutil.py"
+SM_DEST="/opt/xensource/sm/"
+CLEANUP_SCRIPT="${SM_DEST}cleanup.py"
+LVHD_UTIL_SCRIPT="${SM_DEST}lvhdutil.py"
 
 start() {
     echo -n $"Fixing refcounts on new master: "

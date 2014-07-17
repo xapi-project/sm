@@ -248,7 +248,7 @@ def get_current_initiator_name():
             for line in f.readlines():
                 if line.strip().startswith("#"):
                     continue 
-                if "InitiatorName" in line:
+                if line.strip().startswith("InitiatorName") and "=" in line:
                     IQN = line.split("=")[1]
                     currentIQN = IQN.strip()
                     f.close()
@@ -313,7 +313,7 @@ def get_luns(targetIQN, portal):
         raise xs_errors.XenError('ISCSIDevice', opterr='Failed to find any LUNs')
 
 def is_iscsi_daemon_running():
-    cmd = ["/sbin/pidof", "-s", "/sbin/iscsid"]
+    cmd = ["pidof", "-s", "iscsid"]
     (rc,stdout,stderr) = util.doexec(cmd)
     return (rc==0)
 

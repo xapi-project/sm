@@ -15,6 +15,7 @@
 XAPI_INIT_COMPLETE_COOKIE=/var/run/xapi_init_complete.cookie
 
 TAG=mpathroot
+SM_DEST=/opt/xensource/sm/
 
 wait_for_xapi() {
     MAX_RETRIES=300
@@ -42,7 +43,7 @@ start() {
 		logger -t "${TAG}" "Updating multipath root status"
 		echo -n $"Updating multipath root status: "
 		if wait_for_xapi; then
-		    /opt/xensource/sm/mpathcount.py
+		    ${SM_DEST}mpathcount.py
 			success $"OK"
 			exit 0
 		else

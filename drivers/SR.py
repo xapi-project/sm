@@ -24,10 +24,11 @@ import errno
 import xs_errors
 import XenAPI, xmlrpclib, util
 import copy, os
+import constants
 
 MOUNT_BASE = '/var/run/sr-mount'
 DEFAULT_TAP = 'vhd'
-TAPDISK_UTIL = '/usr/sbin/td-util'
+TAPDISK_UTIL = os.path.join(constants.BLKTAP_ROOT, 'sbin', 'td-util')
 MASTER_LVM_CONF = '/etc/lvm/master'
 
 # LUN per VDI key for XenCenter
@@ -450,7 +451,7 @@ class SR(object):
                 self.mpath = "false"
                 self.mpathhandle = "null"
                 
-            if not os.path.exists("/opt/xensource/sm/mpath_%s.py" % self.mpathhandle):
+            if not os.path.exists(os.path.join(constants.SM_DEST,' mpath_%s.py' % self.mpathhandle)):
                 raise
         except:
             self.mpath = "false"
@@ -476,7 +477,7 @@ class SR(object):
             self.session.xenapi.SR.set_sm_config(self.sr_ref, sm_config)
 
             if self.mpath == "true" and len(SCSIid):
-                cmd = ['/opt/xensource/sm/mpathcount.py',SCSIid]
+                cmd = [os.path.join(constants.SM_DEST, 'mpathcount.py'),SCSIid]
                 util.pread2(cmd)
         except:
             pass

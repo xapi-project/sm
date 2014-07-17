@@ -22,8 +22,9 @@ import os
 import xml.dom.minidom
 import SR
 import util
+import constants
 
-XML_DEFS = '/opt/xensource/sm/XE_SR_ERRORCODES.xml'
+XML_DEFS = os.path.join(constants.SM_DEST, 'XE_SR_ERRORCODES.xml')
 class XenError(Exception):
     def __init__(self, key, opterr=None):
         # Check the XML definition file exists

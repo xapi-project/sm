@@ -25,8 +25,9 @@ DEVICE=$1 # foo
 /usr/bin/logger "local-device-change DEVICE=$DEVICE ACTION=$ACTION"
 
 CDROMMON="/opt/xensource/libexec/cdrommon"
+INVENTORY='/etc/xensource-inventory'
 
-. /etc/xensource-inventory
+. $INVENTORY
 
 function remove_vdi {
     local R_VDI=$1

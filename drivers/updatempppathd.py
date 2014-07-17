@@ -26,6 +26,7 @@ import XenAPI
 import mpath_dmp
 import mpp_mpathutil
 import gc
+import constants
 
 DEBUG_OUT = False
 DAEMONISE = True
@@ -96,7 +97,7 @@ def UpdatePaths():
 		    DEBUG("Some path status has changed for SCSI ID %s, updating PBD." % scsiid) 
 		    entry = "[" + str(activePaths) + ", " + str(totalPaths) + "]"
                     DEBUG(entry)
-                    cmd = ['/opt/xensource/sm/mpathcount.py', scsiid, entry]
+                    cmd = [os.path.join(constants.SM_DEST, 'mpathcount.py'), scsiid, entry]
                     util.pread2(cmd)
 
 		    # Now update the cache with this updated path status
