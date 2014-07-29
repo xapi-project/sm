@@ -24,6 +24,8 @@ import xs_errors
 import lock
 import glob
 from cleanup import LOCK_TYPE_RUNNING
+from ConfigParser import RawConfigParser
+import StringIO
 
 # The 3.x kernel brings with it some iSCSI path changes in sysfs
 _KERNEL_VERSION = os.uname()[2]
@@ -40,6 +42,10 @@ elif _KERNEL_VERSION.startswith('3.'):
 else:
     _msg = 'Kernel version detected: %s' % _KERNEL_VERSION
     raise xs_errors.XenError('UnsupportedKernel', _msg)
+
+_REPLACEMENT_TMO_MPATH = 15
+_REPLACEMENT_TMO_DEFAULT = 144
+_REPLACEMENT_TMO_STANDARD = 120
 
 def exn_on_failure(cmd, message):
     '''Executes via util.doexec the command specified. If the return code is 
@@ -117,22 +123,34 @@ def discovery(target, port, chapuser, chappass, targetIQN="any",
     save_rootdisk_nodes()
 
     if ':' in target:
-    	targetstring = "[%s]:%s" % (target,str(port))
+        targetstring = "[%s]:%s" % (target,str(port))
     else:
-    	targetstring = "%s:%s" % (target,str(port))
-    if chapuser!="" and chappass!="":
-        cmd = ["iscsiadm", "-m", "discovery", "-t", "st", "-p", 
-               targetstring, "-X", chapuser, "-x", chappass]
-    else:
-        cmd = ["iscsiadm", "-m", "discovery", "-t", "st", "-p", 
-               targetstring]
+        targetstring = "%s:%s" % (target,str(port))
+    cmd_base = ["-t", "st", "-p", targetstring]
     for interface in interfaceArray:
-        cmd.append("-I")
-        cmd.append(interface)
-    failuremessage = ("Discovery failed. Check target settings and "
-                      "username/password (if applicable)")
+        cmd_base.append("-I")
+        cmd_base.append(interface)
+    cmd_disc = ["iscsiadm", "-m", "discovery"] + cmd_base
+    cmd_discdb = ["iscsiadm", "-m", "discoverydb"] + cmd_base
+    auth_args =  ["-n", "discovery.sendtargets.auth.authmethod", "-v", "CHAP",
+                  "-n", "discovery.sendtargets.auth.username", "-v", chapuser,
+                  "-n", "discovery.sendtargets.auth.password", "-v", chappass]
+    fail_msg = "Discovery failed. Check target settings and " \
+               "username/password (if applicable)"
     try:
-        (stdout,stderr) = exn_on_failure(cmd, failuremessage)
+        if chapuser!="" and chappass!="":
+            # Unfortunately older version of iscsiadm won't fail on new modes
+            # it doesn't recognize (rc=0), so we have to test it out
+            support_discdb = "discoverydb" in util.pread2(["iscsiadm", "-h"])
+            if support_discdb:
+                exn_on_failure(cmd_discdb + ["-o", "new"], fail_msg)
+                exn_on_failure(cmd_discdb + ["-o", "update"] + auth_args, fail_msg)
+                cmd = cmd_discdb + ["--discover"]
+            else:
+                cmd = cmd_disc + ["-X", chapuser, "-x", chappass]
+        else:
+            cmd = cmd_disc
+        (stdout,stderr) = exn_on_failure(cmd, fail_msg)
     except:
         restore_rootdisk_nodes()
         raise xs_errors.XenError('ISCSILogin')
@@ -176,7 +194,51 @@ def set_chap_settings (portal, targetIQN, username, password, username_in, passw
                "update", "-n", "node.session.auth.password_in","-v", 
                password_in]
         (stdout,stderr) = exn_on_failure(cmd, failuremessage)
-     
+
+def get_node_config (portal, targetIQN):
+    ''' Using iscsadm to get the current configuration of a iscsi node.
+    The output is parsed in ini format, and returned as a dictionary.'''
+    failuremessage = "Failed to get node configurations"
+    cmd = ["iscsiadm", "-m", "node", "-p", portal, "-T", targetIQN, "-S"]
+    (stdout, stderr) = exn_on_failure(cmd, failuremessage)
+    ini_sec = "root"
+    str_fp = StringIO.StringIO("[%s]\n%s" % (ini_sec, stdout))
+    parser = RawConfigParser()
+    parser.readfp(str_fp)
+    str_fp.close()
+    return dict(parser.items(ini_sec))
+
+def set_replacement_tmo (portal, targetIQN, mpath):
+    key = "node.session.timeo.replacement_timeout"
+    try:
+        current_tmo = int ((get_node_config (portal, targetIQN))[key])
+    except:
+        # Assume a standard TMO setting if get_node_config fails
+        current_tmo = _REPLACEMENT_TMO_STANDARD
+    # deliberately leave the "-p portal" arguments out, so that all the portals
+    # always share the same config (esp. in corner case when switching from
+    # mpath -> non-mpath, where we are only going to operate on one path). The
+    # parameter could be useful if we want further flexibility in the future.
+    cmd = ["iscsiadm", "-m", "node", "-T", targetIQN,    # "-p", portal,
+           "--op", "update", "-n", key, "-v"]
+    fail_msg = "Failed to set replacement timeout"
+    if mpath:
+        # Only switch if the current config is a well-known non-mpath setting
+        if current_tmo in [_REPLACEMENT_TMO_DEFAULT, _REPLACEMENT_TMO_STANDARD]:
+            cmd.append(str(_REPLACEMENT_TMO_MPATH))
+            (stdout, stderr) = exn_on_failure(cmd, fail_msg)
+        else:
+            # the current_tmo is a customized value, no change
+            util.SMlog("Keep the current replacement_timout value: %d." % current_tmo)
+    else:
+        # Only switch if the current config is a well-known mpath setting
+        if current_tmo in [_REPLACEMENT_TMO_MPATH, _REPLACEMENT_TMO_STANDARD]:
+            cmd.append(str(_REPLACEMENT_TMO_DEFAULT))
+            (stdout, stderr) = exn_on_failure(cmd, fail_msg)
+        else:
+            # the current_tmo is a customized value, no change
+            util.SMlog("Keep the current replacement_timout value: %d." % current_tmo)
+
 def get_current_initiator_name():
     """Looks in the config file to see if we've already got a initiator name, 
     returning it if so, or else returning None"""
@@ -214,9 +276,11 @@ def set_current_initiator_name(localIQN):
         raise xs_errors.XenError('ISCSIInitiator', \
                    opterr='Could not set initator name')
 
-def login(portal, target, username, password, username_in="", password_in=""):
+def login(portal, target, username, password, username_in="", password_in="",
+          multipath=False):
     if username != "" and password != "":
         set_chap_settings(portal, target, username, password, username_in, password_in)
+    set_replacement_tmo(portal,target, multipath)
     cmd = ["iscsiadm", "-m", "node", "-p", portal, "-T", target, "-l"]
     failuremessage = "Failed to login to target."
     try:
@@ -255,7 +319,10 @@ def is_iscsi_daemon_running():
 
 def stop_daemon():
     if is_iscsi_daemon_running():
-        cmd = ["/etc/init.d/open-iscsi", "stop"]
+        if os.path.exists("/etc/init.d/open-iscsi"):
+            cmd = ["/etc/init.d/open-iscsi", "stop"]
+        else:
+            cmd = ["service", "iscsid", "stop"]
         failuremessage = "Failed to stop iscsi daemon"
         exn_on_failure(cmd,failuremessage)
 
@@ -270,7 +337,10 @@ def restart_daemon():
             shutil.rmtree('/etc/iscsi/send_targets')
         except:
             pass
-    cmd = ["/etc/init.d/open-iscsi", "start"]
+    if os.path.exists("/etc/init.d/open-iscsi"):
+        cmd = ["/etc/init.d/open-iscsi", "start"]
+    else:
+        cmd = ["service", "iscsid", "force-start"]
     failuremessage = "Failed to start iscsi daemon"
     exn_on_failure(cmd,failuremessage)
 
@@ -350,7 +420,13 @@ def _checkTGT(tgtIQN, tgt=''):
         return False
     failuremessage = "Failure occured querying iscsi daemon"
     cmd = ["iscsiadm", "-m", "session"]
-    (stdout,stderr) = exn_on_failure(cmd, failuremessage)
+    try:
+        (stdout,stderr) = exn_on_failure(cmd, failuremessage)
+    # Recent versions of iscsiadm return error it this list is empty.
+    # Quick and dirty handling
+    except Exception, e:
+        util.SMlog("%s failed with %s" %(cmd, e.args))
+        stdout = ""
     for line in stdout.split('\n'):
         if match_targetIQN(tgtIQN, line) and match_session(line):
             if len(tgt):
@@ -373,7 +449,13 @@ def _checkAnyTGT():
     rootIQNs = get_rootdisk_IQNs()
     failuremessage = "Failure occured querying iscsi daemon"
     cmd = ["iscsiadm", "-m", "session"]
-    (stdout,stderr) = exn_on_failure(cmd, failuremessage)
+    try:
+        (stdout,stderr) = exn_on_failure(cmd, failuremessage)
+    # Recent versions of iscsiadm return error it this list is empty.
+    # Quick and dirty handling
+    except Exception, e:
+        util.SMlog("%s failed with %s" %(cmd, e.args))
+        stdout = ""
     for e in filter(match_session, stdout.split('\n')): 
         iqn = e.split()[-1]
         if not iqn in rootIQNs:
