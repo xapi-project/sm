@@ -29,6 +29,7 @@ import vhdutil
 import lvutil
 import xs_errors
 import xmlrpclib
+import XenAPI
 
 TRIM_LV_TAG = "_trim_lv"
 TRIM_CAP = "SR_TRIM"
@@ -37,6 +38,7 @@ LOCK_RETRY_INTERVAL = 1
 ERROR_CODE_KEY = "errcode"
 ERROR_MSG_KEY = "errmsg"
 
+TRIM_LAST_TRIGGERED_KEY = "trim_last_triggered"
 
 def _vg_by_sr_uuid(sr_uuid):
     return lvhdutil.VG_PREFIX + sr_uuid
@@ -110,6 +112,17 @@ def do_trim(session, args):
                 % sr_uuid
             }
             result = to_xml(err_msg)
+
+        try:
+            session = XenAPI.xapi_local()
+            session.xenapi.login_with_password('root', '')
+            sr_ref = session.xenapi.SR.get_by_uuid(sr_uuid)
+            other_config = session.xenapi.SR.get_other_config(sr_ref)
+            if other_config.has_key(TRIM_LAST_TRIGGERED_KEY):
+                session.xenapi.SR.remove_from_other_config(sr_ref, TRIM_LAST_TRIGGERED_KEY)
+            session.xenapi.SR.add_to_other_config(sr_ref, TRIM_LAST_TRIGGERED_KEY, str(time.time()))
+        except:
+            util.logException("Unable to set other-config:%s" % TRIM_LAST_TRIGGERED_KEY)
 
         sr_lock.release()
         return result
