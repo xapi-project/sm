@@ -47,6 +47,9 @@ class SCSIAdapter(object):
     def add_parameter(self, host_class, values):
         self.parameters.append((host_class, values))
 
+    def adapter_device_path(self, host_id):
+        return '/sys/class/scsi_host/host%s' % host_id
+
 
 class Executable(object):
     def __init__(self, function_to_call):
@@ -238,7 +241,7 @@ class TestContext(object):
     def generate_device_paths(self):
         actual_disk_letter = 'a'
         for host_id, adapter in enumerate(self.scsi_adapters):
-            yield '/sys/class/scsi_host/host%s' % host_id
+            yield adapter.adapter_device_path(host_id)
             for disk_id, disk in enumerate(adapter.disks):
                 yield '/sys/class/scsi_disk/%s:0:%s:0' % (
                     host_id, disk_id)
