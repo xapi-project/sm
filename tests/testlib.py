@@ -26,9 +26,18 @@ def get_error_codes():
 
 
 class SCSIDisk(object):
-    def __init__(self):
+    def __init__(self, adapter):
+        self.adapter = adapter
         self.long_id = ''.join(
             random.choice(string.digits) for _ in range(33))
+
+    def disk_device_paths(self, host_id, disk_id, actual_disk_letter):
+        yield '/sys/class/scsi_disk/%s:0:%s:0' % (host_id, disk_id)
+        yield '/sys/class/scsi_disk/%s:0:%s:0/device/block/sd%s' % (
+            host_id, disk_id, actual_disk_letter)
+        yield '/dev/disk/by-scsibus/%s-%s:0:%s:0' % (
+            self.adapter.long_id, host_id, disk_id)
+        yield '/dev/disk/by-id/%s' % (self.long_id)
 
 
 class SCSIAdapter(object):
@@ -39,7 +48,7 @@ class SCSIAdapter(object):
         self.parameters = []
 
     def add_disk(self):
-        disk = SCSIDisk()
+        disk = SCSIDisk(self)
         self.disks.append(disk)
         return disk
 
@@ -227,18 +236,10 @@ class TestContext(object):
         for host_id, adapter in enumerate(self.scsi_adapters):
             yield adapter.adapter_device_path(host_id)
             for disk_id, disk in enumerate(adapter.disks):
-                yield '/sys/class/scsi_disk/%s:0:%s:0' % (
-                    host_id, disk_id)
-
-                yield '/sys/class/scsi_disk/%s:0:%s:0/device/block/sd%s' % (
-                    host_id, disk_id, actual_disk_letter)
-
+                for path in disk.disk_device_paths(host_id, disk_id,
+                                                   actual_disk_letter):
+                    yield path
                 actual_disk_letter = chr(ord(actual_disk_letter) + 1)
-
-                yield '/dev/disk/by-scsibus/%s-%s:0:%s:0' % (
-                    adapter.long_id, host_id, disk_id)
-
-                yield '/dev/disk/by-id/%s' % (disk.long_id)
 
         for path, _content in self.generate_path_content():
             yield path
