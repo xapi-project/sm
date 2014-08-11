@@ -18,6 +18,8 @@ BUF_SIZE = 10 * 1024
 BITMAP_SIZE = 512
 INTER_BLOCK_DISTANCE = 2 * 1024 * 1024 + 4 * 1024 # at least for XenServer VHDs
 
+vhd_header = {}
+
 def runCmd(command, with_stdout = False, with_stderr = False, inputtext = None):
     cmd = subprocess.Popen(command, bufsize = 1,
                            stdin = (inputtext and subprocess.PIPE or None),
@@ -45,15 +47,89 @@ def runCmd(command, with_stdout = False, with_stderr = False, inputtext = None):
         return rv, err
     return rv
 
-def get_bat_size(fn):
+def parse_vhd_headers(fn):
     rv, out = runCmd("vhd-util read -p -n %s" % fn, with_stdout = True)
     if rv != 0:
         raise Exception("reading metadata for %s: %d" % (fn, rv))
     for line in out.split("\n"):
+        m = re.match("Current disk size\s*:\s(\d+)", line)
+        if m != None:
+            set_disk_size(int(m.group(1)))
+            continue
         m = re.match("Max BAT size\s*:\s(\d+)", line)
         if m != None:
-            return int(m.group(1))
-    raise Exception("parsing BAT size in %s" % out.strip())
+            set_max_bat_size(int(m.group(1)))
+            continue
+        m = re.match("Block size\s*:\s(\d+)", line)
+        if m != None:
+            set_block_size(int(m.group(1)))
+            continue
+
+""" Set the disk size (in MB) into the dict"""
+def set_disk_size(value):
+    global vhd_header
+    vhd_header['disk_size'] = value
+
+""" Return virtual disk size in MB"""
+def get_disk_size():
+    try:
+        return vhd_header['disk_size']
+    except:
+        print "disk_size not in dict"
+        raise
+
+""" Set the block size (in B) into the dict"""
+def set_block_size(value):
+    global vhd_header
+    vhd_header['block_size'] = value
+
+""" Return block size in bytes"""
+def get_block_size():
+    try:
+        return vhd_header['block_size']
+    except:
+        print "block_size not in dict"
+        raise
+
+""" Set into the dict the maximum number of BAT entries
+    physically allowed before the VHD header needs rearrangement.
+"""
+def set_max_bat_size(value):
+    global vhd_header
+    vhd_header['max_BAT_size'] = value
+
+""" Return the max BAT entries.
+    See set_max_bat_size for explanations.
+"""
+def get_max_bat_size():
+    try:
+        return vhd_header['max_BAT_size']
+    except:
+        print "BAT_size not in dict"
+        raise
+
+""" Set into the dict the maximum number of BAT entries compatible
+    with the current virtual VHD size
+"""
+def set_bat_size(value):
+    global vhd_header
+    vhd_header['BAT_size'] = value
+
+""" Return the max BAT entries.
+    See set_bat_size for explanations.
+"""
+def get_bat_size():
+    if not vhd_header.has_key('BAT_size'):
+        max_bat = get_max_bat_size()
+        disk_size = get_disk_size()
+        block_size = get_block_size() / (1024*1024)
+        bat = int(disk_size / block_size)
+        if bat != max_bat:
+           print "allocated BAT entries (%s) and max (%s) mismatch, "\
+                 "using the latter" %(max_bat, bat)
+        set_bat_size(bat)
+    return vhd_header['BAT_size']
+      
 
 def get_data_offset(fn, num_blocks):
     rv, out = runCmd("vhd-util read -b 0 -c %d -n %s" % (num_blocks, fn),
@@ -87,7 +163,7 @@ def get_meta_fn(path):
     return fn + META_FILE_EXTN
 
 def collect_meta(fn):
-    num_blocks = get_bat_size(fn)
+    num_blocks = get_bat_size()
     outfn = get_meta_fn(fn)
     first_block_off = get_data_offset(fn, num_blocks)
     if first_block_off == sys.maxint:
@@ -120,7 +196,7 @@ def collect_meta(fn):
     return outfn
 
 def get_tar_name(fn):
-    return "vhd-chain-meta-%s.tgz" % os.path.basename(fn)[0:36]
+    return "vhd-chain-meta-%s.tgz" % os.path.basename(fn)
 
 def collect_chain_meta(fn):
     leaf = fn
@@ -146,7 +222,7 @@ def get_vhd_fn(fn):
     return fn[0:len(fn) - len(META_FILE_EXTN)]
 
 def inflate(fn):
-    num_blocks = get_bat_size(fn)
+    num_blocks = get_bat_size()
     outfn = get_vhd_fn(fn)
     first_block_off = get_data_offset(fn, num_blocks)
     if first_block_off == sys.maxint:
@@ -217,6 +293,9 @@ def main():
 
     logging.basicConfig(filename=LOG_FILE, level = logging.DEBUG,
             format="%(asctime)s " + cmd + ": %(message)s")
+
+    # Initialize dictionary
+    parse_vhd_headers(fn)
 
     if cmd == "collect":
         collect_chain_meta(fn)
