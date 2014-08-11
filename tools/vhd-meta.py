@@ -1,7 +1,22 @@
 #!/usr/bin/python
-
-# Script for collecting VHD metadata for a given VHD chain (e.g. from a remote 
-# site), and for recreating the full VHD files (with zeros written to data 
+#
+# Copyright (C) Citrix Systems Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
+# by the Free Software Foundation; version 2.1 only.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+#
+# Script for collecting VHD metadata for a given VHD chain (e.g. from a remote
+# site), and for recreating the full VHD files (with zeros written to data
 # blocks) from the metadata (e.g. to reproduce a VHD problem locally)
 
 import sys
@@ -11,10 +26,15 @@ import shutil
 import logging
 import subprocess
 import tarfile
+import tempfile
+import shutil
+import re
 
 META_FILE_EXTN = ".meta"
 LOG_FILE = "/var/log/collect_vhd_meta.log"
 BUF_SIZE = 10 * 1024
+
+# TODO Don't assume this, read from the VHD file instead.
 BITMAP_SIZE = 512
 INTER_BLOCK_DISTANCE = 2 * 1024 * 1024 + 4 * 1024 # at least for XenServer VHDs
 
@@ -50,7 +70,7 @@ def runCmd(command, with_stdout = False, with_stderr = False, inputtext = None):
 def parse_vhd_headers(fn):
     rv, out = runCmd("vhd-util read -p -n %s" % fn, with_stdout = True)
     if rv != 0:
-        raise Exception("reading metadata for %s: %d" % (fn, rv))
+        raise Exception("reading metadata for %s: %s" % (fn, os.strerror(rv)))
     for line in out.split("\n"):
         m = re.match("Current disk size\s*:\s(\d+)", line)
         if m != None:
@@ -129,7 +149,7 @@ def get_bat_size():
                  "using the latter" %(max_bat, bat)
         set_bat_size(bat)
     return vhd_header['BAT_size']
-      
+
 
 def get_data_offset(fn, num_blocks):
     rv, out = runCmd("vhd-util read -b 0 -c %d -n %s" % (num_blocks, fn),
@@ -152,7 +172,7 @@ def get_data_offset(fn, num_blocks):
 def get_parent_fn(fn):
     rv, out = runCmd("vhd-util query -p -n %s" % fn, with_stdout = True)
     if rv != 0:
-        raise Exception("querying parent for %s: %d" % (fn, rv))
+        raise Exception("querying parent for %s: %s" % (fn, os.strerror(rv)))
     parent = out.strip()
     if parent.find("has no parent") != -1:
         return None
@@ -199,6 +219,10 @@ def get_tar_name(fn):
     return "vhd-chain-meta-%s.tgz" % os.path.basename(fn)
 
 def collect_chain_meta(fn):
+
+    # Initialize dictionary
+    parse_vhd_headers(fn)
+
     leaf = fn
     files = []
     while fn:
@@ -218,65 +242,112 @@ def collect_chain_meta(fn):
     print "Created %s" % tarfn
 
 def get_vhd_fn(fn):
-    assert(fn.endswith(META_FILE_EXTN))
+    assert fn.endswith(META_FILE_EXTN)
     return fn[0:len(fn) - len(META_FILE_EXTN)]
 
-def inflate(fn):
-    num_blocks = get_bat_size()
-    outfn = get_vhd_fn(fn)
-    first_block_off = get_data_offset(fn, num_blocks)
-    if first_block_off == sys.maxint:
-        os.rename(fn, outfn)
-        return outfn
+def do_inflate(src, dst):
+    fsize = os.path.getsize(src)
+    fin = open(src, 'r')
+    try:
+        fout = open(dst, 'w')
+        try:
+            # copy the VHD metadata
+            num_blocks = get_bat_size()
+            first_block_off = get_data_offset(src, num_blocks)
+            total = first_block_off
+            while total > 0:
+                chunk = BUF_SIZE
+                if chunk > total:
+                    chunk = total
+                fout.write(fin.read(chunk))
+                total -= chunk
 
-    fsize = os.path.getsize(fn)
-    fin = open(fn, 'r')
-    fout = open(outfn, 'w') 
-
-    total = first_block_off
-    while total > 0:
-        chunk = BUF_SIZE
-        if chunk > total:
-            chunk = total
-        fout.write(fin.read(chunk))
-        total -= chunk
-
-    in_off = first_block_off
-    out_off = first_block_off
-    while in_off < fsize:
-        fout.write(fin.read(BITMAP_SIZE))
-        in_off += BITMAP_SIZE
-        out_off += INTER_BLOCK_DISTANCE
-        fout.seek(out_off)
-    fout.close()
-    fin.close()
-    os.unlink(fn)
-    rv = runCmd("vhd-util repair -n %s" % outfn)
+            # inflate the data
+            if first_block_off != sys.maxint:
+                in_off = first_block_off
+                out_off = first_block_off
+                while in_off < fsize:
+                    fout.write(fin.read(BITMAP_SIZE))
+                    in_off += BITMAP_SIZE
+                    out_off += INTER_BLOCK_DISTANCE
+                    fout.seek(out_off)
+        finally:
+            fout.close()
+    finally:
+        fin.close()
+    rv = runCmd("vhd-util repair -n %s" % dst)
     if rv != 0:
-        print "WARNING: vhd-util repair on %s failed: %d" % (outfn, rv)
-    return outfn
+        print "WARNING: vhd-util repair on %s failed: %s" \
+                % (dst, os.strerror(rv))
+    return dst
+
+def inflate_lvm(fn, dest):
+    vg = dest.replace('/dev/', '')
+    lv = os.path.basename(os.path.basename(get_vhd_fn(fn)))
+    mo = re.match('(VG_XenStorage--[0-9a-f]{8}(--[0-9a-f]{4}){3}--[0-9a-f]{12}-)(VHD--[0-9a-f]{8}(--[0-9a-f]{4}){3}--[0-9a-f]{12})', lv)
+    if mo:
+        lv = mo.group(3).replace('--', '-')
+    cmd = 'lvcreate -n %s -L %sM %s' % (lv, get_disk_size(), vg)
+    rv, stderr = runCmd(cmd, with_stderr=True)
+    if rv != 0:
+        raise Exception('failed to create %s/%s: %s (%s: %s)' % \
+                (vg, lv, os.strerror(rv), cmd, stderr))
+    try:
+        rv, stderr = runCmd('lvchange -ay %s/%s' % (vg, lv), with_stderr=True)
+        if rv != 0:
+            raise Exception('failed to activate %s/%s: %s' % (vg, lv, e))
+        try:
+            return do_inflate(fn, os.path.join(dest, lv))
+        except Exception, e:
+            rv, stderr = runCmd('lvchange -an %s/%s' % (vg, lv),
+                    with_stderr=True)
+            if rv != 0:
+                print 'failed to clean up: failed to deactivate %s/%s: ' \
+                        '%s' % (vg, lv, stderr)
+                raise e
+    except Exception, e:
+        rv, stderr = runCmd('lvremove %s/%s' % (vg, lv), with_stderr=True)
+        if rv != 0:
+            print 'failed to clean up: failed to remove %s/%s: %s' % \
+                    (vg, lv, stderr)
+        raise e
+
+def inflate(fn, dest):
+    if dest.startswith('/dev/'):
+        return inflate_lvm(fn, dest)
+    else:
+        outfn = os.path.join(dest, os.path.basename(get_vhd_fn(fn)))
+        return do_inflate(fn, outfn)
 
 def inflate_chain(tarfn, dest):
-    print "Extracting %s..." % tarfn
-    tar = tarfile.open(tarfn, "r|gz")
-    tar.extractall(path = dest)
-    files = tar.getnames()
-    for fn in files:
-        print "Inflating %s..." % fn
-        inflate(os.path.join(dest, fn))
-    print "Done"
+    xtract_dir = tempfile.mkdtemp()
+    try:
+        print "Extracting %s..." % tarfn
+        tar = tarfile.open(tarfn, "r|gz")
+        tar.extractall(path = xtract_dir)
+        files = tar.getnames()
+        for fn in files:
+            path = os.path.join(xtract_dir, fn)
+            parse_vhd_headers(path)
+            print "Inflating %s to %s..." % (fn, dest)
+            inflate(path, dest)
+        print "Done"
+    finally:
+        shutil.rmtree(xtract_dir)
 
 def usage():
     print "Usage:"
-    print "   collect <PATH_TO_VHD>"
-    print "   inflate <TAR_ARCHIVE> <DESTINATION_DIR>"
+    print "   collect /path/to/vhd"
+    print "   inflate <collected VHD metadata> <destination dir or " \
+            "Volume Group>"
     print "\nThe 'collect' command will collect the VHD metadata for the " + \
             "entire chain and create a tar file containing all of the " + \
             "metadata together (the name of the resulting tar file is " + \
-            "printed to standard out.\n" + \
-            "The 'inflate' command will extract the metadata " + \
-            "information from the tar archive and add zeros in place of " + \
-            "real data to recreate the full VHD files.\n"
+            "printed to standard out.\n"
+
+    print "The 'inflate' command will extract the metadata information " \
+            "from the tar archive and add zeros in place of real data to " \
+            "recreate the full VHD files.\n"
 
 def main():
     cmd = None
@@ -285,7 +356,7 @@ def main():
         fn = sys.argv[2]
     elif len(sys.argv) == 4 and sys.argv[1] == "inflate":
         cmd = "inflate"
-        tarfn = sys.argv[2]
+        fn = sys.argv[2]
         dest = sys.argv[3]
     else:
         usage()
@@ -294,13 +365,10 @@ def main():
     logging.basicConfig(filename=LOG_FILE, level = logging.DEBUG,
             format="%(asctime)s " + cmd + ": %(message)s")
 
-    # Initialize dictionary
-    parse_vhd_headers(fn)
-
     if cmd == "collect":
         collect_chain_meta(fn)
     elif cmd == "inflate":
-        inflate_chain(tarfn, dest)
+        inflate_chain(fn, dest)
 
-
-main()
+if __name__ == '__main__':
+    main()
