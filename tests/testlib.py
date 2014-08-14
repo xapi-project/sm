@@ -55,8 +55,16 @@ class SCSIAdapter(object):
     def add_parameter(self, host_class, values):
         self.parameters.append((host_class, values))
 
-    def adapter_device_path(self, host_id):
-        return '/sys/class/scsi_host/host%s' % host_id
+    def adapter_device_paths(self, host_id):
+        yield '/sys/class/scsi_host/host%s' % host_id
+
+
+class AdapterWithNonBlockDevice(SCSIAdapter):
+    def adapter_device_paths(self, host_id):
+        for adapter_device_path in super(AdapterWithNonBlockDevice,
+                                         self).adapter_device_paths(host_id):
+            yield adapter_device_path
+        yield '/sys/class/fc_transport/target7:0:0/device/7:0:0:0'
 
 
 class Executable(object):
@@ -234,7 +242,8 @@ class TestContext(object):
     def generate_device_paths(self):
         actual_disk_letter = 'a'
         for host_id, adapter in enumerate(self.scsi_adapters):
-            yield adapter.adapter_device_path(host_id)
+            for adapter_device_path in adapter.adapter_device_paths(host_id):
+                yield adapter_device_path
             for disk_id, disk in enumerate(adapter.disks):
                 for path in disk.disk_device_paths(host_id, disk_id,
                                                    actual_disk_letter):
@@ -275,6 +284,10 @@ class TestContext(object):
 
     def stop(self):
         map(lambda patcher: patcher.stop(), self.patchers)
+
+    def add_adapter(self, adapter):
+        self.scsi_adapters.append(adapter)
+        return adapter
 
     def adapter(self):
         adapter = SCSIAdapter()
