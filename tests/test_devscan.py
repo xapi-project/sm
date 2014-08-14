@@ -117,3 +117,21 @@ class TestAdapters(unittest.TestCase):
                 }
             },
             result)
+
+
+class TestExtractDevName(unittest.TestCase):
+    @testlib.with_context
+    def test_26_kernel(self, context):
+        context.kernel_version = '2.6'
+        context.fake_makedirs('/somepath/block:sde')
+        result = devscan._extract_dev_name('/somepath')
+
+        self.assertEquals('sde', result)
+
+    @testlib.with_context
+    def test_3x_kernel(self, context):
+        context.kernel_version = '3.2'
+        context.fake_makedirs('/somepath/block/sde')
+        result = devscan._extract_dev_name('/somepath')
+
+        self.assertEquals('sde', result)
