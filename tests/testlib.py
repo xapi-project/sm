@@ -289,11 +289,6 @@ class TestContext(object):
         self.scsi_adapters.append(adapter)
         return adapter
 
-    def adapter(self):
-        adapter = SCSIAdapter()
-        self.scsi_adapters.append(adapter)
-        return adapter
-
 
 def with_context(func):
     def decorated(self, *args, **kwargs):

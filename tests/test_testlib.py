@@ -14,14 +14,14 @@ class TestTestContext(unittest.TestCase):
 
     @testlib.with_context
     def test_adapter_adds_scsi_host_entry(self, context):
-        context.adapter()
+        context.add_adapter(testlib.SCSIAdapter())
 
         self.assertEquals(['host0'], os.listdir('/sys/class/scsi_host'))
 
     @testlib.with_context
     def test_add_disk_adds_scsi_disk_entry(self, context):
         import glob
-        adapter = context.adapter()
+        adapter = context.add_adapter(testlib.SCSIAdapter())
         adapter.add_disk()
 
         self.assertEquals(
@@ -31,7 +31,7 @@ class TestTestContext(unittest.TestCase):
     @testlib.with_context
     def test_add_disk_adds_scsibus_entry(self, context):
         import glob
-        adapter = context.adapter()
+        adapter = context.add_adapter(testlib.SCSIAdapter())
         adapter.long_id = 'HELLO'
         adapter.add_disk()
 
@@ -41,7 +41,7 @@ class TestTestContext(unittest.TestCase):
 
     @testlib.with_context
     def test_add_disk_adds_device(self, context):
-        adapter = context.adapter()
+        adapter = context.add_adapter(testlib.SCSIAdapter())
         adapter.add_disk()
 
         self.assertEquals(
@@ -50,7 +50,7 @@ class TestTestContext(unittest.TestCase):
 
     @testlib.with_context
     def test_add_disk_adds_disk_by_id_entry(self, context):
-        adapter = context.adapter()
+        adapter = context.add_adapter(testlib.SCSIAdapter())
         disk = adapter.add_disk()
         disk.long_id = 'SOMEID'
 
@@ -59,21 +59,21 @@ class TestTestContext(unittest.TestCase):
     @testlib.with_context
     def test_add_disk_adds_glob(self, context):
         import glob
-        adapter = context.adapter()
+        adapter = context.add_adapter(testlib.SCSIAdapter())
         disk = adapter.add_disk()
 
         self.assertEquals(['/dev/disk/by-id'], glob.glob('/dev/disk/by-id'))
 
     @testlib.with_context
     def test_add_disk_path_exists(self, context):
-        adapter = context.adapter()
+        adapter = context.add_adapter(testlib.SCSIAdapter())
         disk = adapter.add_disk()
 
         self.assertTrue(os.path.exists('/dev/disk/by-id'))
 
     @testlib.with_context
     def test_add_parameter_parameter_file_exists(self, context):
-        adapter = context.adapter()
+        adapter = context.add_adapter(testlib.SCSIAdapter())
         disk = adapter.add_disk()
         adapter.add_parameter('fc_host', {'node_name': 'ignored'})
 
@@ -81,7 +81,7 @@ class TestTestContext(unittest.TestCase):
 
     @testlib.with_context
     def test_add_parameter_parameter_file_contents(self, context):
-        adapter = context.adapter()
+        adapter = context.add_adapter(testlib.SCSIAdapter())
         disk = adapter.add_disk()
         adapter.add_parameter('fc_host', {'node_name': 'value'})
 
