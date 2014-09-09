@@ -99,6 +99,12 @@ class TestWriteLock(unittest.TestCase):
 
         self.assertEquals(False, result)
 
+    def test_lock_when_already_locked_raises_exception(self):
+        write_lock = self.get_write_lock()
+        write_lock.lock()
+
+        self.assertRaises(flock.AlreadyLocked, write_lock.lock)
+
 
 def cleanup_subprocess(subproc):
     subproc.stdin.write('OK')

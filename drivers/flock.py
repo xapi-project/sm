@@ -61,13 +61,14 @@ class Flock:
         return self.fields[idx]
 
 
+class AlreadyLocked(Exception):
+    pass
+
+
 class FcntlLockBase:
     """Abstract base class for either reader or writer locks. A respective
     definition of LOCK_TYPE (fcntl.{F_RDLCK|F_WRLCK}) determines the
     type."""
-
-    if __debug__:
-        ERROR_ISLOCKED = "Attempt to acquire lock held."
 
     def __init__(self, fd):
         """Creates a new, unheld lock."""
@@ -81,7 +82,8 @@ class FcntlLockBase:
 
     def lock(self):
         """Blocking lock aquisition."""
-        assert not self._held, self.ERROR_ISLOCKED
+        if self._held:
+            raise AlreadyLocked()
         Flock(self.LOCK_TYPE).fcntl(self.fd, fcntl.F_SETLKW)
         self._held = True
 
