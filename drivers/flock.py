@@ -57,12 +57,6 @@ class Flock:
         idx = self.FIELDS[name]
         return self.fields[idx]
 
-    def __setattr__(self, name, value):
-        idx = self.FIELDS.get(name)
-        if idx is None:
-            self.__dict__[name] = value
-        else:
-            self.fields[idx] = value
 
 class FcntlLockBase:
     """Abstract base class for either reader or writer locks. A respective
