@@ -68,7 +68,6 @@ class FcntlLockBase:
 
     if __debug__:
         ERROR_ISLOCKED = "Attempt to acquire lock held."
-        ERROR_NOTLOCKED = "Attempt to unlock lock not held."
 
     def __init__(self, fd):
         """Creates a new, unheld lock."""
