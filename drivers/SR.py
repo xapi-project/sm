@@ -24,6 +24,7 @@ import errno
 import xs_errors
 import XenAPI, xmlrpclib, util
 import copy, os
+import traceback
 
 MOUNT_BASE = '/var/run/sr-mount'
 DEFAULT_TAP = 'vhd'
@@ -112,6 +113,8 @@ class SR(object):
 		    os.environ['LVM_DEVICE'] = dev_path
 		    util.SMlog('Setting LVM_DEVICE to %s' % dev_path)
 
+        except TypeError:
+            raise Exception(traceback.format_exc())
         except Exception, e:
             raise e
             raise xs_errors.XenError('SRBadXML')
