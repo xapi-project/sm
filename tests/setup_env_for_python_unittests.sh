@@ -20,6 +20,6 @@ else
     pip install nose
 fi
 
-pip install coverage
+pip install coverage==3.7.1
 pip install xenapi
 pip install mock
