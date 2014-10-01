@@ -991,7 +991,6 @@ class VDI(object):
             'iso'  : 'aio', # for ISO SR
             'aio'  : 'aio', # for LVHD
             'file' : 'aio',
-            'phy'  : 'aio'
             } [vdi_type]
 
     def get_tap_type(self):
@@ -1031,10 +1030,7 @@ class VDI(object):
             raise self.UnexpectedVDIType(vdi_type,
                                          self.target.vdi)
 
-        if plug_type == 'tap':
-            return True
-        elif self.target.vdi.sr.sm_config.get('type') == 'cd':
-            return True
+        if plug_type == 'tap': return True
 
         # 2. Otherwise, there may be more reasons
         #
