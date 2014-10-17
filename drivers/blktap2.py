@@ -1544,9 +1544,12 @@ class VDI(object):
             # Maybe launch a tapdisk on the physical link
             if self.tap_wanted():
                 vdi_type = self.target.get_vdi_type()
-                options["o_direct"] = options.get(self.CONF_KEY_O_DIRECT)
-                if options["o_direct"] is None: 
+                if util.read_caching_is_restricted(self._session):
                     options["o_direct"] = True
+                else:
+                    options["o_direct"] = options.get(self.CONF_KEY_O_DIRECT)
+                    if options["o_direct"] is None:
+                        options["o_direct"] = True
                 dev_path = self._tap_activate(phy_path, vdi_type, sr_uuid,
                         options,
                         self._get_pool_config(sr_uuid).get("mem-pool-size"))
