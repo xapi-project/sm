@@ -20,10 +20,10 @@ class Test_nfs(unittest.TestCase):
         pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-t', 'aServer',
                                       'nfs', 'aNfsversion'])
 
-    def get_soft_mount_pread(self, binary):
+    def get_soft_mount_pread(self, binary, vers):
         return ([binary, 'remoteserver:remotepath', 'mountpoint', '-o',
                  'soft,timeo=600,retrans=2147483647,proto=transport,acdirmin=0'
-                 ',acdirmax=0'])
+                 ',acdirmax=0,vers=%s' % vers])
 
     @mock.patch('util.makedirs')
     @mock.patch('util.pread')
@@ -31,7 +31,8 @@ class Test_nfs(unittest.TestCase):
         nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
                        timeout=0)
 
-        pread.assert_called_once_with(self.get_soft_mount_pread('mount.nfs'))
+        pread.assert_called_once_with(self.get_soft_mount_pread('mount.nfs',
+                                                                '3'))
 
     @mock.patch('util.makedirs')
     @mock.patch('util.pread')
@@ -39,7 +40,8 @@ class Test_nfs(unittest.TestCase):
         nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
                        timeout=0, nfsversion='3')
 
-        pread.assert_called_once_with(self.get_soft_mount_pread('mount.nfs'))
+        pread.assert_called_once_with(self.get_soft_mount_pread('mount.nfs',
+                                                                '3'))
 
     @mock.patch('util.makedirs')
     @mock.patch('util.pread')
@@ -47,7 +49,8 @@ class Test_nfs(unittest.TestCase):
         nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
                        timeout=0, nfsversion='4')
 
-        pread.assert_called_once_with(self.get_soft_mount_pread('mount.nfs4'))
+        pread.assert_called_once_with(self.get_soft_mount_pread('mount.nfs4',
+                                                                '4'))
 
     def test_validate_nfsversion_invalid(self):
         for thenfsversion in ['2', '4.1']:
