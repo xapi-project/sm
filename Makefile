@@ -62,8 +62,6 @@ UDEV_RULES = 40-multipath
 MPATH_DAEMON = sm-multipath
 MPATH_CONF = multipath.conf
 
-CRON_JOBS += ringwatch
-
 SM_XML := XE_SR_ERRORCODES
 
 SM_DEST := /opt/xensource/sm/
@@ -72,7 +70,6 @@ BIN_DEST := /opt/xensource/bin/
 MASTER_SCRIPT_DEST := /etc/xensource/master.d/
 PLUGIN_SCRIPT_DEST := /etc/xapi.d/plugins/
 LIBEXEC := /opt/xensource/libexec/
-CRON_DEST := /etc/cron.d/
 UDEV_RULES_DIR := /etc/udev/rules.d/
 INIT_DIR := /etc/rc.d/init.d/
 MPATH_CONF_DIR := /etc/multipath.xenserver/
@@ -170,8 +167,6 @@ install: precheck
 	$(MAKE) -C snapwatchd install DESTDIR=$(SM_STAGING)
 	$(MAKE) -C mpathroot install DESTDIR=$(SM_STAGING)
 	ln -sf $(SM_DEST)blktap2.py $(SM_STAGING)$(BIN_DEST)/blktap2
-	install -m 755 -d $(SM_STAGING)$(CRON_DEST)
-	install -m 644 $(CRON_JOBS:%=etc/cron.d/%) -t $(SM_STAGING)$(CRON_DEST)
 	ln -sf $(SM_DEST)lcache.py $(SM_STAGING)$(BIN_DEST)tapdisk-cache-stats
 
 .PHONY: clean
