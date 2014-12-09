@@ -562,11 +562,8 @@ class LVHDSR(SR.SR):
                                           replace('//', '-'))
                 lpath = os.path.join(self.path, lvname)
                 os.unlink(lpath)
-            except Exception, e:
-                if e.errno == errno.ENOENT:
-                    util.SMlog("Ignore ENOENT errors as dmsetup has removed " \
-                                "the symlink for file %s, path: %s." % (fileName, lpath))
-                else:
+            except OSError, e:
+                if e.errno != errno.ENOENT:
                     util.SMlog("LVHDSR.delete: failed to remove the symlink for " \
                                "file %s. Error: %s" % (fileName, str(e)))
                     success = False
