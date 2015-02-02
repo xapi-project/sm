@@ -56,7 +56,10 @@ class NfsException(Exception):
 
 def check_server_tcp(server, nfsversion=DEFAULT_NFSVERSION):
     """Make sure that NFS over TCP/IP V3 is supported on the server. 
-    Returns True if everything is OK, False otherwise."""
+    
+    Returns True if everything is OK
+    False otherwise.
+    """
     try:
         util.ioretry(lambda: util.pread([RPCINFO_BIN,"-t", 
                                          "%s" % server, "nfs", nfsversion]),
@@ -67,6 +70,10 @@ def check_server_tcp(server, nfsversion=DEFAULT_NFSVERSION):
 
 
 def validate_nfsversion(nfsversion):
+    """Check the validity of 'nfsversion'.
+    
+    Raise an exception for any invalid version.
+    """
     if not nfsversion:
         nfsversion = DEFAULT_NFSVERSION
     else:
@@ -78,7 +85,9 @@ def validate_nfsversion(nfsversion):
 def soft_mount(mountpoint, remoteserver, remotepath, transport, timeout=0,
                nfsversion=DEFAULT_NFSVERSION):
     """Mount the remote NFS export at 'mountpoint'.
-    The 'timeout' param here is in seconds"""
+    
+    The 'timeout' param here is in seconds
+    """
     try:
         if not util.ioretry(lambda: util.isdir(mountpoint)):
             util.ioretry(lambda: util.makedirs(mountpoint))
@@ -126,6 +135,7 @@ def unmount(mountpoint, rmmountpoint):
 
 
 def scan_exports(target):
+    """Scan target and return an XML DOM with target, path and accesslist."""
     util.SMlog("scanning")
     cmd = [SHOWMOUNT_BIN, "--no-headers", "-e", target]
     dom = xml.dom.minidom.Document()
@@ -156,6 +166,7 @@ def scan_exports(target):
     return dom
 
 def scan_srlist(path):
+    """Scan and report SR, UUID."""
     dom = xml.dom.minidom.Document()
     element = dom.createElement("SRlist")
     dom.appendChild(element)
