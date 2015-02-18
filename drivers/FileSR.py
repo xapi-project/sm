@@ -925,7 +925,7 @@ class FileVDI(VDI.VDI):
         """
         util.SMlog("FileVDI.generate_config")
         if not util.pathexists(self.path):
-                raise xs_errors.XenError('VDIUnavailable')
+            raise xs_errors.XenError('VDIUnavailable')
         resp = {}
         resp['device_config'] = self.sr.dconf
         resp['sr_uuid'] = sr_uuid
