@@ -918,6 +918,11 @@ class FileVDI(VDI.VDI):
     extractUuid = staticmethod(extractUuid)
 
     def generate_config(self, sr_uuid, vdi_uuid):
+        """
+        Generate the XML config required to attach and activate
+        a VDI for use when XAPI is not running. Attach and
+        activation is handled by vdi_attach_from_config below.
+        """
         util.SMlog("FileVDI.generate_config")
         if not util.pathexists(self.path):
                 raise xs_errors.XenError('VDIUnavailable')
