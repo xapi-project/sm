@@ -948,8 +948,10 @@ class FileVDI(VDI.VDI):
                 self.sr.attach(sr_uuid)
         except:
             util.logException("FileVDI.attach_from_config")
-            raise xs_errors.XenError('SRUnavailable', \
-                        opterr='Unable to attach from config')
+            raise xs_errors.XenError(
+                'SRUnavailable',
+                opterr='Unable to attach from config'
+            )
 
 if __name__ == '__main__':
     SRCommand.run(FileSR, DRIVER_INFO)
