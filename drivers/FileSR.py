@@ -944,7 +944,7 @@ class FileVDI(VDI.VDI):
         """
         util.SMlog("FileVDI.attach_from_config")
         try:
-           if not util.pathexists(self.sr.path):
+            if not util.pathexists(self.sr.path):
                 self.sr.attach(sr_uuid)
         except:
             util.logException("FileVDI.attach_from_config")
