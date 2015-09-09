@@ -122,14 +122,22 @@ def _resetDMP(sid,explicit_unmap=False,delete_nodes=False):
         except:
             util.SMlog("WARNING: exception raised while attempting to"
                        " modify multipath.conf")
-        try:
+
+# Overriding delete_nodes value to True, since reconfigure does not drop
+# devices that are faulty during pbd unplug and plug. They remain 
+# the system which prevents creation of new maps. This setting is valid only 
+# for any SR operation done before dev_loss_tmo, post which the device is
+# automatically dropped by the kernal.
+        
+	delete_nodes=True
+	devices = mpath_cli.list_paths(sid)
+	try:
             mpath_cli.reconfigure()
         except:
             util.SMlog("WARNING: exception raised while attempting to"
                        " reconfigure")
         time.sleep(5)
 
-        devices = mpath_cli.list_paths(sid)
 
         try:
             mpath_cli.remove_map(sid)
@@ -141,6 +149,7 @@ def _resetDMP(sid,explicit_unmap=False,delete_nodes=False):
             mpath_cli.remove_path(device)
             if delete_nodes:
                 _delete_node(device)
+        time.sleep(5)
     else:
         mpath_cli.ensure_map_gone(sid)
 
