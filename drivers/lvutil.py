@@ -262,8 +262,9 @@ class LVInfo:
 def sockpath_of_sr_uuid(uuid):
     return "/var/lib/xenvmd/%s" % uuid
 
-def setvginfo(uuid,vg,devices,uri, local_allocator=None):
+def setvginfo(uuid, vg, devices, uri):
     sockpath = sockpath_of_sr_uuid(uuid)
+    local_allocator = get_local_allocator_socket_name(vg)
 
     try:
         util.makedirs(config_dir)
@@ -272,9 +273,8 @@ def setvginfo(uuid,vg,devices,uri, local_allocator=None):
             raise
 
     cmd = ["/bin/xenvm", "set-vg-info", "--config", config_dir, "--pvpath", 
-           devices[0], "--uri", uri, "-S", "/var/lib/xcp/xapi", vg]
-    if local_allocator is not None:
-      cmd = cmd + [ "--local-allocator-path", local_allocator ]
+           devices[0], "--uri", uri, "-S", "/var/lib/xcp/xapi", vg,
+           "--local-allocator-path", local_allocator]
     util.pread2(cmd)    
 
 config_dir = "/var/run/nonpersistent/xenvm.d/"
@@ -316,16 +316,39 @@ def run_xenvmd(vg):
     cmd = ["/sbin/xenvmd", "--daemon", "--config", configfile]
     util.pread2(cmd)
 
+
+def get_local_allocator_socket_dir():
+    """Return local_allocator socket directory.
+
+    Returns:
+        string: Socket directory name for the local_allocator
+    """
+    return "/var/run/sm/allocator"
+
+
+def get_local_allocator_socket_name(vgname):
+    """Compose and return local_allocator socket name.
+
+    Args:
+        vgname (string): Name of the VG
+
+    Returns:
+        string: Socket name for the local_allocator
+    """
+    socket_dir = get_local_allocator_socket_dir()
+    return "{}/{}".format(socket_dir, vgname)
+
+
 def runxenvm_local_allocator(uuid, vg, devices, uri):
     global config_dir
     configfile = "%s/%s.xenvm-local-allocator.config" % (config_dir, vg)
     uuid = util.get_this_host ()
-    socket_dir = "/var/run/sm/allocator"
+    socket_dir = get_local_allocator_socket_dir()
     journal_dir = "/tmp/sm/allocator-journal"
     for d in [ socket_dir, journal_dir ]:
         if not os.path.exists(d):
             util.makedirs(d)
-    local_allocator = "%s/%s" % (socket_dir, vg)
+    local_allocator = get_local_allocator_socket_name(vg)
     config = """
 (
  (socket %s)
@@ -346,7 +369,7 @@ def runxenvm_local_allocator(uuid, vg, devices, uri):
     util.pread2(cmd)
     cmd = [ "/bin/xenvm-local-allocator", "--daemon", "--config", configfile ]
     util.pread2(cmd)
-    setvginfo(uuid,vg,devices,uri,local_allocator)
+    setvginfo(uuid, vg, devices, uri)
 
 def stopxenvm_local_allocator(vg):
     uuid = util.get_this_host ()
@@ -497,7 +520,8 @@ def scan_srlist(prefix, root, sr_alloc=None):
         for vg in VGs.keys():
             if not os.path.isfile('%s/%s' % (config_dir, VG_PREFIX+vg)):
                 util.SMlog('vg=%s VGs[vg]=%s' % (vg,VGs[vg]))
-	        setvginfo(vg,VG_PREFIX+vg,VGs[vg].split(','),"file://local/dev/null", local_allocator=None)
+                setvginfo(vg, VG_PREFIX + vg,
+                          VGs[vg].split(','), "file://local/dev/null")
     return VGs
 
 # Converts an SR list to an XML document with the following structure:
