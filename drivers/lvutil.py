@@ -345,7 +345,6 @@ def runxenvm_local_allocator(uuid, vg, devices, uri):
     config = """
 (
  (socket %s)
- (allocation_quantum 16)
  (localJournal %s/%s)
  (devices (%s))
  (toLVM %s-toLVM)
