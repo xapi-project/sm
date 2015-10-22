@@ -128,6 +128,14 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             for file in os.listdir(path):
                 self.block_setscheduler('%s/%s' % (path,file))
 
+        # We need the physical_size for xlvhd calculations
+        # This is just another hack. It should be done once for all
+        # for every SR type
+        if ('allocation' in self.sm_config and
+                self.sm_config['allocation'] == 'xlvhd'):
+            stats = lvutil._getVGstats(self.vgname)
+            self.physical_size = stats['physical_size']
+
         self._start_xenvmd(sr_uuid)
 
         self._pathrefresh(LVHDoHBASR)
