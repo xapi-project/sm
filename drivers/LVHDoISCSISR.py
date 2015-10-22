@@ -501,6 +501,14 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 for a in self.iscsi.adapter:
                     scsiutil.rescan([self.iscsi.adapter[a]])
 
+            # We need the physical_size for xlvhd calculations
+            # This is just another hack. It should be done once for all
+            # for every SR type
+            if ('allocation' in self.sm_config and
+                    self.sm_config['allocation'] == 'xlvhd'):
+                stats = lvutil._getVGstats(self.vgname)
+                self.physical_size = stats['physical_size']
+
             self._start_xenvmd(sr_uuid)
 
             self._pathrefresh(LVHDoISCSISR)
