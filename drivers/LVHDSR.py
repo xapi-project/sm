@@ -1705,6 +1705,12 @@ class LVHDVDI(VDI.VDI):
             elif self.sr.provision == "thick":
                 lvSize = lvhdutil.calcSizeVHDLV(long(size))
             elif self.sr.provision == "xlvhd":
+
+                # Get SR physical_size
+                # The number of calls to _getVGstats should be optimized
+                stats = lvutil._getVGstats(self.sr.vgname)
+                self.sr.physical_size = stats['physical_size']
+
                 # Check for allocation-quantum
                 if 'allocation_quantum' in self.sm_config:
                     # FIXME: this should accept also GiB and MiB
