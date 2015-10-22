@@ -601,7 +601,7 @@ class LVHDSR(SR.SR):
                 continue
 
             # Now attempt to remove the dev mapper entry
-            if not lvutil.removeDevMapperEntry(fileName):
+            if not lvutil.removeDevMapperEntry(fileName, False):
                 success = False
                 continue
 
@@ -719,7 +719,7 @@ class LVHDSR(SR.SR):
                 continue
             
             # Now attempt to remove the dev mapper entry
-            if not lvutil.removeDevMapperEntry(fileName):
+            if not lvutil.removeDevMapperEntry(fileName, False):
                 success = False
                 continue
             

@@ -1029,13 +1029,20 @@ def ensurePathExists(mdpath):
         lvmCache = lvmcache.LVMCache(vgname)
         lvmCache.activateNoRefcount(MDVOLUME_NAME)
         
-def removeDevMapperEntry(path):
-    try:    
+def removeDevMapperEntry(path, strict=True):
+    try:
         # remove devmapper entry using dmsetup
         cmd = [CMD_DMSETUP, "remove", path]
         util.pread2(cmd)
         return True
     except Exception, e:
+        if not strict:
+            cmd = [CMD_DMSETUP, "status", path]
+            try:
+                util.pread(cmd, expect_rc=1)
+                return True
+            except:
+                pass  # Continuining will fail and log the right way
         util.SMlog("removeDevMapperEntry: dmsetup remove failed for file %s " \
                    "with error %s." % (path, str(e)))
         return False
