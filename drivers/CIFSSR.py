@@ -211,7 +211,7 @@ class CIFSSR(FileSR.FileSR):
                 raise CifsException("rmdir failed with error '%s'" % inst.strerror)
 
     def __extract_server(self):
-        return self.remoteserver[2:]
+        return self.remoteserver[2:].replace('\\', '/')
 
     def __check_license(self):
         """Raises an exception if CIFS is not licensed."""
