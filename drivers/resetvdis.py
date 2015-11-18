@@ -53,10 +53,18 @@ def reset_sr(session, host_uuid, sr_uuid, is_sr_master):
     sr_lock.release()
     gc_lock.release()
 
-def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True):
-    vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
-    vdi_rec = session.xenapi.VDI.get_record(vdi_ref)
-    sm_config = vdi_rec["sm_config"]
+def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True,
+              vdi_ref=None, sr_ref=None, sm_config=None):
+    if vdi_ref is None:
+        vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
+
+    if sm_config is None:
+        vdi_rec = session.xenapi.VDI.get_record(vdi_ref)
+        sm_config = vdi_rec["sm_config"]
+
+    if sr_ref is None:
+        sr_ref = vdi_rec["SR"]
+
     host_ref = None
     clean = True
     for key, val in sm_config.iteritems():
@@ -96,7 +104,7 @@ def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True):
 
             ret = session.xenapi.host.call_plugin(
                     host_ref, "on-slave", "is_open",
-                    {"vdiUuid": vdi_uuid, "srRef": vdi_rec["SR"]})
+                    {"vdiUuid": vdi_uuid, "srRef": sr_ref})
             if ret != "False":
                 util.SMlog("VDI %s is still open on host %s, not resetting" % \
                         (vdi_uuid, host_str))

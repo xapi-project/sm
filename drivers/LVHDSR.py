@@ -190,7 +190,6 @@ class LVHDSR(SR.SR):
                 raise xs_errors.XenError('InvalidArg', \
                         opterr='Allocation parameter must be one of %s' % self.PROVISIONING_TYPES)
 
-        self.other_conf = self.session.xenapi.SR.get_other_config(self.sr_ref)
         if self.other_conf.get(self.TEST_MODE_KEY):
             self.testMode = self.other_conf[self.TEST_MODE_KEY]
             self._prepareTestMode()
@@ -2513,7 +2512,8 @@ class LVHDVDI(VDI.VDI):
                 lvhdutil.attachThin(self.sr.journaler, self.sr.uuid, self.uuid)
             else:
                 lvhdutil.detachThin(self.session, self.sr.lvmCache,
-                        self.sr.uuid, self.uuid)
+                        self.sr.uuid, self.uuid,
+                            self.sr.srcmd.params["vdi_ref"])
         else:
             fn = "attach"
             if not attach:

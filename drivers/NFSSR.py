@@ -135,7 +135,8 @@ class NFSSR(FileSR.FileSR):
         if not self._checkmount():
             self.validate_remotepath(False)
             util._testHost(self.dconf['server'], NFSPORT, 'NFSTarget')
-            io_timeout = util.get_nfs_timeout(self.session, sr_uuid)
+            io_timeout = util.get_nfs_timeout(self.session,
+                                              self.other_conf)
             self.mount_remotepath(sr_uuid, io_timeout)
         self.attached = True
 

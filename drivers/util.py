@@ -668,15 +668,12 @@ def get_all_slaves(session):
     master_ref = get_this_host_ref(session)
     return filter(lambda x: x != master_ref, host_refs)
 
-def get_nfs_timeout(session, sr_uuid):
+def get_nfs_timeout(session, sr_other_config):
     if not isinstance(session, XenAPI.Session):
         SMlog("No XAPI session for getting nfs timeout config")
         return 0
-
     try:
-        sr_ref = session.xenapi.SR.get_by_uuid(sr_uuid)
-        other_config = session.xenapi.SR.get_other_config(sr_ref)
-        str_val = other_config.get("nfs-timeout")
+        str_val = sr_other_config.get("nfs-timeout")
     except XenAPI.Failure:
         SMlog("Failed to get SR.other-config:nfs-timeout, ignoring")
         return 0

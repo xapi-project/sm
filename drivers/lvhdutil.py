@@ -238,14 +238,13 @@ def attachThin(journaler, srUuid, vdiUuid):
         lvmCache.deactivate(NS_PREFIX_LVM + srUuid, vdiUuid, lvName, False)
     lock.release()
 
-def detachThin(session, lvmCache, srUuid, vdiUuid):
+def detachThin(session, lvmCache, srUuid, vdiUuid, vdiRef):
     """Shrink the VDI to the minimal size if no one is using it"""
     lvName = LV_PREFIX[vhdutil.VDI_TYPE_VHD] + vdiUuid
     path = os.path.join(VG_LOCATION, VG_PREFIX + srUuid, lvName)
     lock = Lock(vhdutil.LOCK_TYPE_SR, srUuid)
     _tryAcquire(lock)
 
-    vdiRef = session.xenapi.VDI.get_by_uuid(vdiUuid)
     vbds = session.xenapi.VBD.get_all_records_where( \
             "field \"VDI\" = \"%s\"" % vdiRef)
     numPlugged = 0

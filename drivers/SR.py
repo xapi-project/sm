@@ -108,6 +108,11 @@ class SR(object):
 
             self.sr_ref = self.srcmd.params.get('sr_ref')
 
+            if not self.session is None:
+                self.other_conf = self.session.xenapi.SR.get_other_config(self.sr_ref)
+            else:
+                self.other_conf = None
+
 	    if 'device_config' in self.srcmd.params:
                 if self.dconf.get("SRmaster") == "true":
                     os.environ['LVM_SYSTEM_DIR'] = MASTER_LVM_CONF
@@ -141,11 +146,12 @@ class SR(object):
         self.load(sr_uuid)
 
     @staticmethod
-    def from_uuid(session, sr_uuid):
+    def from_uuid(session, sr_uuid, sr_ref=None, host_ref=None):
         import imp
 
         _SR = session.xenapi.SR
-        sr_ref = _SR.get_by_uuid(sr_uuid)
+        if sr_ref is None:
+            sr_ref = _SR.get_by_uuid(sr_uuid)
         sm_type = _SR.get_type(sr_ref)
 
         # NB. load the SM driver module
@@ -155,7 +161,7 @@ class SR(object):
         sm_ref, sm = sms.popitem()
         assert not sms
 
-        driver_path = _SM.get_driver_filename(sm_ref)
+        driver_path = sm['driver_filename']
         driver_real = os.path.realpath(driver_path)
         module_name = os.path.basename(driver_path)
 
@@ -164,7 +170,8 @@ class SR(object):
 
         # NB. get the host pbd's device_config
 
-        host_ref = util.get_localhost_uuid(session)
+        if host_ref is None:
+            host_ref = util.get_localhost_uuid(session)
 
         _PBD = session.xenapi.PBD
         pbds = _PBD.get_all_records_where('field "SR" = "%s" and' % sr_ref +
@@ -172,7 +179,7 @@ class SR(object):
         pbd_ref, pbd = pbds.popitem()
         assert not pbds
 
-        device_config = _PBD.get_device_config(pbd_ref)
+        device_config = pbd['device_config']
 
         # NB. make srcmd, to please our supersized SR constructor.
         # FIXME

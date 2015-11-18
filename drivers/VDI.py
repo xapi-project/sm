@@ -116,16 +116,23 @@ class VDI(object):
         self.load(uuid)
 
     @staticmethod
-    def from_uuid(session, vdi_uuid):
+    def from_uuid(session, vdi_uuid, cmd_params=None):
 
-        _VDI = session.xenapi.VDI
-        vdi_ref = _VDI.get_by_uuid(vdi_uuid)
-        sr_ref  = _VDI.get_SR(vdi_ref)
+        if cmd_params is None:
+            _VDI = session.xenapi.VDI
+            vdi_ref = _VDI.get_by_uuid(vdi_uuid)
+            sr_ref  = _VDI.get_SR(vdi_ref)
 
-        _SR = session.xenapi.SR
-        sr_uuid = _SR.get_uuid(sr_ref)
+            _SR = session.xenapi.SR
+            sr_uuid = _SR.get_uuid(sr_ref)
+            host_ref = None
+        else:
+            vdi_ref = cmd_params["vdi_ref"]
+            sr_ref = cmd_params["sr_ref"]
+            sr_uuid = cmd_params["sr_uuid"]
+            host_ref = cmd_params["host_ref"]
 
-        sr = SR.SR.from_uuid(session, sr_uuid)
+        sr = SR.SR.from_uuid(session, sr_uuid, sr_ref, host_ref)
 
         sr.srcmd.params['vdi_ref'] = vdi_ref
         return sr.vdi(vdi_uuid)

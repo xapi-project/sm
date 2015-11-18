@@ -1410,18 +1410,21 @@ class VDI(object):
 
     def _add_tag(self, vdi_uuid, writable):
         util.SMlog("Adding tag to: %s" % vdi_uuid)
+        params = self.target.vdi.sr.srcmd.params
         attach_mode = "RO"
         if writable:
             attach_mode = "RW"
-        vdi_ref = self._session.xenapi.VDI.get_by_uuid(vdi_uuid)
-        host_ref = self._session.xenapi.host.get_by_uuid(util.get_this_host())
+        vdi_ref = params["vdi_ref"]
+        host_ref = params["host_ref"]
+        sr_ref = params["sr_ref"]
         sm_config = self._session.xenapi.VDI.get_sm_config(vdi_ref)
         attached_as = util.attached_as(sm_config)
         if NO_MULTIPLE_ATTACH and (attached_as == "RW" or \
                 (attached_as == "RO" and attach_mode == "RW")):
             util.SMlog("need to reset VDI %s" % vdi_uuid)
             if not resetvdis.reset_vdi(self._session, vdi_uuid, force=False,
-                    term_output=False, writable=writable):
+                    term_output=False, writable=writable, vdi_ref=vdi_ref,
+                    sr_ref=sr_ref, sm_config=sm_config):
                 raise util.SMException("VDI %s not detached cleanly" % vdi_uuid)
             sm_config = self._session.xenapi.VDI.get_sm_config(vdi_ref)
         if sm_config.has_key('paused'):
@@ -1451,8 +1454,9 @@ class VDI(object):
         return True
 
     def _remove_tag(self, vdi_uuid):
-        vdi_ref = self._session.xenapi.VDI.get_by_uuid(vdi_uuid)
-        host_ref = self._session.xenapi.host.get_by_uuid(util.get_this_host())
+        params = self.target.vdi.sr.srcmd.params
+        vdi_ref = params["vdi_ref"]
+        host_ref = params["host_ref"]
         sm_config = self._session.xenapi.VDI.get_sm_config(vdi_ref)
         host_key = "host_%s" % host_ref
         if sm_config.has_key(host_key):
@@ -1468,10 +1472,17 @@ class VDI(object):
             # attach_from_config context: HA disks don't need to be in any 
             # special pool
             return pool_info
-        session = XenAPI.xapi_local()
-        session.xenapi.login_with_password('root', '', '', 'SM')
-        sr_ref = self.target.vdi.sr.srcmd.params.get('sr_ref')
-        sr_config = session.xenapi.SR.get_other_config(sr_ref)
+        new_session = False
+        session = self.target.vdi.sr.session
+        if session is None:
+            session = XenAPI.xapi_local()
+            session.xenapi.login_with_password('root', '', '', 'SM')
+            sr_ref = self.target.vdi.sr.srcmd.params.get('sr_ref')
+            sr_config = session.xenapi.SR.get_other_config(sr_ref)
+            new_session = True
+        else:
+            sr_config = self.target.vdi.sr.other_conf
+
         vdi_config = session.xenapi.VDI.get_other_config(vdi_ref)
         pool_size_str = sr_config.get(POOL_SIZE_KEY)
         pool_name_override = vdi_config.get(POOL_NAME_KEY)
@@ -1495,7 +1506,9 @@ class VDI(object):
         if pool_size:
             pool_info["mem-pool-size"] = str(pool_size)
 
-        session.xenapi.session.logout()
+        if new_session:
+            session.xenapi.session.logout()
+
         return pool_info
 
     def attach(self, sr_uuid, vdi_uuid, writable, activate = False, caching_params = {}):
@@ -1551,7 +1564,8 @@ class VDI(object):
             # Tapdisk needs the allocation_quantum to be in MB
             options["allocation_quantum"] = int(aq / (1024*1024))
 
-        timeout = util.get_nfs_timeout(self.target.vdi.session, sr_uuid)
+        timeout = util.get_nfs_timeout(self.target.vdi.session,
+                                       self.target.vdi.sr.other_conf)
         if timeout:
             options["timeout"] = timeout + self.TAPDISK_TIMEOUT_MARGIN
         for i in range(self.ATTACH_DETACH_RETRY_SECS):
@@ -1577,7 +1591,8 @@ class VDI(object):
             # path if it was leaf-coalesced onto a raw LV), so refresh the 
             # object completely
             params = self.target.vdi.sr.srcmd.params
-            target = sm.VDI.from_uuid(self.target.vdi.session, vdi_uuid)
+            target = sm.VDI.from_uuid(self.target.vdi.session, vdi_uuid,
+                                         params)
             target.sr.srcmd.params = params
             driver_info = target.sr.srcmd.driver_info
             self.target = self.TargetDriver(target, driver_info)
@@ -1757,15 +1772,18 @@ class VDI(object):
         # Remove phy/
         self.PhyLink.from_uuid(sr_uuid, vdi_uuid).unlink()
 
-    def _updateCacheRecord(self, session, vdi_uuid, on_boot, caching):
+    def _updateCacheRecord(self, session, vdi_uuid, on_boot, caching,
+                           vdi_ref):
         # Remove existing VDI.sm_config fields
-        vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
+        sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
         for key in ["on_boot", "caching"]:
-            session.xenapi.VDI.remove_from_sm_config(vdi_ref,key)
+            if key in sm_config.keys():
+                del sm_config[key]
         if not on_boot is None:
-            session.xenapi.VDI.add_to_sm_config(vdi_ref,'on_boot',on_boot)
+            sm_config["on_boot"] = on_boot
         if not caching is None:
-            session.xenapi.VDI.add_to_sm_config(vdi_ref,'caching',caching)
+            sm_config["caching"] = caching
+        session.xenapi.VDI.set_sm_config(vdi_ref,sm_config)
 	
     def setup_cache(self, sr_uuid, vdi_uuid, params):
         if params.get(self.CONF_KEY_ALLOW_CACHING) != "true":
@@ -1784,8 +1802,12 @@ class VDI(object):
                 util.SMlog("Error: scratch mode not supported by this SR")
                 return
 
-        session = XenAPI.xapi_local()
-        session.xenapi.login_with_password('root', '', '', 'SM')
+        session = self.target.vdi.sr.session
+        new_session = False
+        if session is None:
+            session = XenAPI.xapi_local()
+            session.xenapi.login_with_password('root', '', '', 'SM')
+            new_session = True
 
         dev_path = None
         local_sr_uuid = params.get(self.CONF_KEY_CACHE_SR)
@@ -1798,9 +1820,12 @@ class VDI(object):
         if dev_path:
             self._updateCacheRecord(session, self.target.vdi.uuid,
                     params.get(self.CONF_KEY_MODE_ON_BOOT),
-                    params.get(self.CONF_KEY_ALLOW_CACHING))
+                    params.get(self.CONF_KEY_ALLOW_CACHING),
+                    self.target.vdi.sr.srcmd.params["vdi_ref"])
 
-        session.xenapi.session.logout()
+        if new_session:
+            session.xenapi.session.logout()
+
         return dev_path
 
     def alert_no_cache(self, session, vdi_uuid, cache_sr_uuid, err):
@@ -1966,7 +1991,8 @@ class VDI(object):
         if caching:
             self._remove_cache(self._session, local_sr_uuid)
 
-        self._updateCacheRecord(self._session, self.target.vdi.uuid, None, None)
+        self._updateCacheRecord(self._session, self.target.vdi.uuid, None, None,
+                                   self.target.vdi.sr.srcmd.params["vdi_ref"])
 
     def _is_tapdisk_in_use(self, minor):
         (retVal, links) = util.findRunningProcessOrOpenFile("tapdisk")
