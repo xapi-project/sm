@@ -2522,7 +2522,7 @@ def daemonize():
 def normalizeType(type):
     if type in LVHDSR.SUBTYPES:
         type = SR.TYPE_LVHD
-    if type in ["lvm", "lvmoiscsi", "lvmohba"]:
+    if type in ["lvm", "lvmoiscsi", "lvmohba", "lvmofcoe"]:
         # temporary while LVHD is symlinked as LVM
         type = SR.TYPE_LVHD
     if type in ["ext", "nfs", "ocfsoiscsi", "ocfsohba", "smb"]:
