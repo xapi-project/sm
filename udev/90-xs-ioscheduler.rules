@@ -1,0 +1,24 @@
+SUBSYSTEM!="block", GOTO="xs_ioscheduler_end"
+
+# Take care of physical devices
+KERNEL=="sd*", GOTO="xs_ioscheduler_sd"
+
+# Multipath devices have their own scheduler unlike
+# LVM ones, so make sure their defaults are right.
+# We use a property set by a previous dm rule not by the kernel
+ENV{DM_UUID}=="mpath-?*", GOTO="xs_ioscheduler_action"
+
+# Not interested any more
+GOTO="xs_ioscheduler_end"
+
+# Not interested in partitions and root device.
+# For the time being we assume root is on the ATA bus.
+LABEL="xs_ioscheduler_sd"
+END{ID_BUS}=="ata", GOTO="xs_ioscheduler_end"
+ENV{DEVTYPE}=="partition", GOTO="xs_ioscheduler_end"
+
+# Now set the scheduler
+LABEL="xs_ioscheduler_action"
+ACTION=="add|change", ATTR{queue/scheduler}="noop"
+
+LABEL="xs_ioscheduler_end"

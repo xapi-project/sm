@@ -60,7 +60,7 @@ SM_LIBS += wwid_conf
 SM_LIBS += trim_util
 SM_LIBS += pluginutil
 
-UDEV_RULES = 39-multipath 40-multipath 55-xs-mpath-scsidev 58-xapi
+UDEV_RULES = 39-multipath 40-multipath 55-xs-mpath-scsidev 58-xapi 90-xs-ioscheduler
 MPATH_DAEMON = sm-multipath
 MPATH_CONF = multipath.conf
 CIFS_CONF = cifs.conf
