@@ -1,5 +1,8 @@
 SUBSYSTEM!="block", GOTO="xs_ioscheduler_end"
 
+# If non-rotational it is a no-brainer
+ATTR{queue/rotational}=="0", GOTO="xs_ioscheduler_action"
+
 # Take care of physical devices
 KERNEL=="sd*", GOTO="xs_ioscheduler_sd"
 
@@ -11,10 +14,11 @@ ENV{DM_UUID}=="mpath-?*", GOTO="xs_ioscheduler_action"
 # Not interested any more
 GOTO="xs_ioscheduler_end"
 
-# Not interested in partitions and root device.
-# For the time being we assume root is on the ATA bus.
+# We assume if the model is "LUN" there is a clever array that
+# can do the job.
+# Not interested in partitions.
 LABEL="xs_ioscheduler_sd"
-END{ID_BUS}=="ata", GOTO="xs_ioscheduler_end"
+ENV{ID_MODEL}!="LUN", GOTO="xs_ioscheduler_end"
 ENV{DEVTYPE}=="partition", GOTO="xs_ioscheduler_end"
 
 # Now set the scheduler
