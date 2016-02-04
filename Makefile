@@ -21,6 +21,7 @@ SM_DRIVERS += LVHDoFCoE
 SM_LIBS := SR
 SM_LIBS += SRCommand
 SM_LIBS += VDI
+SM_LIBS += ISCSI_base
 SM_LIBS += cleanup
 SM_LIBS += lvutil
 SM_LIBS += lvmcache
