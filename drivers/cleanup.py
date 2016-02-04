@@ -62,6 +62,11 @@ FLAG_TYPE_ABORT = "abort"     # flag to request aborting of GC/coalesce
 LOCK_TYPE_RUNNING = "running" 
 lockRunning = None
 
+# process "lock" to indicate that the GC process has been activated but may not
+# yet be running, stops a second process from being started.
+LOCK_TYPE_GC_ACTIVE = "gc_active"
+lockActive = None
+
 # Default coalesce error rate limit, in messages per minute. A zero value
 # disables throttling, and a negative value disables error reporting.
 DEFAULT_COALESCE_ERR_RATE = 1.0/60
@@ -2532,48 +2537,58 @@ def normalizeType(type):
     return type
 
 def _gcLoop(sr, dryRun):
-    failedCandidates = []
-    while True:
-        if not sr.xapi.isPluggedHere():
-            Util.log("SR no longer attached, exiting")
-            break
-        sr.scanLocked()
-        if not sr.hasWork():
-            Util.log("No work, exiting")
-            break
+    if not lockActive.acquireNoblock():
+        Util.log("Another GC instance already active, exiting")
+        return
+    try:
+        # TODO: make the delay configurable
+        Util.log("GC active, about to go quiet")
+        time.sleep(5 * 60)
+        Util.log("GC active, quiet period ended")
 
-        if not lockRunning.acquireNoblock():
-            Util.log("Another instance already running, exiting")
-            break
-        try:
-            if not sr.gcEnabled():
+        while True:
+            if not sr.xapi.isPluggedHere():
+                Util.log("SR no longer attached, exiting")
                 break
-            sr.cleanupCoalesceJournals()
             sr.scanLocked()
-            sr.updateBlockInfo()
+            if not sr.hasWork():
+                Util.log("No work, exiting")
+                break
 
-            if len(sr.findGarbage()) > 0:
-                sr.garbageCollect(dryRun)
-                sr.xapi.srUpdate()
-                continue
+            if not lockRunning.acquireNoblock():
+                Util.log("Unable to acquire GC running lock.")
+                return
+            try:
+                if not sr.gcEnabled():
+                    break
+                sr.cleanupCoalesceJournals()
+                sr.scanLocked()
+                sr.updateBlockInfo()
 
-            candidate = sr.findCoalesceable()
-            if candidate:
-                util.fistpoint.activate("LVHDRT_finding_a_suitable_pair",sr.uuid)
-                sr.coalesce(candidate, dryRun)
-                sr.xapi.srUpdate()
-                continue
+                if len(sr.findGarbage()) > 0:
+                    sr.garbageCollect(dryRun)
+                    sr.xapi.srUpdate()
+                    continue
 
-            candidate = sr.findLeafCoalesceable()
-            if candidate:
-                sr.coalesceLeaf(candidate, dryRun)
-                sr.xapi.srUpdate()
-                continue
+                candidate = sr.findCoalesceable()
+                if candidate:
+                    util.fistpoint.activate("LVHDRT_finding_a_suitable_pair",sr.uuid)
+                    sr.coalesce(candidate, dryRun)
+                    sr.xapi.srUpdate()
+                    continue
 
-            Util.log("No work left")
-            sr.cleanup()
-        finally:
-            lockRunning.release()
+                candidate = sr.findLeafCoalesceable()
+                if candidate:
+                    sr.coalesceLeaf(candidate, dryRun)
+                    sr.xapi.srUpdate()
+                    continue
+
+                Util.log("No work left")
+                sr.cleanup()
+            finally:
+                lockRunning.release()
+    finally:
+        lockActive.release()
 
 def _gc(session, srUuid, dryRun):
     init(srUuid)
@@ -2621,7 +2636,10 @@ def _abort(srUuid, soft=False):
 def init(srUuid):
     global lockRunning
     if not lockRunning:
-        lockRunning = lock.Lock(LOCK_TYPE_RUNNING, srUuid) 
+        lockRunning = lock.Lock(LOCK_TYPE_RUNNING, srUuid)
+    global lockActive
+    if not lockActive:
+        lockActive = lock.Lock(LOCK_TYPE_GC_ACTIVE, srUuid)
 
 def usage():
     output = """Garbage collect and/or coalesce VHDs in a VHD-based SR
