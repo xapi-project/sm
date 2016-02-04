@@ -49,7 +49,9 @@ def adapters(filterstr="any"):
     devs = {}
     adt = {}
     fcoe_eth_info = {}
+    fcoe_port_info = []
 
+    fcoe_port_info = fcoelib.parse_fcoe_port_name_info()
     if filterstr == "fcoe":
         fcoe_eth_info = fcoelib.parse_fcoe_eth_info()
 
@@ -57,6 +59,29 @@ def adapters(filterstr="any"):
         proc = match_hbadevs(a, filterstr)
         if not proc:
             continue
+
+        #Special casing for fcoe 
+        port_name_path = os.path.join(SYSFS_PATH1,a,'device',\
+                         'fc_host',a,'port_name')
+        port_name_path_exists = os.path.exists(port_name_path)
+        util.SMlog("Port name path exists %d" % port_name_path_exists)
+        if filterstr == "fcoe" and not port_name_path_exists:
+            continue
+        if port_name_path_exists:
+            port_name = _get_port_name(port_name_path)
+            #If we are probing for fcoe luns/ adapters and if the port name 
+            #in /sys/class/scsi_host/a/device/fc_host/a/port_name does not match
+            #one in the output of 'fcoeadm -i', then we shouldn't display that
+            #lun/adapter.
+            #On the other hand, if we are probing for hba luns, and if the
+            #port name in /sys/class/scsi_host/a/device/fc_host/a/port_name
+            #matches one in the output of 'fcoeadm -i', then we shouldn't
+            #display that lun/adapter, because that would have been discovered 
+            #via the FCoE protocol.
+            if (filterstr == "fcoe" and port_name not in fcoe_port_info) or \
+                (filterstr != "fcoe" and port_name in fcoe_port_info):
+                continue
+
         adt[a] = proc
         id = a.replace("host","")
         scsiutil.rescan([id])
@@ -129,7 +154,22 @@ def adapters(filterstr="any"):
     dict['devs'] = devs
     dict['adt'] = adt
     return dict
-            
+
+def _get_port_name(port_name_path):
+    port_name = 0
+    try:
+        f = open(port_name_path, 'r')
+        try:
+            line = f.readline()[:-1]
+            if not line in ['<NULL>', '(NULL)', '']:
+                port_name = int(line,16)
+            util.SMlog("Port Name in sysfs is %d" % port_name)
+        finally:
+            f.close()
+    except IOError:
+        pass
+    return port_name
+
 def _get_driver_name(scsihost):
     driver_name = 'Unknown'
     if os.path.exists(os.path.join(SYSFS_PATH1, scsihost, 'fnic_state')):
@@ -196,9 +236,8 @@ def _genMPPHBA(id):
 def match_hbadevs(s, filterstr):
     driver_name = _get_driver_name(s)
     if match_host(s) and not match_blacklist(driver_name) \
-                and ( (filterstr == "any" \
-                and not match_filterstr("fcoe", driver_name))\
-                or match_filterstr(filterstr, driver_name) ):
+                and (filterstr == "any" or filterstr == "fcoe" or \
+                match_filterstr(filterstr, driver_name) ):
         return driver_name
     else:
         return ""

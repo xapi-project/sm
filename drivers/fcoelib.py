@@ -39,3 +39,19 @@ def parse_fcoe_eth_info():
         pass
 
     return fcoe_eth_info
+
+def parse_fcoe_port_name_info():
+    fcoe_port_info = []
+    try:
+        cmd= ['fcoeadm', '-i']
+        for line in util.doexec(cmd)[1].split('\n'):
+            if line.find("Port Name") != -1:
+                str1, str2 = line.split(":")
+                str2 = str2.strip() 
+                port = int(str2,0)
+                util.SMlog(" port is %d" % port)
+                fcoe_port_info.append(port)
+    except:
+        pass
+
+    return fcoe_port_info
