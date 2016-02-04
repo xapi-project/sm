@@ -143,6 +143,11 @@ def getAllVHDs(pattern, extractUuidFunction, vgName = None, \
     for line in ret.split('\n'):
         vhdInfo = _parseVHDInfo(line, extractUuidFunction)
         if vhdInfo:
+            if vhdInfo.error != 0:
+                # Just return an empty dict() so the scan will be done
+                # again by getParentChain. See CA-177063 for details on
+                # how this has been discovered during the stress tests.
+                return dict()
             vhds[vhdInfo.uuid] = vhdInfo
     return vhds
 
@@ -150,7 +155,13 @@ def getParentChain(lvName, extractUuidFunction, vgName):
     """Get the chain of all VHD parents of 'path'. Safe to call for raw VDI's
     as well"""
     chain = dict()
-    vdis = getAllVHDs(lvName, extractUuidFunction, vgName, True)
+    vdis = dict()
+    retries = 0
+    while (not vdis):
+        if retries > 0:
+            util.SMlog('WARNING: getAllVHDs retries=%d' % retries)
+        vdis = getAllVHDs(lvName, extractUuidFunction, vgName, True)
+        retries = retries + 1
     for uuid, vdi in vdis.iteritems():
         chain[uuid] = vdi.path
     #util.SMlog("Parent chain for %s: %s" % (lvName, chain))

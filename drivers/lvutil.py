@@ -224,6 +224,10 @@ def cmd_lvm(cmd, sr_alloc=None, pread_func=util.pread2, *args):
 
         sr_alloc = get_sr_alloc(filename)
 
+    # Settle udev prior to lvchange commands
+    if lvm_cmd == CMD_LVCHANGE:
+        util.pread2(["/usr/sbin/udevadm", "settle"])
+
     if sr_alloc == 'xlvhd':
         stdout = pread_func(['/bin/xenvm', lvm_cmd] + lvm_args, *args)
     elif sr_alloc == 'thick':

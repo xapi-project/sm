@@ -230,7 +230,9 @@ class LVMCache:
         if self.lvs[lvName].readonly != readonly:
             uuids = util.findall_uuid(path)
             ns = lvhdutil.NS_PREFIX_LVM + uuids[0]
-            lock = Lock(uuids[1], ns)
+            # Taking this lock is needed to avoid a race condition
+            # with tap-ctl open (which is now taking the same lock)
+            lock = Lock("lvchange-p", ns)
             lock.acquire()
             lvutil.setReadonly(path, readonly)
             lock.release()
