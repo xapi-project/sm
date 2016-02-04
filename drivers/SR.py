@@ -112,6 +112,12 @@ class SR(object):
                 if self.dconf.get("SRmaster") == "true":
                     os.environ['LVM_SYSTEM_DIR'] = MASTER_LVM_CONF
 
+            if 'device_config' in self.srcmd.params:
+                if self.srcmd.params['device_config'].has_key('SCSIid'):
+                    dev_path = '/dev/disk/by-scsid/'+self.srcmd.params['device_config']['SCSIid']
+                    os.environ['LVM_DEVICE'] = dev_path
+                    util.SMlog('Setting LVM_DEVICE to %s' % dev_path)
+
         except TypeError:
             raise Exception(traceback.format_exc())
         except Exception, e:
