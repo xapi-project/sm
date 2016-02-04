@@ -2,7 +2,6 @@
 SM_DRIVERS := File
 SM_DRIVERS += NFS
 SM_DRIVERS += EXT
-SM_DRIVERS += ISCSI
 SM_DRIVERS += Dummy
 SM_DRIVERS += udev
 SM_DRIVERS += ISO
@@ -20,6 +19,7 @@ SM_DRIVERS += SMB
 SM_LIBS := SR
 SM_LIBS += SRCommand
 SM_LIBS += VDI
+SM_LIBS += ISCSI_base
 SM_LIBS += cleanup
 SM_LIBS += lvutil
 SM_LIBS += lvmcache
