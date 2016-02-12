@@ -82,6 +82,21 @@ start() {
 				for i in $ROOT_SLAVES; do
 					/opt/xensource/sm/wwid_conf.py -d /dev/${i} -w $WWID && break
 				done
+
+				# Block to handle FCoE
+				if [ -n "$1" -a "$1" = "fcoe" ]; then
+					cat <<EndOfBlock >> /etc/multipath.conf
+# Added during installation for FCoE
+multipaths {
+	multipath {
+		wwid "${WWID}"
+		no_path_retry "queue"
+	}
+}
+EndOfBlock
+				fi
+				# End FCoE block
+
 			fi
 		done
 	fi
@@ -109,6 +124,9 @@ stop)
 	;;
 restart)
 	restart
+	;;
+generate-fcoe)
+	start fcoe
 	;;
 *)
 	echo $"Usage: $0 {start|stop|status|restart|condrestart|reload}"
