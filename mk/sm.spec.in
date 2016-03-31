@@ -32,7 +32,6 @@ rm -rf $RPM_BUILD_ROOT
 %post
 [ ! -x /sbin/chkconfig ] || chkconfig --add mpathroot
 [ ! -x /sbin/chkconfig ] || chkconfig --add sm-multipath
-service sm-multipath start
 %systemd_post make-dummy-sr.service
 %systemd_post snapwatchd.service
 
