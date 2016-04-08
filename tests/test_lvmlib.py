@@ -1,5 +1,6 @@
 import unittest
 import mock
+import os
 
 import lvmlib
 
@@ -21,9 +22,10 @@ class TestLVSubSystem(unittest.TestCase, ExecResultMixIn):
         executable_injector = mock.Mock()
 
         lvsubsystem = lvmlib.LVSubsystem(None, executable_injector)
+        lvcreate_path = os.path.join(lvmlib.lvutil.LVM_BIN, 'lvcreate')
 
         self.assertTrue(
-            mock.call('/usr/sbin/lvcreate', lvsubsystem.fake_lvcreate)
+            mock.call(lvcreate_path, lvsubsystem.fake_lvcreate)
             in executable_injector.mock_calls
         )
 
@@ -31,9 +33,10 @@ class TestLVSubSystem(unittest.TestCase, ExecResultMixIn):
         executable_injector = mock.Mock()
 
         lvsubsystem = lvmlib.LVSubsystem(None, executable_injector)
+        lvremove_path = os.path.join(lvmlib.lvutil.LVM_BIN, 'lvremove')
 
         self.assertTrue(
-            mock.call('/usr/sbin/lvremove', lvsubsystem.fake_lvremove)
+            mock.call(lvremove_path, lvsubsystem.fake_lvremove)
             in executable_injector.mock_calls
         )
 

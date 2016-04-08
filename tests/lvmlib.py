@@ -1,4 +1,6 @@
 import optparse
+import lvutil
+import os
 
 
 class LogicalVolume(object):
@@ -29,8 +31,8 @@ class LVSubsystem(object):
         self.logger = logger
         self.lv_calls = []
         self._volume_groups = []
-        executable_injector('/usr/sbin/lvcreate', self.fake_lvcreate)
-        executable_injector('/usr/sbin/lvremove', self.fake_lvremove)
+        executable_injector(os.path.join(lvutil.LVM_BIN, 'lvcreate'), self.fake_lvcreate)
+        executable_injector(os.path.join(lvutil.LVM_BIN, 'lvremove'), self.fake_lvremove)
         executable_injector('/sbin/dmsetup', self.fake_dmsetup)
 
     def add_volume_group(self, name):
