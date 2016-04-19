@@ -109,7 +109,9 @@ class NFSSR(FileSR.FileSR):
     def check_server(self):
         try:
             if self.dconf.has_key(PROBEVERSION):
-                nfs.check_server_tcp(self.remoteserver)
+                sv = nfs.get_supported_nfs_versions(self.remoteserver)
+                if len(sv):
+                    self.nfsversion = sv[0]
             else:
                 nfs.check_server_tcp(self.remoteserver, self.nfsversion)
         except nfs.NfsException, exc:
@@ -119,12 +121,7 @@ class NFSSR(FileSR.FileSR):
 
     def mount(self, mountpoint, remotepath, timeout = 0):
         try:
-            if self.dconf.has_key(PROBEVERSION):
-                nfs.soft_mount(
-                    mountpoint, self.remoteserver, remotepath, self.transport,
-                    timeout=timeout)
-            else:
-                nfs.soft_mount(
+            nfs.soft_mount(
                     mountpoint, self.remoteserver, remotepath, self.transport,
                     timeout=timeout, nfsversion=self.nfsversion)
         except nfs.NfsException, exc:
@@ -142,6 +139,10 @@ class NFSSR(FileSR.FileSR):
 
     def mount_remotepath(self, sr_uuid, timeout = 0):
         if not self._checkmount():
+            # FIXME: What is the purpose of this check_server?
+            # It doesn't stop us from continuing if the server
+            # doesn't support the requested version. We fail 
+            # in mount instead
             self.check_server()
             self.mount(self.path, self.remotepath, timeout)
 
