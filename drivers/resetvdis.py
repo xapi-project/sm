@@ -136,12 +136,15 @@ def usage():
 
 if __name__ == '__main__':
     import sys
+    import atexit
 
     if len(sys.argv) not in [3, 4, 5]:
         usage()
 
     session = XenAPI.xapi_local()
     session.xenapi.login_with_password('root', '', '', 'SM')
+    atexit.register(session.xenapi.session.logout)
+
     mode = sys.argv[1]
     if mode == "all":
         if len(sys.argv) not in [4, 5]:
