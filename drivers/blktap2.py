@@ -1033,6 +1033,8 @@ class VDI(object):
         target = sm.VDI.from_uuid(session, uuid)
         driver_info = target.sr.srcmd.driver_info
 
+        session.xenapi.session.logout()
+
         return cls(uuid, target, driver_info)
 
     @staticmethod
