@@ -285,6 +285,7 @@ def login(portal, target, username, password, username_in="", password_in="",
     failuremessage = "Failed to login to target."
     try:
         (stdout,stderr) = exn_on_failure(cmd,failuremessage)
+        wait_for_devs(target, portal)
     except:
         raise xs_errors.XenError('ISCSILogin')
 
@@ -420,23 +421,9 @@ def match_session(s):
 def _checkTGT(tgtIQN, tgt=''):
     if not is_iscsi_daemon_running():
         return False
-    failuremessage = "Failure occured querying iscsi daemon"
-    cmd = ["iscsiadm", "-m", "session"]
-    try:
-        (stdout,stderr) = exn_on_failure(cmd, failuremessage)
-    # Recent versions of iscsiadm return error it this list is empty.
-    # Quick and dirty handling
-    except Exception, e:
-        util.SMlog("%s failed with %s" %(cmd, e.args))
-        stdout = ""
-    for line in stdout.split('\n'):
-        if match_targetIQN(tgtIQN, line) and match_session(line):
-            if len(tgt):
-                if match_target(tgt, line):
-                    return True
-            else:
-                return True
-    return False
+
+    iscsi_path = "/dev/iscsi/" + tgtIQN
+    return os.path.isdir(iscsi_path)
     
 def get_rootdisk_IQNs():
     """Return the list of IQNs for targets required by root filesystem"""
