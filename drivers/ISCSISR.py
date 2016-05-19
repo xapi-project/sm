@@ -437,10 +437,7 @@ class ISCSISR(SR.SR):
         if self._loadvdis() > 0:
             scanrecord = SR.ScanRecord(self)
             scanrecord.synchronise()
-        try:
-            self.detach(sr_uuid)
-        except:
-            pass
+
         self.sm_config = self.session.xenapi.SR.get_sm_config(self.sr_ref)
         self.sm_config['disktype'] = 'Raw'
         self.sm_config['datatype'] = 'ISCSI'
