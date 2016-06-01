@@ -1859,7 +1859,7 @@ class SR:
         util.fistpoint.activate("LVHDRT_coaleaf_one_renamed", self.uuid)
         vdi.parent.rename(vdiUuid)
         util.fistpoint.activate("LVHDRT_coaleaf_both_renamed", self.uuid)
-        self._updateSlavesOnRename(vdi.parent, oldName)
+        self._updateSlavesOnRename(vdi.parent, oldName, origParentUuid)
 
         # Note that "vdi.parent" is now the single remaining leaf and "vdi" is 
         # garbage
@@ -1914,7 +1914,7 @@ class SR:
     def _updateSlavesOnUndoLeafCoalesce(self, parent, child):
         pass
 
-    def _updateSlavesOnRename(self, vdi, oldName):
+    def _updateSlavesOnRename(self, vdi, oldName, origParentUuid):
         pass
 
     def _updateSlavesOnResize(self, vdi):
@@ -2424,7 +2424,7 @@ class LVHDSR(SR):
         args = {"vgName" : self.vgName,
                 "action1": "deactivateNoRefcount",
                 "lvName1": vdi.fileName,
-                "action2": "cleanupLock",
+                "action2": "cleanupLockAndRefcount",
                 "uuid2"  : vdi.uuid,
                 "ns2"    : lvhdutil.NS_PREFIX_LVM + self.uuid}
         onlineHosts = self.xapi.getOnlineHosts()
@@ -2467,7 +2467,7 @@ class LVHDSR(SR):
                     slave, self.xapi.PLUGIN_ON_SLAVE, "multi", args)
             Util.log("call-plugin returned: '%s'" % text)
 
-    def _updateSlavesOnRename(self, vdi, oldNameLV):
+    def _updateSlavesOnRename(self, vdi, oldNameLV, origParentUuid):
         slaves = util.get_slaves_attached_on(self.xapi.session, [vdi.uuid])
         if not slaves:
             Util.log("Update-on-rename: VDI %s not attached on any slave" % vdi)
@@ -2477,7 +2477,10 @@ class LVHDSR(SR):
                 "action1": "deactivateNoRefcount",
                 "lvName1": oldNameLV,
                 "action2": "refresh",
-                "lvName2": vdi.fileName}
+                "lvName2": vdi.fileName,
+                "action3": "cleanupLockAndRefcount",
+                "uuid3"  : origParentUuid,
+                "ns3"    : lvhdutil.NS_PREFIX_LVM + self.uuid}
         for slave in slaves:
             Util.log("Updating %s to %s on slave %s" % \
                     (oldNameLV, vdi.fileName, slave))

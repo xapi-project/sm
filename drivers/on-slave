@@ -54,8 +54,11 @@ def multi(session, args):
                 util.SMlog("on-slave.deactivateNoRefcount failed")
         elif action == "refresh":
             lvmCache.activateNoRefcount(args["lvName%d" % i], True)
-        elif action == "cleanupLock":
+        elif action == "cleanupLockAndRefcount":
+            from refcounter import RefCounter
+
             lock.Lock.cleanup(args["uuid%d" % i], args["ns%d" % i])
+            RefCounter.reset(args["uuid%d" % i], args["ns%d" % i])
         else:
             raise util.SMException("unrecognized action: %s" % action)
         i += 1
