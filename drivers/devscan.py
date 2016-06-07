@@ -328,7 +328,7 @@ def scan(srobj):
         obj.id = ids[3]
         obj.lun = ids[4]
         obj.hba = hba['procname']
-        if hba['eth']:
+        if hba.has_key('eth') and hba['eth']:
             obj.eth = hba['eth']
         obj.numpaths = 1
         if vdis.has_key(obj.SCSIid):
