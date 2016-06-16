@@ -545,10 +545,7 @@ class VDI:
                 self.sr.xapi.session.xenapi.VDI.get_sm_config(self.getRef()))
 
     def getVHDBlocks(self):
-        val = self.getConfig(VDI.DB_VHD_BLOCKS)
-        if not val:
-            self.updateBlockInfo()
-            val = self.getConfig(VDI.DB_VHD_BLOCKS)
+        val = self.updateBlockInfo()
         bitmap = zlib.decompress(base64.b64decode(val))
         return bitmap
 
@@ -634,6 +631,7 @@ class VDI:
     def updateBlockInfo(self):
         val = base64.b64encode(self._queryVHDBlocks())
         self.setConfig(VDI.DB_VHD_BLOCKS, val)
+        return val
 
     def rename(self, uuid):
         "Rename the VDI file"
@@ -1088,7 +1086,7 @@ class LVHDVDI(VDI):
 
     def updateBlockInfo(self):
         if not self.raw:
-            VDI.updateBlockInfo(self)
+            return VDI.updateBlockInfo(self)
 
     def rename(self, uuid):
         oldUuid = self.uuid
