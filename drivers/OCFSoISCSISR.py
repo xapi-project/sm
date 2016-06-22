@@ -31,7 +31,7 @@ import xml.dom.minidom
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_METADATA", "VDI_CREATE",
                 "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
-                "VDI_GENERATE_CONFIG", "VDI_CLONE", "VDI_SNAPSHOT",
+                "VDI_GENERATE_CONFIG", "VDI_CLONE", "VDI_SNAPSHOT", "VDI_MIRROR",
                 "VDI_RESIZE", "ATOMIC_PAUSE", "VDI_UPDATE"]
 
 CONFIGURATION = [ [ 'SCSIid', 'The scsi_id of the destination LUN' ], \

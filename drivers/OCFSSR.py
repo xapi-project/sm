@@ -31,7 +31,7 @@ import xml.dom.minidom
 CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_CACHING",
                 "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH",
                 "VDI_UPDATE", "VDI_CLONE","VDI_SNAPSHOT","VDI_RESIZE",
-                "VDI_GENERATE_CONFIG",
+                "VDI_GENERATE_CONFIG", "VDI_MIRROR",
                 "VDI_RESET_ON_BOOT", "ATOMIC_PAUSE"]
 
 CONFIGURATION = [ ['device', 'local device path (required) (e.g. /dev/sdx)'] ]
