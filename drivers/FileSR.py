@@ -28,7 +28,7 @@ import blktap2
 import XenAPI
 from lock import Lock
 import xmlrpclib
-
+#dfdsfndjsnfkjdsnf
 geneology = {}
 CAPABILITIES = ["SR_PROBE","SR_UPDATE", \
                 "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH", \
