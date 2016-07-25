@@ -31,7 +31,7 @@ import copy
 NEEDS_VDI_OBJECT = [
         "vdi_update", "vdi_create", "vdi_delete", "vdi_snapshot", "vdi_clone",
         "vdi_resize", "vdi_resize_online", "vdi_attach", "vdi_detach",
-        "vdi_activate", "vdi_deactivate", "vdi_attach_from_config",
+        "vdi_activate", "vdi_deactivate", "vdi_attach_from_config", "vdi_detach_from_config",
         "vdi_generate_config", "vdi_compose",
         "vdi_epoch_begin", "vdi_epoch_end" ]
 
@@ -298,6 +298,14 @@ class SRCommand:
                 return target.attach(self.params['sr_uuid'], self.vdi_uuid, True, True)
             finally:
                 os.unsetenv('THIN_STATE_FILE_ATTACH')
+
+        elif self.cmd == 'vdi_detach_from_config':
+            extras= {}
+            if target.sr.driver_config.get("ATTACH_FROM_CONFIG_WITH_TAPDISK"):
+                target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
+                extras['deactivate'] = True
+                extras['caching_params'] = caching_params
+            target.detach(self.params['sr_uuid'], self.vdi_uuid, **extras)
 
         elif self.cmd == 'sr_create':
             return sr.create(self.params['sr_uuid'], long(self.params['args'][0]))
