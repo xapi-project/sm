@@ -124,7 +124,7 @@ class NFSSR(FileSR.FileSR):
                                      opterr=exc.errstr)
 
 
-    def mount(self, mountpoint, remotepath, timeout = 0):
+    def mount(self, mountpoint, remotepath, timeout = None):
         try:
             nfs.soft_mount(
                     mountpoint, self.remoteserver, remotepath, self.transport,
@@ -138,13 +138,13 @@ class NFSSR(FileSR.FileSR):
         if not self._checkmount():
             self.validate_remotepath(False)
             util._testHost(self.dconf['server'], NFSPORT, 'NFSTarget')
-            #Extract timeout and value, if any
+            #Extract timeout value, if any
             io_timeout = nfs.get_nfs_timeout(self.other_config)
             self.mount_remotepath(sr_uuid, io_timeout)
         self.attached = True
 
 
-    def mount_remotepath(self, sr_uuid, timeout = 0):
+    def mount_remotepath(self, sr_uuid, timeout = None):
         if not self._checkmount():
             # FIXME: What is the purpose of this check_server?
             # It doesn't stop us from continuing if the server
