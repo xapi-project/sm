@@ -41,8 +41,6 @@ import xml.dom.minidom
 # because the first doubling (timeo*2) is the same as the first increment
 # (timeo+timeo).
 
-SOFTMOUNT_TIMEOUT = 60  # seconds
-SOFTMOUNT_RETRANS = 0x7fffffff
 RPCINFO_BIN = "/usr/sbin/rpcinfo"
 SHOWMOUNT_BIN = "/usr/sbin/showmount"
 
@@ -86,7 +84,7 @@ def validate_nfsversion(nfsversion):
 
 
 def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
-               timeout=0, nfsversion=DEFAULT_NFSVERSION):
+               timeout=None, nfsversion=DEFAULT_NFSVERSION):
     """Mount the remote NFS export at 'mountpoint'.
 
     The 'timeout' param here is in seconds
@@ -102,15 +100,13 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
     if nfsversion == '4':
         mountcommand = 'mount.nfs4'
 
-    if timeout < 1:
-        timeout = SOFTMOUNT_TIMEOUT
-
-    options = "soft,timeo=%d,retrans=%d,proto=%s,vers=%s" % (
-        timeout * 10,
-        SOFTMOUNT_RETRANS,
+    options = "soft,proto=%s,vers=%s" % (
         transport,
         nfsversion)
     options += ',acdirmin=0,acdirmax=0'
+
+    if timeout != None:
+        options += ",timeo=%s" % (timeout * 10)
     if useroptions != '':
         options += ",%s" % useroptions
 
@@ -222,7 +218,7 @@ def get_supported_nfs_versions(server):
         util.SMlog("Unable to obtain list of valid nfs versions")
 
 def get_nfs_timeout(other_config):
-    nfs_timeout = 0
+    nfs_timeout = None
 
     if other_config.has_key('nfs-timeout'):
         val = int(other_config['nfs-timeout']) 
