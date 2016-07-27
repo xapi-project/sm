@@ -87,4 +87,5 @@ class TestNFSSR(unittest.TestCase):
                                            'tcp',
                                            useroptions='options',
                                            timeout=None,
-                                           nfsversion='aNfsversionChanged')
+                                           nfsversion='aNfsversionChanged',
+                                           retrans=None)
