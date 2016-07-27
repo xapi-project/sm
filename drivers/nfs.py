@@ -21,7 +21,6 @@ import util
 import errno
 import os
 import xml.dom.minidom
-import XenAPI
 
 # The algorithm for tcp and udp (at least in the linux kernel) for
 # NFS timeout on softmounts is as follows:
@@ -222,28 +221,14 @@ def get_supported_nfs_versions(server):
     except:
         util.SMlog("Unable to obtain list of valid nfs versions")
 
-def get_nfs_timeout(session, sr_uuid):
-    if not isinstance(session, XenAPI.Session):
-        util.SMlog("No XAPI session for getting nfs timeout config")
-        return 0
+def get_nfs_timeout(other_config):
+    nfs_timeout = 0
 
-    try:
-        sr_ref = session.xenapi.SR.get_by_uuid(sr_uuid)
-        other_config = session.xenapi.SR.get_other_config(sr_ref)
-        str_val = other_config.get("nfs-timeout")
-    except XenAPI.Failure:
-        util.SMlog("Failed to get SR.other-config:nfs-timeout, ignoring")
-        return 0
-
-    if not str_val:
-        return 0
-
-    try:
-        nfs_timeout = int(str_val)
-        if nfs_timeout < 1:
-            raise ValueError
-    except ValueError:
-        util.SMlog("Invalid nfs-timeout value: %s" % str_val)
-        return 0
+    if other_config.has_key('nfs-timeout'):
+        val = int(other_config['nfs-timeout']) 
+        if val < 1:
+            util.SMlog("Invalid nfs-timeout value: %d" % val)
+        else:
+            nfs_timeout = val
 
     return nfs_timeout
