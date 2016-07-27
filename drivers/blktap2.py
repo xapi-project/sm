@@ -1530,7 +1530,9 @@ class VDI(object):
         options = {"rdonly": not writable}
         options.update(caching_params)
 
-        timeout = nfs.get_nfs_timeout(self.target.vdi.session, sr_uuid)
+        sr_ref = self.target.vdi.sr.srcmd.params.get('sr_ref')
+        sr_other_config = self._session.xenapi.SR.get_other_config(sr_ref)
+        timeout = nfs.get_nfs_timeout(sr_other_config)
         if timeout:
             options["timeout"] = timeout + self.TAPDISK_TIMEOUT_MARGIN
         for i in range(self.ATTACH_DETACH_RETRY_SECS):

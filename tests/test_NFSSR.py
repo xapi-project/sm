@@ -9,6 +9,7 @@ class FakeNFSSR(NFSSR.NFSSR):
     sr_ref = None
     session = None
     srcmd = None
+    other_config = {}
 
     def __init__(self, srcmd, none):
         self.dconf = srcmd.dconf

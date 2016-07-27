@@ -79,6 +79,7 @@ class NFSSR(FileSR.FileSR):
         self.nosubdir = False
         if self.sr_ref and self.session is not None :
             self.sm_config = self.session.xenapi.SR.get_sm_config(self.sr_ref)
+            self.other_config = self.session.xenapi.SR.get_other_config(self.sr_ref)
         else:
             self.sm_config = self.srcmd.params.get('sr_sm_config') or {}
         self.nosubdir = self.sm_config.get('nosubdir') == "true"
@@ -137,7 +138,8 @@ class NFSSR(FileSR.FileSR):
         if not self._checkmount():
             self.validate_remotepath(False)
             util._testHost(self.dconf['server'], NFSPORT, 'NFSTarget')
-            io_timeout = nfs.get_nfs_timeout(self.session, sr_uuid)
+            #Extract timeout and value, if any
+            io_timeout = nfs.get_nfs_timeout(self.other_config)
             self.mount_remotepath(sr_uuid, io_timeout)
         self.attached = True
 
