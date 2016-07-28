@@ -13,6 +13,7 @@ BuildRequires: python-devel xen-devel systemd
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
+Requires: xenserver-multipath
 
 %description
 This package contains storage backends used in XCP
