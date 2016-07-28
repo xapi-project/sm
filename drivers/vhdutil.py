@@ -24,7 +24,7 @@ import util
 import errno
 import zlib
 import re
-
+import time
 
 MAX_VHD_JOURNAL_SIZE = 6 * 1024 * 1024 # 2MB VHD block size, max 2TB VHD size
 MAX_CHAIN_SIZE = 30 # max VHD parent chain size
@@ -158,10 +158,14 @@ def getParentChain(lvName, extractUuidFunction, vgName):
     vdis = dict()
     retries = 0
     while (not vdis):
-        if retries > 0:
-            util.SMlog('WARNING: getAllVHDs retries=%d' % retries)
+        if retries > 60:
+            util.SMlog('ERROR: getAllVHDs returned 0 VDIs after %d retries' % retries)
+            util.SMlog('ERROR: the VHD metadata might be corrupted')
+            break
         vdis = getAllVHDs(lvName, extractUuidFunction, vgName, True)
-        retries = retries + 1
+        if (not vdis):
+            retries = retries + 1
+            time.sleep(1)
     for uuid, vdi in vdis.iteritems():
         chain[uuid] = vdi.path
     #util.SMlog("Parent chain for %s: %s" % (lvName, chain))
