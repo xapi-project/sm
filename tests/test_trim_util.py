@@ -4,6 +4,7 @@ import testlib
 
 import mock
 
+EMPTY_VG_SPACE = 4 * 1024 * 1024
 
 class AlwaysBusyLock(object):
     def acquireNoblock(self):
@@ -99,6 +100,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
             sleep.mock_calls
         )
 
+    @mock.patch("trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
     @mock.patch('trim_util.lvutil')
     @mock.patch('lock.Lock')
     @mock.patch('util.sr_get_capability')
@@ -108,17 +110,21 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                    sr_get_capability,
                                    MockLock,
                                    lvutil):
+        lvutil._getVG_freespace.return_value = EMPTY_VG_SPACE 
         MockLock.return_value = AlwaysFreeLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
         context.setup_error_codes()
 
-        trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
-
+        result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
+        
+        print "free space in vg  is %lu" % lvutil._getVG_freespace.return_value 
+        print "Result is %s" % result
         lvutil.create.assert_called_once_with(
             'some-uuid_trim_lv', 0, 'VG_XenStorage-some-uuid',
             size_in_percentage='100%F'
         )
 
+    @mock.patch("trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
     @mock.patch('util.pread2')
     @mock.patch('trim_util.lvutil')
     @mock.patch('lock.Lock')
@@ -131,12 +137,14 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                                      lvutil,
                                                      pread2):
         lvutil.exists.return_value = False
+        lvutil._getVG_freespace.return_value = EMPTY_VG_SPACE 
         MockLock.return_value = AlwaysFreeLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
         context.setup_error_codes()
 
         trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
+        print "free space in vg  is %lu" % lvutil._getVG_freespace.return_value 
         pread2.assert_called_once_with(
             ["/usr/sbin/blkdiscard","-v",
             "/dev/VG_XenStorage-some-uuid/some-uuid_trim_lv"])
@@ -155,7 +163,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
         context.setup_error_codes()
 
-        trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
+        return_value = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
         self.assertFalse(sr_lock.acquired)
 
@@ -200,6 +208,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
 
         self.assertFalse(srlock.acquired)
 
+    @mock.patch("trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
     @mock.patch('trim_util.lvutil')
     @mock.patch('lock.Lock')
     @mock.patch('util.sr_get_capability')
@@ -209,6 +218,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                                              sr_get_capability,
                                                              MockLock,
                                                              lvutil):
+        lvutil._getVG_freespace.return_value = EMPTY_VG_SPACE 
         lvutil.create.side_effect = Exception('blah')
         srlock = AlwaysFreeLock()
         MockLock.return_value = srlock
@@ -217,6 +227,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
 
         result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
+        print "free space in vg  is %lu" % lvutil._getVG_freespace.return_value 
         self.assertXML("""
         <?xml version="1.0" ?>
         <trim_response>
@@ -231,6 +242,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         </trim_response>
         """, result)
 
+    @mock.patch("trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
     @mock.patch('util.pread2')
     @mock.patch('trim_util.lvutil')
     @mock.patch('lock.Lock')
@@ -242,12 +254,14 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                                       MockLock,
                                                       lvutil,
                                                       pread2):
+        lvutil._getVG_freespace.return_value = EMPTY_VG_SPACE 
         MockLock.return_value = AlwaysFreeLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
         context.setup_error_codes()
 
         result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
+        print "free space in vg  is %lu" % lvutil._getVG_freespace.return_value 
         self.assertEquals('True', result)
 
     @mock.patch('trim_util.time.time')
@@ -290,3 +304,34 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         trim_util._log_last_triggered(session, 'sr_uuid')
 
         self.assertEqual(1, mock_log_exc.call_count)
+    
+    
+    @mock.patch('trim_util.lvutil')
+    @mock.patch('lock.Lock')
+    @mock.patch('util.sr_get_capability')
+    @testlib.with_context
+    def test_do_trim_creates_an_lv_onfilledSR_not_supported(self,
+                                   context,
+                                   sr_get_capability,
+                                   MockLock,
+                                   lvutil):
+        MockLock.return_value = AlwaysFreeLock()
+        lvutil._getVG_freespace.return_value = 0 
+        sr_get_capability.return_value = [trim_util.TRIM_CAP]
+        context.setup_error_codes()
+
+        result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
+
+        self.assertXML("""
+        <?xml version="1.0" ?>
+        <trim_response>
+            <key_value_pair>
+                <key>errcode</key>
+                <value>Trim failed on completely filled SR</value>
+            </key_value_pair>
+            <key_value_pair>
+                <key>errmsg</key>
+                <value>No space to claim on a completely filled SR</value>
+            </key_value_pair>
+        </trim_response>
+        """, result)

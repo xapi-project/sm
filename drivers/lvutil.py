@@ -208,6 +208,24 @@ def _getLVsize(path):
         raise xs_errors.XenError('VDIUnavailable', \
               opterr='no such VDI %s' % path)
 
+def _getVG_freespace(vgname):
+    free_space = 0
+    try:
+        text = cmd_lvm([CMD_VGS, "--noheadings", "--nosuffix",
+                        "--units", "b", vgname],
+                        pread_func=util.pread).split()
+        size = long(text[5])
+        freespace = long(text[6])
+        utilisation = size - freespace
+        free_space = size - utilisation
+    except util.CommandException, inst:
+        raise xs_errors.XenError('VDILoad', \
+              opterr='rvgstats failed error is %d' % inst.code)
+    except ValueError:
+        raise xs_errors.XenError('VDILoad', opterr='rvgstats failed')
+    finally:
+        return free_space 
+
 def _getVGstats(vgname):
     try:
         text = cmd_lvm([CMD_VGS, "--noheadings", "--nosuffix",

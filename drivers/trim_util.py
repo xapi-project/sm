@@ -104,43 +104,54 @@ def do_trim(session, args):
         time.sleep(LOCK_RETRY_INTERVAL)
 
     if got_lock:
-        try:
-            vg_name = _vg_by_sr_uuid(sr_uuid)
-            lv_name = sr_uuid + TRIM_LV_TAG
-            lv_path = _lvpath_by_vg_lv_name(vg_name, lv_name)
+       vg_name = _vg_by_sr_uuid(sr_uuid)
+       lv_name = sr_uuid + TRIM_LV_TAG
+       lv_path = _lvpath_by_vg_lv_name(vg_name, lv_name)
 
-            # Clean trim LV in case the previous trim attemp failed
-            if lvutil.exists(lv_path):
-                lvutil.remove(lv_path)
+       # Clean trim LV in case the previous trim attemp failed
+       if lvutil.exists(lv_path):
+          lvutil.remove(lv_path)
 
-            # Perform a lvcreate, blkdiscard and lvremove to trigger trim on the array
-            lvutil.create(lv_name, 0, vg_name, size_in_percentage="100%F")
-            cmd = ["/usr/sbin/blkdiscard", "-v", lv_path]
-            stdout = util.pread2(cmd)
-            util.SMlog("Stdout is %s" % stdout)
-            util.SMlog("Trim on SR: %s complete. " % sr_uuid)
-            result = str(True)
-        except util.CommandException, e:
-            err_msg = {
-                ERROR_CODE_KEY: 'TrimException',
-                ERROR_MSG_KEY: e.reason
-            }
-            result = to_xml(err_msg)
-        except:
-            err_msg = {
-                ERROR_CODE_KEY: 'UnknownTrimException',
-                ERROR_MSG_KEY: 'Unknown Exception: trim failed on SR [%s]'
-                % sr_uuid
-            }
-            result = to_xml(err_msg)
-        finally:
-            if lvutil.exists(lv_path):
-                lvutil.remove(lv_path)
+       #Check if VG limits are enough for creating LVM.
+       if lvutil._getVG_freespace(vg_name) < lvutil.LVM_SIZE_INCREMENT:
+           util.SMlog("No space to claim on a completely filled SR %s to perform lvutil.create" % sr_uuid)
+           err_msg = {ERROR_CODE_KEY: 'Trim failed on completely filled SR',
+                      ERROR_MSG_KEY: 'No space to claim on a completely filled SR'}
+           if lvutil.exists(lv_path):
+              lvutil.remove(lv_path)
+           _log_last_triggered(session, sr_uuid)
+           sr_lock.release()
+           return to_xml(err_msg)
 
-        _log_last_triggered(session, sr_uuid)
+       try:
+           # Perform a lvcreate, blkdiscard and lvremove to trigger trim on the array
+           lvutil.create(lv_name, 0, vg_name, size_in_percentage="100%F")
+           cmd = ["/usr/sbin/blkdiscard", "-v", lv_path]
+           stdout = util.pread2(cmd)
+           util.SMlog("Stdout is %s" % stdout)
+           util.SMlog("Trim on SR: %s complete. " % sr_uuid)
+           result = str(True)
+       except util.CommandException, e:
+           err_msg = {
+               ERROR_CODE_KEY: 'TrimException',
+               ERROR_MSG_KEY: e.reason
+           }
+           result = to_xml(err_msg)
+       except:
+           err_msg = {
+               ERROR_CODE_KEY: 'UnknownTrimException',
+               ERROR_MSG_KEY: 'Unknown Exception: trim failed on SR [%s]'
+               % sr_uuid
+           }
+           result = to_xml(err_msg)
+       finally:
+           if lvutil.exists(lv_path):
+              lvutil.remove(lv_path)
 
-        sr_lock.release()
-        return result
+       _log_last_triggered(session, sr_uuid)
+
+       sr_lock.release()
+       return result
     else:
         util.SMlog("Could not complete Trim on %s, Lock unavailable !" \
                    % sr_uuid)
