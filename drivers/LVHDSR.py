@@ -41,8 +41,7 @@ from ipc import IPCFlag
 from lvmanager import LVActivator
 import XenAPI
 import re
-from srmetadata import ALLOCATION_TAG, INIT_ALLOCATION_TAG, \
-    ALLOCATION_QUANTUM_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, \
+from srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, \
     UUID_TAG, IS_A_SNAPSHOT_TAG, SNAPSHOT_OF_TAG, TYPE_TAG, VDI_TYPE_TAG, \
     READ_ONLY_TAG, MANAGED_TAG, SNAPSHOT_TIME_TAG, METADATA_OF_POOL_TAG, \
     requiresUpgrade, LVMMetadataHandler, METADATA_OBJECT_TYPE_VDI, \
@@ -85,7 +84,7 @@ OPS_EXCLUSIVE = [
 class LVHDSR(SR.SR):
     DRIVER_TYPE = 'lvhd'
 
-    PROVISIONING_TYPES = ["thin", "thick", "xlvhd"]
+    PROVISIONING_TYPES = ["thin", "thick"]
     PROVISIONING_DEFAULT = "thick"
     THIN_PLUGIN = "lvhd-thin"
 
@@ -99,15 +98,6 @@ class LVHDSR(SR.SR):
 
     LOCK_RETRY_INTERVAL = 3
     LOCK_RETRY_ATTEMPTS = 10
-
-    #Ring Size in MiB
-    RING_SIZE = 4
-
-    #Journal Size in MiB
-    JOURNAL_SIZE = 4
-
-    #Redo Log Size in MiB
-    REDO_LOG_SIZE = 4
 
     TEST_MODE_KEY = "testmode"
     TEST_MODE_VHD_FAIL_REPARENT_BEGIN   = "vhd_fail_reparent_begin"
@@ -244,14 +234,11 @@ class LVHDSR(SR.SR):
         if not self.lvActivator.deactivateAll():
             raise util.SMException("failed to deactivate LVs")
 
-    def updateSRMetadata(self, allocation, initial_allocation="", \
-                         allocation_quantum=""):
+    def updateSRMetadata(self, allocation):
         try:
             # Add SR specific SR metadata
             sr_info = \
             { ALLOCATION_TAG: allocation,
-              INIT_ALLOCATION_TAG: initial_allocation,
-              ALLOCATION_QUANTUM_TAG: allocation_quantum,
               UUID_TAG: self.uuid,
               NAME_LABEL_TAG: util.to_plain_string\
                 (self.session.xenapi.SR.get_name_label(self.sr_ref)),
@@ -425,19 +412,6 @@ class LVHDSR(SR.SR):
                 raise Exception("Allocation key not found in SR metadata. " \
                                 "SR info found: %s" % sr_info)
 
-            if self.provision == "xlvhd":
-                if sr_info.has_key(self.INITIAL_ALLOCATION):
-                    map['initial_allocation'] = sr_info.get(self.INITIAL_ALLOCATION)
-                else:
-                    raise Exception("Intial allocation key not found in SR " \
-                                    "metadata. SR info found: %s" % sr_info)
-
-                if sr_info.has_key(self.ALLOCATION_QUANTUM):
-                    map['allocation_quantum'] = sr_info.get(self.ALLOCATION_QUANTUM)
-                else:
-                    raise Exception("Allocation quantum key not found in SR " \
-                                    "metadata. SR info found: %s" % sr_info)
-
         except Exception, e:
             raise xs_errors.XenError('MetadataError', \
                          opterr='Error reading SR params from ' \
@@ -464,35 +438,10 @@ class LVHDSR(SR.SR):
                     self.session.xenapi.SR.get_name_description(self.sr_ref))
             map[self.FLAG_USE_VHD] = "true"
             map['allocation'] = self.provision
-            if self.provision == "xlvhd":
-                if self.ALLOCATION_QUANTUM in self.sm_config:
-                    # FIXME: this should accept also GiB and MiB
-                    aq = long (self.sm_config[self.ALLOCATION_QUANTUM])
-                    aq = util.xlvhd_adjust_allocation_quantum(self.physical_size, aq)
-                    map['allocation_quantum'] = str (aq)
-                else:
-                    util.SMlog("Using defaults for allocation quantum")
-                    aq = util.xlvhd_adjust_allocation_quantum(self.physical_size)
-                    map['allocation_quantum'] = str (aq)
-                if self.INITIAL_ALLOCATION in self.sm_config:
-                    # FIXME: this should accept also GiB and MiB
-                    ia = long(self.sm_config[self.INITIAL_ALLOCATION])
-                    ia = util.xlvhd_adjust_initial_allocation(ia)
-                    map['initial_allocation'] = str (ia)
-                else:
-                    util.SMlog("Using defaults for initial allocation")
-                    ia = util.xlvhd_adjust_initial_allocation()
-                    map['initial_allocation'] = str (ia)
             self.session.xenapi.SR.set_sm_config(self.sr_ref, map)
 
-            # Write empty strings for thick-SRs 
-            if self.provision != "xlvhd": 
-                map['initial_allocation'] = ""
-                map['allocation_quantum'] = ""
-
             # Add the SR metadata
-            self.updateSRMetadata(self.provision, map['initial_allocation'], \
-                                  map['allocation_quantum'])
+            self.updateSRMetadata(self.provision)
         except Exception, e:
             raise xs_errors.XenError('MetadataError', \
                         opterr='Error introducing Metadata Volume: %s' % str(e))
@@ -567,14 +516,7 @@ class LVHDSR(SR.SR):
             if util.test_scsiserial(self.session, dev):
                 raise xs_errors.XenError('SRInUse')
 
-        if ((hasattr(self, 'iscsiSRs') or hasattr(self, 'hbasr')) and
-                'allocation' in self.sm_config and
-                self.sm_config['allocation'] == 'xlvhd'):
-            sr_alloc = 'xlvhd'
-        else:
-            sr_alloc = 'thick'
-
-        lvutil.createVG(self.root, self.vgname, sr_alloc)
+        lvutil.createVG(self.root, self.vgname)
 
         #Update serial number string
         scsiutil.add_serial_record(self.session, self.sr_ref, \
@@ -634,23 +576,8 @@ class LVHDSR(SR.SR):
             raise Exception("LVHDSR delete failed, please refer to the log " \
                             "for details.")
 
-        if self.provision == "xlvhd":
-            lvutil.stopxenvm_local_allocator(self.vgname)
-            if self.isMaster:
-                lvutil.stopxenvmd(self.vgname)
-
         lvutil.removeVG(self.root, self.vgname)
         self._cleanup()
-
-        if self.provision == "xlvhd":
-            self._rm_xenvm_conf()
-            try:
-                cmd = [lvutil.THINPROV_DAEMON_CLI, "--del", lvhdutil.VG_PREFIX + uuid]
-                util.pread2(cmd)
-            except util.CommandException, inst:
-                util.SMlog("VG de-registration failed for %s with %d" % \
-                           (uuid, inst.code))
-
 
     def attach(self, uuid):
         util.SMlog("LVHDSR.attach for %s" % self.uuid)
@@ -686,19 +613,6 @@ class LVHDSR(SR.SR):
 
         # Set the block scheduler
         for dev in self.root.split(','): self.block_setscheduler(dev)
-
-        if self.provision == "xlvhd":
-            # Register VG name with thin-tapdisk daemon if the VG is local or 
-            # if the host if Master. 
-            srRef = self.session.xenapi.SR.get_by_uuid(uuid)
-            srRecord = self.session.xenapi.SR.get_record(srRef)
-            # Pass the info on new VG to thin provision daemon
-            try:
-                cmd = [lvutil.THINPROV_DAEMON_CLI, "--add", lvhdutil.VG_PREFIX + uuid]
-                util.pread2(cmd)
-            except util.CommandException, inst:
-                raise xs_errors.XenError('VGReg', \
-                        opterr='failed for %s with %d' % (uuid, inst.code))
 
     def detach(self, uuid):
         util.SMlog("LVHDSR.detach for %s" % self.uuid)
@@ -754,23 +668,6 @@ class LVHDSR(SR.SR):
         # However, we should still delete lock files on slaves as it is the 
         # only place to do so.
         self._cleanup(self.isMaster)
-
-        if self.provision == "xlvhd":
-            # Stop the daemons
-            lvutil.stopxenvm_local_allocator(self.vgname)
-            if self.isMaster:
-                lvutil.stopxenvmd(self.vgname)
-
-            # clean-up files
-            self._rm_xenvm_conf()
-
-            # Shut threads down
-            try:
-                cmd = [lvutil.THINPROV_DAEMON_CLI, "--del", lvhdutil.VG_PREFIX + uuid]
-                util.pread2(cmd)
-            except util.CommandException, inst:
-                util.SMlog("VG de-registration failed for %s with %d" % \
-                           (uuid, inst.code))
 
     def forget_vdi(self, uuid):
         if not self.legacyMode:
@@ -845,7 +742,6 @@ class LVHDSR(SR.SR):
                                     util.roundup(lvutil.LVM_SIZE_INCREMENT,
                                       vhdutil.calcOverheadEmpty(lvhdutil.MSIZE))
                             else:
-                                # We show the VHD size for both xlvhd and thick.
                                 utilisation = lvhdutil.calcSizeVHDLV(long(size))
                         
                         vdi_ref = self.session.xenapi.VDI.db_introduce(
@@ -932,19 +828,8 @@ class LVHDSR(SR.SR):
         self._db_update()
 
     def probe(self):
-        if 'allocation' in self.srcmd.params['sr_sm_config']:
-            if (self.srcmd.params['sr_sm_config']['allocation'] in
-                    self.PROVISIONING_TYPES):
-                sr_alloc = self.srcmd.params['sr_sm_config']['allocation']
-            else:
-                raise xs_errors.XenError('InvalidArg',
-                        opterr="Allocation parameter must be one of {}"
-                        .format(self.PROVISIONING_TYPES))
-        else:
-            sr_alloc = self.PROVISIONING_DEFAULT
-
         return lvutil.srlist_toxml(
-                lvutil.scan_srlist(lvhdutil.VG_PREFIX, self.root, sr_alloc),
+                lvutil.scan_srlist(lvhdutil.VG_PREFIX, self.root),
                 lvhdutil.VG_PREFIX,
                 (self.srcmd.params['sr_sm_config'].has_key('metadata') and \
                  self.srcmd.params['sr_sm_config']['metadata'] == 'true'))
@@ -1375,252 +1260,6 @@ class LVHDSR(SR.SR):
         cleanup.gc(self.session, self.uuid, True)
 
 
-    def _start_xenvmd(self, uuid):
-        if lvutil.get_sr_alloc(self.vgname) == 'xlvhd':
-            vg = self.vgname
-            devices = self.root.split(',')
-            # move the "if" up!
-            lvutil.write_xenvmd_config(uuid, vg, devices, self.physical_size)
-            if self.isMaster:
-                lvutil.run_xenvmd(vg)
-
-
-    def _start_local_allocator(self, uuid):
-        if lvutil.get_sr_alloc(self.vgname) == 'xlvhd':
-            vg = self.vgname
-            devices = self.root.split(',')
-            uri = "file://local/services/xenvmd/%s" % uuid
-            lvutil.runxenvm_local_allocator(uuid, vg, devices, uri)
-
-
-    def _write_vginfo(self, uuid):
-        vg = self.vgname
-        devices = self.root.split(',')
-        uri = "file://local/services/xenvmd/%s" % uuid
-        lvutil.setvginfo(uuid, vg, devices, uri)
-
-    def upgrade(self, uuid):
-        util.SMlog("Upgrade to thin-prov for SR: %s" % uuid)
-        try:
-            if self.isMaster:
-                # Check if SR has enough space for upgrade
-                stats = lvutil._getVGstats(self.vgname)
-                self.physical_size = stats['physical_size']
-                self.physical_utilisation = stats['physical_utilisation']
-                # Calculate free space in the SR
-                sr_free_space = self.physical_size - self.physical_utilisation
-                num_hosts = len(self.session.xenapi.host.get_all())
-                min_host_pool_size = 160
-                host_pool_size = (self.physical_size * 0.005) / (1024 * 1024)
-                pool_size = max(min_host_pool_size, host_pool_size)
-                # Calculate the space required for upgrade in bytes
-                space_reqd_for_upgrade = (num_hosts * 
-                     (pool_size + 2 * self.RING_SIZE) + 
-                     self.JOURNAL_SIZE + self.REDO_LOG_SIZE) * (1024 * 1024)
-
-                # If free space in SR is less than the space required
-                # for upgrade, throw an error
-                if sr_free_space < space_reqd_for_upgrade:
-                    util.SMlog("free space is less than space required")
-                    raise xs_errors.XenError('SRInsufficientSpace')
-
-                devices = self.root.split(',')
-                # Change LVM metadata string from standard LVM to xenvm
-                util.pread2(['xenvm', 'upgrade', self.vgname, '--pvpath', devices[0]])
-
-                # Check allocation-quantum
-                aq = long (self.srcmd.params['allocation_quantum'])
-                aq = util.xlvhd_adjust_allocation_quantum(self.physical_size, aq)
-                aq_str = str (aq)
-
-                # Check initial-allocation
-                ia = long (self.srcmd.params['initial_allocation'])
-                ia = util.xlvhd_adjust_initial_allocation(ia)
-                ia_str = str (ia)
-
-                #Change key values in sm SR config
-                map = self.sm_config
-                map['allocation'] = "xlvhd"
-                map['initial_allocation'] = ia_str
-                map['allocation_quantum'] = aq_str
-                self.session.xenapi.SR.set_sm_config(self.sr_ref, map)
-                self.sm_config = self.session.xenapi.SR.get_sm_config(self.sr_ref)
-                self.provision = self.sm_config.get('allocation')
-
-                # Change the key values in VDI sm-config
-                vdirefs = self.session.xenapi.SR.get_VDIs(self.sr_ref)
-                for vref in vdirefs:
-                    vdi_rec = self.session.xenapi.VDI.get_record(vref)
-                    vsmc = vdi_rec["sm_config"]
-                    virtual_size = vdi_rec["virtual_size"]
-                    vsmc['initial_allocation'] = str(virtual_size)
-                    vsmc['allocation_quantum'] = aq_str
-                    self.session.xenapi.VDI.set_sm_config(vref, vsmc)
-
-            self._write_vginfo(uuid)
-
-            if self.isMaster:
-                self.updateSRMetadata(self.provision, \
-                                      map['initial_allocation'], \
-                                      map['allocation_quantum'])
-
-            # Write config file and start xenvmd on master
-            self._start_xenvmd(uuid)
-            self._symlink_xenvm_conf()
-
-            # Pass the info on new VG to thin provision daemon
-            try:
-                cmd = [lvutil.THINPROV_DAEMON_CLI, "--add", lvhdutil.VG_PREFIX + uuid]
-                util.pread2(cmd)
-            except util.CommandException, inst:
-                raise xs_errors.XenError('VGReg', \
-                        opterr='failed for %s with %d' % (uuid, inst.code))
-
-            for retrycount in range(0, 10):
-                try:
-                    # Start local allocator
-                    self._start_local_allocator(uuid)
-                    break
-                except Exception, e:
-                    continue
-            else:
-                raise e
-
-        except:
-            util.SMlog("Exception caught while trying to upgrade SR %s "
-                       " to thin-provisioning. Now rolling back" % uuid)
-            self.rollback(uuid)
-            raise
-
-    def rollback(self, uuid):
-        util.SMlog("Rolling back thin-prov upgrade for SR: %s" % uuid)
-        # Shut threads down
-        try:
-            cmd = [lvutil.THINPROV_DAEMON_CLI, "--del", lvhdutil.VG_PREFIX + uuid]
-            util.pread2(cmd)
-        except util.CommandException, inst:
-            util.SMlog("VG de-registration failed for %s with %d" % \
-                       (uuid, inst.code))
-        try:
-            lvutil.stopxenvm_local_allocator(self.vgname)
-        except:
-            util.SMlog("Failed to stop xenvm local allocator for VG: %s" 
-                       % self.vgname)
-        try:
-            self._rm_xenvm_conf()
-        except:
-            util.SMlog("Failed to remove xenvm conf for VG: %s" % self.vgname)
-
-        if self.isMaster:
-            try:
-                lvutil.stopxenvmd(self.vgname)
-            except:
-                util.SMlog("Failed to stop xenvmd for VG: %s" % self.vgname)
-
-            try:
-                #Remove the keys for each VDI
-                vdirefs = self.session.xenapi.SR.get_VDIs(self.sr_ref)
-                for vref in vdirefs:
-                    vsmc = self.session.xenapi.VDI.get_sm_config(vref)
-                    if vsmc.has_key('initial_allocation'):
-                        self.session.xenapi.VDI.remove_from_sm_config(vref, 'initial_allocation')
-                    if vsmc.has_key('allocation_quantum'):
-                        self.session.xenapi.VDI.remove_from_sm_config(vref, 'allocation_quantum')
-                #Remove the keys for SR
-                map = self.sm_config
-                map['allocation'] = "thick"
-                self.session.xenapi.SR.set_sm_config(self.sr_ref, map)
-                if map.has_key('initial_allocation'):
-                    self.session.xenapi.SR.remove_from_sm_config(self.sr_ref, 'initial_allocation')
-                if map.has_key('allocation_quantum'):
-                    self.session.xenapi.SR.remove_from_sm_config(self.sr_ref, 'allocation_quantum')
-                self.sm_config = self.session.xenapi.SR.get_sm_config(self.sr_ref)
-                if self.sm_config.has_key('allocation'):
-                    self.provision = self.sm_config.get('allocation')
-                self.updateSRMetadata(self.provision)
-            except:
-                util.SMlog("Failed to cleanup thin-provisioning specific config"
-                           " keys for SR %s and/or its VDIs" % uuid) 
-
-            try:
-                # Change LVM metadata string from xenvm to standard lvm
-                devices = self.root.split(',')
-                util.pread2(['xenvm', 'downgrade', self.vgname, '--pvpath', devices[0]])
-            except:
-                util.SMlog("Failed to change LVM metadata string while"
-                           "  downgrading SR: %s" % uuid)
-
-
-    def _rm_xenvm_conf(self):
-        """ Remove xenvm config files
-
-            Remove files written by:
-                _write_vginfo()
-                _symlink_xenvm_conf()
-
-            for the specified SR.
-
-            Raise:
-                IOError 
-                util.CommandException
-                subprocess.Popen() exceptions
-        """
-
-        vginfo_path = lvutil.config_dir + self.vgname
-
-        if not os.path.isfile(vginfo_path):
-            return
-
-        with open(vginfo_path + '.xenvmd.config', 'r') as f:
-            # Device path is in the 2nd to last line
-            line = f.readlines()[-3]
-
-            # Strip 11 chars from start and 3 from end.
-            # Will break if formatting changes.
-            # TODO: Replace with regex that matches path
-            scsi_id = scsiutil.getSCSIid(line[11:-3])
-
-        # Force remove the 3 VG_XenStorage-<UUID> files and the symlink
-        util.pread2([
-            'rm', '-f',
-            vginfo_path,
-            vginfo_path + '.xenvmd.config',
-            vginfo_path + '.xenvm-local-allocator.config',
-            lvutil.config_dir + scsi_id 
-        ])
-
-
-    def _symlink_xenvm_conf(self):
-        """ Create a symlink of '<config_dir>/<VG_name>'
-
-            The symlink's name is the respective Volume Group's device
-            SCSI id. The symlink is created in config_dir. LVM PV
-            commands take a device path as input. This way we can easily
-            find out the VG name given a device path.
-
-            Raise:
-                IOError
-                util.CommandException
-                subprocess.Popen() exceptions
-        """
-
-        vginfo_path = lvutil.config_dir + self.vgname
-
-        if not os.path.isfile(vginfo_path):
-            return
-
-        with open(vginfo_path + '.xenvmd.config', 'r') as f:
-            line = f.readlines()[-3]
-            scsi_id = scsiutil.getSCSIid(line[11:-3])
-
-        # Remove symlink if it exists            
-        util.pread2(['rm', '-f', lvutil.config_dir + scsi_id])
-
-        util.pread2([
-            'ln', '-s',
-            vginfo_path,
-            lvutil.config_dir + scsi_id
-        ])
         
 class LVHDVDI(VDI.VDI):
 
@@ -1704,45 +1343,6 @@ class LVHDVDI(VDI.VDI):
                         vhdutil.calcOverheadEmpty(lvhdutil.MSIZE))
             elif self.sr.provision == "thick":
                 lvSize = lvhdutil.calcSizeVHDLV(long(size))
-            elif self.sr.provision == "xlvhd":
-
-                # Get SR physical_size
-                # The number of calls to _getVGstats should be optimized
-                stats = lvutil._getVGstats(self.sr.vgname)
-                self.sr.physical_size = stats['physical_size']
-
-                # Check for allocation-quantum
-                if 'allocation_quantum' in self.sm_config:
-                    # FIXME: this should accept also GiB and MiB
-                    aq = long (self.sm_config['allocation_quantum'])
-                    aq = util.xlvhd_adjust_allocation_quantum(self.sr.physical_size, aq)
-                    self.sm_config['allocation_quantum'] = str (aq)
-                elif 'allocation_quantum' in self.sr.sm_config:
-                    self.sm_config['allocation_quantum'] = self.sr.sm_config['allocation_quantum']
-                else:
-                    # Should never reach here
-                    raise xs_errors.XenError('InvalidArg',
-                            opterr='allocation_quantum not in sm-config')
-                # Check for initial-allocation
-                if 'initial_allocation' in self.sm_config:
-                    # FIXME: this should accept also GiB and MiB
-                    ia = long (self.sm_config['initial_allocation'])
-                    ia = util.xlvhd_adjust_initial_allocation(ia)
-                    self.sm_config['initial_allocation'] = str (ia)
-                elif 'initial_allocation' in self.sr.sm_config:
-                    ia_str = self.sr.sm_config['initial_allocation']
-                    ia = long (ia_str)
-                    self.sm_config['initial_allocation'] = ia_str
-                else:
-                    # Should never reach here
-                    raise xs_errors.XenError('InvalidArg',
-                            opterr='initial_allocation not in sm-config')
-                fullpr = lvhdutil.calcSizeVHDLV(long(size))
-                thinpr = util.roundup(lvutil.LVM_SIZE_INCREMENT, \
-                         vhdutil.calcOverheadEmpty(lvhdutil.MSIZE))
-                dynamic_sz = max(ia, thinpr)
-                dynamic_sz = min(dynamic_sz, fullpr)
-                lvSize = util.roundup(lvutil.LVM_SIZE_INCREMENT, dynamic_sz)
 
         self.sr._ensureSpaceAvailable(lvSize)
 
@@ -1834,8 +1434,7 @@ class LVHDVDI(VDI.VDI):
             needInflate = False
         else:
             self._loadThis()
-            # TODO, skip the check if xlvhd
-            if self.utilisation >= lvhdutil.calcSizeVHDLV(self.size) or self.sr.provision == "xlvhd":
+            if self.utilisation >= lvhdutil.calcSizeVHDLV(self.size):
                 needInflate = False
 
         if needInflate:
@@ -1860,7 +1459,7 @@ class LVHDVDI(VDI.VDI):
         needDeflate = True
         if self.vdi_type == vhdutil.VDI_TYPE_RAW or already_deflated:
             needDeflate = False
-        elif self.sr.provision == "thick" or self.sr.provision == "xlvhd":
+        elif self.sr.provision == "thick":
             needDeflate = False
             # except for snapshots, which are always deflated
             vdi_ref = self.sr.srcmd.params['vdi_ref']
@@ -1912,9 +1511,6 @@ class LVHDVDI(VDI.VDI):
             lvSizeOld = self.utilisation
             lvSizeNew = lvhdutil.calcSizeVHDLV(size)
             if self.sr.provision == "thin":
-                # VDI is currently deflated, so keep it deflated
-                lvSizeNew = lvSizeOld
-            elif self.sr.provision == "xlvhd":
                 # VDI is currently deflated, so keep it deflated
                 lvSizeNew = lvSizeOld
         assert(lvSizeNew >= lvSizeOld)
@@ -2000,20 +1596,6 @@ class LVHDVDI(VDI.VDI):
 
         vhdutil.killData(self.path)
 
-        if self.sr.provision == "xlvhd":
-            fullpr = lvhdutil.calcSizeVHDLV(vhdutil.getSizeVirt(self.path))
-            thinpr = util.roundup(lvutil.LVM_SIZE_INCREMENT, \
-                                      vhdutil.calcOverheadEmpty(lvhdutil.MSIZE))
-            # By design on reset-on-boot we will set the leaf to the
-            # SR initial_allocation.
-            ia = long (self.sr.sm_config['initial_allocation'])
-            util.SMlog("LVHDSR.reset_leaf ia=%d fullpr=%d thinpr=%d" % 
-                       (ia, fullpr, thinpr))
-            dynamic_sz = max(ia, thinpr)
-            dynamic_sz = min(dynamic_sz, fullpr)
-            thinpr = util.roundup(lvutil.LVM_SIZE_INCREMENT, dynamic_sz)
-            lvhdutil.deflate(self.sr.lvmCache, self.lvname, thinpr)
-
     def _attach(self):
         self._chainSetActive(True, True, True)
         if not util.pathexists(self.path):
@@ -2097,31 +1679,12 @@ class LVHDVDI(VDI.VDI):
         lvSizeOrig = thinpr
         lvSizeClon = thinpr
 
-        if self.sr.provision == "xlvhd":
-            # By design on clone and snapshot operation instead of
-            # using the original VDI parameters we would use the SR ones.
-            # Being the SR default initial_allocation = 0, we can expect
-            # that every clone or snapshot will use minimal space.
-            if 'initial_allocation' in self.sr.sm_config:
-                ia = long (self.sr.sm_config['initial_allocation'])
-            else:
-                # Should never reach here
-                raise xs_errors.XenError('InvalidArg',
-                        opterr='initial_allocation not in sm-config')
-            dynamic_sz = max(ia, thinpr)
-            dynamic_sz = min(dynamic_sz, fullpr)
-            # Here we are just lowering the fullpr variable to be in line
-            # with the SR initial_allocation, so later we can use the
-            # same checks of 'thick' to differentiate between snapshot and 
-            # clone. The sm_config will be updated during _createSnap 
-            fullpr = util.roundup(lvutil.LVM_SIZE_INCREMENT, dynamic_sz)
-
         hostRefs = []
         if self.sr.cmd == "vdi_snapshot":
             hostRefs = util.get_hosts_attached_on(self.session, [self.uuid])
             if hostRefs:
                 lvSizeOrig = fullpr
-        if self.sr.provision == "thick" or self.sr.provision == "xlvhd":
+        if self.sr.provision == "thick":
             if not self.issnap:
                 lvSizeOrig = fullpr
             if self.sr.cmd != "vdi_snapshot":
@@ -2231,10 +1794,6 @@ class LVHDVDI(VDI.VDI):
                 snapVDI.sm_config[key] = val
         snapVDI.sm_config["vdi_type"] = vhdutil.VDI_TYPE_VHD
         snapVDI.sm_config["vhd-parent"] = snapParent
-        if self.sr.provision == "xlvhd":
-            # we do this at the end so we overwrite the parent sm_config
-            # initial_allocation
-            snapVDI.sm_config["initial_allocation"] = str (snapSizeLV)
         snapVDI.lvname = snapLV
         return snapVDI
 
