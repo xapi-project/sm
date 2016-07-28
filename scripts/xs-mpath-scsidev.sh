@@ -18,8 +18,12 @@ case $kernel in
         targetIQNPath="/device/session*/iscsi_session/session*"
         targetIPPortPath="/device/session*/connection*/iscsi_connection/connection*"
         ;;
+    4.*)
+        targetIQNPath="/device/session*/iscsi_session/session*"
+        targetIPPortPath="/device/session*/connection*/iscsi_connection/connection*"
+        ;;
     *)
-        echo "Unkown kernel: neither 2.6 nor 3.x. Exiting..."
+        echo "Unkown kernel: neither 2.6, 3.x nor 4.x. Exiting..."
         exit 2
         ;;
 esac
