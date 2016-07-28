@@ -404,9 +404,9 @@ def pathexists(path):
             raise CommandException(errno.EIO, "os.stat(%s)" % path, "failed")
         return False
 
-def silent_noent(fn, func=os.unlink):
+def force_unlink(path):
     try:
-        func(fn)
+        os.unlink(path)
     except OSError, e:
         if e.errno != errno.ENOENT:
             raise
