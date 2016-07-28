@@ -39,6 +39,11 @@ elif _KERNEL_VERSION.startswith('3.'):
             'iscsi_session/session*/')
     _GENERIC_CONNECTION_PATH = ('/sys/class/iscsi_host/host%s/device/' +
             'session*/connection*/iscsi_connection/connection*/')
+elif _KERNEL_VERSION.startswith('4.'):
+    _GENERIC_SESSION_PATH = ('/sys/class/iscsi_host/host%s/device/session*/' +
+            'iscsi_session/session*/')
+    _GENERIC_CONNECTION_PATH = ('/sys/class/iscsi_host/host%s/device/' +
+            'session*/connection*/iscsi_connection/connection*/')
 else:
     _msg = 'Kernel version detected: %s' % _KERNEL_VERSION
     raise xs_errors.XenError('UnsupportedKernel', _msg)
