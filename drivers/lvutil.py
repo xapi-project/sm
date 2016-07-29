@@ -57,6 +57,8 @@ CMD_LVRESIZE  = "lvresize"
 CMD_LVEXTEND  = "lvextend"
 CMD_DMSETUP   = "/sbin/dmsetup"
 
+MAX_OPERATION_DURATION = 15
+
 LVM_SIZE_INCREMENT = 4 * 1024 * 1024
 LV_TAG_HIDDEN = "hidden"
 LVM_FAIL_RETRIES = 10
@@ -227,7 +229,12 @@ def cmd_lvm(cmd, sr_alloc=None, pread_func=util.pread2, *args):
     if sr_alloc == 'xlvhd':
         stdout = pread_func(['/bin/xenvm', lvm_cmd] + lvm_args, *args)
     elif sr_alloc == 'thick':
+        start_time = time.time()
         stdout = pread_func([os.path.join(LVM_BIN, lvm_cmd)] + lvm_args, *args)
+        end_time = time.time()
+
+        if (end_time - start_time > MAX_OPERATION_DURATION):
+            util.SMlog("***** Long LVM call of '%s' took %s" % (lvm_cmd, (end_time - start_time)))
     else:
         util.SMlog("CMD_LVM: ERROR: 'sr_alloc' neither 'xlvhd' nor 'thick'")
         return None
