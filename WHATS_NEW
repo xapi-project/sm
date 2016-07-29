@@ -1,3 +1,10 @@
+Version 1.14.2 -  29th Jul 2016
+==============================
+  Skip unnecessary call in _pathrefresh for LVHDoFCoE
+  CA-189699: Fix FC vs FCoE adapter detection
+  CP-12104: Added unit tests for FCoE SM driver.
+  CP-12705: Fixed sr-probe to support Broadcom CNAs also.
+
 Version 1.14.1 -  26th Jul 2016
 ==============================
   CA-198593: Do not assume N iscsi connections means N devices
