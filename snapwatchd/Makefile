@@ -14,7 +14,6 @@ install: xslib.py snapwatchd snapdebug.py
 	chmod +x $(DESTDIR)$(PREFIX)/snapdebug.py
 	mkdir -p $(DESTDIR)$(SYSTEMD_SERVICE_DIR)
 	cp snapwatchd.service $(DESTDIR)$(SYSTEMD_SERVICE_DIR)/.
-	chmod +x $(DESTDIR)$(SYSTEMD_SERVICE_DIR)/snapwatchd.service
 
 .PHONY: clean
 clean:
