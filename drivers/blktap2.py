@@ -1729,7 +1729,7 @@ class VDI(object):
         back_link.unlink()
 
         # Deactivate & detach the physical node
-        if self.tap_wanted():
+        if self.tap_wanted() and self.target.vdi.session is not None:
             # it is possible that while the VDI was paused some of its 
             # attributes have changed (e.g. its size if it was inflated; or its 
             # path if it was leaf-coalesced onto a raw LV), so refresh the 
@@ -1955,7 +1955,9 @@ class VDI(object):
         if caching:
             self._remove_cache(self._session, local_sr_uuid)
 
-        self._updateCacheRecord(self._session, self.target.vdi.uuid, None, None)
+        if self._session is not None:
+            self._updateCacheRecord(self._session, self.target.vdi.uuid, None, None)
+
 
     def _is_tapdisk_in_use(self, minor):
         (retVal, links) = util.findRunningProcessOrOpenFile("tapdisk")
