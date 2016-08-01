@@ -1673,10 +1673,10 @@ class VDI(object):
     def _resetPhylink(self, sr_uuid, vdi_uuid, path):
         self.PhyLink.from_uuid(sr_uuid, vdi_uuid).mklink(path)
 
-    def detach(self, sr_uuid, vdi_uuid):
-        if not self.target.has_cap("ATOMIC_PAUSE"):
+    def detach(self, sr_uuid, vdi_uuid, deactivate = False, caching_params = {}):
+        if not self.target.has_cap("ATOMIC_PAUSE") or deactivate:
             util.SMlog("Deactivate & detach")
-            self._deactivate(sr_uuid, vdi_uuid, {})
+            self._deactivate(sr_uuid, vdi_uuid, caching_params)
             self._detach(sr_uuid, vdi_uuid)
         else:
             pass # nothing to do
