@@ -1,3 +1,9 @@
+Version 1.14.3 -  1st Aug 2016
+==============================
+  Get rid of udev sync/rules from LVM config
+  Set LVM_DEVICE environment variable to speed up LVM scanning
+  CA-177141 [CA-177063]: Fix various race conditions
+
 Version 1.14.2 -  29th Jul 2016
 ==============================
   Skip unnecessary call in _pathrefresh for LVHDoFCoE
