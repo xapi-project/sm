@@ -10,6 +10,7 @@ import LVHDSR
 import SRCommand
 import SR
 import util
+import json
 
 LOCK_RETRY_ATTEMPTS = 3
 LOCK_RETRY_INTERVAL = 1
@@ -19,7 +20,7 @@ def success_message(result):
     return xmlrpclib.dumps((rpcparams, ), '', True)
 
 def failure_message(code, params):
-    rpcparams = { 'Status': 'Failure', 'ErrorDescription': [ code ] + params }
+    rpcparams = { 'Status': 'Failure', 'ErrorDescription': json.dumps([ code ] + params) }
     return xmlrpclib.dumps((rpcparams, ), '', True)
 
 if __name__ == "__main__":
@@ -32,7 +33,7 @@ if __name__ == "__main__":
         if not util.is_master(session):
             print (failure_message("Unsupported", ["Extension can only be"
                    " invoked on a master host."]))
-        srRecord = session.xenapi.SR.get_record(params[1])
+        srRecord = session.xenapi.SR.get_record(params[2])
         sr_uuid = srRecord["uuid"]
         hosts_ref = session.xenapi.host.get_all()
         master_ref = util.get_this_host_ref(session)
@@ -52,13 +53,13 @@ if __name__ == "__main__":
         input_params = {}
         input_params['session_ref'] = session._session
         input_params['host_ref'] = master_ref
-        input_params['sr_ref'] = params[1]
-        input_params['initial_allocation'] = params[2]
-        input_params['allocation_quantum'] = params[3]
+        input_params['sr_ref'] = params[2]
+        input_params['initial_allocation'] = params[3]
+        input_params['allocation_quantum'] = params[4]
         input_params['command'] = methodname
         input_params['sr_uuid'] = sr_uuid
  
-        pbd_ref = util.find_my_pbd(session, master_ref, params[1])
+        pbd_ref = util.find_my_pbd(session, master_ref, params[2])
         pbd = session.xenapi.PBD
         device_config = pbd.get_device_config(pbd_ref)
         input_params['device_config'] = device_config
@@ -78,7 +79,7 @@ if __name__ == "__main__":
             time.sleep(LOCK_RETRY_INTERVAL)
         if acquired:
             #refresh sr record and check sm_config
-            srRecord = session.xenapi.SR.get_record(params[1])
+            srRecord = session.xenapi.SR.get_record(params[2])
             sm_config = srRecord["sm_config"]
             if sm_config.has_key('allocation'): 
                 if sm_config['allocation'] != 'thick':
@@ -91,7 +92,7 @@ if __name__ == "__main__":
                 util.SMlog("Calling plugin for host with ref = %s" %host_ref)
                 slave_params = {}
                 slave_params['host_ref'] = host_ref
-                slave_params['sr_ref'] = params[1]
+                slave_params['sr_ref'] = params[2]
                 result = session.xenapi.host.call_plugin(host_ref, 
                          "enable_thin_lvhd_on_slave", "enable_thin_lvhd", 
                          slave_params)
