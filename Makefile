@@ -189,8 +189,6 @@ install: precheck
 	install -m 755 drivers/intellicache-clean $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/enable-borehamwood $(SM_STAGING)$(SM_DEST)
 	install -m 755 drivers/trim $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
-	install -m 755 drivers/enable_thin_lvhd_on_slave $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
-	install -m 755 drivers/LVHD.enable_thin_provisioning $(SM_STAGING)$(EXTENSION_SCRIPT_DEST)
 	ln -sf $(PLUGIN_SCRIPT_DEST)vss_control $(SM_STAGING)$(SM_DEST)
 	install -m 755 drivers/iscsilib.py $(SM_STAGING)$(SM_DEST)
 	install -m 755 drivers/fcoelib.py $(SM_STAGING)$(SM_DEST)
