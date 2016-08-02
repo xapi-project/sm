@@ -99,6 +99,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
             sleep.mock_calls
         )
 
+    @mock.patch('trim_util.lvutil._getVGstats')
     @mock.patch('trim_util.lvutil')
     @mock.patch('lock.Lock')
     @mock.patch('util.sr_get_capability')
@@ -107,19 +108,22 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                    context,
                                    sr_get_capability,
                                    MockLock,
-                                   lvutil):
+                                   lvutil,
+                                   _getVGstats):
+        _getVGstats.return_value['physical_size'] = lvutil.LVM_SIZE_INCREMENT
+        _getVGstats.return_value['physical_utilisation'] = 0
         MockLock.return_value = AlwaysFreeLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
         context.setup_error_codes()
 
-        trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
-
+        result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
         lvutil.create.assert_called_once_with(
             'some-uuid_trim_lv', 0, 'VG_XenStorage-some-uuid',
             size_in_percentage='100%F'
         )
 
     @mock.patch('util.pread2')
+    @mock.patch('trim_util.lvutil._getVGstats')
     @mock.patch('trim_util.lvutil')
     @mock.patch('lock.Lock')
     @mock.patch('util.sr_get_capability')
@@ -129,7 +133,10 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                                      sr_get_capability,
                                                      MockLock,
                                                      lvutil,
+                                                     _getVGstats,
                                                      pread2):
+        _getVGstats.return_value['physical_size'] = lvutil.LVM_SIZE_INCREMENT
+        _getVGstats.return_value['physical_utilisation'] = 0
         lvutil.exists.return_value = False
         MockLock.return_value = AlwaysFreeLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
@@ -155,7 +162,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
         context.setup_error_codes()
 
-        trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
+        return_value = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
         self.assertFalse(sr_lock.acquired)
 
@@ -200,6 +207,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
 
         self.assertFalse(srlock.acquired)
 
+    @mock.patch('trim_util.lvutil._getVGstats')
     @mock.patch('trim_util.lvutil')
     @mock.patch('lock.Lock')
     @mock.patch('util.sr_get_capability')
@@ -208,11 +216,14 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                                              context,
                                                              sr_get_capability,
                                                              MockLock,
-                                                             lvutil):
+                                                             lvutil,
+                                                             _getVGstats):
         lvutil.create.side_effect = Exception('blah')
         srlock = AlwaysFreeLock()
         MockLock.return_value = srlock
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
+        _getVGstats.return_value['physical_size'] = lvutil.LVM_SIZE_INCREMENT
+        _getVGstats.return_value['physical_utilisation'] = 0
         context.setup_error_codes()
 
         result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
@@ -232,6 +243,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         """, result)
 
     @mock.patch('util.pread2')
+    @mock.patch('trim_util.lvutil._getVGstats')
     @mock.patch('trim_util.lvutil')
     @mock.patch('lock.Lock')
     @mock.patch('util.sr_get_capability')
@@ -241,7 +253,10 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                                       sr_get_capability,
                                                       MockLock,
                                                       lvutil,
+                                                      _getVGstats,
                                                       pread2):
+        _getVGstats.return_value['physical_size'] = lvutil.LVM_SIZE_INCREMENT
+        _getVGstats.return_value['physical_utilisation'] = 0
         MockLock.return_value = AlwaysFreeLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
         context.setup_error_codes()
@@ -290,3 +305,34 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         trim_util._log_last_triggered(session, 'sr_uuid')
 
         self.assertEqual(1, mock_log_exc.call_count)
+    
+    
+    @mock.patch('trim_util.lvutil')
+    @mock.patch('lock.Lock')
+    @mock.patch('util.sr_get_capability')
+    @testlib.with_context
+    def test_do_trim_creates_an_lv_onfilledSR_not_supported(self,
+                                   context,
+                                   sr_get_capability,
+                                   MockLock,
+                                   lvutil):
+        MockLock.return_value = AlwaysFreeLock()
+        
+        sr_get_capability.return_value = [trim_util.TRIM_CAP]
+        context.setup_error_codes()
+
+        result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
+
+        self.assertXML("""
+        <?xml version="1.0" ?>
+        <trim_response>
+            <key_value_pair>
+                <key>errcode</key>
+                <value>Trim failed on completely filled SR</value>
+            </key_value_pair>
+            <key_value_pair>
+                <key>errmsg</key>
+                <value>No space to claim on a completely filled SR</value>
+            </key_value_pair>
+        </trim_response>
+        """, result)
