@@ -111,15 +111,24 @@ def do_trim(session, args):
 
             # Clean trim LV in case the previous trim attemp failed
             if lvutil.exists(lv_path):
-                lvutil.remove(lv_path)
+               lvutil.remove(lv_path)
 
-            # Perform a lvcreate, blkdiscard and lvremove to trigger trim on the array
-            lvutil.create(lv_name, 0, vg_name, size_in_percentage="100%F")
-            cmd = ["/usr/sbin/blkdiscard", "-v", lv_path]
-            stdout = util.pread2(cmd)
-            util.SMlog("Stdout is %s" % stdout)
-            util.SMlog("Trim on SR: %s complete. " % sr_uuid)
-            result = str(True)
+            #Check if VG limits are enough for creating LV.
+            stats = lvutil._getVGstats(vg_name)
+            if (stats['freespace'] < lvutil.LVM_SIZE_INCREMENT):
+                util.SMlog("No space to claim on a full SR %s" % sr_uuid)
+                err_msg = {ERROR_CODE_KEY: 'Trim failed on full SR',
+                           ERROR_MSG_KEY: 'No space to claim on a full SR'}
+                result = to_xml(err_msg)
+            else:
+                # Perform a lvcreate, blkdiscard and lvremove to
+                # trigger trim on the array
+                lvutil.create(lv_name, 0, vg_name, size_in_percentage="100%F")
+                cmd = ["/usr/sbin/blkdiscard", "-v", lv_path]
+                stdout = util.pread2(cmd)
+                util.SMlog("Stdout is %s" % stdout)
+                util.SMlog("Trim on SR: %s complete. " % sr_uuid)
+                result = str(True)
         except util.CommandException, e:
             err_msg = {
                 ERROR_CODE_KEY: 'TrimException',
