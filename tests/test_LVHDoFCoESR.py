@@ -4,6 +4,7 @@ import lvhdutil
 import SR
 import unittest
 import xs_errors
+import testlib
 
 class FakeFCoESR(LVHDoFCoESR.LVHDoFCoESR):
     uuid = None
@@ -40,7 +41,9 @@ class TestFCoESR(unittest.TestCase):
     @mock.patch('SR.driver')
     @mock.patch('util.find_my_pbd')
     @mock.patch('LVHDoFCoESR.LVHDoHBASR.HBASR.HBASR.print_devs')
-    def test_load_no_scsiid(self, print_devs, find_my_pbd, driver):
+    @testlib.with_context
+    def test_load_no_scsiid(self, context, print_devs, find_my_pbd, driver):
+        context.setup_error_codes()
         find_my_pbd.return_value = ['pbd_ref','pbd']
         parameters = {}
         parameters['device_config'] = ""
