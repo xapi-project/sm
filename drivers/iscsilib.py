@@ -34,14 +34,11 @@ if _KERNEL_VERSION.startswith('2.6'):
             'iscsi_session*/')
     _GENERIC_CONNECTION_PATH = ('/sys/class/iscsi_host/host%s/device/' +
             'session*/connection*/iscsi_connection*/')
-elif _KERNEL_VERSION.startswith('3.'):
+else:
     _GENERIC_SESSION_PATH = ('/sys/class/iscsi_host/host%s/device/session*/' +
             'iscsi_session/session*/')
     _GENERIC_CONNECTION_PATH = ('/sys/class/iscsi_host/host%s/device/' +
             'session*/connection*/iscsi_connection/connection*/')
-else:
-    _msg = 'Kernel version detected: %s' % _KERNEL_VERSION
-    raise xs_errors.XenError('UnsupportedKernel', _msg)
 
 _REPLACEMENT_TMO_MPATH = 15
 _REPLACEMENT_TMO_DEFAULT = 144
