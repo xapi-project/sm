@@ -47,7 +47,8 @@ class Test_SMBSR(unittest.TestCase):
     #Attach
     @mock.patch('SMBSR.SMBSR.checkmount')
     @mock.patch('SMBSR.SMBSR.mount')
-    def test_attach_smbexception_raises_xenerror(self, mock_mount, mock_checkmount):
+    @mock.patch('SMBSR.Lock')
+    def test_attach_smbexception_raises_xenerror(self, mock_lock, mock_mount, mock_checkmount):
         smbsr = self.create_smbsr()
         mock_mount = mock.Mock(side_effect=SMBSR.SMBException("mount raised SMBException"))
         mock_checkmount = mock.Mock(return_value=False)
@@ -57,7 +58,8 @@ class Test_SMBSR(unittest.TestCase):
             self.assertTrue(isinstance(exc,xs_errors.XenError))
 
     @mock.patch('SMBSR.SMBSR.checkmount')
-    def test_attach_if_mounted_then_attached(self, mock_checkmount):
+    @mock.patch('SMBSR.Lock')
+    def test_attach_if_mounted_then_attached(self, mock_lock, mock_checkmount):
         smbsr = self.create_smbsr()
         mock_checkmount = mock.Mock(return_value=True)
         smbsr.attach('asr_uuid')
@@ -65,7 +67,8 @@ class Test_SMBSR(unittest.TestCase):
 
     #Detach
     @mock.patch('SMBSR.SMBSR.unmount')
-    def test_detach_smbexception_raises_xenerror(self,mock_unmount):
+    @mock.patch('SMBSR.Lock')
+    def test_detach_smbexception_raises_xenerror(self, mock_lock, mock_unmount):
         smbsr = self.create_smbsr()
         mock_unmount = mock.Mock(side_effect=SMBSR.SMBException("unmount raised SMBException"))
         try:
@@ -74,7 +77,8 @@ class Test_SMBSR(unittest.TestCase):
             self.assertTrue(isinstance(exc,xs_errors.XenError))
 
     @mock.patch('SMBSR.SMBSR.checkmount',return_value=False)
-    def test_detach_not_detached_if_not_mounted(self, mock_checkmount):
+    @mock.patch('SMBSR.Lock')
+    def test_detach_not_detached_if_not_mounted(self, mock_lock, mock_checkmount):
         smbsr = self.create_smbsr()
         smbsr.attached = True
         mock_checkmount = mock.Mock(return_value=False)
@@ -83,7 +87,8 @@ class Test_SMBSR(unittest.TestCase):
 
     #Mount
     @mock.patch('util.isdir')
-    def test_mount_mountpoint_isdir(self, mock_isdir):
+    @mock.patch('SMBSR.Lock')
+    def test_mount_mountpoint_isdir(self, mock_lock, mock_isdir):
         mock_isdir = mock.Mock(side_effect=util.CommandException(errno.EIO, "Not a directory"))
         smbsr = self.create_smbsr()
         try:
@@ -91,6 +96,7 @@ class Test_SMBSR(unittest.TestCase):
         except Exception, exc:
             self.assertTrue(isinstance(exc,SMBSR.SMBException))
 
-    def test_mount_mountpoint_empty_string(self):
+    @mock.patch('SMBSR.Lock')
+    def test_mount_mountpoint_empty_string(self, mock_lock):
         smbsr = self.create_smbsr()
         self.assertRaises(SMBSR.SMBException, smbsr.mount, "")
