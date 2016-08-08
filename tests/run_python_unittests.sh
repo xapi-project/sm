@@ -18,9 +18,10 @@ fi
 (
     cd "$SMROOT"
     PYTHONPATH="$SMROOT/drivers/" \
-        coverage run $(which nosetests) \
+        coverage run --branch $(which nosetests) \
             --with-xunit \
             --xunit-file=nosetests.xml \
             tests
     coverage xml --include "$SMROOT/drivers/*"
+    coverage report --include="$SMROOT/drivers/*"
 )
