@@ -350,7 +350,12 @@ class BaseISCSISR(SR.SR):
         if self.dconf.has_key('SCSIid'):
             if self.mpath == 'true':
                 self.mpathmodule.refresh(self.dconf['SCSIid'], 0)
-            devs = os.listdir("/dev/disk/by-scsid/%s" % self.dconf['SCSIid'])
+            try:
+                devs_path = "/dev/disk/by-scsid/%s" % self.dconf['SCSIid']
+                devs = os.listdir(devs_path)
+            except:
+                util.SMlog("[Errno 2] No such file or directory: '%s'" % devs_path)
+
             for dev in devs:
                 realdev = os.path.realpath("/dev/disk/by-scsid/%s/%s" % (self.dconf['SCSIid'], dev))
                 util.set_scheduler(realdev.split("/")[-1], "noop")

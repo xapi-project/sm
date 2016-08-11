@@ -362,6 +362,6 @@ def run(driver, driver_info):
         if isinstance(e, SR.SRException):
             print e.toxml()
         else:
-            raise
+            sys.exit(1)
 
     sys.exit(0)
