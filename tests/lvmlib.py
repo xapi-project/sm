@@ -1,4 +1,16 @@
 import optparse
+import sys
+
+class TestOptParse(optparse.OptionParser):
+    """ Override the default exit and error functions so that they don't print
+    to stderr during the tests
+    """
+    def exit(self, status=0, msg=None):
+        sys.exit(status)
+
+    def error(self, msg):
+        """error(msg : string)"""
+        self.exit(2, "%s: error: %s\n" % (self.get_prog_name(), msg))
 
 
 class LogicalVolume(object):
@@ -30,7 +42,9 @@ class LVSubsystem(object):
         self.lv_calls = []
         self._volume_groups = []
         executable_injector('/usr/sbin/lvcreate', self.fake_lvcreate)
+        executable_injector('/sbin/lvcreate', self.fake_lvcreate)
         executable_injector('/usr/sbin/lvremove', self.fake_lvremove)
+        executable_injector('/sbin/lvremove', self.fake_lvremove)
         executable_injector('/sbin/dmsetup', self.fake_dmsetup)
 
     def add_volume_group(self, name):
@@ -51,7 +65,7 @@ class LVSubsystem(object):
 
     def fake_lvcreate(self, args, stdin):
         self.logger('lvcreate', repr(args), stdin)
-        parser = optparse.OptionParser()
+        parser = TestOptParse()
         parser.add_option("-n", dest='name')
         parser.add_option("-L", dest='size_mb')
         parser.add_option("--addtag", dest='tag')
@@ -84,7 +98,7 @@ class LVSubsystem(object):
 
     def fake_lvremove(self, args, stdin):
         self.logger('lvremove', repr(args), stdin)
-        parser = optparse.OptionParser()
+        parser = TestOptParse()
         parser.add_option(
             "-f", "--force", dest='force', action='store_true', default=False)
         self.logger(args, stdin)

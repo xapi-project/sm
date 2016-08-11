@@ -31,9 +31,9 @@ import mpath_cli
 import glob
 import mpp_luncheck
 
-CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_METADATA", "SR_TRIM", "SR_STATS",
+CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_METADATA", "SR_TRIM",
                 "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
-                "VDI_GENERATE_CONFIG", "VDI_SNAPSHOT", "VDI_CLONE",
+                "VDI_GENERATE_CONFIG", "VDI_SNAPSHOT", "VDI_CLONE", "VDI_MIRROR",
                 "VDI_RESIZE", "ATOMIC_PAUSE", "VDI_RESET_ON_BOOT/2",
                 "VDI_UPDATE"]
 
@@ -116,10 +116,6 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
                                              self.sr_ref, self.SCSIid)
 
     def attach(self, sr_uuid):
-        if ('allocation' in self.sm_config and
-                self.sm_config['allocation'] == 'xlvhd'):
-            self._write_vginfo(sr_uuid)
-
         self.hbasr.attach(sr_uuid)
         if self.mpath == "true":
             self.mpathmodule.refresh(self.SCSIid,0)
@@ -127,8 +123,6 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             path = '/dev/disk/by-scsid/%s' % self.dconf['SCSIid']
             for file in os.listdir(path):
                 self.block_setscheduler('%s/%s' % (path,file))
-
-        self._start_xenvmd(sr_uuid)
 
         self._pathrefresh(LVHDoHBASR)
         if not os.path.exists(self.dconf['device']):
@@ -138,9 +132,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             if self.mpath == "true":
                 self.mpathmodule.refresh(self.SCSIid,0)
         LVHDSR.LVHDSR.attach(self, sr_uuid)
-        self._symlink_xenvm_conf()
         self._setMultipathableFlag(SCSIid=self.SCSIid)
-        self._start_local_allocator(sr_uuid)
 
     def scan(self, sr_uuid):
         # During a reboot, scan is called ahead of attach, which causes the MGT
@@ -217,15 +209,12 @@ class LVHDoHBAVDI(LVHDSR.LVHDVDI):
         util.SMlog("LVHDoHBAVDI.generate_config")
         if not lvutil._checkLV(self.path):
             raise xs_errors.XenError('VDIUnavailable')
-        if self.sr.sm_config['allocation'] == "xlvhd":
-            lvutil.flushLV(self.path)
         dict = {}
         self.sr.dconf['multipathing'] = self.sr.mpath
         self.sr.dconf['multipathhandle'] = self.sr.mpathhandle
         dict['device_config'] = self.sr.dconf
         dict['sr_uuid'] = sr_uuid
         dict['vdi_uuid'] = vdi_uuid
-        dict['allocation'] =  self.sr.sm_config['allocation']
         dict['command'] = 'vdi_attach_from_config'
         # Return the 'config' encoded within a normal XMLRPC response so that
         # we can use the regular response/error parsing code.

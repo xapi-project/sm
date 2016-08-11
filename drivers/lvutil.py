@@ -57,15 +57,14 @@ CMD_LVRESIZE  = "lvresize"
 CMD_LVEXTEND  = "lvextend"
 CMD_DMSETUP   = "/sbin/dmsetup"
 
+MAX_OPERATION_DURATION = 15
+
 LVM_SIZE_INCREMENT = 4 * 1024 * 1024
 LV_TAG_HIDDEN = "hidden"
 LVM_FAIL_RETRIES = 10
 
 MASTER_LVM_CONF = '/etc/lvm/master'
 DEF_LVM_CONF = '/etc/lvm'
-
-THINPROV_DAEMON = "/usr/sbin/thinprovd"
-THINPROV_DAEMON_CLI = "/usr/sbin/thin-cli"
 
 VG_COMMANDS = frozenset({CMD_VGS, CMD_VGCREATE, CMD_VGREMOVE, CMD_VGCHANGE,
                          CMD_VGEXTEND})
@@ -75,38 +74,6 @@ LV_COMMANDS = frozenset({CMD_LVS, CMD_LVDISPLAY, CMD_LVCREATE, CMD_LVREMOVE,
                          CMD_LVEXTEND})
 
 LVM_COMMANDS = VG_COMMANDS.union(PV_COMMANDS, LV_COMMANDS)
-
-def get_sr_alloc(filename):
-    """Return the SR allocation type
-
-        Check for the existence of 'filename' in <config_dir>. If the
-        file exists, the SR is 'xlvhd'. If not, it is 'thick'. The
-        filename can be either 'VG_XenStorage-<UUID>' or the device's
-        SCSI id.
-
-        Input:
-            filename -- (str) Name of file to look for
-
-        Return:
-            sr_alloc -- (str) SR allocation type
-
-        Raise:
-            TypeError 
-    """
-
-    if not util.is_string(filename):
-        raise TypeError("'filename' is not of type 'str'.")
-
-    global config_dir
-    path = config_dir + filename
-
-    if os.path.isfile(path):
-        sr_alloc = 'xlvhd'
-    else:
-        sr_alloc = 'thick'
-
-    return sr_alloc
-
 
 def extract_vgname(str_in):
     """Search for and return a VG name
@@ -144,21 +111,15 @@ def extract_vgname(str_in):
 
     return None
 
-def cmd_lvm(cmd, sr_alloc=None, pread_func=util.pread2, *args):
-    """ Construct and run the appropriate lvm command
+def cmd_lvm(cmd, pread_func=util.pread2, *args):
+    """ Construct and run the appropriate lvm command.
 
-        depending on the SR's allocation type; 'thick' or 'xlvhd'. For
-        PV commands, the full path to the device is required.
+        For PV commands, the full path to the device is required.
 
         Input:
             cmd -- (list) lvm command
                 cmd[0]  -- (str) lvm command name
                 cmd[1:] -- (str) lvm command parameters
-
-            sr_alloc -- (str) SR's allocation type; 'thick' or 'xlvhd'
-                              if it's not supplied, the function will
-                              figure it out
-                Default: None
 
             pread_func -- (function) the flavor of util.pread to use
                                      to execute the lvm command
@@ -192,45 +153,12 @@ def cmd_lvm(cmd, sr_alloc=None, pread_func=util.pread2, *args):
             util.SMlog("CMD_LVM: Not all lvm arguments are of type 'str'")
             return None
 
-    if sr_alloc is None:
-        if lvm_cmd not in PV_COMMANDS:
-            for arg in lvm_args:
-                try:
-                    filename = extract_vgname(arg)
-                except:
-                    util.logException('CMD_LVM')
-                    return None
-                if filename:
-                    break
-            else: # if for loop doesn't break
-                util.SMlog("CMD_LVM: Could not find VG "
-                           "name in lvm argument list")
-                util.SMlog([lvm_cmd] + lvm_args)
-                return None
-        else:
-            for arg in lvm_args:
-                if os.path.exists(arg):
-                    try:
-                        filename = getSCSIid(arg)
-                    except:
-                        util.logException('CMD_LVM')
-                        return None
-                    break
-            else: # if for loop doesn't break
-                util.SMlog("CMD_LVM: Could not find PV "
-                           "name in lvm argument list")
-                util.SMlog([lvm_cmd] + lvm_args)
-                return None
+    start_time = time.time()
+    stdout = pread_func([os.path.join(LVM_BIN, lvm_cmd)] + lvm_args, *args)
+    end_time = time.time()
 
-        sr_alloc = get_sr_alloc(filename)
-
-    if sr_alloc == 'xlvhd':
-        stdout = pread_func(['/bin/xenvm', lvm_cmd] + lvm_args, *args)
-    elif sr_alloc == 'thick':
-        stdout = pread_func([os.path.join(LVM_BIN, lvm_cmd)] + lvm_args, *args)
-    else:
-        util.SMlog("CMD_LVM: ERROR: 'sr_alloc' neither 'xlvhd' nor 'thick'")
-        return None
+    if (end_time - start_time > MAX_OPERATION_DURATION):
+        util.SMlog("***** Long LVM call of '%s' took %s" % (lvm_cmd, (end_time - start_time)))
 
     return stdout
 
@@ -251,113 +179,8 @@ class LVInfo:
                 (self.name, self.size, self.active, self.open, self.hidden, \
                 self.readonly)
 
-    # Note, xapi knows about this path
-def sockpath_of_sr_uuid(uuid):
-    return "/var/lib/xenvmd/%s" % uuid
-
-def setvginfo(uuid,vg,devices,uri, local_allocator=None):
-    sockpath = sockpath_of_sr_uuid(uuid)
-
-    try:
-        util.makedirs(config_dir)
-    except OSError, e:
-        if e.errno != errno.EEXIST:
-            raise
-
-    cmd = ["/bin/xenvm", "set-vg-info", "--config", config_dir, "--pvpath", 
-           devices[0], "--uri", uri, "-S", "/var/lib/xcp/xapi", vg]
-    if local_allocator is not None:
-      cmd = cmd + [ "--local-allocator-path", local_allocator ]
-    util.pread2(cmd)    
-
-config_dir = "/var/run/nonpersistent/xenvm.d/"
-
-def write_xenvmd_config(uuid, vg, devices, vgsize):
-    global config_dir
-    configfile = "%s/%s.xenvmd.config" % (config_dir, vg)
-    sockpath = sockpath_of_sr_uuid(uuid)
-    #Min host allocation quantum in MiB, i.e., 10 times
-    #min_allocation_quantum (currently 16MiB):
-    min_host_allocation_quantum = 160
-    #host_allocation_quantum is 0.5% of SR size
-    host_allocation_quantum = (vgsize * 0.005) / (1024 * 1024)
-    #host_allocation_quantum should be bigger than 1GiB
-    host_allocation_quantum = max(min_host_allocation_quantum,
-                                  host_allocation_quantum)
-    host_low_water_mark = (host_allocation_quantum * 0.5)
-    config = """
-(
- (listenPort ())
- (listenPath (Some %s))
- (host_allocation_quantum %d)
- (host_low_water_mark %d)
- (vg %s)
- (devices (%s))
- (rrd_ds_owner %s)
-)
-""" % (sockpath, host_allocation_quantum, host_low_water_mark, vg, " ".join(devices), uuid)
-    if not os.path.exists(config_dir):
-      util.makedirs(config_dir)
-    if not os.path.exists(os.path.dirname(sockpath)):
-      util.makedirs(os.path.dirname(sockpath))
-    with open(configfile,'w') as f:
-        f.write(config)
-
-def run_xenvmd(vg):
-    global config_dir
-    configfile = "%s/%s.xenvmd.config" % (config_dir, vg)
-    cmd = ["/sbin/xenvmd", "--daemon", "--config", configfile]
-    util.pread2(cmd)
-
-def runxenvm_local_allocator(uuid, vg, devices, uri):
-    global config_dir
-    configfile = "%s/%s.xenvm-local-allocator.config" % (config_dir, vg)
-    uuid = util.get_this_host ()
-    socket_dir = "/var/run/sm/allocator"
-    journal_dir = "/tmp/sm/allocator-journal"
-    for d in [ socket_dir, journal_dir ]:
-        if not os.path.exists(d):
-            util.makedirs(d)
-    local_allocator = "%s/%s" % (socket_dir, vg)
-    config = """
-(
- (socket %s)
- (allocation_quantum 16)
- (localJournal %s/%s)
- (devices (%s))
- (toLVM %s-toLVM)
- (fromLVM %s-fromLVM)
-)
-""" % (local_allocator, journal_dir, vg, "".join(devices), uuid, uuid)
-    if not os.path.exists(config_dir):
-      util.makedirs(config_dir)
-    with open(configfile, 'w') as f:
-        f.write(config)
-    cmd = [ "/bin/xenvm", "host-create", vg, uuid ]
-    util.pread2(cmd)
-    cmd = [ "/bin/xenvm", "host-connect", vg, uuid ]
-    util.pread2(cmd)
-    cmd = [ "/bin/xenvm-local-allocator", "--daemon", "--config", configfile ]
-    util.pread2(cmd)
-    setvginfo(uuid,vg,devices,uri,local_allocator)
-
-def stopxenvm_local_allocator(vg):
-    uuid = util.get_this_host ()
-    cmd = [ "/bin/xenvm", "host-disconnect", vg, uuid ]
-    util.pread2(cmd)
-
-def stopxenvmd(vg):
-    cmd = [ "/bin/xenvm", "shutdown", vg ]
-    util.pread2(cmd)
-
-def flushLV(path):
-    cmd = [ "/bin/xenvm", "flush", path ]
-    util.pread2(cmd)
-
 def _checkVG(vgname):
     try:
-        #cmd = cmd_lvm([CMD_VGS, vgname])
-        #util.pread2(cmd)
         cmd_lvm([CMD_VGS, vgname])
         return True
     except:
@@ -365,8 +188,6 @@ def _checkVG(vgname):
 
 def _checkPV(pvname):
     try:
-        #cmd = cmd_lvm([CMD_PVS, pvname])
-        #util.pread2(cmd)
         cmd_lvm([CMD_PVS, pvname])
         return True
     except:
@@ -374,8 +195,6 @@ def _checkPV(pvname):
 
 def _checkLV(path):
     try:
-        #cmd = cmd_lvm([CMD_LVDISPLAY, path])
-        #util.pread2(cmd)
         cmd_lvm([CMD_LVDISPLAY, path])
         return True
     except:
@@ -383,8 +202,6 @@ def _checkLV(path):
 
 def _getLVsize(path):
     try:
-        #cmd = cmd_lvm([CMD_LVDISPLAY, "-c", path])
-        #lines = util.pread2(cmd).split(':')
         lines = cmd_lvm([CMD_LVDISPLAY, "-c", path]).split(':')
         return long(lines[6]) * 512
     except:
@@ -393,9 +210,6 @@ def _getLVsize(path):
 
 def _getVGstats(vgname):
     try:
-        #cmd = cmd_lvm([CMD_VGS, "--noheadings", "--nosuffix",
-        #               "--units", "b", vgname])
-        #text = util.pread(cmd).split()
         text = cmd_lvm([CMD_VGS, "--noheadings", "--nosuffix",
                         "--units", "b", vgname],
                         pread_func=util.pread).split()
@@ -415,9 +229,6 @@ def _getVGstats(vgname):
 
 def _getPVstats(dev):
     try:
-        #cmd = cmd_lvm([CMD_PVS, "--noheadings", "--nosuffix",
-        #               "--units", "b", dev])
-        #text = util.pread(cmd).split()
         text = cmd_lvm([CMD_PVS, "--noheadings", "--nosuffix",
                         "--units", "b", dev],
                         pread_func=util.pread).split()
@@ -447,8 +258,6 @@ def _getPVstats(dev):
 # will return "some-hex-value".
 def _get_sr_uuid(pvname, prefix_list):
     try:
-        #cmd = cmd_lvm([CMD_PVS, "--noheadings", "-o", "vg_name", pvname])
-        #return match_VG(util.pread2(cmd), prefix_list)
         return match_VG(cmd_lvm([CMD_PVS, "--noheadings",
                         "-o", "vg_name", pvname]), prefix_list)
     except:
@@ -473,7 +282,7 @@ def match_VG(s, prefix_list):
 # Retrieves the devices an SR is composed of. A dictionary is returned, indexed
 # by the SR UUID, where each SR UUID is mapped to a comma-separated list of
 # devices. Exceptions are ignored.
-def scan_srlist(prefix, root, sr_alloc=None):
+def scan_srlist(prefix, root):
     VGs = {}
     for dev in root.split(','):
         try:
@@ -486,11 +295,6 @@ def scan_srlist(prefix, root, sr_alloc=None):
         except Exception, e:
             util.logException("exception (ignored): %s" % e)
             continue
-    if sr_alloc == 'xlvhd':
-        for vg in VGs.keys():
-            if not os.path.isfile('%s/%s' % (config_dir, VG_PREFIX+vg)):
-                util.SMlog('vg=%s VGs[vg]=%s' % (vg,VGs[vg]))
-	        setvginfo(vg,VG_PREFIX+vg,VGs[vg].split(','),"file://local/dev/null", local_allocator=None)
     return VGs
 
 # Converts an SR list to an XML document with the following structure:
@@ -583,7 +387,7 @@ def srlist_toxml(VGs, prefix, includeMetadata = False):
                 
     return dom.toprettyxml()
 
-def createVG(root, vgname, sr_alloc='thick'):
+def createVG(root, vgname):
     systemroot = util.getrootdev()
     rootdev = root.split(',')[0]
 
@@ -623,52 +427,34 @@ def createVG(root, vgname, sr_alloc='thick'):
                 raise xs_errors.XenError('LVMWrite', \
                       opterr='device %s' % dev)
 
-        # This block is only needed for thick provisioning
-        if sr_alloc == 'thick':
-            try:
-                #cmd = cmd_lvm([CMD_PVCREATE, "-ff", "-y", "--metadatasize", "10M", dev])
-                #util.pread2(cmd)
-                cmd_lvm([CMD_PVCREATE, "-ff", "-y", "--metadatasize", "10M",
-                         dev], sr_alloc)
-            except util.CommandException, inst:
-                raise xs_errors.XenError('LVMPartCreate',
-                      opterr='error is %d' % inst.code)
-
-        # End block
+        try:
+            cmd_lvm([CMD_PVCREATE, "-ff", "-y", "--metadatasize", "10M", dev])
+        except util.CommandException, inst:
+            raise xs_errors.XenError('LVMPartCreate',
+                                     opterr='error is %d' % inst.code)
 
     # Create VG on first device
     try:
-        #cmd = cmd_lvm([CMD_VGCREATE, vgname, rootdev])
-        #util.pread2(cmd)
-        cmd_lvm([CMD_VGCREATE, vgname, rootdev], sr_alloc)
+        cmd_lvm([CMD_VGCREATE, vgname, rootdev])
     except :
         raise xs_errors.XenError('LVMGroupCreate')
 
     # Then add any additional devs into the VG
     for dev in root.split(',')[1:]:
         try:
-            #cmd = cmd_lvm([CMD_VGEXTEND, vgname, dev])
-            #util.pread2(cmd)
-            cmd_lvm([CMD_VGEXTEND, vgname, dev], sr_alloc)
+            cmd_lvm([CMD_VGEXTEND, vgname, dev])
         except util.CommandException, inst:
             # One of the PV args failed, delete SR
             try:
-                #cmd = cmd_lvm([CMD_VGREMOVE, vgname])
-                #util.pread2(cmd)
-                cmd_lvm([CMD_VGREMOVE, vgname], sr_alloc)
+                cmd_lvm([CMD_VGREMOVE, vgname])
             except:
                 pass
             raise xs_errors.XenError('LVMGroupCreate')
 
-    # This block is needed only for thick provisioning
-    if sr_alloc == 'thick':
-        try:
-            #cmd = cmd_lvm([CMD_VGCHANGE, "-an", vgname])
-            #util.pread2(cmd)
-            cmd_lvm([CMD_VGCHANGE, "-an", vgname], sr_alloc)
-        except util.CommandException, inst:
-            raise xs_errors.XenError('LVMUnMount', \
-                  opterr='errno is %d' % inst.code)
+    try:
+        cmd_lvm([CMD_VGCHANGE, "-an", vgname])
+    except util.CommandException, inst:
+        raise xs_errors.XenError('LVMUnMount', opterr='errno is %d' % inst.code)
 
     # End block
 
@@ -676,8 +462,6 @@ def removeVG(root, vgname):
     # Check PVs match VG
     try:
         for dev in root.split(','):
-            #cmd = cmd_lvm([CMD_PVS, dev])
-            #txt = util.pread2(cmd)
             txt = cmd_lvm([CMD_PVS, dev])
             if txt.find(vgname) == -1:
                 raise xs_errors.XenError('LVMNoVolume', \
@@ -687,13 +471,9 @@ def removeVG(root, vgname):
               opterr='error is %d' % inst.code)
 
     try:
-        #cmd = cmd_lvm([CMD_VGREMOVE, vgname])
-        #util.pread2(cmd)
         cmd_lvm([CMD_VGREMOVE, vgname])
 
         for dev in root.split(','):
-            #cmd = cmd_lvm([CMD_PVREMOVE, dev])
-            #util.pread2(cmd)
             cmd_lvm([CMD_PVREMOVE, dev])
     except util.CommandException, inst:
         raise xs_errors.XenError('LVMDelete', \
@@ -701,8 +481,6 @@ def removeVG(root, vgname):
 
 def resizePV(dev):
     try:
-        #cmd = cmd_lvm([CMD_PVRESIZE, dev])
-        #util.pread2(cmd)
         cmd_lvm([CMD_PVRESIZE, dev])
     except util.CommandException, inst:
         util.SMlog("Failed to grow the PV, non-fatal")
@@ -712,22 +490,16 @@ def setActiveVG(path, active):
     val = "n"
     if active:
         val = "y"
-    #cmd = cmd_lvm([CMD_VGCHANGE, "-a" + val, path])
-    #text = util.pread2(cmd)
     text = cmd_lvm([CMD_VGCHANGE, "-a" + val, path])
 
 def create(name, size, vgname, tag=None, size_in_percentage=None):
     if size_in_percentage:
-        #cmd = cmd_lvm([CMD_LVCREATE, "-n", name, "-l",
-        #               size_in_percentage, vgname])
         cmd = [CMD_LVCREATE, "-n", name, "-l", size_in_percentage, vgname]
     else:
         size_mb = size / 1024 / 1024
-        #cmd = cmd_lvm([CMD_LVCREATE, "-n", name, "-L", str(size_mb), vgname])
         cmd = [CMD_LVCREATE, "-n", name, "-L", str(size_mb), vgname]
     if tag:
         cmd.extend(["--addtag", tag])
-    #util.pread2(cmd)
     cmd_lvm(cmd)
 
 def remove(path, config_param=None):
@@ -744,117 +516,49 @@ def remove(path, config_param=None):
 
 def _remove(path, config_param=None):
     CONFIG_TAG = "--config"
-    #cmd = cmd_lvm([CMD_LVREMOVE, "-f", path])
     cmd = [CMD_LVREMOVE, "-f", path]
     if config_param:
         cmd.extend([CONFIG_TAG, "devices{" + config_param + "}"])
-    #ret = util.pread2(cmd)
     ret = cmd_lvm(cmd)
 
 def rename(path, newName):
-    #cmd = cmd_lvm([CMD_LVRENAME, path, newName])
-    #util.pread(cmd)
     cmd_lvm([CMD_LVRENAME, path, newName], pread_func=util.pread)
-
-# extend checks if the LV is active, if active extends the LV
-# ssize: size string, e.g. -L448790528b
-def extend(ssize, path):
-    if not _checkActive(path):
-        raise util.CommandException(-1, "extend", "LV not activated")
-    try:
-        # Override slave mode lvm.conf for this command
-        os.environ['LVM_SYSTEM_DIR'] = MASTER_LVM_CONF
-        #cmd = cmd_lvm([CMD_LVEXTEND, ssize, path])
-        try:
-            #util.pread(cmd)
-            cmd_lvm([CMD_LVEXTEND, ssize, path], pread_func=util.pread)
-            return True
-        except Exception, e:
-            util.SMlog("lvextend failed for %s with error %s." % (path, str(e)))
-            return False
-    finally:
-        # Restore slave mode lvm.conf
-        os.environ['LVM_SYSTEM_DIR'] = DEF_LVM_CONF
 
 def setReadonly(path, readonly):
     val = "r"
     if not readonly:
         val += "w"
-    #cmd = cmd_lvm([CMD_LVCHANGE, path, "-p", val])
-    #ret = util.pread(cmd)
     ret = cmd_lvm([CMD_LVCHANGE, path, "-p", val], pread_func=util.pread)
 
 def exists(path):
-    #cmd = cmd_lvm([CMD_LVS, "--noheadings", path])
     try:
-        #ret = util.pread2(cmd)
         ret = cmd_lvm([CMD_LVS, "--noheadings", path])
         return True
     except util.CommandException, e:
         util.SMlog("Ignoring exception for LV check: %s !" % path)
         return False
 
-#def getSize(path):
-#    return _getLVsize(path)
-#    #cmd = cmd_lvm([CMD_LVS, "--noheadings", "--units", "B", path])
-#    #ret = util.pread2(cmd)
-#    #size = int(ret.strip().split()[-1][:-1])
-#    #return size
-
 def setSize(path, size, confirm):
     sizeMB = size / (1024 * 1024)
-    #cmd = cmd_lvm([CMD_LVRESIZE, "-L", str(sizeMB), path])
     if confirm:
-        #util.pread3(cmd, "y\n")
-        cmd_lvm([CMD_LVRESIZE, "-L", str(sizeMB), path],
-                None, util.pread3, "y\n")
+        cmd_lvm([CMD_LVRESIZE, "-L", str(sizeMB), path],util.pread3, "y\n")
     else:
-        #util.pread(cmd)
         cmd_lvm([CMD_LVRESIZE, "-L", str(sizeMB), path], pread_func=util.pread)
-
-#def getTagged(path, tag):
-#    """Return LV names of all LVs that have tag 'tag'; 'path' is either a VG
-#    path or the entire LV path"""
-#    tagged = []
-#    cmd = cmd_lvm([CMD_LVS, "--noheadings", "-o", "lv_name,lv_tags", path])
-#    text = util.pread(cmd)
-#    for line in text.split('\n'):
-#        if not line:
-#            continue
-#        fields = line.split()
-#        lvName = fields[0]
-#        if len(fields) >= 2:
-#            tags = fields[1]
-#            if tags.find(tag) != -1:
-#                tagged.append(lvName)
-#    return tagged
-
-#def getHidden(path):
-#    return len(getTagged(path, LV_TAG_HIDDEN)) == 1
 
 def setHidden(path, hidden = True):
     opt = "--addtag"
     if not hidden:
         opt = "--deltag"
-    #cmd = cmd_lvm([CMD_LVCHANGE, opt, LV_TAG_HIDDEN, path])
-    #util.pread2(cmd)
     cmd_lvm([CMD_LVCHANGE, opt, LV_TAG_HIDDEN, path])
 
 def activateNoRefcount(path, refresh):
-    #cmd = cmd_lvm([CMD_LVCHANGE, "-ay", path])
-    #text = util.pread2(cmd)
     cmd = [CMD_LVCHANGE, "-ay", path]
-    stateFileAttach = os.getenv('THIN_STATE_FILE_ATTACH', None)
-    if stateFileAttach == "true":
-        cmd.append("--offline")
     text = cmd_lvm(cmd)
     if not _checkActive(path):
         raise util.CommandException(-1, str(cmd), "LV not activated")
     if refresh:
         # Override slave mode lvm.conf for this command
         os.environ['LVM_SYSTEM_DIR'] = MASTER_LVM_CONF
-        #cmd = cmd_lvm([CMD_LVCHANGE, "--refresh", path])
-        #text = util.pread2(cmd)
         text = cmd_lvm([CMD_LVCHANGE, "--refresh", path])
         mapperDevice = path[5:].replace("-", "--").replace("/", "-")
         cmd = [CMD_DMSETUP, "table", mapperDevice]
@@ -882,28 +586,7 @@ def deactivateNoRefcount(path):
     _lvmBugCleanup(path)
 
 def _deactivate(path):
-    #cmd = cmd_lvm([CMD_LVCHANGE, "-an", path])
-    #text = util.pread2(cmd)
     text = cmd_lvm([CMD_LVCHANGE, "-an", path])
-
-#def getLVInfo(path):
-#    cmd = cmd_lvm([CMD_LVS, "--noheadings", "--units", "b", "-o", "+lv_tags", path])
-#    text = util.pread2(cmd)
-#    lvs = dict()
-#    for line in text.split('\n'):
-#        if not line:
-#            continue
-#        fields = line.split()
-#        lvName = fields[0]
-#        lvInfo = LVInfo(lvName)
-#        lvInfo.size = long(fields[3].replace("B",""))
-#        lvInfo.active = (fields[2][4] == 'a')
-#        lvInfo.open = (fields[2][5] == 'o')
-#        lvInfo.readonly = (fields[2][1] == 'r')
-#        if len(fields) >= 5 and fields[4] == LV_TAG_HIDDEN:
-#            lvInfo.hidden = True
-#        lvs[lvName] = lvInfo
-#    return lvs
 
 def _checkActive(path):
     if util.pathexists(path):
@@ -1006,13 +689,20 @@ def ensurePathExists(mdpath):
         lvmCache = lvmcache.LVMCache(vgname)
         lvmCache.activateNoRefcount(MDVOLUME_NAME)
         
-def removeDevMapperEntry(path):
-    try:    
+def removeDevMapperEntry(path, strict=True):
+    try:
         # remove devmapper entry using dmsetup
         cmd = [CMD_DMSETUP, "remove", path]
         util.pread2(cmd)
         return True
     except Exception, e:
+        if not strict:
+            cmd = [CMD_DMSETUP, "status", path]
+            try:
+                util.pread(cmd, expect_rc=1)
+                return True
+            except:
+                pass  # Continuining will fail and log the right way
         util.SMlog("removeDevMapperEntry: dmsetup remove failed for file %s " \
                    "with error %s." % (path, str(e)))
         return False
