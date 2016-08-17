@@ -1624,13 +1624,6 @@ class LVHDSR(SR.SR):
         
 class LVHDVDI(VDI.VDI):
 
-    # 2TB - (Pad/bitmap + BAT + Header/footer)
-    # 2 * 1024 * 1024 - (4096 + 4 + 0.002) in MiB
-    MAX_VDI_SIZE_MB = 2093051
-
-    VHD_SIZE_INC = 2 * 1024 * 1024
-    MIN_VIRT_SIZE = 2 * 1024 * 1024
-
     SNAPSHOT_SINGLE = 1 # true snapshot: 1 leaf, 1 read-only parent
     SNAPSHOT_DOUBLE = 2 # regular snapshot/clone that creates 2 leaves
     SNAPSHOT_INTERNAL = 3 # SNAPSHOT_SINGLE but don't update SR's virtual allocation
@@ -1684,14 +1677,8 @@ class LVHDVDI(VDI.VDI):
         if self.exists:
             raise xs_errors.XenError('VDIExists')
 
-        if size / 1024 / 1024 > self.MAX_VDI_SIZE_MB:
-            raise xs_errors.XenError('VDISize',
-                    opterr="VDI size cannot exceed %d MB" % \
-                            self.MAX_VDI_SIZE_MB)
+        size = vhdutil.validate_and_round_vhd_size(long(size))
 
-        if size < self.MIN_VIRT_SIZE:
-            size = self.MIN_VIRT_SIZE
-        size = util.roundup(self.VHD_SIZE_INC, size)
         util.SMlog("LVHDVDI.create: type = %s, %s (size=%s)" %\
                 (self.vdi_type, self.path, size))
         lvSize = 0
@@ -1881,11 +1868,6 @@ class LVHDVDI(VDI.VDI):
         if not self.sr.isMaster:
             raise xs_errors.XenError('LVMMaster')
 
-        if size / 1024 / 1024 > self.MAX_VDI_SIZE_MB:
-            raise xs_errors.XenError('VDISize',
-                    opterr="VDI size cannot exceed %d MB" % \
-                            self.MAX_VDI_SIZE_MB)
-
         self._loadThis()
         if self.hidden:
             raise xs_errors.XenError('VDIUnavailable', opterr='hidden VDI')
@@ -1895,10 +1877,11 @@ class LVHDVDI(VDI.VDI):
                     '(current size: %d, new size: %d)' % (self.size, size))
             raise xs_errors.XenError('VDISize', opterr='shrinking not allowed')
 
+        size = vhdutil.validate_and_round_vhd_size(long(size))
+
         if size == self.size:
             return VDI.VDI.get_params(self)
 
-        size = util.roundup(self.VHD_SIZE_INC, size)
         if self.vdi_type == vhdutil.VDI_TYPE_RAW:
             lvSizeOld = self.size
             lvSizeNew = util.roundup(lvutil.LVM_SIZE_INCREMENT, size)
