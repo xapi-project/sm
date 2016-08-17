@@ -51,15 +51,6 @@ DRIVER_INFO = {
 
 ENFORCE_VIRT_ALLOC = False
 
-# 2TB - (Pad/bitmap + BAT + Header/footer)
-# 2 * 1024 * 1024 - (4096 + 4 + 0.002) in MiB
-# This variable must replace MAX_DISK_MB because it plays the same role
-# as MAX_VDI_SIZE in LVHDSR.py
-MAX_VHD_SIZE = 2093051
-
-MAX_DISK_MB = 2 * 1024 * 1024
-MAX_DISK_METADATA = 4092
-VHD_SIZE_INC = 2 * 1024 * 1024
 JOURNAL_FILE_PREFIX = ".journal-"
 
 OPS_EXCLUSIVE = [
@@ -532,12 +523,9 @@ class FileVDI(VDI.VDI):
 
         if self.vdi_type == vhdutil.VDI_TYPE_VHD:
             try:
+                size = vhdutil.validate_and_round_vhd_size(long(size))
                 mb = 1024L * 1024L
-                size_mb = util.roundup(VHD_SIZE_INC, long(size)) / mb
-                if size_mb < 1 or (size_mb + (overhead / mb)) >= MAX_DISK_MB:
-                    raise xs_errors.XenError('VDISize', opterr='VDI size ' + \
-                            'must be between 1 MB and %d MB' % \
-                            ((MAX_DISK_MB - MAX_DISK_METADATA) - 1))
+                size_mb = long(size) / mb
                 util.ioretry(lambda: self._create(str(size_mb), self.path))
                 self.size = util.ioretry(lambda: self._query_v(self.path))
             except util.CommandException, inst:
@@ -622,14 +610,8 @@ class FileVDI(VDI.VDI):
             return VDI.VDI.get_params(self)
 
         # We already checked it is a VDI_TYPE_VHD
-        size = util.roundup(VHD_SIZE_INC, long(size))
+        size = vhdutil.validate_and_round_vhd_size(long(size))
         overhead = vhdutil.calcOverheadFull(long(size))
-
-        # Check we are within the limits
-        mb = 1024L * 1024L
-        if size < mb or (size / mb) >= MAX_VHD_SIZE:
-            raise xs_errors.XenError('VDISize', opterr='VDI size ' +
-                      'must be between 1 MB and %d MB' %(MAX_VHD_SIZE))
 
         # Test the amount of actual disk space
         if ENFORCE_VIRT_ALLOC:
