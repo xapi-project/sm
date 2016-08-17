@@ -24,8 +24,11 @@ import util
 import errno
 import zlib
 import re
+import xs_errors
 
 
+MIN_VHD_SIZE = 2 * 1024 * 1024
+MAX_VHD_SIZE = 2093050 * 1024 * 1024
 MAX_VHD_JOURNAL_SIZE = 6 * 1024 * 1024 # 2MB VHD block size, max 2TB VHD size
 MAX_CHAIN_SIZE = 30 # max VHD parent chain size
 VHD_UTIL = "/usr/bin/vhd-util"
@@ -350,3 +353,18 @@ def repair(path):
     """Repairs the VHD."""
     ioretry([VHD_UTIL, 'repair', '-n', path])
 
+def validate_and_round_vhd_size(size):
+    """ Take the supplied vhd size, in bytes, and check it is positive and less
+    that the maximum supported size, rounding up to the next block boundary
+    """
+    if (size < 0 or size > MAX_VHD_SIZE):
+        raise xs_errors.XenError('VDISize', opterr='VDI size ' + \
+                                     'must be between 1 MB and %d MB' % \
+                                     (MAX_VHD_SIZE / 1024 / 1024))
+
+    if (size < MIN_VHD_SIZE):
+        size = MIN_VHD_SIZE
+
+    size = util.roundup(VHD_BLOCK_SIZE, size)
+
+    return size
