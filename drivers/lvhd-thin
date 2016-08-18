@@ -41,7 +41,7 @@ def attach(session, args):
         lvhdutil.attachThin(journaler, srUuid, vdiUuid)
         return str(True)
     except Exception, e:
-        util.logException("lvhd-thin:attach" % e)
+        util.logException("lvhd-thin:attach %s" % e)
     return str(False)
 
 def detach(session, args):
