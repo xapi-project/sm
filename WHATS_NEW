@@ -1,3 +1,11 @@
+Version 1.15.0 -  18th Aug 2016
+===============================
+  CP-16736: Add dependecy on xenserver-multipath
+  Redesign multipath handling
+  CA-202093: make sm-multipath handle FCoE BfS specific options
+  Blacklist NVMe devices
+  Remove custom changes to multipath.conf due to reconfigure
+
 Version 1.14.3 -  1st Aug 2016
 ==============================
   Get rid of udev sync/rules from LVM config
