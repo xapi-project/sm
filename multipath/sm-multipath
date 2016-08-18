@@ -16,8 +16,8 @@
 #         root is multipathed
 ### END INIT INFO
 
-DAEMON=/sbin/multipathd
-MP_UTIL=/sbin/mpathconf
+DAEMON=/usr/sbin/multipathd
+MP_UTIL=/usr/sbin/mpathconf
 prog=sm-multipath
 initdir=/etc/rc.d/init.d
 
@@ -45,6 +45,16 @@ find_block_device() {
 }
 
 find_root_block_device() { find_block_device /; }
+
+find_root_wwid() {
+    local rootdev blkdev fs type opts misc
+    while read blkdev fs type opts misc; do
+        [[ $blkdev = rootfs ]] && continue # skip rootfs entry
+        [[ $fs = '/' ]] && { rootdev=$blkdev; break; } # we have a winner!
+    done < /proc/mounts
+    [[ -b $rootdev ]] || return 1 # oops, not a block device.
+    /usr/lib/udev/scsi_id -g $rootdev
+}
 
 is_mpath() {
     [ -e /sys/dev/block/$1/dm/uuid ] || return 1
@@ -76,17 +86,43 @@ start() {
 			if [ "$ROOT_DISK_MINOR" = "$NODE_MINOR" ] ; then
 				mkdir -p /dev/disk/mpInuse
 				ln -sf $n /dev/disk/mpInuse
-				# Ensure its wwid is not blacklisted
-				WWID=$(basename ${n})
-				ROOT_SLAVES=$(/bin/ls /sys/block/dm-$NODE_MINOR/slaves)
-				for i in $ROOT_SLAVES; do
-					/opt/xensource/sm/wwid_conf.py -d /dev/${i} -w $WWID && break
-				done
 			fi
 		done
 	fi
 
 	echo
+}
+
+generate-bfs() {
+
+	# We want to be sure multipathd is running with modules
+	$MP_UTIL --enable --with_module y
+
+	echo -n $"generate-bfs"
+
+	# Ensure its wwid is not blacklisted
+	WWID=$(find_root_wwid)
+	/usr/sbin/multipath -a $WWID
+
+	mkdir -p /dev/disk/mpInuse
+	ln -sf $WWID /dev/disk/mpInuse
+
+	# Block to handle FCoE
+	if [ -n "$1" -a "$1" = "fcoe" ]; then
+		cat <<EndOfBlock >> /etc/multipath.conf
+# Added during installation for FCoE
+multipaths {
+	multipath {
+		wwid "${WWID}"
+		no_path_retry "queue"
+	}
+}
+EndOfBlock
+	fi
+	# End FCoE block
+
+	echo
+	success
 }
 
 stop() {
@@ -109,6 +145,12 @@ stop)
 	;;
 restart)
 	restart
+	;;
+generate-bfs)
+	generate-bfs
+	;;
+generate-fcoe)
+	generate-bfs fcoe
 	;;
 *)
 	echo $"Usage: $0 {start|stop|status|restart|condrestart|reload}"

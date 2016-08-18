@@ -114,33 +114,10 @@ def _resetDMP(sid,explicit_unmap=False,delete_nodes=False):
 # tables. In that case, list_paths will return [], but remove_map might
 # throw an exception. Catch it and ignore it.
     if explicit_unmap:
-        util.SMlog("Explicit unmap")
-
-        # Remove map from conf file, if any
-        try:
-            wwid_conf.edit_wwid(sid, True)
-        except:
-            util.SMlog("WARNING: exception raised while attempting to"
-                       " modify multipath.conf")
-        try:
-            mpath_cli.reconfigure()
-        except:
-            util.SMlog("WARNING: exception raised while attempting to"
-                       " reconfigure")
-        time.sleep(5)
-
-        devices = mpath_cli.list_paths(sid)
-
-        try:
-            mpath_cli.remove_map(sid)
-        except:
-            util.SMlog("Warning: Removing the path failed")
-            pass
-        
-        for device in devices:
-            mpath_cli.remove_path(device)
-            if delete_nodes:
-                _delete_node(device)
+        util.retry(lambda: util.pread2(['/usr/sbin/multipath', '-f', sid]),
+                   maxretry = 3, period = 4)
+        util.retry(lambda: util.pread2(['/usr/sbin/multipath', '-W']), maxretry = 3,
+                   period = 4)
     else:
         mpath_cli.ensure_map_gone(sid)
 
@@ -230,7 +207,8 @@ def refresh(sid,npaths):
         raise xs_errors.XenError('MPath not written yet')
 
 def _refresh_DMP(sid, npaths):
-    map_by_scsibus(sid,npaths)
+    util.retry(lambda: util.pread2(['/usr/sbin/multipath', '-r', sid]), maxretry = 3,
+                           period = 4)
     path = os.path.join(DEVMAPPERPATH, sid)
     util.wait_for_path(path, 10)
     if not os.path.exists(path):
