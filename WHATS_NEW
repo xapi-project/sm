@@ -1,3 +1,13 @@
+Version 1.15.1 -  19th Aug 2016
+===============================
+  CA-186241: Fix allocation_quantum and per-host pool size
+  CA-185992: Do not fail if the dmsetup entry is not there
+  CA-184385: Remove deprecated field from local-allocator conf
+  CA-185079: set-vg-info always called with local_allocator path
+  Fix error handler on lvhd-thin, python 2.4->2.7 extra strict
+  Add timing of LV commands with logging for lvm commands
+  CP-16402: do not advertise SR_STATS in CAPABILITIES
+
 Version 1.15.0 -  18th Aug 2016
 ===============================
   CP-16736: Add dependecy on xenserver-multipath
