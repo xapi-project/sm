@@ -378,7 +378,10 @@ class ISOSR(SR.SR):
         self.physical_utilisation = util.get_fs_utilisation(self.path)
         self.virtual_allocation = self.physical_size
 
-        if self.dconf.has_key("legacy_mode"):
+        other_config = self.session.xenapi.SR.get_other_config(self.sr_ref)
+
+        if other_config.has_key('xenserver_tools_sr') and \
+                other_config['xenserver_tools_sr'] == "true":
             # Out of all the xs-tools ISOs which exist in this dom0, we mark
             # only one as the official one.
 
