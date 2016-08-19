@@ -1,3 +1,7 @@
+Version 1.16.0 -  19th Aug 2016
+===============================
+  Remove xlvhd thin-provisioning code from SM
+
 Version 1.15.1 -  19th Aug 2016
 ===============================
   CA-186241: Fix allocation_quantum and per-host pool size
