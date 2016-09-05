@@ -1412,6 +1412,8 @@ class LVHDVDI(VDI.VDI):
 
         try:
             self.sr.lvmCache.remove(self.lvname)
+            self.sr.lock.cleanup(vdi_uuid, lvhdutil.NS_PREFIX_LVM + sr_uuid)
+            self.sr.lock.cleanupAll(vdi_uuid)
         except SR.SRException, e:
             util.SMlog(
                 "Failed to remove the volume (maybe is leaf coalescing) "
