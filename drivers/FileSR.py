@@ -560,6 +560,7 @@ class FileVDI(VDI.VDI):
         self.sr.deleted_vdi(vdi_uuid)
         self._db_forget()
         self.sr._update(self.sr.uuid, -self.size)
+        self.sr.lock.cleanupAll(vdi_uuid)
         self.sr._kickGC()
         
     def attach(self, sr_uuid, vdi_uuid):
