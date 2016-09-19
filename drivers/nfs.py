@@ -51,6 +51,8 @@ DEFAULT_NFSVERSION = '3'
 NFS_VERSION = [
     'nfsversion', 'for type=nfs, NFS protocol version - 3, 4']
 
+NFS_SERVICE_WAIT = 30
+NFS_SERVICE_RETRY = 6
 
 class NfsException(Exception):
 
@@ -70,6 +72,18 @@ def check_server_tcp(server, nfsversion=DEFAULT_NFSVERSION):
     except util.CommandException, inst:
         raise NfsException("rpcinfo failed or timed out: return code %d" %
                            inst.code)
+
+def check_server_service(server):
+    """Ensure NFS service is up and available on the remote server.
+
+    Raises exception if fails to detect service after 
+    NFS_SERVICE_RETRY * NFS_SERVICE_WAIT
+    """
+    util.ioretry(lambda:
+                 util.pread([RPCINFO_BIN, "-t", "%s" % server, "nfs"]),
+                 errlist=[errno.EPERM, errno.EPIPE, errno.EIO],
+                 maxretry=NFS_SERVICE_RETRY, 
+                 period=NFS_SERVICE_WAIT, nofail=True)
 
 
 def validate_nfsversion(nfsversion):
@@ -97,6 +111,14 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
     except util.CommandException, inst:
         raise NfsException("Failed to make directory: code is %d" %
                            inst.code)
+
+
+    # Wait for NFS service to be available
+    try: 
+        check_server_service(remoteserver)
+    except util.CommandException, inst: 
+        raise NfsException("Failed to detect NFS service on server %s" 
+                           % remoteserver)
 
     mountcommand = 'mount.nfs'
     if nfsversion == '4':
