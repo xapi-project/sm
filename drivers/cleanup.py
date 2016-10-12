@@ -1972,10 +1972,6 @@ class FileSR(SR):
         self.path = "/var/run/sr-mount/%s" % self.uuid
         self.journaler = fjournaler.Journaler(self.path)
 
-    def findLeafCoalesceable(self):
-        """Disable leaf-coalesce for File-based SRs"""
-        return None
-
     def scan(self, force = False):
         if not util.pathexists(self.path):
             raise util.SMException("directory %s not found!" % self.uuid)
