@@ -1,3 +1,8 @@
+Version 1.16.1 -  9th Sep 2016
+==============================
+  CA-217822: Fix unit test, use test context
+  CP-16977: Add dependecy on xenserver-lvm2
+
 Version 1.16.0 -  19th Aug 2016
 ===============================
   Remove xlvhd thin-provisioning code from SM
