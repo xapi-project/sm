@@ -26,7 +26,7 @@ import xs_errors
 
 CAPABILITIES = ["SR_PROBE","VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH",
                 "VDI_ACTIVATE","VDI_DEACTIVATE","VDI_CLONE","VDI_SNAPSHOT","VDI_RESIZE",
-                "VDI_INTRODUCE"]
+                "VDI_INTRODUCE","VDI_MIRROR"]
 
 CONFIGURATION = [ ]
                 
