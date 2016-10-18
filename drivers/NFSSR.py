@@ -79,6 +79,7 @@ class NFSSR(FileSR.FileSR):
         self.nosubdir = False
         if self.sr_ref and self.session is not None :
             self.sm_config = self.session.xenapi.SR.get_sm_config(self.sr_ref)
+            self.other_config = self.session.xenapi.SR.get_other_config(self.sr_ref)
         else:
             self.sm_config = self.srcmd.params.get('sr_sm_config') or {}
         self.nosubdir = self.sm_config.get('nosubdir') == "true"
@@ -123,12 +124,12 @@ class NFSSR(FileSR.FileSR):
                                      opterr=exc.errstr)
 
 
-    def mount(self, mountpoint, remotepath, timeout = 0):
+    def mount(self, mountpoint, remotepath, timeout=None, retrans=None):
         try:
             nfs.soft_mount(
                     mountpoint, self.remoteserver, remotepath, self.transport,
                     useroptions=self.options, timeout=timeout,
-                    nfsversion=self.nfsversion)
+                    nfsversion=self.nfsversion, retrans=retrans)
         except nfs.NfsException, exc:
             raise xs_errors.XenError('NFSMount', opterr=exc.errstr)
 
@@ -137,19 +138,23 @@ class NFSSR(FileSR.FileSR):
         if not self._checkmount():
             self.validate_remotepath(False)
             util._testHost(self.dconf['server'], NFSPORT, 'NFSTarget')
-            io_timeout = util.get_nfs_timeout(self.session, sr_uuid)
-            self.mount_remotepath(sr_uuid, io_timeout)
+            #Extract timeout and retrans values, if any
+            io_timeout = nfs.get_nfs_timeout(self.other_config)
+            io_retrans = nfs.get_nfs_retrans(self.other_config)
+            self.mount_remotepath(sr_uuid, timeout=io_timeout, 
+                                  retrans=io_retrans)
         self.attached = True
 
 
-    def mount_remotepath(self, sr_uuid, timeout = 0):
+    def mount_remotepath(self, sr_uuid, timeout=None, retrans=None):
         if not self._checkmount():
             # FIXME: What is the purpose of this check_server?
             # It doesn't stop us from continuing if the server
             # doesn't support the requested version. We fail 
             # in mount instead
             self.check_server()
-            self.mount(self.path, self.remotepath, timeout)
+            self.mount(self.path, self.remotepath, 
+                       timeout=timeout, retrans=retrans)
 
 
     def probe(self):
