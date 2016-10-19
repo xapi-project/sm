@@ -1,3 +1,35 @@
+Version 1.17.0 -  19th Oct 2016
+==============================
+  CP-18840: Enable leaf coalesce for file SRs
+  CA-219124: Create unit tests for check_server_service
+  CA-219124: Wait for NFS service to be up before attempting mount
+  CA-198309: Cleanup locking files after inline vdi delete
+  CA-218953: Use other-config parameter to identify tools repository
+  CA-209401: add a default value for NFS other_config
+  CA-209401: check the session existence before using it
+  CA-209401: introduce vdi_detach_from_config
+  CA-209401: add optional flags for detach method
+  CA-207930: Space reclaim operation fails with errors on a full SR
+  CA-216855: Linux 3.0 and later always has (should have) the same ABI
+  CA-202383: Linux 3.0 and later always has (should have) the same ABI
+  CA-212699: Linux 3.0 and later always has (should have) the same ABI
+  CA-203353: Use new validation routine in FileSR create and resize operations
+  CA-203353: Use new validation routine in LVHDSR create and resize operations
+  CA-203353: define a single validation method for vhd size
+  CA-214746: made snapwatchd service not executable
+  CA-213968: Make NFS retrans configurable
+  CA-213968: Use NFS defaults for timeout and retrans
+  CA-213968: Get nfs_timeout from cached other_config
+  CA-213968: Move get_nfs_timeout to nfs.py
+  CP-17867: Add VDI_MIRROR capability to LVHDoFCoESR
+  CP-17867: Add new capability `VDI_MIRROR` to SM plugins.
+  CA-213600: Read BATMAP directly from the VHD and not sm-config
+  CA-212761: Use eth field in probe data conditionally
+  CA-208229: pass SCSIID via environment variable
+  CA-208229: enable mpathcount filtering by SCSIid
+  CA-212295: Stale Refcount files on pool slaves after coalescing
+  Rename: util.silent_noent() -> util.force_unlink()
+
 Version 1.16.1 -  9th Sep 2016
 ==============================
   CA-217822: Fix unit test, use test context
