@@ -18,35 +18,50 @@ class Test_nfs(unittest.TestCase):
 
         pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-p', 'aServer'], quiet=False)
 
+    @mock.patch('util.pread')
+    def test_check_server_service(self, pread):
+        nfs.check_server_service('aServer')
+
+        pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-t', 
+                                       'aServer', 'nfs'])
+
     def get_soft_mount_pread(self, binary, vers):
         return ([binary, 'remoteserver:remotepath', 'mountpoint', '-o',
                  'soft,proto=transport,vers=%s,acdirmin=0,acdirmax=0' % vers])
 
     @mock.patch('util.makedirs')
+    @mock.patch('nfs.check_server_service')
     @mock.patch('util.pread')
-    def test_soft_mount(self, pread, makedirs):
+    def test_soft_mount(self, pread, check_server_service, makedirs):
         nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
                        timeout=None)
 
+        check_server_service.assert_called_once_with('remoteserver')
         pread.assert_called_once_with(self.get_soft_mount_pread('mount.nfs',
                                                                 '3'))
 
     @mock.patch('util.makedirs')
+    @mock.patch('nfs.check_server_service')
     @mock.patch('util.pread')
-    def test_soft_mount_nfsversion_3(self, pread, makedirs):
+    def test_soft_mount_nfsversion_3(self, pread, 
+                                     check_server_service, makedirs):
         nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
                        timeout=None, nfsversion='3')
 
-        pread.assert_called_once_with(self.get_soft_mount_pread('mount.nfs',
+        check_server_service.assert_called_once_with('remoteserver')
+        pread.assert_called_with(self.get_soft_mount_pread('mount.nfs',
                                                                 '3'))
 
     @mock.patch('util.makedirs')
+    @mock.patch('nfs.check_server_service')
     @mock.patch('util.pread')
-    def test_soft_mount_nfsversion_4(self, pread, makedirs):
+    def test_soft_mount_nfsversion_4(self, pread, 
+                                     check_server_service, makedirs):
         nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
                        timeout=None, nfsversion='4')
 
-        pread.assert_called_once_with(self.get_soft_mount_pread('mount.nfs4',
+        check_server_service.assert_called_once_with('remoteserver')
+        pread.assert_called_with(self.get_soft_mount_pread('mount.nfs4',
                                                                 '4'))
 
     def test_validate_nfsversion_invalid(self):
