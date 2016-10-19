@@ -82,6 +82,7 @@ class NFSSR(FileSR.FileSR):
             self.other_config = self.session.xenapi.SR.get_other_config(self.sr_ref)
         else:
             self.sm_config = self.srcmd.params.get('sr_sm_config') or {}
+            self.other_config = self.srcmd.params.get('sr_other_config') or {}
         self.nosubdir = self.sm_config.get('nosubdir') == "true"
         if self.dconf.has_key('serverpath'):
             self.remotepath = os.path.join(self.dconf['serverpath'],
@@ -278,6 +279,7 @@ class NFSFileVDI(FileSR.FileVDI):
         resp['sr_uuid'] = sr_uuid
         resp['vdi_uuid'] = vdi_uuid
         resp['sr_sm_config'] = self.sr.sm_config
+        resp['sr_other_config'] = self.sr.other_config
         resp['command'] = 'vdi_attach_from_config'
         # Return the 'config' encoded within a normal XMLRPC response so that
         # we can use the regular response/error parsing code.
