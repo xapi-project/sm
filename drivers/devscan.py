@@ -280,13 +280,9 @@ def _extract_dev_name(device_dir):
         dev = filter(match_dev, os.listdir(device_dir))[0]
         # remove 'block:' from entry and return
         return dev.lstrip('block:')
-    elif kernel_version.startswith('3.'):
-        # directory for device name lives inside block directory e.g. block/sdx
-
-        return _get_block_device_name_with_kernel_3x(device_dir)
     else:
-        msg = 'Kernel version detected: %s' % kernel_version
-        raise xs_errors.XenError('UnsupportedKernel', msg)
+        # Anything 3.0 and later should have the same ABI.
+        return _get_block_device_name_with_kernel_3x(device_dir)
 
 def _get_block_device_name_with_kernel_3x(device_dir):
     devs = glob.glob(os.path.join(device_dir, 'block/*'))
