@@ -247,34 +247,45 @@ class ISOSR(SR.SR):
 
         mountcmd=[]
         location = util.to_plain_string(self.dconf['location'])
-
         self.credentials = os.path.join("/tmp", util.gen_uuid())
+        protocol = 'nfs'
+        options = ''
+
         if self.dconf.has_key('type'):
-            # Creation via XC
-            if self.dconf['type']=='cifs':
-                # CIFS specific stuff
+            protocol = self.dconf['type']
+        elif ":/" not in location:
+            protocol = 'cifs'
+
+        if 'options' in self.dconf:
+            options = self.dconf['options'].split(' ')
+            if protocol == 'cifs':
+                options = filter(lambda x: x != "", options)
+            else: 
+                options = self.getNFSOptions(options)
+    
+        # SMB options are passed differently for create via XC 
+        # and create via xe-mount-iso-sr
+        if protocol == 'cifs':
+            if self.dconf.has_key('type'):
+                # Create via XC or sr-create
                 # Check for username and password
                 mountcmd=["mount.cifs", location, self.mountpoint]
                 self.appendCIFSMountOptions(mountcmd)
-        else:
-            # Creation via command line
-            if 'options' in self.dconf:
-                options = self.dconf['options'].split(' ')
-                options = filter(lambda x: x != "", options)
-
+            else:
+                # Creation via xe-mount-iso-sr
                 mountcmd=["mount", location, self.mountpoint]
                 mountcmd.extend(options)
-            else:
-                mountcmd=["mount", location, self.mountpoint]
-        # Mount!
+
+        # Attempt mounting
         try:
-            # For NFS, do a soft mount with tcp as protocol. Since ISO SR is
-            # going to be r-only, a failure in nfs link can be reported back
-            # to the process waiting.
-            if self.dconf.has_key('type') and self.dconf['type']!='cifs':
+            if protocol == 'nfs':
+                # For NFS, do a soft mount with tcp as protocol. Since ISO SR is
+                # going to be r-only, a failure in nfs link can be reported back
+                # to the process waiting.
                 serv_path = location.split(':')
                 nfs.soft_mount(self.mountpoint, serv_path[0], serv_path[1],
-                               'tcp', nfsversion=self.nfsversion)
+                               'tcp', useroptions=options,
+                               nfsversion=self.nfsversion)
             else:
                 util.pread(mountcmd, True)
         except util.CommandException, inst:
@@ -286,6 +297,17 @@ class ISOSR(SR.SR):
         if not self._checkmount():
             self.detach(sr_uuid)
             raise xs_errors.XenError('ISOSharenameFailure')                        
+
+    def getNFSOptions(self, options):
+        """Append options to mount.nfs"""
+        #Only return any options specified with -o
+        nfsOptions = ''
+        for index, opt in enumerate(options):
+            if opt == "-o":
+                nfsOptions = options[index + 1]
+                break
+
+        return nfsOptions
 
     def appendCIFSMountOptions(self, mountcmd):
         """Append options to mount.cifs"""

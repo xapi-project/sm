@@ -80,4 +80,5 @@ class TestISOSR(unittest.TestCase):
                                            'aServer',
                                            '/aLocation',
                                            'tcp',
+                                           useroptions='',
                                            nfsversion='aNfsversionChanged')
