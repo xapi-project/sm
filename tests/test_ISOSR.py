@@ -69,7 +69,7 @@ class TestISOSR(unittest.TestCase):
     def test_attach_nfs(self, _checkmount, makedirs, validate_nfsversion,
                         convertDNS, soft_mount, gen_uuid):
         validate_nfsversion.return_value = 'aNfsversionChanged'
-        isosr = self.create_isosr(location='aServer:/aLocation', atype='nfs',
+        isosr = self.create_isosr(location='aServer:/aLocation', atype='nfs_iso',
                                   sr_uuid='asr_uuid')
         _checkmount.side_effect = [False, True]
         gen_uuid.return_value = 'aUuid'
@@ -80,4 +80,5 @@ class TestISOSR(unittest.TestCase):
                                            'aServer',
                                            '/aLocation',
                                            'tcp',
+                                           useroptions='',
                                            nfsversion='aNfsversionChanged')
