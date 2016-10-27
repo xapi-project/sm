@@ -30,7 +30,9 @@ class LVSubsystem(object):
         self.lv_calls = []
         self._volume_groups = []
         executable_injector('/usr/sbin/lvcreate', self.fake_lvcreate)
+        executable_injector('/sbin/lvcreate', self.fake_lvcreate)
         executable_injector('/usr/sbin/lvremove', self.fake_lvremove)
+        executable_injector('/sbin/lvremove', self.fake_lvremove)
         executable_injector('/sbin/dmsetup', self.fake_dmsetup)
 
     def add_volume_group(self, name):

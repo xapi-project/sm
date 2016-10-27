@@ -1,11 +1,13 @@
 import unittest
 import blktap2
 import mock
+import testlib
 
 
 class TestVDI(unittest.TestCase):
     @mock.patch('blktap2.VDI.TargetDriver')
-    def setUp(self, mock_target):
+    @mock.patch('blktap2.Lock')
+    def setUp(self, mock_lock, mock_target):
         mock_target.get_vdi_type.return_value = 'phy'
 
         def mock_handles(type_str):

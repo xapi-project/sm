@@ -85,6 +85,9 @@ elif [ $1 -eq 1 ]; then
     true; 
 fi
 
+%check
+tests/run_python_unittests.sh
+
 %files
 %defattr(-,root,root,-)
 /etc/rc.d/init.d/mpathroot

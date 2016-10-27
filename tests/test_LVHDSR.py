@@ -39,7 +39,8 @@ class TestLVHDSR(unittest.TestCase, Stubs):
         return LVHDSR.LVHDSR(srcmd, "some SR UUID")
 
     @mock.patch('lvhdutil.getVDIInfo')
-    def test_loadvids(self, mock_getVDIInfo):
+    @mock.patch('LVHDSR.Lock')
+    def test_loadvids(self, mock_lock, mock_getVDIInfo):
         """sr.allVDIs populated by _loadvdis"""
 
         vdi_uuid = 'some VDI UUID'
@@ -53,8 +54,10 @@ class TestLVHDSR(unittest.TestCase, Stubs):
     @mock.patch('lvhdutil.lvRefreshOnAllSlaves')
     @mock.patch('lvhdutil.getVDIInfo')
     @mock.patch('journaler.Journaler.getAll')
+    @mock.patch('LVHDSR.Lock')
     def test_undoAllInflateJournals(
             self,
+            mock_lock,
             mock_getAll,
             mock_getVDIInfo,
             mock_lvhdutil_lvRefreshOnAllSlaves):
