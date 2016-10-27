@@ -1,12 +1,8 @@
 #!/bin/bash
-set -eux
+#set -eux # for debug only
+set -eu
 
 SMROOT=$(cd $(dirname $0) && cd .. && pwd)
-ENVDIR="$SMROOT/.env"
-
-set +u
-. "$ENVDIR/bin/activate"
-set -u
 
 (
     cd "$SMROOT"
