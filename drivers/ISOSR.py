@@ -248,7 +248,8 @@ class ISOSR(SR.SR):
         mountcmd=[]
         location = util.to_plain_string(self.dconf['location'])
         self.credentials = os.path.join("/tmp", util.gen_uuid())
-        protocol = 'nfs'
+        # TODO: Have XC standardise iso type string
+        protocol = 'nfs_iso'
         options = ''
 
         if self.dconf.has_key('type'):
@@ -278,7 +279,7 @@ class ISOSR(SR.SR):
 
         # Attempt mounting
         try:
-            if protocol == 'nfs':
+            if protocol == 'nfs_iso':
                 # For NFS, do a soft mount with tcp as protocol. Since ISO SR is
                 # going to be r-only, a failure in nfs link can be reported back
                 # to the process waiting.
