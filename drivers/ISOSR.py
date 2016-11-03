@@ -294,6 +294,7 @@ class ISOSR(SR.SR):
             options.append(self.getCIFSPasswordOptions())
             options.append(self.getCacheOptions())
             options.append('guest')
+            options.append('vers=2.0')
         except:
             util.SMlog("Exception while attempting to append mount options")
             raise
