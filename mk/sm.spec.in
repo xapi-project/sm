@@ -89,6 +89,7 @@ fi
 %defattr(-,root,root,-)
 /etc/rc.d/init.d/mpathroot
 /etc/udev/scripts/xs-mpath-scsidev.sh
+/etc/udev/scripts/udevmpath.sh
 /etc/xapi.d/plugins/coalesce-leaf
 /etc/xapi.d/plugins/lvhd-thin
 /etc/xapi.d/plugins/nfs-on-slave
