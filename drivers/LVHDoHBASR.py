@@ -69,34 +69,36 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
         driver = SR.driver('hba')
         self.hbasr = driver(self.original_srcmd, sr_uuid)
 
-        pbd = None
-        try:
-            pbd = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
-        except:
-            pass
+        # If this is a vdi command, don't initialise SR
+        if not (util.isVDICommand(self.original_srcmd.cmd)):
+            pbd = None
+            try:
+                pbd = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
+            except:
+                pass
 
-        try:
-            if not self.dconf.has_key('SCSIid') and self.dconf.has_key('device'):
-                # UPGRADE FROM MIAMI: add SCSIid key to device_config
-                util.SMlog("Performing upgrade from Miami")
-                if not os.path.exists(self.dconf['device']):
-                    raise xs_errors.XenError('InvalidDev')
-                SCSIid = scsiutil.getSCSIid(self.dconf['device'])
-                self.dconf['SCSIid'] = SCSIid
-                del self.dconf['device']
+            try:
+                if not self.dconf.has_key('SCSIid') and self.dconf.has_key('device'):
+                    # UPGRADE FROM MIAMI: add SCSIid key to device_config
+                    util.SMlog("Performing upgrade from Miami")
+                    if not os.path.exists(self.dconf['device']):
+                        raise xs_errors.XenError('InvalidDev')
+                    SCSIid = scsiutil.getSCSIid(self.dconf['device'])
+                    self.dconf['SCSIid'] = SCSIid
+                    del self.dconf['device']
 
-                if pbd <> None:
-                    device_config = self.session.xenapi.PBD.get_device_config(pbd)
-                    device_config['SCSIid'] = SCSIid
-                    device_config['upgraded_from_miami'] = 'true'
-                    del device_config['device']
-                    self.session.xenapi.PBD.set_device_config(pbd, device_config)
-        except:
-            pass
+                    if pbd <> None:
+                        device_config = self.session.xenapi.PBD.get_device_config(pbd)
+                        device_config['SCSIid'] = SCSIid
+                        device_config['upgraded_from_miami'] = 'true'
+                        del device_config['device']
+                        self.session.xenapi.PBD.set_device_config(pbd, device_config)
+            except:
+                pass
 
-        if not self.dconf.has_key('SCSIid') or not self.dconf['SCSIid']:
-            print >>sys.stderr,self.hbasr.print_devs()
-            raise xs_errors.XenError('ConfigSCSIid')
+            if not self.dconf.has_key('SCSIid') or not self.dconf['SCSIid']:
+                print >>sys.stderr,self.hbasr.print_devs()
+                raise xs_errors.XenError('ConfigSCSIid')
 
         self.SCSIid = self.dconf['SCSIid']
         self._pathrefresh(LVHDoHBASR, load = False)

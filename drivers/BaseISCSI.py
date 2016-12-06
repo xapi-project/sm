@@ -42,6 +42,58 @@ class BaseISCSISR(SR.SR):
     def force_tapdisk(self):
         return self.dconf.get('force_tapdisk', 'false') == 'true'
 
+    @property
+    def attached(self):
+        if not self._attached:
+            self._attached = False
+            self._attached = iscsilib._checkTGT(self.targetIQN)
+        return self._attached
+
+    @attached.setter
+    def attached(self, value):
+        self._attached = value
+
+    @property
+    def pathdict(self):
+        if not self._pathdict:
+            self._initPaths()
+        return self._pathdict
+
+    @property
+    def adapter(self):
+        if not self._adapter:
+            self._initPaths()
+        return self._adapter
+
+    @adapter.setter
+    def adapter(self, value):
+        self._adapter = value
+
+    @property
+    def devs(self):
+        if not self._devs:
+            self._initPaths()
+        return self._devs
+
+    @property
+    def tgtidx(self):
+        """This appears to only be referenced by a unit test. Do we really need it? """
+        if not self._tgtidx:
+            self._initPaths()
+        return self._tgtidx
+
+    @property
+    def path(self):
+        if not self._path:
+            self._initPaths()
+        return self._path
+
+    @property
+    def address(self):
+        if not self._address:
+            self._initPaths()
+        return self._address
+
     def handles(type):
         return False
     handles = staticmethod(handles)
@@ -74,7 +126,7 @@ class BaseISCSISR(SR.SR):
                     self.session.xenapi.PBD.set_device_config(pbd, device_config)
             except:
                 pass
-                
+
 
     def load(self, sr_uuid):
         if self.force_tapdisk:
@@ -161,17 +213,19 @@ class BaseISCSISR(SR.SR):
             raise xs_errors.XenError('ConfigTargetIQNMissing')
 
         self.targetIQN = unicode(self.dconf['targetIQN']).encode('utf-8')
-        self.attached = False
-        try:
-            self.attached = iscsilib._checkTGT(self.targetIQN)
-        except:
-            pass
-        self._initPaths()
+
+        self._attached = None
+        self._pathdict = None
+        self._adapter = None
+        self._devs = None
+        self._tgtidx = None
+        self._path = None
+        self._address = None
 
     def _initPaths(self):
         self._init_adapters()
         # Generate a list of all possible paths
-        self.pathdict = {}
+        self._pathdict = {}
         addrlist = []
         rec = {}
         key = "%s:%d" % (self.target,self.port)
@@ -179,13 +233,13 @@ class BaseISCSISR(SR.SR):
         rec['port'] = self.port
         rec['path'] = os.path.join("/dev/iscsi",self.targetIQN,\
                                    key)
-        self.pathdict[key] = rec
+        self._pathdict[key] = rec
         util.SMlog("PATHDICT: key %s: %s" % (key,rec))
-        self.tgtidx = key
+        self._tgtidx = key
         addrlist.append(key)
 
-        self.path = rec['path']
-        self.address = self.tgtidx
+        self._path = rec['path']
+        self._address = self.tgtidx
         if not self.attached:
             return
         
@@ -201,7 +255,7 @@ class BaseISCSISR(SR.SR):
                     rec['port'] = long(port)
                     rec['path'] = os.path.join("/dev/iscsi",self.targetIQN,\
                                    key)
-                    self.pathdict[key] = rec
+                    self._pathdict[key] = rec
                     util.SMlog("PATHDICT: key %s: %s" % (key,rec))
                     addrlist.append(key)
 
@@ -209,19 +263,19 @@ class BaseISCSISR(SR.SR):
             # Try to detect an active path in order of priority
             for key in self.pathdict:
                 if self.adapter.has_key(key):
-                    self.tgtidx = key
-                    self.path = self.pathdict[self.tgtidx]['path']
+                    self._tgtidx = key
+                    self._path = self.pathdict[self.tgtidx]['path']
                     if os.path.exists(self.path):
                         util.SMlog("Path found: %s" % self.path)
                         break
-            self.address = self.tgtidx
+            self._address = self.tgtidx
         self._synchroniseAddrList(addrlist)
 
     def _init_adapters(self):
         # Generate a list of active adapters
         ids = scsiutil._genHostList(ISCSI_PROCNAME)
         util.SMlog(ids)
-        self.adapter = {}
+        self._adapter = {}
         for host in ids:
             try:
                 targetIQN = iscsilib.get_targetIQN(host)
@@ -229,10 +283,10 @@ class BaseISCSISR(SR.SR):
                     continue
                 (addr, port) = iscsilib.get_targetIP_and_port(host)
                 entry = "%s:%s" % (addr,port)
-                self.adapter[entry] = host
+                self._adapter[entry] = host
             except:
                 pass
-        self.devs = scsiutil.cacheSCSIidentifiers()
+        self._devs = scsiutil.cacheSCSIidentifiers()
 
     def attach(self, sr_uuid):
         self._mpathHandle()
