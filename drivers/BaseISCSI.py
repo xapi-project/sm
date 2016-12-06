@@ -77,96 +77,98 @@ class BaseISCSISR(SR.SR):
                 
 
     def load(self, sr_uuid):
-        if self.force_tapdisk:
-            self.sr_vditype = 'aio'
-        else:
-            self.sr_vditype = 'phy'
-        self.discoverentry = 0
-        self.default_vdi_visibility = False
-        
-        # Required parameters
-        if not self.dconf.has_key('target') or  not self.dconf['target']:
-            raise xs_errors.XenError('ConfigTargetMissing')
-
-        # we are no longer putting hconf in the xml.
-        # Instead we pass a session and host ref and let the SM backend query XAPI itself
-        try:
-            if not self.dconf.has_key('localIQN'):
-                self.localIQN = self.session.xenapi.host.get_other_config(self.host_ref)['iscsi_iqn']
+       # If this is a vdi command, don't initialise SR
+        if not (util.isVDICommand(self.original_srcmd.cmd)):
+            if self.force_tapdisk:
+                self.sr_vditype = 'aio'
             else:
-                self.localIQN = self.dconf['localIQN']
-        except:
-            raise xs_errors.XenError('ConfigISCSIIQNMissing')
-        
-        # Check for empty string
-        if not self.localIQN:
-            raise xs_errors.XenError('ConfigISCSIIQNMissing')
-        
-        try:
-            self.target = util._convertDNS(self.dconf['target'].split(',')[0])
-        except:
-            raise xs_errors.XenError('DNSError')
-        
-        self.targetlist = self.target
-        if self.dconf.has_key('targetlist'):
-            self.targetlist = self.dconf['targetlist']
+                self.sr_vditype = 'phy'
+            self.discoverentry = 0
+            self.default_vdi_visibility = False
+            
+            # Required parameters
+            if not self.dconf.has_key('target') or  not self.dconf['target']:
+                raise xs_errors.XenError('ConfigTargetMissing')
 
-        # Optional parameters
-        self.chapuser = ""
-        self.chappassword = ""
-        if self.dconf.has_key('chapuser') \
-                and (self.dconf.has_key('chappassword') or self.dconf.has_key('chappassword_secret')):
-            self.chapuser = self.dconf['chapuser'].encode('utf-8')
-            if self.dconf.has_key('chappassword_secret'):
-                self.chappassword = util.get_secret(self.session, self.dconf['chappassword_secret'])
-            else:
-                self.chappassword = self.dconf['chappassword']
-
-            self.chappassword = self.chappassword.encode('utf-8')
-
-        self.incoming_chapuser = ""
-        self.incoming_chappassword = ""
-        if self.dconf.has_key('incoming_chapuser') \
-                and (self.dconf.has_key('incoming_chappassword') or self.dconf.has_key('incoming_chappassword_secret')):
-            self.incoming_chapuser = self.dconf['incoming_chapuser'].encode('utf-8')
-            if self.dconf.has_key('incoming_chappassword_secret'):
-                self.incoming_chappassword = util.get_secret(self.session, self.dconf['incoming_chappassword_secret'])
-            else:
-                self.incoming_chappassword = self.dconf['incoming_chappassword']
-
-            self.incoming_chappassword = self.incoming_chappassword.encode('utf-8')
-
-        self.port = DEFAULT_PORT
-        if self.dconf.has_key('port') and self.dconf['port']:
+            # we are no longer putting hconf in the xml.
+            # Instead we pass a session and host ref and let the SM backend query XAPI itself
             try:
-                self.port = long(self.dconf['port'])
+                if not self.dconf.has_key('localIQN'):
+                    self.localIQN = self.session.xenapi.host.get_other_config(self.host_ref)['iscsi_iqn']
+                else:
+                    self.localIQN = self.dconf['localIQN']
             except:
+                raise xs_errors.XenError('ConfigISCSIIQNMissing')
+            
+            # Check for empty string
+            if not self.localIQN:
+                raise xs_errors.XenError('ConfigISCSIIQNMissing')
+            
+            try:
+                self.target = util._convertDNS(self.dconf['target'].split(',')[0])
+            except:
+                raise xs_errors.XenError('DNSError')
+            
+            self.targetlist = self.target
+            if self.dconf.has_key('targetlist'):
+                self.targetlist = self.dconf['targetlist']
+
+            # Optional parameters
+            self.chapuser = ""
+            self.chappassword = ""
+            if self.dconf.has_key('chapuser') \
+                    and (self.dconf.has_key('chappassword') or self.dconf.has_key('chappassword_secret')):
+                self.chapuser = self.dconf['chapuser'].encode('utf-8')
+                if self.dconf.has_key('chappassword_secret'):
+                    self.chappassword = util.get_secret(self.session, self.dconf['chappassword_secret'])
+                else:
+                    self.chappassword = self.dconf['chappassword']
+
+                self.chappassword = self.chappassword.encode('utf-8')
+
+            self.incoming_chapuser = ""
+            self.incoming_chappassword = ""
+            if self.dconf.has_key('incoming_chapuser') \
+                    and (self.dconf.has_key('incoming_chappassword') or self.dconf.has_key('incoming_chappassword_secret')):
+                self.incoming_chapuser = self.dconf['incoming_chapuser'].encode('utf-8')
+                if self.dconf.has_key('incoming_chappassword_secret'):
+                    self.incoming_chappassword = util.get_secret(self.session, self.dconf['incoming_chappassword_secret'])
+                else:
+                    self.incoming_chappassword = self.dconf['incoming_chappassword']
+
+                self.incoming_chappassword = self.incoming_chappassword.encode('utf-8')
+
+            self.port = DEFAULT_PORT
+            if self.dconf.has_key('port') and self.dconf['port']:
+                try:
+                    self.port = long(self.dconf['port'])
+                except:
+                    raise xs_errors.XenError('ISCSIPort')
+            if self.port > MAXPORT or self.port < 1:
                 raise xs_errors.XenError('ISCSIPort')
-        if self.port > MAXPORT or self.port < 1:
-            raise xs_errors.XenError('ISCSIPort')
 
-        # For backwards compatibility
-        if self.dconf.has_key('usediscoverynumber'):
-            self.discoverentry = self.dconf['usediscoverynumber']
+            # For backwards compatibility
+            if self.dconf.has_key('usediscoverynumber'):
+                self.discoverentry = self.dconf['usediscoverynumber']
 
-        self.multihomed = False
-        if self.dconf.has_key('multihomed'):
-            if self.dconf['multihomed'] == "true":
+            self.multihomed = False
+            if self.dconf.has_key('multihomed'):
+                if self.dconf['multihomed'] == "true":
+                    self.multihomed = True
+            elif self.mpath == 'true':
                 self.multihomed = True
-        elif self.mpath == 'true':
-            self.multihomed = True
 
-        if not self.dconf.has_key('targetIQN') or  not self.dconf['targetIQN']:
-            self._scan_IQNs()
-            raise xs_errors.XenError('ConfigTargetIQNMissing')
+            if not self.dconf.has_key('targetIQN') or  not self.dconf['targetIQN']:
+                self._scan_IQNs()
+                raise xs_errors.XenError('ConfigTargetIQNMissing')
 
-        self.targetIQN = unicode(self.dconf['targetIQN']).encode('utf-8')
-        self.attached = False
-        try:
-            self.attached = iscsilib._checkTGT(self.targetIQN)
-        except:
-            pass
-        self._initPaths()
+            self.targetIQN = unicode(self.dconf['targetIQN']).encode('utf-8')
+            self.attached = False
+            try:
+                self.attached = iscsilib._checkTGT(self.targetIQN)
+            except:
+                pass
+            self._initPaths()
 
     def _initPaths(self):
         self._init_adapters()
