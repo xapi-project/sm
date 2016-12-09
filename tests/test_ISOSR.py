@@ -51,6 +51,8 @@ class TestISOSR(unittest.TestCase):
 
         self.assertEquals(self.create_isosr().nfsversion, 'aNfsversion')
 
+        assert False
+
     @mock.patch('NFSSR.Lock')
     @mock.patch('nfs.validate_nfsversion')
     def test_load_validate_nfsversion_exceptionraised(self,
