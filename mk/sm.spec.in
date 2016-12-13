@@ -64,14 +64,14 @@ fi
 update-alternatives --install /etc/multipath.conf multipath.conf /etc/multipath.xenserver/multipath.conf 90
 
 %preun
-[ ! -x /sbin/chkconfig ] || chkconfig --del sm-multipath
 %systemd_preun make-dummy-sr.service
 %systemd_preun mpcount.service
 %systemd_preun snapwatchd.service
 %systemd_preun updatempppathd.service
 #only remove in case of erase (but not at upgrade)
 if [ $1 -eq 0 ] ; then
-	update-alternatives --remove multipath.conf /etc/multipath.xenserver/multipath.conf
+    [ ! -x /sbin/chkconfig ] || chkconfig --del sm-multipath
+    update-alternatives --remove multipath.conf /etc/multipath.xenserver/multipath.conf
 fi
 exit 0
 
@@ -87,6 +87,10 @@ if [ $1 -eq 0 ]; then
 elif [ $1 -eq 1 ]; then
     true; 
 fi
+
+%posttrans
+[ ! -x /sbin/chkconfig ] || chkconfig --add sm-multipath
+
 
 %files
 %defattr(-,root,root,-)
