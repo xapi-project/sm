@@ -35,10 +35,9 @@ mpp_path_update = False
 match_bySCSIid = False
 
 util.daemon()
-if len(sys.argv) > 1:
+if len(sys.argv) == 3:
     match_bySCSIid = True
     SCSIid = sys.argv[1]
-if len(sys.argv) > 2:
     mpp_path_update = True
     mpp_entry = sys.argv[2]
 
