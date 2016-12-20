@@ -33,12 +33,12 @@ LOCK_NS2 = "mpathcount2"
 MP_INUSEDIR = "/dev/disk/mpInuse"
 mpp_path_update = False
 match_bySCSIid = False
+MPATHCOUNT_WAIT_INTERVAL = 2
 
 util.daemon()
-if len(sys.argv) > 1:
+if len(sys.argv) == 3:
     match_bySCSIid = True
     SCSIid = sys.argv[1]
-if len(sys.argv) > 2:
     mpp_path_update = True
     mpp_entry = sys.argv[2]
 
@@ -63,6 +63,8 @@ elif not mpathcountlock.acquireNoblock():
     mpathcountqueue.release()
 
 util.SMlog("MPATH: I get the lock")
+time.sleep(MPATHCOUNT_WAIT_INTERVAL)
+util.SMlog("MPATH: Time wait is done")
 
 cached_DM_maj = None
 def get_dm_major():
