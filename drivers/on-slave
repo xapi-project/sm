@@ -37,26 +37,39 @@ def multi(session, args):
             break
         util.SMlog("on-slave.action %d: %s" % (i, action))
         if action == "activate":
-            lvmCache.activate(args["ns%d" % i], args["uuid%d" % i],
-                    args["lvName%d" % i], False)
+            try: 
+                lvmCache.activate(args["ns%d" % i], args["uuid%d" % i],
+                                  args["lvName%d" % i], False)
+            except util.CommandException:
+                util.SMlog("on-slave.activate failed")
+                raise
         elif action == "deactivate":
             try:
                 lvmCache.deactivate(args["ns%d" % i], args["uuid%d" % i],
                         args["lvName%d" % i], False)
             except util.SMException:
                 util.SMlog("on-slave.deactivate failed")
+                raise
         elif action == "activateNoRefcount":
-            lvmCache.activateNoRefcount(args["lvName%d" % i])
+            try:
+                lvmCache.activateNoRefcount(args["lvName%d" % i])
+            except util.CommandException:
+                util.SMlog("on-slave.activateNoRefcount failed")
+                raise
         elif action == "deactivateNoRefcount":
             try:
                 lvmCache.deactivateNoRefcount(args["lvName%d" % i])
             except util.SMException:
                 util.SMlog("on-slave.deactivateNoRefcount failed")
+                raise
         elif action == "refresh":
-            lvmCache.activateNoRefcount(args["lvName%d" % i], True)
+            try: 
+                lvmCache.activateNoRefcount(args["lvName%d" % i], True)
+            except util.CommandException:
+                util.SMlog("on-slave.refresh failed")
+                raise
         elif action == "cleanupLockAndRefcount":
             from refcounter import RefCounter
-
             lock.Lock.cleanup(args["uuid%d" % i], args["ns%d" % i])
             RefCounter.reset(args["uuid%d" % i], args["ns%d" % i])
         else:
