@@ -28,6 +28,7 @@ import vhdutil
 from lock import Lock
 import cleanup
 import XenAPI
+import ipc
 
 CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_CACHING",
                 "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH",
@@ -260,6 +261,18 @@ class NFSSR(FileSR.FileSR):
         util.SMlog("scanning2 (target=%s)" % target)
         dom = nfs.scan_exports(target)
         print >>sys.stderr,dom.toprettyxml()
+
+    def _checkpath(self, path, timeo=10):
+        fn = super(NFSSR, self)._checkpath
+        if timeo:
+            assert isinstance(timeo, (int, long, float))
+            abortTest = lambda:ipc.IPCFlag(self.uuid).test( \
+                    cleanup.FLAG_TYPE_ABORT)
+            return cleanup.Util.runAbortable(lambda: fn(path), True,
+                    os.path.join(self.uuid, "chkpath"), abortTest, 1, timeo)
+        else:
+            return fn(path)
+
 
 class NFSFileVDI(FileSR.FileVDI):
     def attach(self, sr_uuid, vdi_uuid):
