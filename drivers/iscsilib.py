@@ -301,10 +301,12 @@ def get_luns(targetIQN, portal):
     luns=[]
     path = os.path.join("/dev/iscsi",targetIQN,portal)
     try:
+        dom0_disks = util.dom0_disks()
         for file in util.listdir(path):
             if file.find("LUN") == 0 and file.find("_") == -1:
                 lun=file.replace("LUN","")
-                luns.append(lun)
+                if not file in dom0_disks:
+                    luns.append(lun)
         return luns
     except util.CommandException, inst:
         raise xs_errors.XenError('ISCSIDevice', opterr='Failed to find any LUNs')
