@@ -1425,12 +1425,9 @@ class VDI(object):
             util.SMlog("Paused or host_ref key found [%s]" % sm_config)
             return False
         host_key = "host_%s" % host_ref
-        if sm_config.has_key(host_key):
-            util.SMlog("WARNING: host key %s (%s) already there!" % (host_key,
-                    sm_config[host_key]))
-        else:
-            self._session.xenapi.VDI.add_to_sm_config(vdi_ref, host_key,
-                    attach_mode)
+        assert not sm_config.has_key(host_key)
+        self._session.xenapi.VDI.add_to_sm_config(vdi_ref, host_key,
+                                                  attach_mode)
         sm_config = self._session.xenapi.VDI.get_sm_config(vdi_ref)
         if sm_config.has_key('paused'):
             util.SMlog("Found paused key, aborting")
@@ -1452,11 +1449,9 @@ class VDI(object):
         host_ref = self._session.xenapi.host.get_by_uuid(util.get_this_host())
         sm_config = self._session.xenapi.VDI.get_sm_config(vdi_ref)
         host_key = "host_%s" % host_ref
-        if sm_config.has_key(host_key):
-            self._session.xenapi.VDI.remove_from_sm_config(vdi_ref, host_key)
-            util.SMlog("Removed host key %s for %s" % (host_key, vdi_uuid))
-        else:
-            util.SMlog("WARNING: host key %s not found!" % host_key)
+        assert sm_config.has_key(host_key)
+        self._session.xenapi.VDI.remove_from_sm_config(vdi_ref, host_key)
+        util.SMlog("Removed host key %s for %s" % (host_key, vdi_uuid))
 
     def _get_pool_config(self, pool_name):
         pool_info = dict()
