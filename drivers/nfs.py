@@ -21,6 +21,7 @@ import util
 import errno
 import os
 import xml.dom.minidom
+import time
 
 # The algorithm for tcp and udp (at least in the linux kernel) for
 # NFS timeout on softmounts is as follows:
@@ -74,14 +75,32 @@ def check_server_tcp(server, nfsversion=DEFAULT_NFSVERSION):
 def check_server_service(server):
     """Ensure NFS service is up and available on the remote server.
 
-    Raises exception if fails to detect service after 
+    Returns False if fails to detect service after 
     NFS_SERVICE_RETRY * NFS_SERVICE_WAIT
     """
-    util.ioretry(lambda:
-                 util.pread([RPCINFO_BIN, "-t", "%s" % server, "nfs"]),
-                 errlist=[errno.EPERM, errno.EPIPE, errno.EIO],
-                 maxretry=NFS_SERVICE_RETRY, 
-                 period=NFS_SERVICE_WAIT, nofail=True)
+
+    retries = 0
+    errlist = [errno.EPERM, errno.EPIPE, errno.EIO]
+
+    while True:
+        try:
+            services = util.pread([RPCINFO_BIN, "-s", "%s" % server])
+            services = services.split("\n")
+            for i in range(len(services)):
+                if services[i].find("nfs") > 0:
+                    return True
+        except util.CommandException, inst:
+            if not int(inst.code) in errlist:
+                raise
+
+        util.SMlog("NFS service not ready on server %s" % server)
+        retries += 1
+        if retries >= NFS_SERVICE_RETRY:
+            break
+
+        time.sleep(NFS_SERVICE_WAIT)
+
+    return False
 
 
 def validate_nfsversion(nfsversion):
@@ -113,7 +132,9 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
 
     # Wait for NFS service to be available
     try: 
-        check_server_service(remoteserver)
+        if not check_server_service(remoteserver):
+            raise util.CommandException(code=errno.EOPNOTSUPP,
+                    reason="No NFS service on host")
     except util.CommandException, inst: 
         raise NfsException("Failed to detect NFS service on server %s" 
                            % remoteserver)

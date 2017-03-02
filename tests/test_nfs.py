@@ -22,8 +22,7 @@ class Test_nfs(unittest.TestCase):
     def test_check_server_service(self, pread):
         nfs.check_server_service('aServer')
 
-        pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-t', 
-                                       'aServer', 'nfs'])
+        pread.assert_called_with(['/usr/sbin/rpcinfo', '-s', 'aServer'])
 
     def get_soft_mount_pread(self, binary, vers):
         return ([binary, 'remoteserver:remotepath', 'mountpoint', '-o',
