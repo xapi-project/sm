@@ -53,7 +53,7 @@ geneology = {}
 CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_TRIM",
         "VDI_CREATE","VDI_DELETE","VDI_ATTACH", "VDI_DETACH", "VDI_MIRROR",
         "VDI_CLONE", "VDI_SNAPSHOT", "VDI_RESIZE", "ATOMIC_PAUSE",
-        "VDI_RESET_ON_BOOT/2", "VDI_UPDATE"]
+        "VDI_RESET_ON_BOOT/2", "VDI_UPDATE", "VDI_CONFIG_CBT"]
 
 CONFIGURATION = [ ['device', 'local device path (required) (e.g. /dev/sda3)'] ]
 
@@ -1257,6 +1257,9 @@ class LVHDSR(SR.SR):
         util.SMlog("Kicking GC")
         cleanup.gc(self.session, self.uuid, True)
 
+    def ensureCBTSpace(self):
+        # Ensure we have space for at least one LV
+        self._ensureSpaceAvailable(self.journaler.LV_SIZE)
 
         
 class LVHDVDI(VDI.VDI):
@@ -2111,6 +2114,9 @@ class LVHDVDI(VDI.VDI):
         update_map[METADATA_OF_POOL_TAG] = \
             self.session.xenapi.VDI.get_metadata_of_pool(vdi_ref)
         LVMMetadataHandler(self.sr.mdpath).updateMetadata(update_map)
+
+    def _ensure_cbt_space(self):
+        self.sr.ensureCBTSpace()
 
 if __name__ == '__main__':
     SRCommand.run(LVHDSR, DRIVER_INFO)

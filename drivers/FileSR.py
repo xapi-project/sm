@@ -31,8 +31,7 @@ geneology = {}
 CAPABILITIES = ["SR_PROBE","SR_UPDATE", \
                 "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH", \
                 "VDI_CLONE","VDI_SNAPSHOT","VDI_RESIZE", "VDI_MIRROR",
-                "VDI_GENERATE_CONFIG",
-                "ATOMIC_PAUSE"]
+                "VDI_GENERATE_CONFIG", "ATOMIC_PAUSE", "VDI_CONFIG_CBT"]
 
 CONFIGURATION = [ [ 'location', 'local directory path (required)' ] ]
                   
