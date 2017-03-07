@@ -22,6 +22,7 @@ import SR
 import xmlrpclib
 import xs_errors
 import util
+import vhdutil
 
 SM_CONFIG_PASS_THROUGH_FIELDS = ["base_mirror"]
 
@@ -381,4 +382,45 @@ class VDI(object):
                 util.SMlog("sm_config %s <> %s" % (repr(sm_config), repr(x['sm_config'])))
                 return False
         return True
-        
+
+    def configure_blocktracking(self, sr_uuid, vdi_uuid, enable):
+        vdi_ref = self.sr.srcmd.params['vdi_ref']
+
+        # Check if already enabled
+        if self._get_blocktracking_status(vdi_ref) == enable:
+            return
+        # Check if raw VDI or snapshot
+        if self.vdi_type == vhdutil.VDI_TYPE_RAW or \
+            self.session.xenapi.VDI.get_is_a_snapshot(vdi_ref):
+            raise xs_errors.XenError('VDIType',
+                        opterr='Raw VDI or snapshot not permitted')
+
+        # Check available space
+        if enable == 'True':
+            self._ensure_cbt_space()
+
+        # TODO: Flush in-memory BAT to on-disk metadata file 
+
+        # Update database
+        self._set_blocktracking_status(vdi_ref, enable)
+
+    def _ensure_cbt_space(self):
+        pass
+
+    def _get_blocktracking_status(self, vdi_ref):
+        cbt_enabled = 'False'
+        vdi_config = self.session.xenapi.VDI.get_other_config(vdi_ref)
+
+        if "cbt_enabled" in vdi_config:
+            cbt_enabled = vdi_config.get("cbt_enabled")
+
+        return cbt_enabled
+
+    def _set_blocktracking_status(self, vdi_ref, enable):
+        vdi_config = self.session.xenapi.VDI.get_other_config(vdi_ref)
+        if "cbt_enabled" in vdi_config:
+            self.session.xenapi.VDI.remove_from_other_config(
+                                    vdi_ref, "cbt_enabled")
+
+        self.session.xenapi.VDI.add_to_other_config(
+                                    vdi_ref, "cbt_enabled", enable)

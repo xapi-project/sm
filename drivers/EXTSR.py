@@ -29,7 +29,7 @@ CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_SUPPORTS_LOCAL_CACHING", \
                 "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH", \
                 "VDI_UPDATE","VDI_CLONE","VDI_SNAPSHOT","VDI_RESIZE","VDI_MIRROR", \
                 "VDI_GENERATE_CONFIG",                                \
-                "VDI_RESET_ON_BOOT/2","ATOMIC_PAUSE"]
+                "VDI_RESET_ON_BOOT/2","ATOMIC_PAUSE", "VDI_CONFIG_CBT"]
 
 CONFIGURATION = [ [ 'device', 'local device path (required) (e.g. /dev/sda3)' ] ]
                   

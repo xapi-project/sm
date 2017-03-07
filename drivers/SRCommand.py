@@ -31,8 +31,8 @@ NEEDS_VDI_OBJECT = [
         "vdi_update", "vdi_create", "vdi_delete", "vdi_snapshot", "vdi_clone",
         "vdi_resize", "vdi_resize_online", "vdi_attach", "vdi_detach",
         "vdi_activate", "vdi_deactivate", "vdi_attach_from_config", "vdi_detach_from_config",
-        "vdi_generate_config", "vdi_compose",
-        "vdi_epoch_begin", "vdi_epoch_end" ]
+        "vdi_generate_config", "vdi_compose", "vdi_epoch_begin", 
+        "vdi_epoch_end", "vdi_enable_cbt", "vdi_disable_cbt"]
 
 # don't log the commands that spam the log file too much
 NO_LOGGING = {
@@ -298,6 +298,14 @@ class SRCommand:
                 extras['deactivate'] = True
                 extras['caching_params'] = caching_params
             target.detach(self.params['sr_uuid'], self.vdi_uuid, **extras)
+
+        elif self.cmd == 'vdi_enable_cbt':
+            return target.configure_blocktracking(self.params['sr_uuid'], 
+                                                  self.vdi_uuid, True)
+
+        elif self.cmd == 'vdi_disable_cbt':
+            return target.configure_blocktracking(self.params['sr_uuid'], 
+                                                  self.vdi_uuid, False)
 
         elif self.cmd == 'sr_create':
             return sr.create(self.params['sr_uuid'], long(self.params['args'][0]))

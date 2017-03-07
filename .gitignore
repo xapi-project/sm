@@ -13,3 +13,4 @@ unittests/unittest.log
 .coverage
 coverage.xml
 nosetests.xml
+htmlcov
