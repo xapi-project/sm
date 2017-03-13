@@ -4,9 +4,10 @@ set -eu
 
 SMROOT=$(cd $(dirname $0) && cd .. && pwd)
 
+
 (
     cd "$SMROOT"
-    PYTHONPATH="$SMROOT/drivers/" \
+    PYTHONPATH="$SMROOT/tests/mocks:$SMROOT/drivers/" \
         coverage run --branch $(which nosetests) \
             --with-xunit \
             --xunit-file=nosetests.xml \

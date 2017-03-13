@@ -40,7 +40,8 @@ class TestLVHDSR(unittest.TestCase, Stubs):
 
     @mock.patch('lvhdutil.getVDIInfo')
     @mock.patch('LVHDSR.Lock')
-    def test_loadvids(self, mock_lock, mock_getVDIInfo):
+    @mock.patch('SR.XenAPI')
+    def test_loadvids(self, mock_xenapi, mock_lock, mock_getVDIInfo):
         """sr.allVDIs populated by _loadvdis"""
 
         vdi_uuid = 'some VDI UUID'
@@ -55,15 +56,16 @@ class TestLVHDSR(unittest.TestCase, Stubs):
     @mock.patch('lvhdutil.getVDIInfo')
     @mock.patch('journaler.Journaler.getAll')
     @mock.patch('LVHDSR.Lock')
+    @mock.patch('SR.XenAPI')
     def test_undoAllInflateJournals(
             self,
+            mock_xenapi,
             mock_lock,
             mock_getAll,
             mock_getVDIInfo,
             mock_lvhdutil_lvRefreshOnAllSlaves):
         """No LV refresh on slaves when Cleaning up local LVHD SR's journal"""
 
-        self.stubout('XenAPI.xapi_local')
         self.stubout('journaler.Journaler.remove')
         self.stubout('util.zeroOut')
         self.stubout('lvhdutil.deflate')
