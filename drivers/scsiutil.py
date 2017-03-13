@@ -99,11 +99,12 @@ def getSCSIid(path):
             util.CommandException
     """
 
-    try:
-        stdout = util.pread2([SCSI_ID_BIN, '-g', '--device', path])
-    except util.CommandException: # fallback call
-        dev = rawdev(path)
-        stdout = util.pread2([SCSI_ID_BIN, '-g', '-s', '/block/%s' % dev])
+    if not path.startswith('/dev/'):
+        util.SMlog("getSCSIid: fixing invalid input {}".format(path),
+                   priority=util.LOG_WARNING)
+        path = '/dev/' + path.lstrip('/')
+
+    stdout = util.pread2([SCSI_ID_BIN, '-g', '--device', path])
 
     return SCSIid_sanitise(stdout[:-1])
 
