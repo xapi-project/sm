@@ -134,7 +134,7 @@ def getVHDInfoLVM(lvName, extractUuidFunction, vgName):
     return _parseVHDInfo(ret, extractUuidFunction)
 
 def getAllVHDs(pattern, extractUuidFunction, vgName = None, \
-        parentsOnly = False):
+        parentsOnly = False, exitOnError = False):
     vhds = dict()
     cmd = [VHD_UTIL, "scan", "-f", "-c", "-m", pattern]
     if vgName:
@@ -146,7 +146,7 @@ def getAllVHDs(pattern, extractUuidFunction, vgName = None, \
     for line in ret.split('\n'):
         vhdInfo = _parseVHDInfo(line, extractUuidFunction)
         if vhdInfo:
-            if vhdInfo.error != 0:
+            if vhdInfo.error != 0 and exitOnError:
                 # Just return an empty dict() so the scan will be done
                 # again by getParentChain. See CA-177063 for details on
                 # how this has been discovered during the stress tests.
@@ -165,7 +165,7 @@ def getParentChain(lvName, extractUuidFunction, vgName):
             util.SMlog('ERROR: getAllVHDs returned 0 VDIs after %d retries' % retries)
             util.SMlog('ERROR: the VHD metadata might be corrupted')
             break
-        vdis = getAllVHDs(lvName, extractUuidFunction, vgName, True)
+        vdis = getAllVHDs(lvName, extractUuidFunction, vgName, True, True)
         if (not vdis):
             retries = retries + 1
             time.sleep(1)
