@@ -1,19 +1,16 @@
 #!/bin/bash
-set -eux
+#set -eux # for debug only
+set -eu
 
 SMROOT=$(cd $(dirname $0) && cd .. && pwd)
-ENVDIR="$SMROOT/.env"
-
-set +u
-. "$ENVDIR/bin/activate"
-set -u
 
 (
     cd "$SMROOT"
     PYTHONPATH="$SMROOT/drivers/" \
-        coverage run $(which nosetests) \
+        coverage run --branch $(which nosetests) \
             --with-xunit \
             --xunit-file=nosetests.xml \
             tests
     coverage xml --include "$SMROOT/drivers/*"
+    coverage report --include="$SMROOT/drivers/*"
 )

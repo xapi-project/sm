@@ -1,14 +1,15 @@
 #!/bin/bash
-set -eux
+#set -eux # for debug only
+set -eu
 
 SMROOT=$(cd $(dirname $0) && cd .. && pwd)
 ENVDIR="$SMROOT/.env"
 
-if [ "${USE_PYTHON26:-yes}" == "yes" ]; then
-    virtualenv-2.6 --no-site-packages "$ENVDIR"
-else
+#if [ "${USE_PYTHON26:-yes}" == "yes" ]; then
+#    virtualenv-2.6 --no-site-packages "$ENVDIR"
+#else
     virtualenv "$ENVDIR"
-fi
+#fi
 
 set +u
 . "$ENVDIR/bin/activate"
