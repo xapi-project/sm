@@ -1,3 +1,16 @@
+Version 1.17.1 -  21st Mar 2017
+==============================
+  CP-19491: Remove assumption that XenAPI is present and mock
+  CA-234893: sm-multipath.service goes inactive after SM RPM upgrade
+  CP-19247: Fix mpathcount problems affecting scalability test
+  Revert "CA-208229: enable mpathcount filtering by SCSIid"
+  CA-226070: Switched on logging for snapwatchd daemon
+  CP-19491: Track branch coverage and report on coverage at completion
+  CP-19491: Ignore unit test outputs
+  CP-19491: Don't get random text emitted to stderr during the test
+  CP-19491: Run unit tests in RPM build step
+  CA-221768: Use appropriate mount options based on ISO type
+
 Version 1.17.0 -  19th Oct 2016
 ==============================
   CP-18840: Enable leaf coalesce for file SRs
