@@ -20,6 +20,7 @@ class Test_nfs(unittest.TestCase):
 
     @mock.patch('util.pread')
     def test_check_server_service(self, pread):
+        pread.side_effect=["    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
         nfs.check_server_service('aServer')
 
         pread.assert_called_with(['/usr/sbin/rpcinfo', '-s', 'aServer'])
