@@ -25,6 +25,8 @@ fi
             --with-xunit \
             --xunit-file=nosetests.xml \
             tests
-    coverage xml --include "$SMROOT/drivers/*"
-    coverage report --include="$SMROOT/drivers/*"
+
+    for format in xml html report; do
+        coverage $format --include="$SMROOT/*" --omit="$SMROOT/.env/*,tests/mocks/*"
+    done
 )
