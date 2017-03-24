@@ -353,7 +353,7 @@ class BaseISCSISR(SR.SR):
                             # Exceptions thrown in login are acknowledged, 
                             # the rest of exceptions are ignored since some of the
                             # paths in multipath may not be reachable
-                            if str(e) == 'ISCSI login failed, verify CHAP credentials':
+                            if str(e).startswith('ISCSI login'): 
                                 raise
                             else:
                                 pass

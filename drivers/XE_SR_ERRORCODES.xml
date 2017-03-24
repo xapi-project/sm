@@ -256,7 +256,7 @@
         </code>
         <code>
                 <name>ISCSILogin</name>
-                <description>ISCSI login failed, verify CHAP credentials</description>
+                <description>ISCSI login failed - check access settings for the initiator on the storage, if CHAP is used verify CHAP credentials</description>
                 <value>68</value>
         </code>
         <code>
