@@ -1,8 +1,9 @@
-import unittest
-import nfs
+import errno
 import mock
+import nfs
 import sys
-
+import unittest
+import util
 
 class Test_nfs(unittest.TestCase):
 
@@ -18,12 +19,55 @@ class Test_nfs(unittest.TestCase):
 
         pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-p', 'aServer'], quiet=False)
 
+    @mock.patch('time.sleep')
     @mock.patch('util.pread')
-    def test_check_server_service(self, pread):
+    def test_check_server_service(self, pread, sleep):
         pread.side_effect=["    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
-        nfs.check_server_service('aServer')
+        service_found = nfs.check_server_service('aServer')
 
+        assert service_found
+        assert len(pread.mock_calls) == 1
         pread.assert_called_with(['/usr/sbin/rpcinfo', '-s', 'aServer'])
+        sleep.assert_not_called()
+
+    @mock.patch('time.sleep')
+    @mock.patch('util.pread')
+    def test_check_server_service_with_retries(self, pread, sleep):
+        pread.side_effect=["",
+                           "",
+                           "    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
+        service_found = nfs.check_server_service('aServer')
+
+        assert service_found
+        assert len(pread.mock_calls) == 3
+        pread.assert_called_with(['/usr/sbin/rpcinfo', '-s', 'aServer'])
+
+    @mock.patch('time.sleep')
+    @mock.patch('util.pread')
+    def test_check_server_service_not_available(self, pread, sleep):
+        pread.return_value=""
+
+        service_found= nfs.check_server_service('aServer')
+
+        assert not service_found
+
+    @mock.patch('time.sleep')
+    @mock.patch('util.pread')
+    def test_check_server_service_exception(self, pread, sleep):
+        pread.side_effect=[util.CommandException(errno.ENOMEM)]
+        with self.assertRaises(util.CommandException):
+            nfs.check_server_service('aServer')
+
+
+    @mock.patch('time.sleep')
+    @mock.patch('util.pread')
+    def test_check_server_service_first_call_exception(self, pread, sleep):
+        pread.side_effect=[util.CommandException(errno.EPIPE),
+                            "    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
+        service_found = nfs.check_server_service('aServer')
+
+        assert service_found
+        assert len(pread.mock_calls) == 2
 
     def get_soft_mount_pread(self, binary, vers):
         return ([binary, 'remoteserver:remotepath', 'mountpoint', '-o',
