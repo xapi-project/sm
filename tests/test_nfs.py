@@ -25,8 +25,8 @@ class Test_nfs(unittest.TestCase):
         pread.side_effect=["    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
         service_found = nfs.check_server_service('aServer')
 
-        assert service_found
-        assert len(pread.mock_calls) == 1
+        self.assertTrue(service_found)
+        self.assertEqual(len(pread.mock_calls), 1)
         pread.assert_called_with(['/usr/sbin/rpcinfo', '-s', 'aServer'])
         sleep.assert_not_called()
 
@@ -38,8 +38,8 @@ class Test_nfs(unittest.TestCase):
                            "    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
         service_found = nfs.check_server_service('aServer')
 
-        assert service_found
-        assert len(pread.mock_calls) == 3
+        self.assertTrue(service_found)
+        self.assertEqual(len(pread.mock_calls), 3)
         pread.assert_called_with(['/usr/sbin/rpcinfo', '-s', 'aServer'])
 
     @mock.patch('time.sleep')
@@ -47,9 +47,9 @@ class Test_nfs(unittest.TestCase):
     def test_check_server_service_not_available(self, pread, sleep):
         pread.return_value=""
 
-        service_found= nfs.check_server_service('aServer')
+        service_found = nfs.check_server_service('aServer')
 
-        assert not service_found
+        self.assertFalse(service_found)
 
     @mock.patch('time.sleep')
     @mock.patch('util.pread')
@@ -66,8 +66,8 @@ class Test_nfs(unittest.TestCase):
                             "    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
         service_found = nfs.check_server_service('aServer')
 
-        assert service_found
-        assert len(pread.mock_calls) == 2
+        self.assertTrue(service_found)
+        self.assertEqual(len(pread.mock_calls), 2)
 
     def get_soft_mount_pread(self, binary, vers):
         return ([binary, 'remoteserver:remotepath', 'mountpoint', '-o',
