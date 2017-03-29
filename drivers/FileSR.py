@@ -25,6 +25,7 @@ import xml.dom.minidom
 import xs_errors
 import cleanup
 import blktap2
+import time
 import XenAPI
 from lock import Lock
 import xmlrpclib
@@ -403,6 +404,31 @@ class FileVDI(VDI.VDI):
     SNAPSHOT_DOUBLE = 2 # regular snapshot/clone that creates 2 leaves
     SNAPSHOT_INTERNAL = 3 # SNAPSHOT_SINGLE but don't update SR's virtual allocation
 
+    def _find_path_with_retries(self, vdi_uuid, maxretry=5, period=2.0):
+        vhd_path = os.path.join(self.sr.path, "%s.%s" % \
+                                (vdi_uuid, self.PARAM_VHD))
+        raw_path = os.path.join(self.sr.path, "%s.%s" % \
+                                (vdi_uuid, self.PARAM_RAW))
+        found = False
+        tries = 0
+        while tries < maxretry and not found:
+            tries += 1
+            if util.ioretry(lambda: util.pathexists(vhd_path)):
+                self.vdi_type = vhdutil.VDI_TYPE_VHD
+                self.path = vhd_path
+                found = True
+            elif util.ioretry(lambda: util.pathexists(raw_path)):
+                self.vdi_type = vhdutil.VDI_TYPE_RAW
+                self.path = raw_path
+                self.hidden = False
+                found = True
+
+            if not found:
+                util.SMlog("VHD %s not found, retry %s of %s" % (vhd_path, tries, maxretry))
+                time.sleep(period)
+
+        return found
+
     def load(self, vdi_uuid):
         self.lock = self.sr.lock
 
@@ -420,22 +446,13 @@ class FileVDI(VDI.VDI):
             self.path = os.path.join(self.sr.path, "%s%s" % \
                     (vdi_uuid, vhdutil.FILE_EXTN[self.vdi_type]))
         else:
-            vhd_path = os.path.join(self.sr.path, "%s.%s" % \
-                    (vdi_uuid, self.PARAM_VHD))
-            if util.ioretry(lambda: util.pathexists(vhd_path)):
-                self.vdi_type = vhdutil.VDI_TYPE_VHD
-                self.path = vhd_path
-            else:
-                raw_path = os.path.join(self.sr.path, "%s.%s" % \
-                        (vdi_uuid, self.PARAM_RAW))
-                self.vdi_type = vhdutil.VDI_TYPE_RAW
-                self.path = raw_path
-                self.hidden = False
-                if not util.ioretry(lambda: util.pathexists(self.path)):
-                    if self.sr.srcmd.cmd == "vdi_attach_from_config":
-                        return
-                    raise xs_errors.XenError('VDIUnavailable',
-                            opterr="%s not found" % self.path)
+            found = self._find_path_with_retries(vdi_uuid)
+            if not found:
+                if self.sr.srcmd.cmd == "vdi_attach_from_config":
+                    return
+                raise xs_errors.XenError('VDIUnavailable',
+                                         opterr="VDI %s not found" % vdi_uuid)
+
 
         if self.vdi_type == vhdutil.VDI_TYPE_VHD and \
                 self.sr.__dict__.get("vhds") and self.sr.vhds.get(vdi_uuid):
