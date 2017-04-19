@@ -300,6 +300,14 @@ class SRCommand:
                 extras['caching_params'] = caching_params
             target.detach(self.params['sr_uuid'], self.vdi_uuid, **extras)
 
+        elif self.cmd == 'vdi_detach_from_config':
+            extras= {}
+            if target.sr.driver_config.get("ATTACH_FROM_CONFIG_WITH_TAPDISK"):
+                target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
+                extras['deactivate'] = True
+                extras['caching_params'] = caching_params
+            target.detach(self.params['sr_uuid'], self.vdi_uuid, **extras)
+
         elif self.cmd == 'sr_create':
             return sr.create(self.params['sr_uuid'], long(self.params['args'][0]))
 
