@@ -411,13 +411,16 @@ class TapCtl(object):
         cls._pread(args)
 
     @classmethod
-    def unpause(cls, pid, minor, _type = None, _file = None, mirror = None):
+    def unpause(cls, pid, minor, _type = None, _file = None, mirror = None, 
+                cbtlog = None):
         args = [ "unpause", "-p", pid, "-m", minor ]
         if mirror:
             args.extend(["-2", mirror])
         if _type and _file:
             params = Tapdisk.Arg(_type, _file)
             args  += [ "-a", str(params) ]
+        if cbtlog:
+            args.extend(["-c", cbtlog])
         cls._pread(args)
 
     @classmethod
@@ -852,7 +855,7 @@ class Tapdisk(object):
 
         self._set_dirty()
 
-    def unpause(self, _type=None, path=None, mirror=None):
+    def unpause(self, _type=None, path=None, mirror=None, cbtlog = None):
 
         if not self.is_paused():
             raise TapdiskInvalidState(self)
@@ -861,7 +864,8 @@ class Tapdisk(object):
         if _type is None: _type = self.type
         if  path is None:  path = self.path
 
-        TapCtl.unpause(self.pid, self.minor, _type, path, mirror=mirror)
+        TapCtl.unpause(self.pid, self.minor, _type, path, mirror=mirror, 
+                       cbtlog=cbtlog)
 
         self._set_dirty()
 
@@ -1368,7 +1372,8 @@ class VDI(object):
         return True
 
     @classmethod
-    def tap_refresh(cls, session, sr_uuid, vdi_uuid, activate_parents = False):
+    def tap_refresh(cls, session, sr_uuid, vdi_uuid, activate_parents = False, 
+                    cbtlog = None):
         util.SMlog("Refresh request for %s" % vdi_uuid)
         vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
         sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
@@ -1376,14 +1381,16 @@ class VDI(object):
             host_ref = key[len('host_'):]
             util.SMlog("Calling tap-refresh on host %s" % host_ref)
             if not cls.call_pluginhandler(session, host_ref,
-                    sr_uuid, vdi_uuid, "refresh", None, activate_parents):
+                       sr_uuid, vdi_uuid, "refresh", None, 
+                       activate_parents=activate_parents, cbtlog=cbtlog):
                 # Failed to refresh node
                 return False
         return True
 
     @classmethod
     def call_pluginhandler(cls, session, host_ref, sr_uuid, vdi_uuid, action,
-            secondary = None, activate_parents = False, failfast=False):
+            secondary = None, activate_parents = False, failfast=False,
+            cbtlog = None):
         """Optionally, activate the parent LV before unpausing"""
         try:
             args = {"sr_uuid":sr_uuid, "vdi_uuid":vdi_uuid,
@@ -1392,6 +1399,8 @@ class VDI(object):
                 args["secondary"] = secondary
             if activate_parents:
                 args["activate_parents"] = "true"
+            if cbtlog:
+                args["cbtlog"] = cbtlog
             ret = session.xenapi.host.call_plugin(
                     host_ref, PLUGIN_TAP_PAUSE, action,
                     args)

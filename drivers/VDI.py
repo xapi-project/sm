@@ -384,6 +384,7 @@ class VDI(object):
         return True
 
     def configure_blocktracking(self, sr_uuid, vdi_uuid, enable):
+        import blktap2
         vdi_ref = self.sr.srcmd.params['vdi_ref']
 
         # Check if already enabled
@@ -399,7 +400,10 @@ class VDI(object):
         if enable == 'True':
             self._ensure_cbt_space()
 
-        # TODO: Flush in-memory BAT to on-disk metadata file 
+        #TODO: Create and pass CBT log file
+        refreshed = blktap2.VDI.tap_refresh(self.session, sr_uuid, vdi_uuid)
+        if not refreshed:
+            raise xs_errors.XenError('CBTActivateFailed')
 
         # Update database
         self._set_blocktracking_status(vdi_ref, enable)
