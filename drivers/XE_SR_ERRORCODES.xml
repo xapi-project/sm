@@ -826,5 +826,10 @@
             <value>456</value>
         </code>
 
+        <code>
+            <name>CBTActivateFailed</name>
+            <description>Unable to activate changed block tracking.</description>
+            <value>457</value>
+        </code>
 
 </SM-errorcodes>
