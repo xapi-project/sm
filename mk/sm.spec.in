@@ -325,6 +325,9 @@ tests/run_python_unittests.sh
 /opt/xensource/sm/constants.py
 /opt/xensource/sm/constants.pyc
 /opt/xensource/sm/constants.pyo
+/opt/xensource/sm/cbtutil.py
+/opt/xensource/sm/cbtutil.pyc
+/opt/xensource/sm/cbtutil.pyo
 /sbin/mpathutil
 /etc/rc.d/init.d/sm-multipath
 %{_unitdir}/make-dummy-sr.service

@@ -2118,6 +2118,18 @@ class LVHDVDI(VDI.VDI):
     def _ensure_cbt_space(self):
         self.sr.ensureCBTSpace()
 
+    def _create_cbt_log(self):
+        logName = self._get_cbt_logname()
+        #Handle if file already exists
+        lvutil.create(logName, self.sr.journaler.LV_SIZE,
+                      self.sr.vgname, VDI.CBTLOG_TAG)
+        return super(LVHDVDI, self)._create_cbt_log()
+
+    def _delete_cbt_log(self):
+        logPath = self._get_cbt_logpath()
+        if(lvutil.exists(logPath)):
+            lvutil.remove(logPath)
+
 if __name__ == '__main__':
     SRCommand.run(LVHDSR, DRIVER_INFO)
 else:

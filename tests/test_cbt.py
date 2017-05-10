@@ -12,7 +12,6 @@ class TestVDI(VDI.VDI):
     def load(self, vdi_uuid):
         self.vdi_type = vhdutil.VDI_TYPE_VHD
         self._state_mock = mock.Mock()
-        ## TODO: Set self.path to something useful
         self.path = "/mock/sr_path/" + str(vdi_uuid)
 
     @property
@@ -39,19 +38,21 @@ class TestCBT(unittest.TestCase):
     @testlib.with_context
     @mock.patch('blktap2.VDI')
     @mock.patch('VDI.util')
-    def test_configure_blocktracking_enable_success(self, context, mock_util, mock_bt_vdi):
+    @mock.patch('VDI.cbtutil')
+    def test_configure_blocktracking_enable_success(self, context, mock_cbt, mock_util, mock_bt_vdi):
         context.setup_error_codes()
 
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
 
         self._set_initial_state(mock_util, False)
+        # Set _create_cbt_log return value
 
         self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
-        self._check_setting_state(True)
+        logfile = self._check_setting_state(True)
         ## Check that metadata update calls made
-        self._check_tapdisk_paused_and_resumed(mock_bt_vdi)
+        self._check_tapdisk_paused_and_resumed(mock_bt_vdi, logfile)
 
     @testlib.with_context
     @mock.patch('blktap2.VDI')
@@ -98,8 +99,8 @@ class TestCBT(unittest.TestCase):
 
         self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, False)
 
-        self._check_setting_state(False)
-        self._check_tapdisk_paused_and_resumed(mock_bt_vdi)
+        logfile = self._check_setting_state(False)
+        self._check_tapdisk_paused_and_resumed(mock_bt_vdi, logfile)
 
     @testlib.with_context
     @mock.patch('blktap2.VDI')
@@ -142,13 +143,15 @@ class TestCBT(unittest.TestCase):
     @testlib.with_context
     @mock.patch('blktap2.VDI')
     @mock.patch('VDI.util')
-    def test_configure_blocktracking_enable_refresh_fail(self, context, mock_util, mock_bt_vdi):
+    @mock.patch('VDI.cbtutil')
+    def test_configure_blocktracking_enable_refresh_fail(self, context, mock_cbt, mock_util, mock_bt_vdi):
         context.setup_error_codes()
 
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
 
         self._set_initial_state(mock_util, False)
+        # Set _create_cbt_log return value
         mock_bt_vdi.tap_refresh.return_value = False
 
         with self.assertRaises(SR.SROSError):
@@ -199,15 +202,18 @@ class TestCBT(unittest.TestCase):
             mock_util.pathexists.return_value = False
 
     def _check_setting_state(self, cbt_enabled):
-        #self.xenapi.VDI.add_to_other_config.assert_called_with(mock.ANY, "cbt_enabled", cbt_enabled)
-        pass
+        logfile = None
+        #TODO: Check that it actually creates a file on enable
+        # logfile = None (on disable)
+        # or logfile = sr.path/vdi_uuid.CBTLOG_TAG
+        return logfile
 
     def _check_setting_not_changed(self):
         #self.xenapi.VDI.add_to_other_config.assert_not_called()
         pass
 
-    def _check_tapdisk_paused_and_resumed(self, check_mock):
-        check_mock.tap_refresh.assert_called_with(mock.ANY, self.sr_uuid, self.vdi_uuid)
+    def _check_tapdisk_paused_and_resumed(self, check_mock, logfile):
+        check_mock.tap_refresh.assert_called_with(self.sr.session, self.sr_uuid, self.vdi_uuid, cbtlog=logfile)
         check_mock.tap_pause.assert_not_called()
         check_mock.tap_unpause.assert_not_called()
 
