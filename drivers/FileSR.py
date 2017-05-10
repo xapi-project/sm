@@ -963,6 +963,24 @@ class FileVDI(VDI.VDI):
                 opterr='Unable to attach from config'
             )
 
+    def _create_cbt_log(self):
+        # Create CBT log file
+        # Name: <vdi_uuid>.cbtlog
+        #Handle if file already exists
+        logPath = self._get_cbt_logpath()
+        f = open(logPath, "w+")
+        f.close()
+        return super(FileVDI, self)._create_cbt_log()
+
+    def _delete_cbt_log(self):
+        logPath = self._get_cbt_logpath()
+        try:
+            os.remove(logPath)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
+
+
 if __name__ == '__main__':
     SRCommand.run(FileSR, DRIVER_INFO)
 else:

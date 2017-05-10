@@ -23,8 +23,11 @@ import xmlrpclib
 import xs_errors
 import util
 import vhdutil
+import cbtutil
+import os
 
 SM_CONFIG_PASS_THROUGH_FIELDS = ["base_mirror"]
+CBTLOG_TAG = "cbtlog"
 
 def VDIMetadataSize(type, virtualsize):
     size = 0
@@ -387,43 +390,48 @@ class VDI(object):
         import blktap2
         vdi_ref = self.sr.srcmd.params['vdi_ref']
 
-        print "VDI Checking status"
-
-        # Check if already enabled
-        if self._get_blocktracking_status(vdi_uuid) == enable:
-            return
         # Check if raw VDI or snapshot
         if self.vdi_type == vhdutil.VDI_TYPE_RAW or \
             self.session.xenapi.VDI.get_is_a_snapshot(vdi_ref):
             raise xs_errors.XenError('VDIType',
                         opterr='Raw VDI or snapshot not permitted')
 
-        print "VDI Checking space"
+        # Check if already enabled
+        if self._get_blocktracking_status(vdi_uuid) == enable:
+            return
 
-        # Check available space
+        logfile = None
         if enable:
-            self._ensure_cbt_space()
-            #TODO: Create and pass CBT log file
+            try:
+                # Check available space
+                self._ensure_cbt_space()
+                logfile = self._create_cbt_log()
+            except Exception as e:
+                self._delete_cbt_log()
+                raise xs_errors.XenError('CBTActivateFailed', opterr=str(e))
 
-        print "VDI Refreshing tapdisk, {0}, {1}".format(sr_uuid, vdi_uuid)
-
-        refreshed = blktap2.VDI.tap_refresh(self.session, sr_uuid, vdi_uuid)
+        refreshed = blktap2.VDI.tap_refresh(self.session, sr_uuid,
+                                            vdi_uuid, cbtlog=logfile)
         if not refreshed:
+            if enable:
+                self._delete_cbt_log()
             raise xs_errors.XenError('CBTActivateFailed')
 
-        print "VDI Refreshed tapdisk, {0}, {1}".format(sr_uuid, vdi_uuid)
+        #TODO: This needs to be done before tapdisk is refreshed. But then again,
+        #file cannot be deleted while tapdisk is using it. Split tapdisk refresh into
+        #Tapdisk pause, file delete, tapdisk unpause?
+        if not enable:
+            try:
+                self._delete_cbt_log()
+            except Exception as e:
+                raise xs_errors.XenError('CBTDeactivateFailed', str(e))
 
         # Update database
-        self._set_blocktracking_status(vdi_ref, enable)
-
-    def _ensure_cbt_space(self):
-        pass
+        #self._set_blocktracking_status(vdi_ref, enable)
 
     def _get_blocktracking_status(self, vdi_uuid):
-        ## Change this to check for metadata
-        name = self.path + ".cbt_log"
-
-        return util.pathexists(name)
+        logpath = self._get_cbt_logpath()
+        return util.pathexists(logpath)
 
     def _set_blocktracking_status(self, vdi_ref, enable):
         vdi_config = self.session.xenapi.VDI.get_other_config(vdi_ref)
@@ -433,3 +441,33 @@ class VDI(object):
 
         self.session.xenapi.VDI.add_to_other_config(
                                     vdi_ref, "cbt_enabled", enable)
+
+    def _ensure_cbt_space(self):
+        pass
+
+    def _get_cbt_logname(self):
+        logName = "%s.%s" % (self.uuid, CBTLOG_TAG)
+        return logName
+
+    def _get_cbt_logpath(self):
+        logName = self._get_cbt_logname()
+        return os.path.join(self.sr.path, logName)
+
+    def _delete_cbt_log(self):
+        pass
+
+    def _create_cbt_log(self):
+        try:
+            logpath = self._get_cbt_logpath()
+            vdi_ref = self.sr.srcmd.params['vdi_ref']
+            size = self.session.xenapi.VDI.get_virtual_size(vdi_ref)
+            cbtutil.createCBTLog(logpath, size)
+        except Exception as e:
+            try:
+                self._delete_cbt_log()
+            except:
+                pass
+            finally:
+                raise e
+
+        return logpath
