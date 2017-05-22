@@ -53,7 +53,7 @@ geneology = {}
 CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_TRIM",
         "VDI_CREATE","VDI_DELETE","VDI_ATTACH", "VDI_DETACH", "VDI_MIRROR",
         "VDI_CLONE", "VDI_SNAPSHOT", "VDI_RESIZE", "ATOMIC_PAUSE",
-        "VDI_RESET_ON_BOOT/2", "VDI_UPDATE", "VDI_CONFIG_CBT"]
+        "VDI_RESET_ON_BOOT/2", "VDI_UPDATE", "VDI_CONFIG_CBT", "VDI_DEACTIVATE"]
 
 CONFIGURATION = [ ['device', 'local device path (required) (e.g. /dev/sda3)'] ]
 
