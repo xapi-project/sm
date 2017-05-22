@@ -282,8 +282,10 @@ class VDI(object):
         raise xs_errors.XenError('Unimplemented')
 
     def deactivate(self, sr_uuid, vdi_uuid):
-        """To be fleshed out soon..."""
-        raise xs_errors.XenError('Unimplemented')
+        """Deactivate VDI - called post tapdisk close"""
+        if self._get_blocktracking_status():
+            logpath = self._get_cbt_logpath()
+            cbtutil.setCBTConsistency(logpath, True)
 
     def get_params(self):
         """
@@ -397,7 +399,7 @@ class VDI(object):
                         opterr='Raw VDI or snapshot not permitted')
 
         # Check if already enabled
-        if self._get_blocktracking_status(vdi_uuid) == enable:
+        if self._get_blocktracking_status() == enable:
             return
 
         logfile = None
@@ -429,7 +431,7 @@ class VDI(object):
         # Update database
         #self._set_blocktracking_status(vdi_ref, enable)
 
-    def _get_blocktracking_status(self, vdi_uuid):
+    def _get_blocktracking_status(self):
         logpath = self._get_cbt_logpath()
         return util.pathexists(logpath)
 

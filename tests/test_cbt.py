@@ -21,7 +21,7 @@ class TestVDI(VDI.VDI):
     def state_mock(self):
         return self._state_mock
 
-    def _get_blocktracking_status(self, vdi_uuid):
+    def _get_blocktracking_status(self):
         return self.block_tracking_state
 
     def _ensure_cbt_space(self):
@@ -237,7 +237,7 @@ class TestCBT(unittest.TestCase):
         vdi.block_tracking_state = cbt_enabled
 
     def _check_setting_state(self, vdi, cbt_enabled):
-        self.assertEquals(vdi._get_blocktracking_status(self.vdi_uuid), cbt_enabled)
+        self.assertEquals(vdi._get_blocktracking_status(), cbt_enabled)
         if cbt_enabled:
             return vdi._get_cbt_logpath()
         else:
