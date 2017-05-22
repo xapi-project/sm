@@ -56,8 +56,8 @@ class TestCBT(unittest.TestCase):
         self.sr.session.xenapi = self.xenapi
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI')
-    @mock.patch('VDI.cbtutil')
+    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('VDI.cbtutil', autospec=True)
     def test_configure_blocktracking_enable_success(self, context, mock_cbt, mock_bt_vdi):
         context.setup_error_codes()
 
@@ -71,8 +71,8 @@ class TestCBT(unittest.TestCase):
         self._check_tapdisk_paused_and_resumed(mock_bt_vdi, logfile)
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI')
-    @mock.patch('VDI.cbtutil')
+    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('VDI.cbtutil', autospec=True)
     def test_configure_blocktracking_enable_already_enabled(self, context, mock_cbt, mock_bt_vdi):
         context.setup_error_codes()
 
@@ -86,7 +86,7 @@ class TestCBT(unittest.TestCase):
         self._check_tapdisk_not_modified(mock_bt_vdi)
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI')
+    @mock.patch('blktap2.VDI', autospec=True)
     def test_configure_blocktracking_disable_when_enabled(self, context, mock_bt_vdi):
         context.setup_error_codes()
 
@@ -101,7 +101,7 @@ class TestCBT(unittest.TestCase):
         self._check_tapdisk_paused_and_resumed(mock_bt_vdi, logfile)
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI')
+    @mock.patch('blktap2.VDI', autospec=True)
     def test_configure_blocktracking_disable_already_disabled(self, context, mock_bt_vdi):
         context.setup_error_codes()
 
@@ -138,9 +138,9 @@ class TestCBT(unittest.TestCase):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI')
-    @mock.patch('VDI.util')
-    @mock.patch('VDI.cbtutil')
+    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('VDI.util', autospec=True)
+    @mock.patch('VDI.cbtutil', autospec=True)
     def test_configure_blocktracking_enable_refresh_fail(self, context, mock_cbt, mock_util, mock_bt_vdi):
         context.setup_error_codes()
 
@@ -154,8 +154,8 @@ class TestCBT(unittest.TestCase):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI')
-    @mock.patch('VDI.util')
+    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('VDI.util', autospec=True)
     def test_configure_blocktracking_disable_refresh_fail(self, context, mock_util, mock_bt_vdi):
         context.setup_error_codes()
 
@@ -169,7 +169,7 @@ class TestCBT(unittest.TestCase):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, False)
 
     @testlib.with_context
-    @mock.patch('VDI.util')
+    @mock.patch('VDI.util', autospec=True)
     def test_configure_blocktracking_enable_metadata_no_space(self, context, mock_util):
         context.setup_error_codes()
 
@@ -183,8 +183,8 @@ class TestCBT(unittest.TestCase):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI')
-    @mock.patch('VDI.cbtutil')
+    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('VDI.cbtutil', autospec=True)
     def test_configure_blocktracking_enable_metadata_creation_fail(self, context, mock_cbt, mock_bt_vdi):
         context.setup_error_codes()
 
@@ -200,8 +200,8 @@ class TestCBT(unittest.TestCase):
         self._check_setting_state(self.vdi, False)
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI')
-    @mock.patch('VDI.cbtutil')
+    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('VDI.cbtutil', autospec=True)
     def test_configure_blocktracking_enable_metadata_initialisation_fail(self, context, mock_cbt, mock_bt_vdi):
         context.setup_error_codes()
 
@@ -217,7 +217,7 @@ class TestCBT(unittest.TestCase):
         self._check_setting_state(self.vdi, False)
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI')
+    @mock.patch('blktap2.VDI', autospec=True)
     def test_configure_blocktracking_disable_metadata_deletion_fail(self, context, mock_bt_vdi):
         context.setup_error_codes()
 
