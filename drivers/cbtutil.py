@@ -25,17 +25,17 @@ CBT_UTIL = "/usr/sbin/cbt-util"
 def createCBTLog(fileName, size):
     """Create and initialise log file for tracking changed blocks"""
     cmd = [CBT_UTIL, "create", "-n", fileName, "-s", str(size)]
-    util.ioretry(lambda: util.pread2(cmd))
+    _callCBTUtil(cmd)
 
 def setCBTParent(fileName, parentUuid):
     """Set parent field in log file"""
     cmd = [CBT_UTIL, "set", "-n", fileName, "-p", str(parentUuid)]
-    util.ioretry(lambda: util.pread2(cmd))
+    _callCBTUtil(cmd)
 
 def setCBTChild(fileName, childUuid):
     """Set child field in log file"""
     cmd = [CBT_UTIL, "set", "-n", fileName, "-c", str(childUuid)]
-    util.ioretry(lambda: util.pread2(cmd))
+    _callCBTUtil(cmd)
 
 def setCBTConsistency(fileName, consistent):
     """Set consistency field in log file"""
@@ -44,4 +44,13 @@ def setCBTConsistency(fileName, consistent):
     else:
         flag = 0
     cmd = [CBT_UTIL, "set", "-n", fileName, "-f", str(flag)]
-    util.ioretry(lambda: util.pread2(cmd))
+    _callCBTUtil(cmd)
+
+def getCBTConsistency(fileName):
+    """Get consistency field from log file"""
+    cmd = [CBT_UTIL, "get", "-n", fileName, "-f"]
+    ret =  _callCBTUtil(cmd)
+    return bool(int(ret.strip()))
+
+def _callCBTUtil(cmd):
+    return util.ioretry(lambda: util.pread2(cmd))

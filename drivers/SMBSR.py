@@ -30,7 +30,8 @@ CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_CACHING",
                 "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH",
                 "VDI_UPDATE", "VDI_CLONE","VDI_SNAPSHOT","VDI_RESIZE","VDI_MIRROR",
                 "VDI_GENERATE_CONFIG",
-                "VDI_RESET_ON_BOOT/2", "ATOMIC_PAUSE", "VDI_CONFIG_CBT"]
+                "VDI_RESET_ON_BOOT/2", "ATOMIC_PAUSE", "VDI_CONFIG_CBT",
+                "VDI_ACTIVATE", "VDI_DEACTIVATE"]
 
 CONFIGURATION = [ [ 'server', 'Full path to share root on SMB server (required)' ], \
                   [ 'username', 'The username to be used during SMB authentication' ], \

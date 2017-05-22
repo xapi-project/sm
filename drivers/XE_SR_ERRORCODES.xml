@@ -836,6 +836,11 @@
             <description>Unable to deactivate changed block tracking.</description>
             <value>458</value>
         </code>
+        <code>
+            <name>CBTMetadataInconsistent</name>
+            <description>Changed block tracking log is in an inconsistent state.</description>
+            <value>459</value>
+        </code>
 
 
 </SM-errorcodes>

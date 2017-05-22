@@ -397,6 +397,8 @@ class TapCtl(object):
             args.append(str(options["timeout"]))
         if not options.get("o_direct", True):
             args.append("-D")
+        if options.get('cbtlog'):
+            args.extend(['-c', options['cbtlog']])
         cls._pread(args)
 
     @classmethod
@@ -1116,7 +1118,7 @@ class VDI(object):
 
         def activate(self, sr_uuid, vdi_uuid):
             if self.has_cap("VDI_ACTIVATE"):
-                self.vdi.activate(sr_uuid, vdi_uuid)
+                return self.vdi.activate(sr_uuid, vdi_uuid)
 
         def deactivate(self, sr_uuid, vdi_uuid):
             if self.has_cap("VDI_DEACTIVATE"):
@@ -1617,7 +1619,7 @@ class VDI(object):
         return True
     
     def _activate(self, sr_uuid, vdi_uuid, options):
-        self.target.activate(sr_uuid, vdi_uuid)
+        vdi_options = self.target.activate(sr_uuid, vdi_uuid)
 
         dev_path = self.setup_cache(sr_uuid, vdi_uuid, options)
         if not dev_path:
@@ -1626,6 +1628,8 @@ class VDI(object):
             if self.tap_wanted():
                 vdi_type = self.target.get_vdi_type()
                 options["o_direct"] = self.get_o_direct_capability(options)[0]
+                if vdi_options:
+                    options.update(vdi_options)
                 dev_path = self._tap_activate(phy_path, vdi_type, sr_uuid,
                         options,
                         self._get_pool_config(sr_uuid).get("mem-pool-size"))
