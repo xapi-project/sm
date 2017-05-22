@@ -278,8 +278,16 @@ class VDI(object):
         raise xs_errors.XenError('Unimplemented')
 
     def activate(self, sr_uuid, vdi_uuid):
-        """To be fleshed out soon..."""
-        raise xs_errors.XenError('Unimplemented')
+        """Activate VDI - called pre tapdisk open"""
+        if self._get_blocktracking_status():
+            logpath = self._get_cbt_logpath()
+            consistent = cbtutil.getCBTConsistency(logpath)
+            if not consistent:
+                raise xs_errors.XenError('CBTMetadataInconsistent')
+            #TODO: Check if this is the right place
+            cbtutil.setCBTConsistency(logpath, False) 
+            return {'cbtlog': logpath}
+        return None
 
     def deactivate(self, sr_uuid, vdi_uuid):
         """Deactivate VDI - called post tapdisk close"""
@@ -464,6 +472,7 @@ class VDI(object):
             vdi_ref = self.sr.srcmd.params['vdi_ref']
             size = self.session.xenapi.VDI.get_virtual_size(vdi_ref)
             cbtutil.createCBTLog(logpath, size)
+            cbtutil.setCBTConsistency(logpath, True)
         except Exception as e:
             try:
                 self._delete_cbt_log()

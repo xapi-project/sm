@@ -31,11 +31,13 @@ class TestVDI(VDI.VDI):
     def _get_cbt_logpath(self):
         super(TestVDI, self)._get_cbt_logpath()
         self.state_mock._get_cbt_logpath()
+        return "{0}.log".format(self.path)
 
     def _create_cbt_log(self):
         logpath = super(TestVDI, self)._create_cbt_log()
         self.state_mock._create_cbt_log()
         self.block_tracking_state = True
+        return logpath
 
     def _delete_cbt_log(self):
         super(TestVDI, self)._delete_cbt_log()
@@ -231,6 +233,51 @@ class TestCBT(unittest.TestCase):
 
         #self._check_tapdisk_not_modified(mock_bt_vdi)
         self._check_setting_state(self.vdi, True)
+
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    def test_activate_no_tracking_success(self, context, mock_cbt):
+        context.setup_error_codes()
+
+        # Create the test object
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self._set_initial_state(self.vdi, False)
+        vdi_options = self.vdi.activate(self.sr_uuid, self.vdi_uuid)
+
+        self.assertIsNone(vdi_options)
+        mock_cbt.getCBTConsistency.assert_not_called()
+
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    def test_activate_consistent_success(self, context, mock_cbt):
+        context.setup_error_codes()
+
+        expected_log_path = '/mock/sr_path/{0}.log'.format(self.vdi_uuid)
+
+        # Create the test object
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self._set_initial_state(self.vdi, True)
+        mock_cbt.getCBTConsistency.side_effect = [ True ]
+
+        log_path = self.vdi.activate(self.sr_uuid, self.vdi_uuid)
+
+        mock_cbt.getCBTConsistency.assert_called()
+        self.assertEquals({'cbtlog': expected_log_path}, log_path)
+
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    def test_activate_consistency_check_fail(self, context, mock_cbt):
+        context.setup_error_codes()
+
+        # Create the test object
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self._set_initial_state(self.vdi, True)
+        mock_cbt.getCBTConsistency.side_effect = [ False ]
+
+        with self.assertRaises(SR.SROSError) as cm:
+            self.vdi.activate(self.sr_uuid, self.vdi_uuid)
+        # Check we get the CBTMetadataInconsistent error
+        self.assertEquals(cm.exception.errno, 459)
 
     def _set_initial_state(self, vdi, cbt_enabled):
         self.xenapi.VDI.get_is_a_snapshot.return_value = False
