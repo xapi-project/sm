@@ -869,8 +869,7 @@ class Tapdisk(object):
         self._set_dirty()
 
     def stats(self):
-        json = TapCtl.stats(self.pid, self.minor)
-        return json.loads(json)
+        return json.loads(TapCtl.stats(self.pid, self.minor))
 
     #
     # NB. dirty/refresh: reload attributes on next access
