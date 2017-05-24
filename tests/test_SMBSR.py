@@ -48,9 +48,9 @@ class Test_SMBSR(unittest.TestCase):
 
     #Attach
     @testlib.with_context
-    @mock.patch('SMBSR.SMBSR.checkmount')
-    @mock.patch('SMBSR.SMBSR.mount')
-    @mock.patch('SMBSR.Lock')
+    @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
+    @mock.patch('SMBSR.SMBSR.mount', autospec=True)
+    @mock.patch('SMBSR.Lock', autospec=True)
     def test_attach_smbexception_raises_xenerror(self, context, mock_lock, mock_mount, mock_checkmount):
         context.setup_error_codes()
 
@@ -62,8 +62,8 @@ class Test_SMBSR(unittest.TestCase):
         # Check that we get the SMBMount error from XE_SR_ERRORCODES.xml
         self.assertEquals(cm.exception.errno, 111)
 
-    @mock.patch('SMBSR.SMBSR.checkmount')
-    @mock.patch('SMBSR.Lock')
+    @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
+    @mock.patch('SMBSR.Lock', autospec=True)
     def test_attach_if_mounted_then_attached(self, mock_lock, mock_checkmount):
         smbsr = self.create_smbsr()
         mock_checkmount.return_value=True
@@ -72,11 +72,11 @@ class Test_SMBSR(unittest.TestCase):
 
     #Detach
     @testlib.with_context
-    @mock.patch('SMBSR.SMBSR.checkmount',return_value=True)
-    @mock.patch('SMBSR.SMBSR.unmount')
-    @mock.patch('SMBSR.Lock')
-    @mock.patch('SMBSR.os.chdir')
-    @mock.patch('SMBSR.cleanup')
+    @mock.patch('SMBSR.SMBSR.checkmount',return_value=True, autospec=True)
+    @mock.patch('SMBSR.SMBSR.unmount', autospec=True)
+    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('SMBSR.os.chdir', autospec=True)
+    @mock.patch('SMBSR.cleanup', autospec=True)
     def test_detach_smbexception_raises_xenerror(self, context, mock_cleanup, mock_chdir, mock_lock, mock_unmount, mock_checkmount):
         context.setup_error_codes()
 
@@ -87,8 +87,8 @@ class Test_SMBSR(unittest.TestCase):
         # Check that we get the SMBUnMount error from XE_SR_ERRORCODES.xml
         self.assertEquals(cm.exception.errno, 112)
 
-    @mock.patch('SMBSR.SMBSR.checkmount',return_value=False)
-    @mock.patch('SMBSR.Lock')
+    @mock.patch('SMBSR.SMBSR.checkmount',return_value=False, autospec=True)
+    @mock.patch('SMBSR.Lock', autospec=True)
     def test_detach_not_detached_if_not_mounted(self, mock_lock, mock_checkmount):
         smbsr = self.create_smbsr()
         smbsr.attached = True
@@ -97,9 +97,9 @@ class Test_SMBSR(unittest.TestCase):
         self.assertTrue(smbsr.attached)
 
     #Mount
-    @mock.patch('SMBSR.util.isdir')
-    @mock.patch('SMBSR.Lock')
-    @mock.patch('util.time')
+    @mock.patch('SMBSR.util.isdir', autospec=True)
+    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('util.time', autospec=True)
     def test_mount_mountpoint_isdir(self, mock_time, mock_lock, mock_isdir):
         # Not sure that the code rerying in an ioretry loop in the case of a
         # missing dir is correct?
@@ -109,7 +109,7 @@ class Test_SMBSR(unittest.TestCase):
         with self.assertRaises(SMBSR.SMBException) as cm:
             smbsr.mount()
 
-    @mock.patch('SMBSR.Lock')
+    @mock.patch('SMBSR.Lock', autospec=True)
     def test_mount_mountpoint_empty_string(self, mock_lock):
         smbsr = self.create_smbsr()
         self.assertRaises(SMBSR.SMBException, smbsr.mount, "")

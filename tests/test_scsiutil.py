@@ -11,19 +11,20 @@ class Test_sg_readcap(unittest.TestCase):
         doexec.assert_called_with(['/usr/bin/sg_readcap', '-b', '/dev/sda'])
         self.assertEquals(result, expected_result)
 
-    @mock.patch('util.doexec')
+    @mock.patch('util.doexec', autospec=True)
     def test_sg_readcap_10(self, doexec):
         fake_out = "0x3a376030 0x200\n"
         doexec.return_value = (0, fake_out, '')
         self.verify_sg_readcap(doexec, 500074307584)
 
+    # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('util.doexec')
     def test_capacity_data_changed_rc6(self, doexec):
         fake_out = "0x3a376030 0x200\n"
         doexec.side_effect = [(6, 'something else', ''), (0, fake_out, '')]
         self.verify_sg_readcap(doexec, 500074307584)
 
-    @mock.patch('util.doexec')
+    @mock.patch('util.doexec', autospec=True)
     def test_sg_readcap_16(self, doexec):
         fake_out = ("READ CAPACITY (10) indicates device capacity too large\n"
                     "now trying 16 byte cdb variant\n"

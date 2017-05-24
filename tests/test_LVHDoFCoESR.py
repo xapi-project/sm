@@ -38,9 +38,9 @@ class TestFCoESR(unittest.TestCase):
         fcoesr.load(sr_uuid)
         return fcoesr
 
-    @mock.patch('SR.driver')
-    @mock.patch('util.find_my_pbd')
-    @mock.patch('LVHDoFCoESR.LVHDoHBASR.HBASR.HBASR.print_devs')
+    @mock.patch('SR.driver', autospec=True)
+    @mock.patch('util.find_my_pbd', autospec=True)
+    @mock.patch('LVHDoFCoESR.LVHDoHBASR.HBASR.HBASR.print_devs', autospec=True)
     @testlib.with_context
     def test_load_no_scsiid(self, context, print_devs, find_my_pbd, driver):
         context.setup_error_codes()
@@ -49,30 +49,30 @@ class TestFCoESR(unittest.TestCase):
         parameters['device_config'] = ""
         self.assertRaises(SR.SROSError, self.create_fcoesr, SCSIid="", params=parameters)
 
-    @mock.patch('SR.driver')
-    @mock.patch('util.find_my_pbd')
-    @mock.patch('SR.SR._pathrefresh')
-    @mock.patch('LVHDoFCoESR.LVHDSR.LVHDSR.load')
+    @mock.patch('SR.driver', autospec=True)
+    @mock.patch('util.find_my_pbd', autospec=True)
+    @mock.patch('SR.SR._pathrefresh', autospec=True)
+    @mock.patch('LVHDoFCoESR.LVHDSR.LVHDSR.load', autospec=True)
     def test_load_scsiid(self, lvhdsrload, pathrefresh, find_my_pbd, driver):
         find_my_pbd.return_value = ['pbd_ref','pbd']
         parameters = {}
         parameters['device_config'] = ""
         self.create_fcoesr(params=parameters)
 
-    @mock.patch('SR.driver')
-    @mock.patch('util.find_my_pbd')
-    @mock.patch('SR.SR._pathrefresh')
-    @mock.patch('LVHDoFCoESR.LVHDSR.LVHDSR.load')
+    @mock.patch('SR.driver', autospec=True)
+    @mock.patch('util.find_my_pbd', autospec=True)
+    @mock.patch('SR.SR._pathrefresh', autospec=True)
+    @mock.patch('LVHDoFCoESR.LVHDSR.LVHDSR.load', autospec=True)
     def test_load_pbd_exception(self, lvhdsrload, pathrefresh, find_my_pbd, driver):
         find_my_pbd.side_effect = Exception('exception raised')
         parameters = {}
         parameters['device_config'] = ""
         self.create_fcoesr(params=parameters)
 
-    @mock.patch('SR.driver')
-    @mock.patch('util.find_my_pbd')
-    @mock.patch('SR.SR._pathrefresh')
-    @mock.patch('LVHDoFCoESR.LVHDSR.LVHDSR.load')
+    @mock.patch('SR.driver', autospec=True)
+    @mock.patch('util.find_my_pbd', autospec=True)
+    @mock.patch('SR.SR._pathrefresh', autospec=True)
+    @mock.patch('LVHDoFCoESR.LVHDSR.LVHDSR.load', autospec=True)
     def test_vdi(self, lvhdsrload, pathrefresh, find_my_pbd, driver):
         sr_uuid = 'bsr_uuid'
         find_my_pbd.return_value = ['pbd_ref', 'pbd']

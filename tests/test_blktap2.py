@@ -5,15 +5,17 @@ import testlib
 
 
 class TestVDI(unittest.TestCase):
+    # This can't use autospec as vdi is created in __init__
+    # See https://docs.python.org/3/library/unittest.mock.html#autospeccing
     @mock.patch('blktap2.VDI.TargetDriver')
-    @mock.patch('blktap2.Lock')
+    @mock.patch('blktap2.Lock', autospec=True)
     def setUp(self, mock_lock, mock_target):
         mock_target.get_vdi_type.return_value = 'phy'
 
         def mock_handles(type_str):
             return type_str == 'udev'
 
-        mock_target.vdi.sr.handles = mock_handles
+        mock_target.vdi.sr.handles.side_effect = mock_handles
 
         self.vdi = blktap2.VDI('uuid', mock_target, None)
         self.vdi.target = mock_target

@@ -90,10 +90,10 @@ class NonInitingMultiLUNISCSISR(BaseISCSI.BaseISCSISR):
 
 class TestVdiTypeSetting(TestBase):
 
-    @mock.patch('BaseISCSI.iscsilib.discovery')
-    @mock.patch('BaseISCSI.iscsilib.ensure_daemon_running_ok')
-    @mock.patch('BaseISCSI.util._testHost')
-    @mock.patch('BaseISCSI.util._convertDNS')
+    @mock.patch('BaseISCSI.iscsilib.discovery', autospec=True)
+    @mock.patch('BaseISCSI.iscsilib.ensure_daemon_running_ok', autospec=True)
+    @mock.patch('BaseISCSI.util._testHost', autospec=True)
+    @mock.patch('BaseISCSI.util._convertDNS', autospec=True)
     def load_iscsi_sr(self, convertDNS, testHost, ensure_daemon_running_ok,
                       discovery, iscsi_sr):
         iscsi_sr.load(None)
@@ -141,8 +141,8 @@ class TestMultiLUNISCSISR(unittest.TestCase):
         self.assertEquals(node_ip_port, iscsi_sr.tgtidx)
         self.assertEquals(node_ip_port, iscsi_sr.address)
 
-    @mock.patch('BaseISCSI.os.path.exists')
-    @mock.patch('BaseISCSI.iscsilib.get_node_records')
+    @mock.patch('BaseISCSI.os.path.exists', autospec=True)
+    @mock.patch('BaseISCSI.iscsilib.get_node_records', autospec=True)
     def test_initPaths_actual_path_is_active(
             self,
             mock_get_node_records,
@@ -156,8 +156,8 @@ class TestMultiLUNISCSISR(unittest.TestCase):
 
         self.assertActiveNodeEquals(self.node1, iscsi_sr)
 
-    @mock.patch('BaseISCSI.os.path.exists')
-    @mock.patch('BaseISCSI.iscsilib.get_node_records')
+    @mock.patch('BaseISCSI.os.path.exists', autospec=True)
+    @mock.patch('BaseISCSI.iscsilib.get_node_records', autospec=True)
     def test_initPaths_active_path_detection(
             self,
             mock_get_node_records,
@@ -180,7 +180,7 @@ class TestMultiLUNISCSISR(unittest.TestCase):
 
 class TestISCSISR(TestBase):
 
-    @mock.patch('BaseISCSI.util._convertDNS')
+    @mock.patch('BaseISCSI.util._convertDNS', autospec=True)
     def test_load_assert_utf_8_chap_credencials(
             self,
             mock__convertDNS):

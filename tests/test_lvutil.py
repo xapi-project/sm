@@ -79,7 +79,7 @@ class TestCreate(unittest.TestCase):
         created_lv, = lvsystem.get_logical_volumes_with_name('volume')
         self.assertEquals('hello', created_lv.tag)
 
-    @mock.patch('util.pread')
+    @mock.patch('util.pread', autospec=True)
     def test_create_percentage_has_precedence_over_size(self, mock_pread):
         lvutil.create('volume', ONE_MEGABYTE, 'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7',
                       size_in_percentage="10%F")
@@ -99,8 +99,8 @@ class TestRemove(unittest.TestCase):
 
         self.assertEquals([], lvsystem.get_logical_volumes_with_name('volume'))
 
-    @mock.patch('lvutil._lvmBugCleanup')
-    @mock.patch('util.pread')
+    @mock.patch('lvutil._lvmBugCleanup', autospec=True)
+    @mock.patch('util.pread', autospec=True)
     def test_remove_additional_config_param(self, mock_pread, _bugCleanup):
         lvutil.remove('VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume', config_param="blah")
         mock_pread.assert_called_once_with(

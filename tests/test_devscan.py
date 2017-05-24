@@ -96,7 +96,7 @@ class TestAdapters(unittest.TestCase):
 
         self.assertEquals({'devs': {}, 'adt': {}}, result)
 
-    @mock.patch('devscan.match_hbadevs')
+    @mock.patch('devscan.match_hbadevs', autospec=True)
     @testlib.with_context
     def test_exotic_adapter_with_security_device(self, context, match_hbadevs):
         adapter = context.add_adapter(testlib.AdapterWithNonBlockDevice())
