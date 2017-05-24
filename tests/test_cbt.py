@@ -280,6 +280,35 @@ class TestCBT(unittest.TestCase):
         # Check we get the CBTMetadataInconsistent error
         self.assertEquals(cm.exception.errno, 459)
 
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    def test_deactivate_no_tracking_success(self, context, mock_cbt):
+        context.setup_error_codes()
+
+        # Create the test object
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self._set_initial_state(self.vdi, False)
+
+        self.vdi.deactivate(self.sr_uuid, self.vdi_uuid)
+
+        # python2-mock-1.0.1-9.el doesn't support these asserts
+        #mock_cbt.setCBTConsistency.assert_not_called()
+
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    def test_deactivate_success(self, context, mock_cbt):
+        context.setup_error_codes()
+
+        expected_log_path = '/mock/sr_path/{0}.log'.format(self.vdi_uuid)
+
+        # Create the test object
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self._set_initial_state(self.vdi, True)
+
+        self.vdi.deactivate(self.sr_uuid, self.vdi_uuid)
+
+        mock_cbt.setCBTConsistency.assert_called_with(expected_log_path, True)
+
     def _set_initial_state(self, vdi, cbt_enabled):
         self.xenapi.VDI.get_is_a_snapshot.return_value = False
         vdi.block_tracking_state = cbt_enabled
