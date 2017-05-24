@@ -55,6 +55,7 @@ class NonInitingISCSISR(BaseISCSI.BaseISCSISR):
             'localIQN': 'localIQN',
             'targetIQN': 'targetIQN'
         }
+        self.localIQN = self.dconf['localIQN']
 
         self.dconf.update(extra_dconf or {})
 
