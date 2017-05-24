@@ -37,22 +37,22 @@ class TestISOSR(unittest.TestCase):
     def test_load(self):
         self.create_isosr()
 
-    @mock.patch('nfs.validate_nfsversion')
+    @mock.patch('nfs.validate_nfsversion', autospec=True)
     def test_load_validate_nfsversion_called(self, validate_nfsversion):
         isosr = self.create_isosr(nfsversion='aNfsversion')
 
         validate_nfsversion.assert_called_once_with('aNfsversion')
 
-    @mock.patch('NFSSR.Lock')
-    @mock.patch('nfs.validate_nfsversion')
+    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('nfs.validate_nfsversion', autospec=True)
     def test_load_validate_nfsversion_returnused(self, validate_nfsversion,
                                                  Lock):
         validate_nfsversion.return_value = 'aNfsversion'
 
         self.assertEquals(self.create_isosr().nfsversion, 'aNfsversion')
 
-    @mock.patch('NFSSR.Lock')
-    @mock.patch('nfs.validate_nfsversion')
+    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('nfs.validate_nfsversion', autospec=True)
     def test_load_validate_nfsversion_exceptionraised(self,
                                                       validate_nfsversion,
                                                       Lock):
@@ -60,11 +60,12 @@ class TestISOSR(unittest.TestCase):
 
         self.assertRaises(nfs.NfsException, self.create_isosr)
 
-    @mock.patch('util.gen_uuid')
-    @mock.patch('nfs.soft_mount')
-    @mock.patch('util._convertDNS')
-    @mock.patch('nfs.validate_nfsversion')
-    @mock.patch('util.makedirs')
+    @mock.patch('util.gen_uuid', autospec=True)
+    @mock.patch('nfs.soft_mount', autospec=True)
+    @mock.patch('util._convertDNS', autospec=True)
+    @mock.patch('nfs.validate_nfsversion', autospec=True)
+    @mock.patch('util.makedirs', autospec=True)
+    # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('ISOSR.ISOSR._checkmount')
     def test_attach_nfs(self, _checkmount, makedirs, validate_nfsversion,
                         convertDNS, soft_mount, gen_uuid):

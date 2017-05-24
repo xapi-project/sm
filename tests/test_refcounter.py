@@ -76,9 +76,9 @@ class TestRefCounter(unittest.TestCase):
 
         self.assertFalse(result)
 
-    @mock.patch('os.rmdir')
-    @mock.patch('os.unlink')
-    @mock.patch('util.pathexists')
+    @mock.patch('os.rmdir', autospec=True)
+    @mock.patch('os.unlink', autospec=True)
+    @mock.patch('util.pathexists', autospec=True)
     def test_removeObject_ignores_if_directory_already_removed(self,
                                                                pathexists,
                                                                unlink,
@@ -90,9 +90,9 @@ class TestRefCounter(unittest.TestCase):
         rmdir.assert_called_once_with(
             os.path.join(refcounter.RefCounter.BASE_DIR, 'namespace'))
 
-    @mock.patch('os.rmdir')
-    @mock.patch('os.unlink')
-    @mock.patch('util.pathexists')
+    @mock.patch('os.rmdir', autospec=True)
+    @mock.patch('os.unlink', autospec=True)
+    @mock.patch('util.pathexists', autospec=True)
     def test_removeObject_ignores_if_directory_not_empty(self,
                                                          pathexists,
                                                          unlink,

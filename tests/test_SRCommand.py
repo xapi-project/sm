@@ -10,10 +10,10 @@ class SomeException(Exception):
 
 class TestStandaloneFunctions(unittest.TestCase):
 
-    @mock.patch('util.SMlog')
-    @mock.patch('__builtin__.reduce')
-    @mock.patch('SRCommand.SRCommand.run_statics')
-    @mock.patch('SRCommand.SRCommand.parse')
+    @mock.patch('util.SMlog', autospec=True)
+    @mock.patch('__builtin__.reduce', autospec=True)
+    @mock.patch('SRCommand.SRCommand.run_statics', autospec=True)
+    @mock.patch('SRCommand.SRCommand.parse', autospec=True)
     def test_run_correctly_log_all_exceptions(
             self,
             mock_parse,
@@ -56,9 +56,9 @@ class TestStandaloneFunctions(unittest.TestCase):
 
         self.assertTrue(rand_huge_msg in self.smlog_out)
 
-    @mock.patch('util.logException')
-    @mock.patch('SRCommand.SRCommand.run_statics')
-    @mock.patch('SRCommand.SRCommand.parse')
+    @mock.patch('util.logException', autospec=True)
+    @mock.patch('SRCommand.SRCommand.run_statics', autospec=True)
+    @mock.patch('SRCommand.SRCommand.parse', autospec=True)
     def test_run_print_xml_error_if_SRException(
             self,
             mock_parse,
@@ -104,9 +104,9 @@ class TestStandaloneFunctions(unittest.TestCase):
 
         self.assertEqual(actual_out, expected_out)
 
-    @mock.patch('util.logException')
-    @mock.patch('SRCommand.SRCommand.run_statics')
-    @mock.patch('SRCommand.SRCommand.parse')
+    @mock.patch('util.logException', autospec=True)
+    @mock.patch('SRCommand.SRCommand.run_statics', autospec=True)
+    @mock.patch('SRCommand.SRCommand.parse', autospec=True)
     def test_run_reraise_if_not_SRException(
             self,
             mock_parse,

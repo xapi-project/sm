@@ -77,7 +77,7 @@ class TestSR(unittest.TestCase):
 
         self.assertEquals(0, sr._locked)
 
-    @mock.patch('cleanup.IPCFlag')
+    @mock.patch('cleanup.IPCFlag', autospec=True)
     def test_lock_succeeds_if_lock_is_acquired(
             self,
             mock_ipc_flag):
@@ -93,7 +93,7 @@ class TestSR(unittest.TestCase):
 
         self.assertEquals(1, sr._locked)
 
-    @mock.patch('cleanup.IPCFlag')
+    @mock.patch('cleanup.IPCFlag', autospec=True)
     def test_lock_raises_exception_if_abort_requested(
             self,
             mock_ipc_flag):
@@ -107,7 +107,7 @@ class TestSR(unittest.TestCase):
 
         self.assertRaises(cleanup.AbortException, sr.lock)
 
-    @mock.patch('cleanup.IPCFlag')
+    @mock.patch('cleanup.IPCFlag', autospec=True)
     def test_lock_raises_exception_if_unable_to_acquire_lock(
             self,
             mock_ipc_flag):
@@ -121,7 +121,7 @@ class TestSR(unittest.TestCase):
 
         self.assertRaises(util.SMException, sr.lock)
 
-    @mock.patch('cleanup.IPCFlag')
+    @mock.patch('cleanup.IPCFlag', autospec=True)
     def test_lock_leaves_sr_consistent_if_unable_to_acquire_lock(
             self,
             mock_ipc_flag):

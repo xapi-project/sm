@@ -37,27 +37,27 @@ class TestNFSSR(unittest.TestCase):
         nfssr.load(sr_uuid)
         return nfssr
 
-    @mock.patch('NFSSR.Lock')
+    @mock.patch('NFSSR.Lock', autospec=True)
     def test_load(self, Lock):
         self.create_nfssr()
 
-    @mock.patch('NFSSR.Lock')
-    @mock.patch('nfs.validate_nfsversion')
+    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('nfs.validate_nfsversion', autospec=True)
     def test_load_validate_nfsversion_called(self, validate_nfsversion, Lock):
         nfssr = self.create_nfssr(nfsversion='aNfsversion')
 
         validate_nfsversion.assert_called_once_with('aNfsversion')
 
-    @mock.patch('NFSSR.Lock')
-    @mock.patch('nfs.validate_nfsversion')
+    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('nfs.validate_nfsversion', autospec=True)
     def test_load_validate_nfsversion_returnused(self, validate_nfsversion,
                                                  Lock):
         validate_nfsversion.return_value = 'aNfsversion'
 
         self.assertEquals(self.create_nfssr().nfsversion, "aNfsversion")
 
-    @mock.patch('NFSSR.Lock')
-    @mock.patch('nfs.validate_nfsversion')
+    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('nfs.validate_nfsversion', autospec=True)
     def test_load_validate_nfsversion_exceptionraised(self,
                                                       validate_nfsversion,
                                                       Lock):
@@ -65,12 +65,12 @@ class TestNFSSR(unittest.TestCase):
 
         self.assertRaises(nfs.NfsException, self.create_nfssr)
 
-    @mock.patch('util.makedirs')
-    @mock.patch('NFSSR.Lock')
-    @mock.patch('nfs.soft_mount')
-    @mock.patch('util._testHost')
-    @mock.patch('nfs.check_server_tcp')
-    @mock.patch('nfs.validate_nfsversion')
+    @mock.patch('util.makedirs', autospec=True)
+    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('nfs.soft_mount', autospec=True)
+    @mock.patch('util._testHost', autospec=True)
+    @mock.patch('nfs.check_server_tcp', autospec=True)
+    @mock.patch('nfs.validate_nfsversion', autospec=True)
     def test_attach(self, validate_nfsversion, check_server_tcp, _testhost,
                     soft_mount, Lock, makedirs):
         validate_nfsversion.return_value = "aNfsversionChanged"

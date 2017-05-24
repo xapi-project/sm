@@ -38,8 +38,8 @@ class TestLVHDSR(unittest.TestCase, Stubs):
         srcmd.params = {'command': 'foo', 'session_ref': 'some session ref'}
         return LVHDSR.LVHDSR(srcmd, "some SR UUID")
 
-    @mock.patch('lvhdutil.getVDIInfo')
-    @mock.patch('LVHDSR.Lock')
+    @mock.patch('lvhdutil.getVDIInfo', autospec=True)
+    @mock.patch('LVHDSR.Lock', autospec=True)
     @mock.patch('SR.XenAPI')
     def test_loadvids(self, mock_xenapi, mock_lock, mock_getVDIInfo):
         """sr.allVDIs populated by _loadvdis"""
@@ -52,10 +52,10 @@ class TestLVHDSR(unittest.TestCase, Stubs):
 
         self.assertEquals([vdi_uuid], sr.allVDIs.keys())
 
-    @mock.patch('lvhdutil.lvRefreshOnAllSlaves')
-    @mock.patch('lvhdutil.getVDIInfo')
-    @mock.patch('journaler.Journaler.getAll')
-    @mock.patch('LVHDSR.Lock')
+    @mock.patch('lvhdutil.lvRefreshOnAllSlaves', autospec=True)
+    @mock.patch('lvhdutil.getVDIInfo', autospec=True)
+    @mock.patch('journaler.Journaler.getAll', autospec=True)
+    @mock.patch('LVHDSR.Lock', autospec=True)
     @mock.patch('SR.XenAPI')
     def test_undoAllInflateJournals(
             self,
