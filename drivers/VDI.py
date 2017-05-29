@@ -29,6 +29,10 @@ import os
 SM_CONFIG_PASS_THROUGH_FIELDS = ["base_mirror"]
 CBTLOG_TAG = "cbtlog"
 
+SNAPSHOT_SINGLE = 1 # true snapshot: 1 leaf, 1 read-only parent
+SNAPSHOT_DOUBLE = 2 # regular snapshot/clone that creates 2 leaves
+SNAPSHOT_INTERNAL = 3 # SNAPSHOT_SINGLE but don't update SR's virtual allocation
+
 def VDIMetadataSize(type, virtualsize):
     size = 0
     if type == 'vhd':
@@ -215,21 +219,6 @@ class VDI(object):
         """
         raise xs_errors.XenError('Unimplemented')
 
-    def snapshot(self, sr_uuid, vdi_uuid):
-        """Save an immutable copy of the referenced VDI.
-
-        This operation IS NOT idempotent and will fail if the UUID
-        already exists or if there is insufficient space. The vdi must
-        be explicitly attached via the vdi_attach() command following
-        creation. If the driver does not support snapshotting this
-        operation should raise SRUnsupportedOperation
-
-        Arguments:
-        Raises:
-          SRUnsupportedOperation
-        """
-        raise xs_errors.XenError('Unimplemented')
-
     def resize(self, sr_uuid, vdi_uuid, size):
         """Resize the given VDI to size <size> MB. Size can
         be any valid disk size greater than [or smaller than]
@@ -277,10 +266,54 @@ class VDI(object):
         """
         raise xs_errors.XenError('Unimplemented')
 
+    def _do_snapshot(self, sr_uuid, vdi_uuid, snapType,
+                     cloneOp=False, secondary=None, cbtlog=None):
+        raise xs_errors.XenError('Unimplemented')
+
+    def _delete_cbt_log(self):
+        raise xs_errors.XenError('Unimplemented')
+
+    def _rename(self, old, new):
+        raise xs_errors.XenError('Unimplemented')
+
+    def snapshot(self, sr_uuid, vdi_uuid):
+        """Save an immutable copy of the referenced VDI.
+
+        This operation IS NOT idempotent and will fail if the UUID
+        already exists or if there is insufficient space. The vdi must
+        be explicitly attached via the vdi_attach() command following
+        creation. If the driver does not support snapshotting this
+        operation should raise SRUnsupportedOperation
+
+        Arguments:
+        Raises:
+          SRUnsupportedOperation
+        """
+        # logically, "snapshot" should mean SNAPSHOT_SINGLE and "clone" should
+        # mean "SNAPSHOT_DOUBLE", but in practice we have to do SNAPSHOT_DOUBLE
+        # in both cases, unless driver_params overrides it
+        snapType = SNAPSHOT_DOUBLE
+        if self.sr.srcmd.params['driver_params'].get("type"):
+            if self.sr.srcmd.params['driver_params']["type"] == "single":
+                snapType = SNAPSHOT_SINGLE
+            elif self.sr.srcmd.params['driver_params']["type"] == "internal":
+                snapType = SNAPSHOT_INTERNAL
+
+        secondary = None
+        if self.sr.srcmd.params['driver_params'].get("mirror"):
+            secondary = self.sr.srcmd.params['driver_params']["mirror"]
+
+        if self._get_blocktracking_status():
+            cbtlog = self._get_cbt_logpath(self.uuid)
+        else:
+            cbtlog = None
+        return  self._do_snapshot(sr_uuid, vdi_uuid, snapType,
+                                  secondary=secondary, cbtlog=cbtlog)
+
     def activate(self, sr_uuid, vdi_uuid):
         """Activate VDI - called pre tapdisk open"""
         if self._get_blocktracking_status():
-            logpath = self._get_cbt_logpath()
+            logpath = self._get_cbt_logpath(self.uuid)
             consistent = cbtutil.getCBTConsistency(logpath)
             if not consistent:
                 raise xs_errors.XenError('CBTMetadataInconsistent')
@@ -292,7 +325,7 @@ class VDI(object):
     def deactivate(self, sr_uuid, vdi_uuid):
         """Deactivate VDI - called post tapdisk close"""
         if self._get_blocktracking_status():
-            logpath = self._get_cbt_logpath()
+            logpath = self._get_cbt_logpath(self.uuid)
             cbtutil.setCBTConsistency(logpath, True)
 
     def get_params(self):
@@ -439,8 +472,33 @@ class VDI(object):
         # Update database
         #self._set_blocktracking_status(vdi_ref, enable)
 
+    def _cbt_snapshot(self, snapshot_uuid):
+        new_logpath = self._get_cbt_logpath(snapshot_uuid)
+        leaf_logpath = self._get_cbt_logpath(self.uuid)
+
+        # Rename leaf leaf.cbtlog to snapshot.cbtlog
+        # and mark it consistent
+        self._rename(leaf_logpath, new_logpath)
+        cbtutil.setCBTConsistency(new_logpath, True)
+        #TODO: Make parent detection logic better. Ideally, getCBTParent
+        # should return None if the parent is set to a UUID made of all 0s.
+        # In this case, we don't know the difference between whether it is a
+        # NULL UUID or the parent file is missing. See cbtutil for why we can't
+        # do this
+        parent = cbtutil.getCBTParent(new_logpath)
+        parent_path = self._get_cbt_logpath(parent)
+        if util.pathexists(parent_path):
+            cbtutil.setCBTChild(parent_path, snapshot_uuid)
+
+        # Create new leaf.cbtlog
+        self._create_cbt_log()
+
+        # Set relationship pointers
+        cbtutil.setCBTParent(leaf_logpath, snapshot_uuid)
+        cbtutil.setCBTChild(new_logpath, self.uuid)
+
     def _get_blocktracking_status(self):
-        logpath = self._get_cbt_logpath()
+        logpath = self._get_cbt_logpath(self.uuid)
         return util.pathexists(logpath)
 
     def _set_blocktracking_status(self, vdi_ref, enable):
@@ -455,20 +513,18 @@ class VDI(object):
     def _ensure_cbt_space(self):
         pass
 
-    def _get_cbt_logname(self):
-        logName = "%s.%s" % (self.uuid, CBTLOG_TAG)
+    def _get_cbt_logname(self, uuid):
+        logName = "%s.%s" % (uuid, CBTLOG_TAG)
         return logName
 
-    def _get_cbt_logpath(self):
-        logName = self._get_cbt_logname()
+    def _get_cbt_logpath(self, uuid):
+        logName = self._get_cbt_logname(uuid)
         return os.path.join(self.sr.path, logName)
 
-    def _delete_cbt_log(self):
-        pass
 
     def _create_cbt_log(self):
         try:
-            logpath = self._get_cbt_logpath()
+            logpath = self._get_cbt_logpath(self.uuid)
             vdi_ref = self.sr.srcmd.params['vdi_ref']
             size = self.session.xenapi.VDI.get_virtual_size(vdi_ref)
             cbtutil.createCBTLog(logpath, size)
@@ -482,3 +538,4 @@ class VDI(object):
                 raise e
 
         return logpath
+

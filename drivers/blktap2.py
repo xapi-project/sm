@@ -1359,7 +1359,7 @@ class VDI(object):
 
     @classmethod
     def tap_unpause(cls, session, sr_uuid, vdi_uuid, secondary = None,
-            activate_parents = False):
+            activate_parents = False, cbtlog = None):
         util.SMlog("Unpause request for %s secondary=%s" % (vdi_uuid, secondary))
         vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
         sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
@@ -1367,7 +1367,8 @@ class VDI(object):
             host_ref = key[len('host_'):]
             util.SMlog("Calling tap-unpause on host %s" % host_ref)
             if not cls.call_pluginhandler(session, host_ref,
-                    sr_uuid, vdi_uuid, "unpause", secondary, activate_parents):
+                    sr_uuid, vdi_uuid, "unpause", secondary, activate_parents,
+                    cbtlog=cbtlog):
                 # Failed to unpause node
                 return False
         session.xenapi.VDI.remove_from_sm_config(vdi_ref, 'paused')

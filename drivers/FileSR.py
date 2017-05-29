@@ -397,10 +397,6 @@ class FileVDI(VDI.VDI):
             PARAM_RAW : vhdutil.VDI_TYPE_RAW
     }
 
-    SNAPSHOT_SINGLE = 1 # true snapshot: 1 leaf, 1 read-only parent
-    SNAPSHOT_DOUBLE = 2 # regular snapshot/clone that creates 2 leaves
-    SNAPSHOT_INTERNAL = 3 # SNAPSHOT_SINGLE but don't update SR's virtual allocation
-
     def _find_path_with_retries(self, vdi_uuid, maxretry=5, period=2.0):
         vhd_path = os.path.join(self.sr.path, "%s.%s" % \
                                 (vdi_uuid, self.PARAM_VHD))
@@ -653,22 +649,8 @@ class FileVDI(VDI.VDI):
         self.sr._update(self.sr.uuid, self.size - old_size)
         return VDI.VDI.get_params(self)
 
-    def snapshot(self, sr_uuid, vdi_uuid):
-        snap_type = self.SNAPSHOT_DOUBLE
-        if self.sr.srcmd.params['driver_params'].get("type"):
-            if self.sr.srcmd.params['driver_params']["type"] == "single":
-                snap_type = self.SNAPSHOT_SINGLE
-            elif self.sr.srcmd.params['driver_params']["type"] == "internal":
-                snap_type = self.SNAPSHOT_INTERNAL
-
-        secondary = None
-        if self.sr.srcmd.params['driver_params'].get("mirror"):
-            secondary = self.sr.srcmd.params['driver_params']["mirror"]
-
-        return self._do_snapshot(sr_uuid, vdi_uuid, snap_type, secondary)
-        
     def clone(self, sr_uuid, vdi_uuid):
-            return self._do_snapshot(sr_uuid, vdi_uuid, self.SNAPSHOT_DOUBLE)
+            return self._do_snapshot(sr_uuid, vdi_uuid, VDI.SNAPSHOT_DOUBLE)
 
     def compose(self, sr_uuid, vdi1, vdi2):
         if self.vdi_type != vhdutil.VDI_TYPE_VHD:
@@ -697,18 +679,19 @@ class FileVDI(VDI.VDI):
 
         vhdutil.killData(self.path)
 
-    def _do_snapshot(self, sr_uuid, vdi_uuid, snap_type, secondary=None):
+    def _do_snapshot(self, sr_uuid, vdi_uuid, snap_type,
+                     secondary=None, cbtlog=None):
         if self.vdi_type != vhdutil.VDI_TYPE_VHD:
             raise xs_errors.XenError('Unimplemented')
 
         if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
             raise util.SMException("failed to pause VDI %s" % vdi_uuid)
         try:
-            return self._snapshot(snap_type)
+            return self._snapshot(snap_type, cbtlog)
         finally:
             blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
 
-    def _snapshot(self, snap_type):
+    def _snapshot(self, snap_type, cbtlog=None):
         util.SMlog("FileVDI._snapshot for %s (type %s)" % (self.uuid, snap_type))
 
         args = []
@@ -718,7 +701,7 @@ class FileVDI(VDI.VDI):
 
         dest = None
         dst = None
-        if snap_type == self.SNAPSHOT_DOUBLE:
+        if snap_type == VDI.SNAPSHOT_DOUBLE:
             dest = util.gen_uuid()
             dst = os.path.join(self.sr.path, "%s.%s" % (dest,self.vdi_type))
             args.append(dest)
@@ -739,7 +722,7 @@ class FileVDI(VDI.VDI):
             reserved = self.sr.virtual_allocation
             sr_size = self.sr._getsize()
             num_vdis = 2
-            if (snap_type == self.SNAPSHOT_SINGLE or snap_type == self.SNAPSHOT_INTERNAL):
+            if (snap_type == VDI.SNAPSHOT_SINGLE or snap_type == VDI.SNAPSHOT_INTERNAL):
                 num_vdis = 1
             if (sr_size - reserved) < ((self.size + VDI.VDIMetadataSize( \
                     vhdutil.VDI_TYPE_VHD, self.size)) * num_vdis):
@@ -769,7 +752,7 @@ class FileVDI(VDI.VDI):
 
             try:
                 util.ioretry(lambda: self._snap(src, newsrcname))
-                if snap_type == self.SNAPSHOT_DOUBLE:
+                if snap_type == VDI.SNAPSHOT_DOUBLE:
                     util.ioretry(lambda: self._snap(dst, newsrcname))
                 # mark the original file (in this case, its newsrc) 
                 # as hidden so that it does not show up in subsequent scans
@@ -783,11 +766,11 @@ class FileVDI(VDI.VDI):
             try:
                 srcparent = util.ioretry(lambda: self._query_p_uuid(src))
                 dstparent = None
-                if snap_type == self.SNAPSHOT_DOUBLE:
+                if snap_type == VDI.SNAPSHOT_DOUBLE:
                     dstparent = util.ioretry(lambda: self._query_p_uuid(dst))
                 if srcparent != newuuid and \
-                        (snap_type == self.SNAPSHOT_SINGLE or \
-                        snap_type == self.SNAPSHOT_INTERNAL or \
+                        (snap_type == VDI.SNAPSHOT_SINGLE or \
+                        snap_type == VDI.SNAPSHOT_INTERNAL or \
                         dstparent != newuuid):
                     util.ioretry(lambda: os.unlink(newsrc))
                     introduce_parent = False
@@ -796,7 +779,7 @@ class FileVDI(VDI.VDI):
 
             # Introduce the new VDI records
             leaf_vdi = None
-            if snap_type == self.SNAPSHOT_DOUBLE:
+            if snap_type == VDI.SNAPSHOT_DOUBLE:
                 leaf_vdi = VDI.VDI(self.sr, dest) # user-visible leaf VDI
                 leaf_vdi.read_only = False
                 leaf_vdi.location = dest
@@ -819,7 +802,7 @@ class FileVDI(VDI.VDI):
                     base_vdi.sm_config['vhd-parent'] = grandparent
 
             try:
-                if snap_type == self.SNAPSHOT_DOUBLE:
+                if snap_type == VDI.SNAPSHOT_DOUBLE:
                     leaf_vdi_ref = leaf_vdi._db_introduce()
                     util.SMlog("vdi_clone: introduced VDI: %s (%s)" % \
                             (leaf_vdi_ref,dest))
@@ -844,8 +827,18 @@ class FileVDI(VDI.VDI):
             util.end_log_entry(self.sr.path, self.path, ["error"])
             raise xs_errors.XenError('VDIClone',
                   opterr='VDI clone failed error %d' % inst.code)
+
+        # Update cbt files
+        if cbtlog:
+            try:
+                self._cbt_snapshot(dest)
+            except:
+                # CBT operation failed.
+                util.end_log_entry(self.sr.path, self.path, ["error"])
+                raise
+
         util.end_log_entry(self.sr.path, self.path, ["done"])
-        if snap_type != self.SNAPSHOT_INTERNAL:
+        if snap_type != VDI.SNAPSHOT_INTERNAL:
             self.sr._update(self.sr.uuid, self.size)
         # Return info on the new user-visible leaf VDI
         ret_vdi = leaf_vdi
@@ -968,19 +961,24 @@ class FileVDI(VDI.VDI):
         # Create CBT log file
         # Name: <vdi_uuid>.cbtlog
         #Handle if file already exists
-        logPath = self._get_cbt_logpath()
+        logPath = self._get_cbt_logpath(self.uuid)
         f = open(logPath, "w+")
         f.close()
         return super(FileVDI, self)._create_cbt_log()
 
     def _delete_cbt_log(self):
-        logPath = self._get_cbt_logpath()
+        logPath = self._get_cbt_logpath(self.uuid)
         try:
             os.remove(logPath)
         except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
 
+    def _rename(self, oldName, newName):
+        try:
+            util.ioretry(lambda: os.rename(oldName, newName))
+        except util.CommandException, inst:
+            pass
 
 if __name__ == '__main__':
     SRCommand.run(FileSR, DRIVER_INFO)

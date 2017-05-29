@@ -28,9 +28,9 @@ class TestVDI(VDI.VDI):
         super(TestVDI, self)._ensure_cbt_space()
         self.state_mock._ensure_cbt_space()
 
-    def _get_cbt_logpath(self):
-        super(TestVDI, self)._get_cbt_logpath()
-        self.state_mock._get_cbt_logpath()
+    def _get_cbt_logpath(self, uuid):
+        super(TestVDI, self)._get_cbt_logpath(uuid)
+        self.state_mock._get_cbt_logpath(uuid)
         return "{0}.log".format(self.path)
 
     def _create_cbt_log(self):
@@ -40,7 +40,6 @@ class TestVDI(VDI.VDI):
         return logpath
 
     def _delete_cbt_log(self):
-        super(TestVDI, self)._delete_cbt_log()
         self.state_mock._delete_cbt_log()
         self.block_tracking_state = False
 
@@ -316,7 +315,7 @@ class TestCBT(unittest.TestCase):
     def _check_setting_state(self, vdi, cbt_enabled):
         self.assertEquals(vdi._get_blocktracking_status(), cbt_enabled)
         if cbt_enabled:
-            return vdi._get_cbt_logpath()
+            return vdi._get_cbt_logpath(self.vdi_uuid)
         else:
             return None
 
