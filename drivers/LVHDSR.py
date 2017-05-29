@@ -1265,10 +1265,6 @@ class LVHDSR(SR.SR):
         
 class LVHDVDI(VDI.VDI):
 
-    SNAPSHOT_SINGLE = 1 # true snapshot: 1 leaf, 1 read-only parent
-    SNAPSHOT_DOUBLE = 2 # regular snapshot/clone that creates 2 leaves
-    SNAPSHOT_INTERNAL = 3 # SNAPSHOT_SINGLE but don't update SR's virtual allocation
-
     JRN_CLONE = "clone" # journal entry type for the clone operation
 
     def load(self, vdi_uuid):
@@ -1524,27 +1520,9 @@ class LVHDVDI(VDI.VDI):
         self.sr._updateStats(self.sr.uuid, self.size - oldSize)
         return VDI.VDI.get_params(self)
 
-    def snapshot(self, sr_uuid, vdi_uuid):
-        # logically, "snapshot" should mean SNAPSHOT_SINGLE and "clone" should 
-        # mean "SNAPSHOT_DOUBLE", but in practice we have to do SNAPSHOT_DOUBLE 
-        # in both cases, unless driver_params overrides it
-        # TODO LVHDVDI.snapshot and FileVDI.snapshot are almost the same, merge?
-        snapType = self.SNAPSHOT_DOUBLE
-        if self.sr.srcmd.params['driver_params'].get("type"):
-            if self.sr.srcmd.params['driver_params']["type"] == "single":
-                snapType = self.SNAPSHOT_SINGLE
-            elif self.sr.srcmd.params['driver_params']["type"] == "internal":
-                snapType = self.SNAPSHOT_INTERNAL
-
-        secondary = None
-        if self.sr.srcmd.params['driver_params'].get("mirror"):
-            secondary = self.sr.srcmd.params['driver_params']["mirror"]
-
-        return self._do_snapshot(sr_uuid, vdi_uuid, snapType, secondary=secondary)
-
     def clone(self, sr_uuid, vdi_uuid):
         return self._do_snapshot(
-                     sr_uuid, vdi_uuid, self.SNAPSHOT_DOUBLE, cloneOp=True)
+                     sr_uuid, vdi_uuid, VDI.SNAPSHOT_DOUBLE, cloneOp=True)
 
     def compose(self, sr_uuid, vdi1, vdi2):
         util.SMlog("LVHDSR.compose for %s -> %s" % (vdi2, vdi1))
@@ -1606,7 +1584,8 @@ class LVHDVDI(VDI.VDI):
         self._chainSetActive(False, True)
         self.attached = False
 
-    def _do_snapshot(self, sr_uuid, vdi_uuid, snapType, cloneOp=False, secondary=None):
+    def _do_snapshot(self, sr_uuid, vdi_uuid, snapType,
+                     cloneOp=False, secondary=None, cbtlog=None):
         if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
             raise util.SMException("failed to pause VDI %s" % vdi_uuid)
         
@@ -1677,8 +1656,8 @@ class LVHDVDI(VDI.VDI):
             if self.sr.cmd != "vdi_snapshot":
                 lvSizeClon = fullpr
 
-        if (snapType == self.SNAPSHOT_SINGLE or
-                snapType == self.SNAPSHOT_INTERNAL):
+        if (snapType == VDI.SNAPSHOT_SINGLE or
+                snapType == VDI.SNAPSHOT_INTERNAL):
             lvSizeClon = 0
 
         # the space required must include 2 journal LVs: a clone journal and an 
@@ -1694,7 +1673,7 @@ class LVHDVDI(VDI.VDI):
         baseUuid = util.gen_uuid()
         origUuid = self.uuid
         clonUuid = ""
-        if snapType == self.SNAPSHOT_DOUBLE:
+        if snapType == VDI.SNAPSHOT_DOUBLE:
             clonUuid = util.gen_uuid()
         jval = "%s_%s" % (baseUuid, clonUuid)
         self.sr.journaler.create(self.JRN_CLONE, origUuid, jval)
@@ -1725,7 +1704,7 @@ class LVHDVDI(VDI.VDI):
             snapVDI = self._createSnap(origUuid, lvSizeOrig, False)
             util.fistpoint.activate("LVHDRT_clone_vdi_after_first_snap", self.sr.uuid)
             snapVDI2 = None
-            if snapType == self.SNAPSHOT_DOUBLE:
+            if snapType == VDI.SNAPSHOT_DOUBLE:
                 snapVDI2 = self._createSnap(clonUuid, lvSizeClon, True)
             util.fistpoint.activate("LVHDRT_clone_vdi_after_second_snap", self.sr.uuid)
 
@@ -1785,7 +1764,7 @@ class LVHDVDI(VDI.VDI):
         return snapVDI
 
     def _finishSnapshot(self, snapVDI, snapVDI2, cloneOp = False, snapType=None):
-        if snapType is not self.SNAPSHOT_INTERNAL:
+        if snapType is not VDI.SNAPSHOT_INTERNAL:
             self.sr._updateStats(self.sr.uuid, self.size)
         basePresent = True
 
@@ -2120,16 +2099,19 @@ class LVHDVDI(VDI.VDI):
         self.sr.ensureCBTSpace()
 
     def _create_cbt_log(self):
-        logName = self._get_cbt_logname()
+        logName = self._get_cbt_logname(self.uuid)
         #Handle if file already exists
         lvutil.create(logName, self.sr.journaler.LV_SIZE,
                       self.sr.vgname, VDI.CBTLOG_TAG)
         return super(LVHDVDI, self)._create_cbt_log()
 
     def _delete_cbt_log(self):
-        logPath = self._get_cbt_logpath()
+        logPath = self._get_cbt_logpath(self.uuid)
         if(lvutil.exists(logPath)):
             lvutil.remove(logPath)
+
+    def _rename(self, old, new):
+        self.sr.lvmCache.rename(old, new)
 
 if __name__ == '__main__':
     SRCommand.run(LVHDSR, DRIVER_INFO)

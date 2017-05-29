@@ -19,6 +19,7 @@
 #
 
 import util
+import uuid
 
 CBT_UTIL = "/usr/sbin/cbt-util"
 
@@ -32,10 +33,30 @@ def setCBTParent(fileName, parentUuid):
     cmd = [CBT_UTIL, "set", "-n", fileName, "-p", str(parentUuid)]
     _callCBTUtil(cmd)
 
+def getCBTParent(fileName):
+    """Get parent field from log file"""
+    cmd = [CBT_UTIL, "get", "-n", fileName, "-p"]
+    ret =  _callCBTUtil(cmd)
+    u = uuid.UUID(ret.strip())
+    #TODO: Need to check for NULL UUID
+    # Ideally, we want to do
+    # if uuid.UUID(ret.strip()).int == 0
+    #     return None
+    # Pylint doesn't like this for reason though
+    return str(u)
+
 def setCBTChild(fileName, childUuid):
     """Set child field in log file"""
     cmd = [CBT_UTIL, "set", "-n", fileName, "-c", str(childUuid)]
     _callCBTUtil(cmd)
+
+def getCBTChild(fileName):
+    """Get parent field from log file"""
+    cmd = [CBT_UTIL, "get", "-n", fileName, "-c"]
+    ret =  _callCBTUtil(cmd)
+    u = uuid.UUID(ret.strip())
+    #TODO: Need to check for NULL UUID
+    return str(u)
 
 def setCBTConsistency(fileName, consistent):
     """Set consistency field in log file"""
