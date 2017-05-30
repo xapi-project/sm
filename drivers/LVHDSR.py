@@ -1591,18 +1591,20 @@ class LVHDVDI(VDI.VDI):
         
         snapResult = None
         try:
-            snapResult = self._snapshot(snapType, cloneOp)
+            snapResult = self._snapshot(snapType, cloneOp, cbtlog)
         except Exception, e1:
             try:
-                blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, None)
+                blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid,
+                                        secondary=None, cbtlog=cbtlog)
             except Exception, e2:
                 util.SMlog('WARNING: failed to clean up failed snapshot: '
                         '%s (error ignored)' % e2)
             raise e1
-        blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
+        blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid,
+                                secondary, cbtlog=cbtlog)
         return snapResult
 
-    def _snapshot(self, snapType, cloneOp = False):
+    def _snapshot(self, snapType, cloneOp = False, cbtlog = None):
         util.SMlog("LVHDVDI._snapshot for %s (type %s)" % (self.uuid, snapType))
 
         if not self.sr.isMaster:
@@ -1726,10 +1728,15 @@ class LVHDVDI(VDI.VDI):
                 self.sr._updateSlavesOnClone(hostRefs, origOldLV,
                         snapVDI.lvname, self.uuid, self.lvname)
 
+            # Update cbt files
+            if cbtlog:
+                snapVDI._cbt_snapshot(clonUuid)
+
         except (util.SMException, XenAPI.Failure), e:
             util.logException("LVHDVDI._snapshot")
             self._failClone(origUuid, jval, str(e))
         util.fistpoint.activate("LVHDRT_clone_vdi_before_remove_journal",self.sr.uuid)
+
         self.sr.journaler.remove(self.JRN_CLONE, origUuid)
 
         return self._finishSnapshot(snapVDI, snapVDI2, cloneOp, snapType)
@@ -1748,7 +1755,7 @@ class LVHDVDI(VDI.VDI):
         vhdutil.snapshot(snapPath, self.path, parentRaw, lvhdutil.MSIZE_MB)
         snapParent = vhdutil.getParent(snapPath, lvhdutil.extractUuid)
 
-        snapVDI = VDI.VDI(self.sr, snapUuid)
+        snapVDI = LVHDVDI(self.sr, snapUuid)
         snapVDI.read_only = False
         snapVDI.location = snapUuid
         snapVDI.size = self.size
@@ -2111,7 +2118,7 @@ class LVHDVDI(VDI.VDI):
             lvutil.remove(logPath)
 
     def _rename(self, old, new):
-        self.sr.lvmCache.rename(old, new)
+        lvutil.rename(old, new)
 
 if __name__ == '__main__':
     SRCommand.run(LVHDSR, DRIVER_INFO)
