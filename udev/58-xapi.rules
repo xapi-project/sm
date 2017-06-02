@@ -40,7 +40,7 @@ LABEL="usb_symlink"
 # Skip devices which fail the local sharing check (to filter out root/mounted devices)
 ACTION=="add", PROGRAM!="/opt/xensource/libexec/check-device-sharing %k", GOTO="end_xapi"
 
-ACTION=="add", SYMLINK+="xapi/block/%k"
+ACTION=="add|change", SYMLINK+="xapi/block/%k"
 
 ACTION=="add", RUN+="/bin/sh -c '/opt/xensource/libexec/local-device-change %k 2>&1 >/dev/null&'"
 ACTION=="remove", RUN+="/bin/sh -c '/opt/xensource/libexec/local-device-change %k 2>&1 >/dev/null&'"
