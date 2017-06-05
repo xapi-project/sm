@@ -1371,14 +1371,14 @@ class LVHDVDI(VDI.VDI):
 
         return VDI.VDI.get_params(self)
 
-    def delete(self, sr_uuid, vdi_uuid):
+    def delete(self, sr_uuid, vdi_uuid, data_only = False):
         util.SMlog("LVHDVDI.delete for %s" % self.uuid)
         try:
             self._loadThis()
         except SR.SRException, e:
             # Catch 'VDI doesn't exist' exception
             if e.errno == 46:
-                return
+                return super(LVHDVDI, self).delete(sr_uuid, vdi_uuid, data_only)
             raise
 
         vdi_ref = self.sr.srcmd.params['vdi_ref']
@@ -1388,7 +1388,9 @@ class LVHDVDI(VDI.VDI):
 
         if not self.hidden:
             self._markHidden()
-        self._db_forget()
+        # If this is a data_destroy call, don't remove from XAPI db
+        if not data_only:
+            self._db_forget()
 
         # deactivate here because it might be too late to do it in the "final" 
         # step: GC might have removed the LV by then
@@ -1406,6 +1408,7 @@ class LVHDVDI(VDI.VDI):
 
         self.sr._updateStats(self.sr.uuid, -self.size)
         self.sr._kickGC()
+        return super(LVHDVDI, self).delete(sr_uuid, vdi_uuid, data_only)
 
     def attach(self, sr_uuid, vdi_uuid):
         util.SMlog("LVHDVDI.attach for %s" % self.uuid)

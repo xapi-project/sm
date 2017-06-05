@@ -32,7 +32,7 @@ NEEDS_VDI_OBJECT = [
         "vdi_resize", "vdi_resize_online", "vdi_attach", "vdi_detach",
         "vdi_activate", "vdi_deactivate", "vdi_attach_from_config", "vdi_detach_from_config",
         "vdi_generate_config", "vdi_compose", "vdi_epoch_begin", 
-        "vdi_epoch_end", "vdi_enable_cbt", "vdi_disable_cbt"]
+        "vdi_epoch_end", "vdi_enable_cbt", "vdi_disable_cbt", "vdi_data_destroy"]
 
 # don't log the commands that spam the log file too much
 NO_LOGGING = {
@@ -231,9 +231,14 @@ class SRCommand:
         elif self.cmd == 'vdi_introduce':
             target = sr.vdi(self.params['new_uuid'])
             return target.introduce(self.params['sr_uuid'], self.params['new_uuid'])
-        
+
         elif self.cmd == 'vdi_delete':
-            return target.delete(self.params['sr_uuid'], self.vdi_uuid)
+            if 'VDI_CONFIG_CBT' in util.sr_get_capability(
+                                        self.params['sr_uuid']): 
+                return target.delete(self.params['sr_uuid'],
+                                     self.vdi_uuid, data_only = False)
+            else:
+                return target.delete(self.params['sr_uuid'], self.vdi_uuid)
 
         elif self.cmd == 'vdi_attach':
             target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
@@ -300,12 +305,15 @@ class SRCommand:
             target.detach(self.params['sr_uuid'], self.vdi_uuid, **extras)
 
         elif self.cmd == 'vdi_enable_cbt':
-            return target.configure_blocktracking(self.params['sr_uuid'], 
+            return target.configure_blocktracking(self.params['sr_uuid'],
                                                   self.vdi_uuid, True)
 
         elif self.cmd == 'vdi_disable_cbt':
-            return target.configure_blocktracking(self.params['sr_uuid'], 
+            return target.configure_blocktracking(self.params['sr_uuid'],
                                                   self.vdi_uuid, False)
+
+        elif self.cmd == 'vdi_data_destroy':
+            return target.data_destroy(self.params['sr_uuid'], self.vdi_uuid)
 
         elif self.cmd == 'sr_create':
             return sr.create(self.params['sr_uuid'], long(self.params['args'][0]))

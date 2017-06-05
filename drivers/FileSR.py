@@ -441,6 +441,11 @@ class FileVDI(VDI.VDI):
         else:
             found = self._find_path_with_retries(vdi_uuid)
             if not found:
+                if self.sr.srcmd.cmd == "vdi_delete":
+                    # Could be delete for CBT log file
+                    self.path = os.path.join(self.sr.path, "%s.%s" % 
+                                             (vdi_uuid, self.PARAM_VHD))
+                    return
                 if self.sr.srcmd.cmd == "vdi_attach_from_config":
                     return
                 raise xs_errors.XenError('VDIUnavailable',
@@ -558,9 +563,9 @@ class FileVDI(VDI.VDI):
         self.sr._update(self.sr.uuid, self.size)
         return super(FileVDI, self).get_params()
 
-    def delete(self, sr_uuid, vdi_uuid):
+    def delete(self, sr_uuid, vdi_uuid, data_only = False):
         if not util.ioretry(lambda: util.pathexists(self.path)):
-            return
+            return super(FileVDI, self).delete(sr_uuid, vdi_uuid, data_only)
 
         if self.attached:
             raise xs_errors.XenError('VDIInUse')
@@ -568,11 +573,14 @@ class FileVDI(VDI.VDI):
         os.unlink(self.path)
 
         self.sr.deleted_vdi(vdi_uuid)
-        self._db_forget()
+        # If this is a data_destroy call, don't remove from XAPI db
+        if not data_only:
+            self._db_forget()
         self.sr._update(self.sr.uuid, -self.size)
         self.sr.lock.cleanupAll(vdi_uuid)
         self.sr._kickGC()
-        
+        return super(FileVDI, self).delete(sr_uuid, vdi_uuid, data_only)
+
     def attach(self, sr_uuid, vdi_uuid):
         if not self._checkpath(self.path):
             raise xs_errors.XenError('VDIUnavailable', \
