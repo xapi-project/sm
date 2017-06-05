@@ -169,18 +169,6 @@ class VDI(object):
         """
         raise xs_errors.XenError('Unimplemented')
 
-    def delete(self, sr_uuid, vdi_uuid):
-        """Delete this VDI.
-
-        This operation IS idempotent and should succeed if the VDI
-        exists and can be deleted or if the VDI does not exist. It is
-        the responsibility of the higher-level management tool to
-        ensure that the detach() operation has been explicitly called
-        prior to deletion, otherwise the delete() will fail if the
-        disk is still attached.
-        """
-        raise xs_errors.XenError('Unimplemented')
-
     def attach(self, sr_uuid, vdi_uuid):
         """Initiate local access to the VDI. Initialises any device
         state required to access the VDI.
@@ -275,6 +263,32 @@ class VDI(object):
 
     def _rename(self, old, new):
         raise xs_errors.XenError('Unimplemented')
+
+    def delete(self, sr_uuid, vdi_uuid, data_only = False):
+        """Delete this VDI.
+
+        This operation IS idempotent and should succeed if the VDI
+        exists and can be deleted or if the VDI does not exist. It is
+        the responsibility of the higher-level management tool to
+        ensure that the detach() operation has been explicitly called
+        prior to deletion, otherwise the delete() will fail if the
+        disk is still attached.
+        """
+
+        if data_only == False and self._get_blocktracking_status():
+            logpath = self._get_cbt_logpath(vdi_uuid)
+            parent_uuid = cbtutil.getCBTParent(logpath)
+            parent_path = self._get_cbt_logpath(parent_uuid)
+            child_uuid = cbtutil.getCBTChild(logpath)
+            child_path = self._get_cbt_logpath(child_uuid)
+
+            if util.pathexists(parent_path):
+                cbtutil.setCBTChild(parent_path, child_uuid)
+
+            if util.pathexists(child_path):
+                cbtutil.setCBTParent(child_path, parent_uuid)
+
+            self._delete_cbt_log()
 
     def snapshot(self, sr_uuid, vdi_uuid):
         """Save an immutable copy of the referenced VDI.
@@ -472,6 +486,21 @@ class VDI(object):
         # Update database
         #self._set_blocktracking_status(vdi_ref, enable)
 
+    def data_destroy(self, sr_uuid, vdi_uuid):
+        """Delete the data associated with a CBT enabled snapshot
+
+        Can only be called for a snapshot VDI on a VHD chain that has
+        had CBT enabled on it at some point. The latter is enforced
+        by upper layers
+        """
+
+        vdi_ref = self.sr.srcmd.params['vdi_ref']
+        if not self.session.xenapi.VDI.get_is_a_snapshot(vdi_ref):
+            raise xs_errors.XenError('VDIType',
+                        opterr='Only allowed for snapshot VDIs')
+
+        self.delete(sr_uuid, vdi_uuid, data_only = True)
+
     def _cbt_snapshot(self, snapshot_uuid):
         new_logpath = self._get_cbt_logpath(snapshot_uuid)
         leaf_logpath = self._get_cbt_logpath(self.uuid)
@@ -521,7 +550,6 @@ class VDI(object):
         logName = self._get_cbt_logname(uuid)
         return os.path.join(self.sr.path, logName)
 
-
     def _create_cbt_log(self):
         try:
             logpath = self._get_cbt_logpath(self.uuid)
@@ -538,4 +566,3 @@ class VDI(object):
                 raise e
 
         return logpath
-
