@@ -387,8 +387,10 @@ class VDI(object):
         import blktap2
         vdi_ref = self.sr.srcmd.params['vdi_ref']
 
+        print "VDI Checking status"
+
         # Check if already enabled
-        if self._get_blocktracking_status(vdi_ref) == enable:
+        if self._get_blocktracking_status(vdi_uuid) == enable:
             return
         # Check if raw VDI or snapshot
         if self.vdi_type == vhdutil.VDI_TYPE_RAW or \
@@ -396,14 +398,20 @@ class VDI(object):
             raise xs_errors.XenError('VDIType',
                         opterr='Raw VDI or snapshot not permitted')
 
-        # Check available space
-        if enable == 'True':
-            self._ensure_cbt_space()
+        print "VDI Checking space"
 
-        #TODO: Create and pass CBT log file
+        # Check available space
+        if enable:
+            self._ensure_cbt_space()
+            #TODO: Create and pass CBT log file
+
+        print "VDI Refreshing tapdisk, {0}, {1}".format(sr_uuid, vdi_uuid)
+
         refreshed = blktap2.VDI.tap_refresh(self.session, sr_uuid, vdi_uuid)
         if not refreshed:
             raise xs_errors.XenError('CBTActivateFailed')
+
+        print "VDI Refreshed tapdisk, {0}, {1}".format(sr_uuid, vdi_uuid)
 
         # Update database
         self._set_blocktracking_status(vdi_ref, enable)
@@ -411,14 +419,11 @@ class VDI(object):
     def _ensure_cbt_space(self):
         pass
 
-    def _get_blocktracking_status(self, vdi_ref):
-        cbt_enabled = 'False'
-        vdi_config = self.session.xenapi.VDI.get_other_config(vdi_ref)
+    def _get_blocktracking_status(self, vdi_uuid):
+        ## Change this to check for metadata
+        name = self.path + ".cbt_log"
 
-        if "cbt_enabled" in vdi_config:
-            cbt_enabled = vdi_config.get("cbt_enabled")
-
-        return cbt_enabled
+        return util.pathexists(name)
 
     def _set_blocktracking_status(self, vdi_ref, enable):
         vdi_config = self.session.xenapi.VDI.get_other_config(vdi_ref)
