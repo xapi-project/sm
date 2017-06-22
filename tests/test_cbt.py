@@ -21,7 +21,7 @@ class TestVDI(VDI.VDI):
     def state_mock(self):
         return self._state_mock
 
-    def _get_blocktracking_status(self):
+    def _get_blocktracking_status(self, uuid=None):
         return self.block_tracking_state
 
     def _ensure_cbt_space(self):

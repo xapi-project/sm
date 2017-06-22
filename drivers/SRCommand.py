@@ -32,7 +32,8 @@ NEEDS_VDI_OBJECT = [
         "vdi_resize", "vdi_resize_online", "vdi_attach", "vdi_detach",
         "vdi_activate", "vdi_deactivate", "vdi_attach_from_config", "vdi_detach_from_config",
         "vdi_generate_config", "vdi_compose", "vdi_epoch_begin", 
-        "vdi_epoch_end", "vdi_enable_cbt", "vdi_disable_cbt", "vdi_data_destroy"]
+        "vdi_epoch_end", "vdi_enable_cbt", "vdi_disable_cbt", "vdi_data_destroy",
+        "vdi_list_changed_blocks"]
 
 # don't log the commands that spam the log file too much
 NO_LOGGING = {
@@ -314,6 +315,9 @@ class SRCommand:
 
         elif self.cmd == 'vdi_data_destroy':
             return target.data_destroy(self.params['sr_uuid'], self.vdi_uuid)
+
+        elif self.cmd == 'vdi_list_changed_blocks':
+            return target.list_changed_blocks()
 
         elif self.cmd == 'sr_create':
             return sr.create(self.params['sr_uuid'], long(self.params['args'][0]))
