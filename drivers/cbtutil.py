@@ -73,5 +73,11 @@ def getCBTConsistency(fileName):
     ret =  _callCBTUtil(cmd)
     return bool(int(ret.strip()))
 
+def getCBTBitmap(fileName, size):
+    """Get bitmap field from log file"""
+    cmd = [CBT_UTIL, "get", "-n", fileName, "-s", size, "-b"]
+    ret =  _callCBTUtil(cmd)
+    return ret.strip()
+
 def _callCBTUtil(cmd):
     return util.ioretry(lambda: util.pread2(cmd))
