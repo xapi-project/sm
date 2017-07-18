@@ -31,7 +31,7 @@ class TestVDI(VDI.VDI):
     def _get_cbt_logpath(self, uuid):
         super(TestVDI, self)._get_cbt_logpath(uuid)
         self.state_mock._get_cbt_logpath(uuid)
-        return "{0}.log".format(self.path)
+        return "/mock/sr_path/{0}.log".format(uuid)
 
     def _create_cbt_log(self):
         logpath = super(TestVDI, self)._create_cbt_log()
@@ -88,7 +88,8 @@ class TestCBT(unittest.TestCase):
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
-    def test_configure_blocktracking_disable_when_enabled(self, context, mock_bt_vdi):
+    @mock.patch('VDI.cbtutil', autospec=True)
+    def test_configure_blocktracking_disable_when_enabled_without_parent(self, context, mock_cbt, mock_bt_vdi):
         context.setup_error_codes()
 
         # Create the test object
@@ -100,6 +101,26 @@ class TestCBT(unittest.TestCase):
 
         logfile = self._check_setting_state(self.vdi, False)
         self._check_tapdisk_paused_and_resumed(mock_bt_vdi, logfile)
+
+    @testlib.with_context
+    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('VDI.util', autospec=True)
+    def test_configure_blocktracking_disable_when_enabled_with_parent(self, context, mock_util, mock_cbt, mock_bt_vdi):
+        context.setup_error_codes()
+
+        # Create the test object
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+
+        self._set_initial_state(self.vdi, True)
+        self._set_initial_CBT_chain_state(mock_util, mock_cbt, True) 
+        expected_parent_path = '/mock/sr_path/parentUUID.log'
+
+        self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, False)
+
+        logfile = self._check_setting_state(self.vdi, False)
+        self._check_tapdisk_paused_and_resumed(mock_bt_vdi, logfile)
+        mock_cbt.setCBTChild.assert_called_with(expected_parent_path, uuid.UUID(int=0))
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
@@ -312,6 +333,11 @@ class TestCBT(unittest.TestCase):
         self.xenapi.VDI.get_is_a_snapshot.return_value = False
         vdi.block_tracking_state = cbt_enabled
 
+    def _set_initial_CBT_chain_state(self, mock_util, mock_cbt, parent_exists):
+        if parent_exists:
+            mock_cbt.getCBTParent.return_value = "parentUUID"
+        mock_util.pathexists.return_value = parent_exists
+
     def _check_setting_state(self, vdi, cbt_enabled):
         self.assertEquals(vdi._get_blocktracking_status(), cbt_enabled)
         if cbt_enabled:
@@ -336,3 +362,4 @@ class TestCBT(unittest.TestCase):
         #mock.tap_pause.assert_not_called()
         #mock.tap_unpause.assert_not_called()
         pass
+
