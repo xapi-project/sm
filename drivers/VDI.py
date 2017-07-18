@@ -28,6 +28,7 @@ import os
 import base64
 import constants
 from bitarray import bitarray
+import uuid
 
 SM_CONFIG_PASS_THROUGH_FIELDS = ["base_mirror"]
 CBTLOG_TAG = "cbtlog"
@@ -482,6 +483,13 @@ class VDI(object):
         #Tapdisk pause, file delete, tapdisk unpause?
         if not enable:
             try:
+                # Find parent of leaf metadata file, if any, 
+                # and nullify its successor
+                logpath = self._get_cbt_logpath(self.uuid)
+                parent = cbtutil.getCBTParent(logpath)
+                parent_path = self._get_cbt_logpath(parent)
+                if util.pathexists(parent_path):
+                    cbtutil.setCBTChild(parent_path, uuid.UUID(int=0))
                 self._delete_cbt_log()
             except Exception as e:
                 raise xs_errors.XenError('CBTDeactivateFailed', str(e))
