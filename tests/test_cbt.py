@@ -43,6 +43,14 @@ class TestVDI(VDI.VDI):
         self.state_mock._delete_cbt_log()
         self.block_tracking_state = False
 
+    def _rename(self, from_path, to_path):
+        self.state_mock._rename(from_path, to_path)
+
+    def _do_snapshot(self, sr_uuid, vdi_uuid, snapType,
+                     cloneOp=False, secondary=None, cbtlog=None):
+        self.state_mock._do_snapshot(sr_uuid, vdi_uuid, snapType, cloneOp,
+                                     secondary, cbtlog)
+
 class TestCBT(unittest.TestCase):
 
     def setUp(self):
@@ -113,7 +121,7 @@ class TestCBT(unittest.TestCase):
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
 
         self._set_initial_state(self.vdi, True)
-        self._set_initial_CBT_chain_state(mock_util, mock_cbt, True) 
+        self._set_CBT_chain_state(mock_util, mock_cbt, True) 
         expected_parent_path = '/mock/sr_path/parentUUID.log'
 
         self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, False)
@@ -329,14 +337,67 @@ class TestCBT(unittest.TestCase):
 
         mock_cbt.setCBTConsistency.assert_called_with(expected_log_path, True)
 
+    @testlib.with_context
+    def test_snapshot_success_with_CBT_disable(self, context):
+        context.setup_error_codes()
+
+        # Create the test object
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self._set_initial_state(self.vdi, False)
+
+        self.vdi.snapshot(self.sr_uuid, self.vdi_uuid)
+
+        self.vdi.state_mock._do_snapshot.assert_called_with(self.sr_uuid,
+                                                            self.vdi_uuid,
+                                                            mock.ANY,
+                                                            mock.ANY,
+                                                            mock.ANY,
+                                                            None)        
+
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('VDI.util', autospec=True)
+    def test_snapshot_success_no_parent(self, context, mock_util, mock_cbt):
+        context.setup_error_codes()
+
+        # Create the test object
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self._set_initial_state(self.vdi, True)
+        parent_uuid = self._set_CBT_chain_state(mock_util, mock_cbt, False) 
+        snap_uuid = uuid.uuid4()
+
+        self.vdi._cbt_snapshot(snap_uuid)
+
+        self._check_CBT_chain_created(self.vdi, mock_cbt,
+                                      self.vdi_uuid, snap_uuid, parent_uuid)
+
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('VDI.util', autospec=True)
+    def test_snapshot_success_with_parent(self, context, mock_util, mock_cbt):
+        #context.setup_error_codes()
+
+        # Create the test object
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        # Set initial state
+        self._set_initial_state(self.vdi, True)
+        parent_uuid = self._set_CBT_chain_state(mock_util, mock_cbt, True) 
+        snap_uuid = uuid.uuid4()
+
+        self.vdi._cbt_snapshot(snap_uuid)
+        self._check_CBT_chain_created(self.vdi, mock_cbt,
+                                      self.vdi_uuid, snap_uuid, None)
+
     def _set_initial_state(self, vdi, cbt_enabled):
         self.xenapi.VDI.get_is_a_snapshot.return_value = False
         vdi.block_tracking_state = cbt_enabled
 
-    def _set_initial_CBT_chain_state(self, mock_util, mock_cbt, parent_exists):
+    def _set_CBT_chain_state(self, mock_util, mock_cbt, parent_exists):
+        parent_uuid = None
         if parent_exists:
             mock_cbt.getCBTParent.return_value = "parentUUID"
         mock_util.pathexists.return_value = parent_exists
+        return parent_uuid
 
     def _check_setting_state(self, vdi, cbt_enabled):
         self.assertEquals(vdi._get_blocktracking_status(), cbt_enabled)
@@ -363,3 +424,15 @@ class TestCBT(unittest.TestCase):
         #mock.tap_unpause.assert_not_called()
         pass
 
+    def _check_CBT_chain_created(self, vdi, mock_cbt, vdi_uuid,
+                                 snap_uuid, parent_uuid):
+        vdi_logpath = vdi._get_cbt_logpath(vdi_uuid)
+        snap_logpath = vdi._get_cbt_logpath(snap_uuid)
+
+        vdi.state_mock._rename.assert_called_with(vdi_logpath, snap_logpath)
+        if parent_uuid:
+            parent_logpath = self._get_cbt_logpath(parent_uuid)
+            mock_cbt.setCBTChild.assert_called_with(parent_logpath, snap_uuid)
+        vdi.state_mock._create_cbt_log.assert_called_with()
+        mock_cbt.setCBTChild.assert_called_with(snap_logpath, vdi_uuid)
+        mock_cbt.setCBTParent.assert_called_with(vdi_logpath, snap_uuid)
