@@ -531,10 +531,8 @@ class VDI(object):
             #   * We've reached end of CBT chain originating at "vdi_from" 
             while True:
                 logpath = self._get_cbt_logpath(curr_vdi)
-                vdi_ref = _VDI.get_by_uuid(curr_vdi)
-                size = _VDI.get_virtual_size(vdi_ref)
                 curr_bitmap = bitarray()
-                curr_bitmap.frombytes(cbtutil.getCBTBitmap(logpath, size))
+                curr_bitmap.frombytes(cbtutil.getCBTBitmap(logpath))
                 curr_bitmap.bytereverse()
                 if merged_bitmap:
                     # TODO: Consider resized VDIs, bitmaps have to be of equal
