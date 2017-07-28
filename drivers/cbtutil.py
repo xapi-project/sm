@@ -91,5 +91,10 @@ def get_cbt_size(file_name):
     ret = _call_cbt_util(cmd)
     return int(ret.strip())
 
+def coalesce_bitmap(parent_path, child_path):
+    """Coalesce bitmap contents of parent onto child log file"""
+    cmd = [CBT_UTIL, "coalesce", "-p", parent_path, "-c", child_path]
+    _call_cbt_util(cmd)
+
 def _call_cbt_util(cmd):
     return util.ioretry(lambda: util.pread2(cmd))
