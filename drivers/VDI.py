@@ -319,6 +319,7 @@ class VDI(object):
         prior to deletion, otherwise the delete() will fail if the
         disk is still attached.
         """
+        import blktap2
 
         if data_only == False and self._get_blocktracking_status():
             logpath = self._get_cbt_logpath(vdi_uuid)
@@ -335,6 +336,39 @@ class VDI(object):
             if self._cbt_log_exists(child_path):
                 self._cbt_op(child_uuid, cbtutil.set_cbt_parent,
                              child_path, parent_uuid)
+                try:
+                    # Coalesce contents of bitmap with child's bitmap
+                    # Check if child bitmap is currently attached
+                    paused_for_coalesce = False
+                    consistent = self._cbt_op(child_uuid,
+                                              cbtutil.get_cbt_consistency,
+                                              child_path)
+                    if not consistent:
+                        if not blktap2.VDI.tap_pause(self.session,
+                                                     sr_uuid, child_uuid):
+                            raise util.SMException("failed to pause VDI %s")
+                        paused_for_coalesce = True
+                    self._activate_cbt_log(self._get_cbt_logname(vdi_uuid))
+                    self._cbt_op(child_uuid, cbtutil.coalesce_bitmap,
+                                 logpath, child_path)
+                except util.CommandException:
+                    # If there is an exception in coalescing,
+                    # CBT log file is not deleted and pointers are reset
+                    # to what they were
+                    util.SMlog("Exception in coalescing bitmaps on VDI delete,"
+                               " restoring to previous state")
+                    if self._cbt_log_exists(parent_path):
+                        self._cbt_op(parent_uuid, cbtutil.set_cbt_child,
+                                     parent_path, vdi_uuid)
+                    if self._cbt_log_exists(child_path):
+                        self._cbt_op(child_uuid, cbtutil.set_cbt_parent,
+                                     child_path, vdi_uuid)
+                    return
+                finally:
+                    # Unpause tapdisk if it wasn't originally paused
+                    if paused_for_coalesce:
+                        blktap2.VDI.tap_unpause(self.session, sr_uuid,
+                                                child_uuid, cbtlog=child_path)
 
             self._delete_cbt_log()
 
