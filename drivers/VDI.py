@@ -211,25 +211,6 @@ class VDI(object):
         """
         raise xs_errors.XenError('Unimplemented')
 
-    def resize(self, sr_uuid, vdi_uuid, size):
-        """Resize the given VDI to size <size> MB. Size can
-        be any valid disk size greater than [or smaller than]
-        the current value.
-
-        This operation IS idempotent and should succeed if the VDI can
-        be resized to the specified value or if the VDI is already the
-        specified size. The actual disk size created may be larger
-        than the requested size if the substrate requires a size in
-        multiples of a certain extent size. The SR must be queried for
-        the exact size. This operation does not modify the contents on
-        the disk such as the filesystem.  Responsibility for resizing
-        the FS is left to the VM administrator. [Reducing the size of
-        the disk is a very dangerous operation and should be conducted
-        very carefully.] Disk contents should always be backed up in
-        advance.
-        """
-        raise xs_errors.XenError('Unimplemented')
-
     def resize_online(self, sr_uuid, vdi_uuid, size):
         """Resize the given VDI which may have active VBDs, which have
         been paused for the duration of this call."""
@@ -267,6 +248,60 @@ class VDI(object):
 
     def _rename(self, old, new):
         raise xs_errors.XenError('Unimplemented')
+
+    def resize(self, sr_uuid, vdi_uuid, size):
+        """Resize the given VDI to size <size> MB. Size can
+        be any valid disk size greater than [or smaller than]
+        the current value.
+
+        This operation IS idempotent and should succeed if the VDI can
+        be resized to the specified value or if the VDI is already the
+        specified size. The actual disk size created may be larger
+        than the requested size if the substrate requires a size in
+        multiples of a certain extent size. The SR must be queried for
+        the exact size. This operation does not modify the contents on
+        the disk such as the filesystem.  Responsibility for resizing
+        the FS is left to the VM administrator. [Reducing the size of
+        the disk is a very dangerous operation and should be conducted
+        very carefully.] Disk contents should always be backed up in
+        advance.
+        """
+        raise xs_errors.XenError('Unimplemented')
+
+    def resize_cbt(self, sr_uuid, vdi_uuid, size):
+        """Resize the given VDI to size <size> MB. Size can
+                be any valid disk size greater than [or smaller than]
+                the current value.
+
+                This operation IS idempotent and should succeed if the VDI can
+                be resized to the specified value or if the VDI is already the
+                specified size. The actual disk size created may be larger
+                than the requested size if the substrate requires a size in
+                multiples of a certain extent size. The SR must be queried for
+                the exact size. This operation does not modify the contents on
+                the disk such as the filesystem.  Responsibility for resizing
+                the FS is left to the VM administrator. [Reducing the size of
+                the disk is a very dangerous operation and should be conducted
+                very carefully.] Disk contents should always be backed up in
+                advance.
+                """
+        try:
+            if self._get_blocktracking_status():
+                logpath = self._get_cbt_logpath(vdi_uuid)
+                cbtutil.set_cbt_size(logpath, size)
+        except util.CommandException as ex:
+            util.SMlog("Resizing of log file %s failed,"
+                       "disabling CBT. Reason: %s" % (logpath, str(ex)))
+            self._delete_cbt_log()
+            #TODO: Currently messages cannot be created on VDI object
+            # Fix this as part of CP-23547 (blocked by CP-24019) 
+            alert_obj = "SR"
+            alert_uuid = str(sr_uuid)
+            alert_str = "Resizing of CBT metadata for disk %s failed" % vdi_uuid
+            util.SMlog("Creating alert: (%s, %s, \"%s\")" % 
+                        (alert_obj, alert_uuid, alert_str))
+            self.sr.session.xenapi.message.create("Changed Block Tracking interrupted",
+                                          "3", alert_obj, alert_uuid, alert_str) 
 
     def delete(self, sr_uuid, vdi_uuid, data_only = False):
         """Delete this VDI.

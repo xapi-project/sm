@@ -79,5 +79,10 @@ def getCBTBitmap(fileName):
     ret =  _callCBTUtil(cmd)
     return ret.strip()
 
+def set_cbt_size(filename, size):
+    """Set size field in log file"""
+    cmd = [CBT_UTIL, "set", "-n", filename, "-s", str(size)]
+    _callCBTUtil(cmd)
+
 def _callCBTUtil(cmd):
     return util.ioretry(lambda: util.pread2(cmd))

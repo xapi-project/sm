@@ -655,6 +655,7 @@ class FileVDI(VDI.VDI):
         
         self._db_update()
         self.sr._update(self.sr.uuid, self.size - old_size)
+        super(FileVDI, self).resize_cbt(self.sr.uuid, self.uuid, self.size)
         return VDI.VDI.get_params(self)
 
     def clone(self, sr_uuid, vdi_uuid):
