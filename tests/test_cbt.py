@@ -388,6 +388,47 @@ class TestCBT(unittest.TestCase):
         self._check_CBT_chain_created(self.vdi, mock_cbt,
                                       self.vdi_uuid, snap_uuid, None)
 
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    def test_resize_cbt_enabled(self, context, mock_cbt):
+        # Create the test object
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        # Set initial state
+        self._set_initial_state(self.vdi, True)
+        size = 2093050
+        logpath = self.vdi._get_cbt_logpath(self.vdi_uuid)
+
+        self.vdi.resize_cbt(self.sr_uuid, self.vdi_uuid, size)
+        mock_cbt.set_cbt_size.assert_called_with(logpath, size)
+        self._check_setting_state(self.vdi, True)
+
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    def test_resize_cbt_disable(self, context, mock_cbt):
+        # Create the test object
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        # Set initial state
+        self._set_initial_state(self.vdi, False)
+        size = 2093050
+
+        self.vdi.resize_cbt(self.sr_uuid, self.vdi_uuid, size)
+        self.assertEqual(0, mock_cbt.set_cbt_size.call_count)
+        self._check_setting_state(self.vdi, False)
+
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    def test_resize_exception(self, context, mock_cbt):
+        # Create the test object
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        # Set initial state
+        self._set_initial_state(self.vdi, True)
+        size = 2093050
+        mock_cbt.set_cbt_size.side_effect = util.CommandException(errno.EINVAL)
+       
+        self.vdi.resize_cbt(self.sr_uuid, self.vdi_uuid, size)
+        self._check_setting_state(self.vdi, False)
+        self.xenapi.message.create.assert_called_once()
+
     def _set_initial_state(self, vdi, cbt_enabled):
         self.xenapi.VDI.get_is_a_snapshot.return_value = False
         vdi.block_tracking_state = cbt_enabled

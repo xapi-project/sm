@@ -1521,6 +1521,7 @@ class LVHDVDI(VDI.VDI):
         self.session.xenapi.VDI.set_physical_utilisation(vdi_ref,
                 str(self.utilisation))
         self.sr._updateStats(self.sr.uuid, self.size - oldSize)
+        super(LVHDVDI, self).resize_cbt(self.sr.uuid, self.uuid, self.size)
         return VDI.VDI.get_params(self)
 
     def clone(self, sr_uuid, vdi_uuid):
