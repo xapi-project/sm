@@ -147,7 +147,7 @@ class NFSSR(FileSR.FileSR):
         self.attached = True
 
 
-    def mount_remotepath(self, sr_uuid, timeout=None, retrans=None):
+    def mount_remotepath(self, sr_uuid, timeout=100, retrans=12):
         if not self._checkmount():
             # FIXME: What is the purpose of this check_server?
             # It doesn't stop us from continuing if the server

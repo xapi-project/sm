@@ -242,7 +242,7 @@ def get_supported_nfs_versions(server):
         util.SMlog("Unable to obtain list of valid nfs versions")
 
 def get_nfs_timeout(other_config):
-    nfs_timeout = None
+    nfs_timeout = 10
 
     if other_config.has_key('nfs-timeout'):
         val = int(other_config['nfs-timeout'])
@@ -254,7 +254,7 @@ def get_nfs_timeout(other_config):
     return nfs_timeout
 
 def get_nfs_retrans(other_config):
-    nfs_retrans = None
+    nfs_retrans = 12
 
     if other_config.has_key('nfs-retrans'):
         val = int(other_config['nfs-retrans']) 
