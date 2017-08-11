@@ -25,7 +25,7 @@ import errno
 import zlib
 import re
 import xs_errors
-
+import time
 
 MIN_VHD_SIZE = 2 * 1024 * 1024
 MAX_VHD_SIZE = 2093050 * 1024 * 1024
@@ -161,10 +161,14 @@ def getParentChain(lvName, extractUuidFunction, vgName):
     vdis = dict()
     retries = 0
     while (not vdis):
-        if retries > 0:
-            util.SMlog('WARNING: getAllVHDs retries=%d' % retries)
+        if retries > 60:
+            util.SMlog('ERROR: getAllVHDs returned 0 VDIs after %d retries' % retries)
+            util.SMlog('ERROR: the VHD metadata might be corrupted')
+            break
         vdis = getAllVHDs(lvName, extractUuidFunction, vgName, True)
-        retries = retries + 1
+        if (not vdis):
+            retries = retries + 1
+            time.sleep(1)
     for uuid, vdi in vdis.iteritems():
         chain[uuid] = vdi.path
     #util.SMlog("Parent chain for %s: %s" % (lvName, chain))
