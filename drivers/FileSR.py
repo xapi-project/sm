@@ -490,8 +490,10 @@ class FileVDI(VDI.VDI):
             # Change to the SR directory in case parent
             # locator field path has changed
             os.chdir(self.sr.path)
-        except:
-            raise xs_errors.XenError('SRUnavailable')
+        except Exception as chdir_exception:
+            util.SMlog("Unable to change to SR directory, SR unavailable, %s",
+                       str(chdir_exception))
+            raise xs_errors.XenError('SRUnavailable', opterr=str(chdir_exception))
 
         if util.ioretry(lambda: util.pathexists(self.path)):
             try:
