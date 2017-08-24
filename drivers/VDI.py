@@ -593,10 +593,13 @@ class VDI(object):
             while True:
                 logpath = self._get_cbt_logpath(curr_vdi)
                 curr_bitmap = bitarray()
+                size = self._cbt_op(curr_vdi, cbtutil.get_cbt_size, logpath)
+                util.SMlog("Processing VDI %s of size %d" % (curr_vdi, size))
                 curr_bitmap.frombytes(self._cbt_op(curr_vdi,
                                                    cbtutil.get_cbt_bitmap,
                                                    logpath))
                 curr_bitmap.bytereverse()
+                util.SMlog("Size of bitmap: %d" % len(curr_bitmap))
                 if merged_bitmap:
                     # TODO: Consider resized VDIs, bitmaps have to be of equal
                     # lengths for ORing
