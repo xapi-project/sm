@@ -85,5 +85,11 @@ def set_cbt_size(filename, size):
     cmd = [CBT_UTIL, "set", "-n", filename, "-s", str(size)]
     _call_cbt_util(cmd)
 
+def get_cbt_size(file_name):
+    """Get size field from log file"""
+    cmd = [CBT_UTIL, "get", "-n", file_name, "-s"]
+    ret = _call_cbt_util(cmd)
+    return int(ret.strip())
+
 def _call_cbt_util(cmd):
     return util.ioretry(lambda: util.pread2(cmd))
