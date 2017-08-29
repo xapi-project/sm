@@ -26,12 +26,11 @@ import vhdutil
 import cbtutil
 import os
 import base64
-import constants
+from constants import CBTLOG_TAG
 from bitarray import bitarray
 import uuid
 
 SM_CONFIG_PASS_THROUGH_FIELDS = ["base_mirror"]
-CBTLOG_TAG = "cbtlog"
 
 SNAPSHOT_SINGLE = 1 # true snapshot: 1 leaf, 1 read-only parent
 SNAPSHOT_DOUBLE = 2 # regular snapshot/clone that creates 2 leaves
@@ -249,6 +248,13 @@ class VDI(object):
     def _rename(self, old, new):
         raise xs_errors.XenError('Unimplemented')
 
+    def _cbt_log_exists(self, logpath):
+        """Check if CBT log file exists
+
+        Must be implemented by all classes inheriting from base VDI class
+        """
+        raise xs_errors.XenError('Unimplemented')
+
     def resize(self, sr_uuid, vdi_uuid, size):
         """Resize the given VDI to size <size> MB. Size can
         be any valid disk size greater than [or smaller than]
@@ -288,7 +294,7 @@ class VDI(object):
         try:
             if self._get_blocktracking_status():
                 logpath = self._get_cbt_logpath(vdi_uuid)
-                cbtutil.set_cbt_size(logpath, size)
+                self._cbt_op(vdi_uuid, cbtutil.set_cbt_size, logpath, size)
         except util.CommandException as ex:
             util.SMlog("Resizing of log file %s failed,"
                        "disabling CBT. Reason: %s" % (logpath, str(ex)))
@@ -316,16 +322,19 @@ class VDI(object):
 
         if data_only == False and self._get_blocktracking_status():
             logpath = self._get_cbt_logpath(vdi_uuid)
-            parent_uuid = cbtutil.get_cbt_parent(logpath)
+            parent_uuid = self._cbt_op(vdi_uuid, cbtutil.get_cbt_parent,
+                                       logpath)
             parent_path = self._get_cbt_logpath(parent_uuid)
-            child_uuid = cbtutil.get_cbt_child(logpath)
+            child_uuid = self._cbt_op(vdi_uuid, cbtutil.get_cbt_child, logpath)
             child_path = self._get_cbt_logpath(child_uuid)
 
-            if util.pathexists(parent_path):
-                cbtutil.set_cbt_child(parent_path, child_uuid)
+            if self._cbt_log_exists(parent_path):
+                self._cbt_op(parent_uuid, cbtutil.set_cbt_child,
+                             parent_path, child_uuid)
 
-            if util.pathexists(child_path):
-                cbtutil.set_cbt_parent(child_path, parent_uuid)
+            if self._cbt_log_exists(child_path):
+                self._cbt_op(child_uuid, cbtutil.set_cbt_parent,
+                             child_path, parent_uuid)
 
             self._delete_cbt_log()
 
@@ -366,20 +375,33 @@ class VDI(object):
     def activate(self, sr_uuid, vdi_uuid):
         """Activate VDI - called pre tapdisk open"""
         if self._get_blocktracking_status():
-            logpath = self._get_cbt_logpath(self.uuid)
-            consistent = cbtutil.get_cbt_consistency(logpath)
+            logpath = self._get_cbt_logpath(vdi_uuid)
+            logname = self._get_cbt_logname(vdi_uuid)
+
+            # Activate CBT log file, if required
+            self._activate_cbt_log(logname)
+
+            # Check and update consistency
+            consistent = self._cbt_op(vdi_uuid, cbtutil.get_cbt_consistency,
+                                      logpath)
             if not consistent:
+                self._deactivate_cbt_log(logname)
                 raise xs_errors.XenError('CBTMetadataInconsistent')
-            #TODO: Check if this is the right place
-            cbtutil.set_cbt_consistency(logpath, False)
+
+            self._cbt_op(self.uuid, cbtutil.set_cbt_consistency,
+                         logpath, False)
+
             return {'cbtlog': logpath}
         return None
 
     def deactivate(self, sr_uuid, vdi_uuid):
         """Deactivate VDI - called post tapdisk close"""
         if self._get_blocktracking_status():
-            logpath = self._get_cbt_logpath(self.uuid)
-            cbtutil.set_cbt_consistency(logpath, True)
+            logpath = self._get_cbt_logpath(vdi_uuid)
+            logname = self._get_cbt_logname(vdi_uuid)
+            self._cbt_op(vdi_uuid, cbtutil.set_cbt_consistency, logpath, True)
+            #Finally deactivate log file
+            self._deactivate_cbt_log(logname)
 
     def get_params(self):
         """
@@ -522,10 +544,12 @@ class VDI(object):
                 # Find parent of leaf metadata file, if any,
                 # and nullify its successor
                 logpath = self._get_cbt_logpath(self.uuid)
-                parent = cbtutil.get_cbt_parent(logpath)
+                parent = self._cbt_op(self.uuid,
+                                      cbtutil.get_cbt_parent, logpath)
                 parent_path = self._get_cbt_logpath(parent)
-                if util.pathexists(parent_path):
-                    cbtutil.set_cbt_child(parent_path, uuid.UUID(int=0))
+                if self._cbt_log_exists(parent_path):
+                    self._cbt_op(parent, cbtutil.set_cbt_child,
+                                 parent_path, uuid.UUID(int=0))
                 self._delete_cbt_log()
             except Exception as error:
                 raise xs_errors.XenError('CBTDeactivateFailed', str(error))
@@ -569,7 +593,9 @@ class VDI(object):
             while True:
                 logpath = self._get_cbt_logpath(curr_vdi)
                 curr_bitmap = bitarray()
-                curr_bitmap.frombytes(cbtutil.get_cbt_bitmap(logpath))
+                curr_bitmap.frombytes(self._cbt_op(curr_vdi,
+                                                   cbtutil.get_cbt_bitmap,
+                                                   logpath))
                 curr_bitmap.bytereverse()
                 if merged_bitmap:
                     # TODO: Consider resized VDIs, bitmaps have to be of equal
@@ -584,8 +610,9 @@ class VDI(object):
                     return xmlrpclib.dumps((encoded_string,), "", True)
                 else:
                     # Check if we have reached end of CBT chain
-                    next_vdi = cbtutil.get_cbt_child(logpath)
-                    if not util.pathexists(self._get_cbt_logpath(next_vdi)):
+                    next_vdi = self._cbt_op(curr_vdi, cbtutil.get_cbt_child,
+                                            logpath)
+                    if not self._cbt_log_exists(self._get_cbt_logpath(next_vdi)):
                         # VDIs are not part of the same metadata chain
                         break
                     else:
@@ -601,36 +628,41 @@ class VDI(object):
 
     def _cbt_snapshot(self, snapshot_uuid):
         """ CBT snapshot"""
-        new_logpath = self._get_cbt_logpath(snapshot_uuid)
+        snap_logpath = self._get_cbt_logpath(snapshot_uuid)
         leaf_logpath = self._get_cbt_logpath(self.uuid)
 
         # Rename leaf leaf.cbtlog to snapshot.cbtlog
         # and mark it consistent
-        self._rename(leaf_logpath, new_logpath)
-        cbtutil.set_cbt_consistency(new_logpath, True)
+        self._rename(leaf_logpath, snap_logpath)
+        self._cbt_op(snapshot_uuid, cbtutil.set_cbt_consistency,
+                     snap_logpath, True)
         #TODO: Make parent detection logic better. Ideally, get_cbt_parent
         # should return None if the parent is set to a UUID made of all 0s.
         # In this case, we don't know the difference between whether it is a
         # NULL UUID or the parent file is missing. See cbtutil for why we can't
         # do this
-        parent = cbtutil.get_cbt_parent(new_logpath)
+        parent = self._cbt_op(snapshot_uuid,
+                              cbtutil.get_cbt_parent, snap_logpath)
         parent_path = self._get_cbt_logpath(parent)
-        if util.pathexists(parent_path):
-            cbtutil.set_cbt_child(parent_path, snapshot_uuid)
+        if self._cbt_log_exists(parent_path):
+            self._cbt_op(parent, cbtutil.set_cbt_child,
+                         parent_path, snapshot_uuid)
 
         # Create new leaf.cbtlog
         self._create_cbt_log()
 
         # Set relationship pointers
-        cbtutil.set_cbt_parent(leaf_logpath, snapshot_uuid)
-        cbtutil.set_cbt_child(new_logpath, self.uuid)
+        self._cbt_op(self.uuid, cbtutil.set_cbt_parent,
+                     leaf_logpath, snapshot_uuid)
+        self._cbt_op(snapshot_uuid, cbtutil.set_cbt_child,
+                     snap_logpath, self.uuid)
 
     def _get_blocktracking_status(self, uuid=None):
         """ Get blocktracking status """
         if not uuid:
             uuid = self.uuid
         logpath = self._get_cbt_logpath(uuid)
-        return util.pathexists(logpath)
+        return self._cbt_log_exists(logpath)
 
     def _set_blocktracking_status(self, vdi_ref, enable):
         """ Set blocktracking status"""
@@ -662,8 +694,9 @@ class VDI(object):
             logpath = self._get_cbt_logpath(self.uuid)
             vdi_ref = self.sr.srcmd.params['vdi_ref']
             size = self.session.xenapi.VDI.get_virtual_size(vdi_ref)
-            cbtutil.create_cbt_log(logpath, size)
-            cbtutil.set_cbt_consistency(logpath, True)
+            #cbtutil.create_cbt_log(logpath, size)
+            self._cbt_op(self.uuid, cbtutil.create_cbt_log, logpath, size)
+            self._cbt_op(self.uuid, cbtutil.set_cbt_consistency, logpath, True)
         except Exception as e:
             try:
                 self._delete_cbt_log()
@@ -673,3 +706,27 @@ class VDI(object):
                 raise e
 
         return logpath
+
+    def _activate_cbt_log(self, logname):
+        """Activate CBT log file
+
+        SR specific Implementation required for VDIs on block-based SRs.
+        No-op otherwise
+        """
+        pass
+
+    def _deactivate_cbt_log(self, logname):
+        """Deactivate CBT log file
+
+        SR specific Implementation required for VDIs on block-based SRs.
+        No-op otherwise
+        """
+        pass
+
+    def _cbt_op(self, uuid, func, *args):
+        logname = self._get_cbt_logname(uuid)
+        activated = self._activate_cbt_log(logname)
+        ret = func(*args)
+        if activated:
+            self._deactivate_cbt_log(logname)
+        return ret

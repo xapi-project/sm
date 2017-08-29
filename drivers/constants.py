@@ -1,2 +1,3 @@
 EXT_PREFIX = 'XSLocalEXT-'
 CBT_BLOCK_SIZE = (64 * 1024)
+CBTLOG_TAG = "cbtlog"
