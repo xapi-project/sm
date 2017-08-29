@@ -192,6 +192,14 @@ class Tapdisk:
                 if uuid == self.vdi_uuid:
                     continue
                 lvm_cache.activate(ns, uuid, lv_name, False)
+        if self.cbtlog:
+            # Ensure CBT log file associated with virtual disk
+            # is activated before use
+            import VDI
+            vdi = VDI.VDI.from_uuid(self.session, self.vdi_uuid)
+            logname = vdi._get_cbt_logname(self.vdi_uuid)
+            vdi._activate_cbt_log(logname)
+
 
         tapargs = {"minor":self.minor}
         util.SMlog("Calling tap unpause with minor %d" % self.minor)

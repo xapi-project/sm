@@ -8,6 +8,7 @@ import vhdutil
 import xs_errors
 import util
 import errno
+import cbtutil
 
 
 class TestVDI(VDI.VDI):
@@ -51,6 +52,12 @@ class TestVDI(VDI.VDI):
         self.state_mock._do_snapshot(sr_uuid, vdi_uuid, snapType, cloneOp,
                                      secondary, cbtlog)
 
+    def _activate_cbt_log(self, logname):
+        self.state_mock._activate_cbt_log(logname)
+
+    def _deactivate_cbt_log(self, logname):
+        self.state_mock._deactivate_cbt_log(logname)
+
 class TestCBT(unittest.TestCase):
 
     def setUp(self):
@@ -66,7 +73,7 @@ class TestCBT(unittest.TestCase):
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
-    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('VDI.VDI._cbt_op', autospec=True)
     def test_configure_blocktracking_enable_success(self, context, mock_cbt, mock_bt_vdi):
         context.setup_error_codes()
 
@@ -96,8 +103,10 @@ class TestCBT(unittest.TestCase):
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
-    @mock.patch('VDI.cbtutil', autospec=True)
-    def test_configure_blocktracking_disable_when_enabled_without_parent(self, context, mock_cbt, mock_bt_vdi):
+    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
+    @mock.patch('VDI.VDI._cbt_op', autospec=True)
+    def test_configure_blocktracking_disable_when_enabled_without_parent(
+            self, context, mock_cbt, mock_logchecker, mock_bt_vdi):
         context.setup_error_codes()
 
         # Create the test object
@@ -112,23 +121,31 @@ class TestCBT(unittest.TestCase):
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.util', autospec=True)
-    def test_configure_blocktracking_disable_when_enabled_with_parent(self, context, mock_util, mock_cbt, mock_bt_vdi):
+    @mock.patch('VDI.VDI._cbt_op', autospec=True)
+    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
+    def test_configure_blocktracking_disable_when_enabled_with_parent(
+            self, context, mock_logcheck, mock_cbt, mock_bt_vdi):
         context.setup_error_codes()
 
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
 
         self._set_initial_state(self.vdi, True)
-        self._set_CBT_chain_state(mock_util, mock_cbt, True) 
-        expected_parent_path = '/mock/sr_path/parentUUID.log'
+        parent_uuid = self._set_CBT_chain_state(mock_logcheck, mock_cbt, True)
+        logpath = self.vdi._get_cbt_logpath(self.vdi_uuid)
+        expected_parent_path = '/mock/sr_path/%s.log' % parent_uuid
 
         self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, False)
 
         logfile = self._check_setting_state(self.vdi, False)
         self._check_tapdisk_paused_and_resumed(mock_bt_vdi, logfile)
-        mock_cbt.set_cbt_child.assert_called_with(expected_parent_path, uuid.UUID(int=0))
+        args1 = (logpath)
+        args2 = (expected_parent_path, uuid.UUID(int=0))
+        calls = [mock.call(self.vdi, self.vdi_uuid,
+                           cbtutil.get_cbt_parent, args1),
+                 mock.call(self.vdi, parent_uuid,
+                           cbtutil.set_cbt_child, *args2)]
+        mock_cbt.assert_has_calls(calls)
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
@@ -275,22 +292,33 @@ class TestCBT(unittest.TestCase):
         self.assertIsNone(vdi_options)
         # python2-mock-1.0.1-9.el doesn't support these asserts
         #mock_cbt.get_cbt_consistency.assert_not_called()
+        self.assertEqual(0, mock_cbt.get_cbt_consistency.call_count)
+        self.assertEqual(0, self.vdi.state_mock._activate_cbt_log.call_count)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('VDI.VDI._cbt_op', autospec=True)
     def test_activate_consistent_success(self, context, mock_cbt):
         context.setup_error_codes()
 
         expected_log_path = '/mock/sr_path/{0}.log'.format(self.vdi_uuid)
+        logname = '%s.cbtlog' % self.vdi_uuid
 
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, True)
-        mock_cbt.get_cbt_consistency.side_effect = [ True ]
+        mock_cbt.return_value = [True, None]
 
         log_path = self.vdi.activate(self.sr_uuid, self.vdi_uuid)
 
-        mock_cbt.get_cbt_consistency.assert_called_with(expected_log_path)
+        args1 = (expected_log_path)
+        args2 = (expected_log_path, False)
+
+        calls = [mock.call(self.vdi, self.vdi_uuid,
+                           cbtutil.get_cbt_consistency, args1),
+                 mock.call(self.vdi, self.vdi_uuid,
+                           cbtutil.set_cbt_consistency, *args2)]
+
+        mock_cbt.assert_has_calls(calls)
         self.assertEquals({'cbtlog': expected_log_path}, log_path)
 
     @testlib.with_context
@@ -321,13 +349,16 @@ class TestCBT(unittest.TestCase):
 
         # python2-mock-1.0.1-9.el doesn't support these asserts
         #mock_cbt.set_cbt_consistency.assert_not_called()
+        self.assertEqual(0, mock_cbt.set_cbt_consistency.call_count)
+        self.assertEqual(0, self.vdi.state_mock._deactivate_cbt_log.call_count)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('VDI.VDI._cbt_op', autospec=True)
     def test_deactivate_success(self, context, mock_cbt):
         context.setup_error_codes()
 
         expected_log_path = '/mock/sr_path/{0}.log'.format(self.vdi_uuid)
+        logname = '%s.cbtlog' % self.vdi_uuid
 
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -335,7 +366,9 @@ class TestCBT(unittest.TestCase):
 
         self.vdi.deactivate(self.sr_uuid, self.vdi_uuid)
 
-        mock_cbt.set_cbt_consistency.assert_called_with(expected_log_path, True)
+        args = (expected_log_path, True)
+        mock_cbt.assert_called_with(self.vdi, self.vdi_uuid,
+                                    cbtutil.set_cbt_consistency, *args)
 
     @testlib.with_context
     def test_snapshot_success_with_CBT_disable(self, context):
@@ -355,15 +388,17 @@ class TestCBT(unittest.TestCase):
                                                             None)        
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.util', autospec=True)
-    def test_snapshot_success_no_parent(self, context, mock_util, mock_cbt):
+    @mock.patch('VDI.VDI._cbt_op', autospec=True)
+    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
+    def test_snapshot_success_no_parent(self, context,
+                                        mock_logchecker, mock_cbt):
         context.setup_error_codes()
 
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, True)
-        parent_uuid = self._set_CBT_chain_state(mock_util, mock_cbt, False) 
+        parent_uuid = self._set_CBT_chain_state(mock_logchecker, 
+                                                mock_cbt, False) 
         snap_uuid = uuid.uuid4()
 
         self.vdi._cbt_snapshot(snap_uuid)
@@ -372,16 +407,17 @@ class TestCBT(unittest.TestCase):
                                       self.vdi_uuid, snap_uuid, parent_uuid)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.util', autospec=True)
-    def test_snapshot_success_with_parent(self, context, mock_util, mock_cbt):
+    @mock.patch('VDI.VDI._cbt_op', autospec=True)
+    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
+    def test_snapshot_success_with_parent(self, context,
+                                          mock_logcheck, mock_cbt):
         #context.setup_error_codes()
 
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         # Set initial state
         self._set_initial_state(self.vdi, True)
-        parent_uuid = self._set_CBT_chain_state(mock_util, mock_cbt, True) 
+        parent_uuid = self._set_CBT_chain_state(mock_logcheck, mock_cbt, True) 
         snap_uuid = uuid.uuid4()
 
         self.vdi._cbt_snapshot(snap_uuid)
@@ -389,7 +425,7 @@ class TestCBT(unittest.TestCase):
                                       self.vdi_uuid, snap_uuid, None)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('VDI.VDI._cbt_op', autospec=True)
     def test_resize_cbt_enabled(self, context, mock_cbt):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -399,7 +435,9 @@ class TestCBT(unittest.TestCase):
         logpath = self.vdi._get_cbt_logpath(self.vdi_uuid)
 
         self.vdi.resize_cbt(self.sr_uuid, self.vdi_uuid, size)
-        mock_cbt.set_cbt_size.assert_called_with(logpath, size)
+        args = (logpath, size)
+        mock_cbt.assert_called_with(self.vdi, self.vdi_uuid,
+                                    cbtutil.set_cbt_size, *args)
         self._check_setting_state(self.vdi, True)
 
     @testlib.with_context
@@ -416,14 +454,14 @@ class TestCBT(unittest.TestCase):
         self._check_setting_state(self.vdi, False)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('VDI.VDI._cbt_op', autospec=True)
     def test_resize_exception(self, context, mock_cbt):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         # Set initial state
         self._set_initial_state(self.vdi, True)
         size = 2093050
-        mock_cbt.set_cbt_size.side_effect = util.CommandException(errno.EINVAL)
+        mock_cbt.side_effect = util.CommandException(errno.EINVAL)
        
         self.vdi.resize_cbt(self.sr_uuid, self.vdi_uuid, size)
         self._check_setting_state(self.vdi, False)
@@ -433,11 +471,12 @@ class TestCBT(unittest.TestCase):
         self.xenapi.VDI.get_is_a_snapshot.return_value = False
         vdi.block_tracking_state = cbt_enabled
 
-    def _set_CBT_chain_state(self, mock_util, mock_cbt, parent_exists):
+    def _set_CBT_chain_state(self, mock_logcheck, mock_cbt, parent_exists):
         parent_uuid = None
         if parent_exists:
-            mock_cbt.get_cbt_parent.return_value = "parentUUID"
-        mock_util.pathexists.return_value = parent_exists
+            parent_uuid = "parentUUID"
+            mock_cbt.return_value = parent_uuid
+        mock_logcheck.return_value = parent_exists
         return parent_uuid
 
     def _check_setting_state(self, vdi, cbt_enabled):
@@ -473,7 +512,12 @@ class TestCBT(unittest.TestCase):
         vdi.state_mock._rename.assert_called_with(vdi_logpath, snap_logpath)
         if parent_uuid:
             parent_logpath = self._get_cbt_logpath(parent_uuid)
-            mock_cbt.set_cbt_child.assert_called_with(parent_logpath, snap_uuid)
+            args = (parent_logpath, snap_uuid)
+            mock_cbt.assert_called_with(parent_uuid,
+                                        cbtutil.set_cbt_child, *args)
         vdi.state_mock._create_cbt_log.assert_called_with()
-        mock_cbt.set_cbt_child.assert_called_with(snap_logpath, vdi_uuid)
-        mock_cbt.set_cbt_parent.assert_called_with(vdi_logpath, snap_uuid)
+        args1 = (snap_logpath, vdi_uuid)
+        args2 = (vdi_logpath, snap_uuid)
+        calls = [mock.call(vdi, snap_uuid, cbtutil.set_cbt_child, *args1),
+                 mock.call(vdi, vdi_uuid, cbtutil.set_cbt_parent, *args2)]
+        mock_cbt.assert_has_calls(calls, any_order=True)

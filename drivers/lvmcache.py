@@ -282,6 +282,10 @@ class LVMCache:
             return []
         return lvList
 
+    @lazyInit
+    def is_active(self, lvname):
+        return self.lvs[lvname].active
+
     #
     # private
     #

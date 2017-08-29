@@ -47,6 +47,7 @@ from srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, \
 from metadata import retrieveXMLfromFile, _parseXML
 from xmlrpclib import DateTime
 import glob
+from constants import CBTLOG_TAG
 DEV_MAPPER_ROOT = os.path.join('/dev/mapper', lvhdutil.VG_PREFIX)
 
 geneology = {}
@@ -2110,19 +2111,42 @@ class LVHDVDI(VDI.VDI):
         self.sr.ensureCBTSpace()
 
     def _create_cbt_log(self):
-        logName = self._get_cbt_logname(self.uuid)
-        #Handle if file already exists
-        lvutil.create(logName, self.sr.journaler.LV_SIZE,
-                      self.sr.vgname, VDI.CBTLOG_TAG)
-        return super(LVHDVDI, self)._create_cbt_log()
+        logname = self._get_cbt_logname(self.uuid)
+        self.sr.lvmCache.create(logname, self.sr.journaler.LV_SIZE, CBTLOG_TAG)
+        logpath = super(LVHDVDI, self)._create_cbt_log()
+        self.sr.lvmCache.deactivateNoRefcount(logname)
+        return logpath
 
     def _delete_cbt_log(self):
-        logPath = self._get_cbt_logpath(self.uuid)
-        if(lvutil.exists(logPath)):
-            lvutil.remove(logPath)
+        logpath = self._get_cbt_logpath(self.uuid)
+        if self._cbt_log_exists(logpath):
+            logname = self._get_cbt_logname(self.uuid)
+            self.sr.lvmCache.remove(logname)
 
-    def _rename(self, old, new):
-        lvutil.rename(old, new)
+    def _rename(self, oldpath, newpath):
+        oldname = os.path.basename(oldpath)
+        newname = os.path.basename(newpath)
+        self.sr.lvmCache.rename(oldname, newname)
+
+    def _activate_cbt_log(self, lv_name):
+        if not self.sr.lvmCache.is_active(lv_name):
+            try:
+                self.sr.lvmCache.activateNoRefcount(lv_name)
+                return True
+            except Exception, e:
+                util.SMlog("Exception in _activate_cbt_log, "
+                           "Error: %s." % str(e))
+        else:
+            return False
+
+    def _deactivate_cbt_log(self, lv_name):
+        try:
+            self.sr.lvmCache.deactivateNoRefcount(lv_name)
+        except Exception, e:
+            util.SMlog("Exception in _deactivate_cbt_log, Error: %s." % str(e))
+
+    def _cbt_log_exists(self, logpath):
+        return lvutil.exists(logpath)
 
 if __name__ == '__main__':
     SRCommand.run(LVHDSR, DRIVER_INFO)

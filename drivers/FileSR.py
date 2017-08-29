@@ -990,6 +990,9 @@ class FileVDI(VDI.VDI):
         except util.CommandException, inst:
             pass
 
+    def _cbt_log_exists(self, logpath):
+        return util.pathexists(logpath)
+
 if __name__ == '__main__':
     SRCommand.run(FileSR, DRIVER_INFO)
 else:
