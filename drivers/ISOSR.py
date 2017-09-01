@@ -44,6 +44,8 @@ DRIVER_INFO = {
     }
 
 TYPE = "iso"
+SMB_VERSION_1 = '1.0'
+SMB_VERSION_3 = '3.0'
 
 def is_image_utf8_compatible(s):
     regex = re.compile("\.iso$|\.img$", re.I)
@@ -219,6 +221,12 @@ class ISOSR(SR.SR):
         # Handle optional dconf attributes
         self.nfsversion = nfs.validate_nfsversion(self.dconf.get('nfsversion'))
 
+        # Fill the required SMB version
+        self.smbversion = SMB_VERSION_3
+
+        # Check if smb version is specified from client
+        self.is_smbversion_specified = False
+
         # Some info we need:
         self.sr_vditype = 'phy'
         self.credentials = None
@@ -261,19 +269,43 @@ class ISOSR(SR.SR):
                 options = filter(lambda x: x != "", options)
             else: 
                 options = self.getNFSOptions(options)
-    
-        # SMB options are passed differently for create via XC 
-        # and create via xe-mount-iso-sr
+
+        # SMB options are passed differently for create via
+        # XC/xe sr-create and create via xe-mount-iso-sr
+        # In both cases check if SMB version is passed are not.
+        # If not use self.smbversion.
         if protocol == 'cifs':
             if self.dconf.has_key('type'):
                 # Create via XC or sr-create
                 # Check for username and password
                 mountcmd=["mount.cifs", location, self.mountpoint]
+                if 'vers' in self.dconf:
+                    self.is_smbversion_specified = True
+                    self.smbversion = self.dconf['vers']
+                    util.SMlog("self.dconf['vers'] = %s" % self.dconf['vers'])
                 self.appendCIFSMountOptions(mountcmd)
             else:
                 # Creation via xe-mount-iso-sr
-                mountcmd=["mount", location, self.mountpoint]
-                mountcmd.extend(options)
+                try:
+                    mountcmd = ["mount", location, self.mountpoint]
+                    if options and options[0] == '-o':
+                        pos = options[1].find('vers=')
+                        if pos == -1:
+                            options[1] += ',' + self.getSMBVersion()
+                        else:
+                            self.smbversion = self.getSMBVersionFromOptions(
+                                options[1])
+                            self.is_smbversion_specified = True
+                    else:
+                        raise ValueError
+                    mountcmd.extend(options)
+                except ValueError:
+                    raise xs_errors.XenError('ISOInvalidXeMountOptions')
+            # Check the validity of 'smbversion'.
+            # Raise an exception for any invalid version.
+            if self.smbversion not in [SMB_VERSION_1, SMB_VERSION_3]:
+                self._cleanupcredentials()
+                raise xs_errors.XenError('ISOInvalidSMBversion')
 
         # Attempt mounting
         try:
@@ -286,16 +318,91 @@ class ISOSR(SR.SR):
                                'tcp', useroptions=options,
                                nfsversion=self.nfsversion)
             else:
-                util.pread(mountcmd, True)
+                smb3_fail_reason = None
+                if self.smbversion in SMB_VERSION_3:
+                    util.SMlog('ISOSR mount over smb 3.0')
+                    try:
+                        self.mountOverSMB(mountcmd)
+                    except util.CommandException, inst:
+                        if not self.is_smbversion_specified:
+                            util.SMlog('Retrying ISOSR mount over smb 1.0')
+                            smb3_fail_reason = inst.reason
+                            # mountcmd is constructed such that the last two
+                            # items will contain -o argument and its value.
+                            del mountcmd[-2:]
+                            self.smbversion = SMB_VERSION_1
+                            if not options:
+                                self.appendCIFSMountOptions(mountcmd)
+                            else:
+                                if options[0] == '-o':
+                                    # regex can be used here since we have
+                                    # already validated version entry
+                                    options[1] = re.sub('vers=3.0', 'vers=1.0',
+                                                        options[1])
+                                mountcmd.extend(options)
+                            self.mountOverSMB(mountcmd)
+                        else:
+                            self._cleanupcredentials()
+                            raise xs_errors.XenError(
+                                'ISOMountFailure', opterr=inst.reason)
+                else:
+                    util.SMlog('ISOSR mount over smb 1.0')
+                    self.mountOverSMB(mountcmd)
         except util.CommandException, inst:
             self._cleanupcredentials()
-            raise xs_errors.XenError('ISOMountFailure')
+            if not self.is_smbversion_specified:
+                raise xs_errors.XenError(
+                    'ISOMountFailure', opterr=smb3_fail_reason)
+            else:
+                raise xs_errors.XenError(
+                    'ISOMountFailure', opterr=inst.reason)
         self._cleanupcredentials()
 
         # Check the iso_path is accessible
         if not self._checkmount():
             self.detach(sr_uuid)
             raise xs_errors.XenError('ISOSharenameFailure')                        
+
+    def getSMBVersionFromOptions(self, options):
+        """Extract SMB version from options """
+        smb_ver = None
+        options_list = options.split(',')
+        for option in options_list:
+            if option.startswith('vers='):
+                version = option.split('=')
+                if len(version) == 2:
+                    smb_ver = version[1]
+                break
+        return smb_ver
+
+    def getSMBVersion(self):
+        """Pass smb version option to mount.cifs"""
+        smbversion = "vers=%s" % self.smbversion
+        return smbversion
+
+    def mountOverSMB(self, mountcmd):
+        """This function raises util.CommandException"""
+        util.pread(mountcmd, True)
+        try:
+            if not self.is_smbversion_specified:
+                # Store the successful smb version in PBD config
+                self.updateSMBVersInPBDConfig()
+        except Exception as exc:
+            util.SMlog("Exception: %s" % str(exc))
+            if self._checkmount():
+                util.pread(["umount", self.mountpoint])
+            raise util.CommandException
+
+    def updateSMBVersInPBDConfig(self):
+        """Store smb version in PBD config"""
+        pbd = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
+        if pbd is not None:
+            util.SMlog('Updating SMB version in PBD device config')
+            dconf = self.session.xenapi.PBD.get_device_config(pbd)
+            dconf['vers'] = self.smbversion
+            self.session.xenapi.PBD.set_device_config(pbd, dconf)
+        else:
+            raise Exception('Could not find PBD for corresponding SR')
 
     def getNFSOptions(self, options):
         """Append options to mount.nfs"""
@@ -315,6 +422,7 @@ class ISOSR(SR.SR):
             options.append(self.getCIFSPasswordOptions())
             options.append(self.getCacheOptions())
             options.append('guest')
+            options.append(self.getSMBVersion())
         except:
             util.SMlog("Exception while attempting to append mount options")
             raise
