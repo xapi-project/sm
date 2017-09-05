@@ -18,3 +18,4 @@ pip install --upgrade setuptools
 pip install nose
 pip install coverage
 pip install mock==1.0.1
+pip install bitarray
