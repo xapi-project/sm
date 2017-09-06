@@ -334,10 +334,12 @@ class TestCBT(unittest.TestCase):
         self._set_initial_state(self.vdi, True)
         mock_cbt.get_cbt_consistency.side_effect = [ False ]
 
-        with self.assertRaises(SR.SROSError) as cm:
-            self.vdi.activate(self.sr_uuid, self.vdi_uuid)
-        # Check we get the CBTMetadataInconsistent error
-        self.assertEquals(cm.exception.errno, 459)
+        result = self.vdi.activate(self.sr_uuid, self.vdi_uuid)
+
+        # Check that one message is raised and return is None
+        self._check_setting_state(self.vdi, False)
+        self.xenapi.message.create.assert_called_once()
+        self.assertEquals(result, None)
 
     @testlib.with_context
     @mock.patch('VDI.cbtutil', autospec=True)

@@ -296,18 +296,21 @@ class VDI(object):
                 logpath = self._get_cbt_logpath(vdi_uuid)
                 self._cbt_op(vdi_uuid, cbtutil.set_cbt_size, logpath, size)
         except util.CommandException as ex:
-            util.SMlog("Resizing of log file %s failed,"
+            util.SMlog("Resizing of log file %s failed, "
                        "disabling CBT. Reason: %s" % (logpath, str(ex)))
             self._delete_cbt_log()
-            #TODO: Currently messages cannot be created on VDI object
-            # Fix this as part of CP-23547 (blocked by CP-24019) 
-            alert_obj = "SR"
-            alert_uuid = str(sr_uuid)
-            alert_str = "Resizing of CBT metadata for disk %s failed" % vdi_uuid
-            util.SMlog("Creating alert: (%s, %s, \"%s\")" % 
-                        (alert_obj, alert_uuid, alert_str))
-            self.sr.session.xenapi.message.create("Changed Block Tracking interrupted",
-                                          "3", alert_obj, alert_uuid, alert_str) 
+            vdi_ref = self.sr.srcmd.params['vdi_ref']
+            self.sr.session.xenapi.VDI.set_cbt_enabled(vdi_ref, False)
+            alert_name = "Changed Block Tracking interrupted"
+            alert_prio_warning = "3"
+            alert_obj = "VDI"
+            alert_uuid = str(vdi_uuid)
+            alert_str = ("Resizing of CBT metadata for disk %s failed."
+                         % vdi_uuid)
+            self.sr.session.xenapi.message.create(alert_name,
+                                                  alert_prio_warning,
+                                                  alert_obj, alert_uuid,
+                                                  alert_str)
 
     def delete(self, sr_uuid, vdi_uuid, data_only=False):
         """Delete this VDI.
@@ -419,8 +422,21 @@ class VDI(object):
             consistent = self._cbt_op(vdi_uuid, cbtutil.get_cbt_consistency,
                                       logpath)
             if not consistent:
-                self._deactivate_cbt_log(logname)
-                raise xs_errors.XenError('CBTMetadataInconsistent')
+                self._delete_cbt_log()
+                vdi_ref = self.sr.srcmd.params['vdi_ref']
+                self.sr.session.xenapi.VDI.set_cbt_enabled(vdi_ref, False)
+                alert_name = "Changed Block Tracking interrupted"
+                alert_prio_warning = "3"
+                alert_obj = "VDI"
+                alert_uuid = str(vdi_uuid)
+                alert_str = ("Changed Block Tracking metadata is inconsistent"
+                             " for disk %s." % vdi_uuid)
+                util.SMlog(alert_str)
+                self.sr.session.xenapi.message.create(alert_name,
+                                                      alert_prio_warning,
+                                                      alert_obj, alert_uuid,
+                                                      alert_str)
+                return None
 
             self._cbt_op(self.uuid, cbtutil.set_cbt_consistency,
                          logpath, False)
@@ -691,15 +707,30 @@ class VDI(object):
         if self._cbt_log_exists(parent_path):
             self._cbt_op(parent, cbtutil.set_cbt_child,
                          parent_path, snapshot_uuid)
-
-        # Create new leaf.cbtlog
-        self._create_cbt_log()
-
-        # Set relationship pointers
-        self._cbt_op(self.uuid, cbtutil.set_cbt_parent,
-                     leaf_logpath, snapshot_uuid)
-        self._cbt_op(snapshot_uuid, cbtutil.set_cbt_child,
-                     snap_logpath, self.uuid)
+        try:
+            # Create new leaf.cbtlog
+            self._create_cbt_log()
+            # Set relationship pointers
+            self._cbt_op(self.uuid, cbtutil.set_cbt_parent,
+                         leaf_logpath, snapshot_uuid)
+            self._cbt_op(snapshot_uuid, cbtutil.set_cbt_child,
+                         snap_logpath, self.uuid)
+        except util.CommandException as ex:
+            self._delete_cbt_log() 
+            vdi_ref = self.sr.srcmd.params['vdi_ref']
+            self.sr.session.xenapi.VDI.set_cbt_enabled(vdi_ref, False)
+            util.SMlog("Creating the Changed Block Tracking log file failed. "
+                       "Reason: %s" % str(ex))
+            alert_name = "Changed Block Tracking interrupted"
+            alert_prio_warning = "3"
+            alert_obj = "VDI"
+            alert_uuid = str(self.uuid)
+            alert_str = ("Creating CBT metadata log for disk %s failed."
+                         % self.uuid)
+            self.sr.session.xenapi.message.create(alert_name,
+                                                  alert_prio_warning,
+                                                  alert_obj, alert_uuid,
+                                                  alert_str)
 
     def _get_blocktracking_status(self, uuid=None):
         """ Get blocktracking status """
