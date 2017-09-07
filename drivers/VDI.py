@@ -639,6 +639,7 @@ class VDI(object):
                 self._get_blocktracking_status(vdi_to)):
             merged_bitmap = None
             curr_vdi = vdi_from
+            vdi_size = 0
             logpath = self._get_cbt_logpath(curr_vdi)
 
             # Starting at log file after "vdi_from", traverse the CBT chain
@@ -656,20 +657,53 @@ class VDI(object):
                     curr_vdi = next_vdi
 
                 logpath = self._get_cbt_logpath(curr_vdi)
+                curr_vdi_size = self._cbt_op(curr_vdi,
+                                             cbtutil.get_cbt_size, logpath)
+                util.SMlog("DEBUG: Processing VDI %s of size %d"
+                           % (curr_vdi, curr_vdi_size))
                 curr_bitmap = bitarray()
-                size = self._cbt_op(curr_vdi, cbtutil.get_cbt_size, logpath)
-                util.SMlog("Processing VDI %s of size %d" % (curr_vdi, size))
                 curr_bitmap.frombytes(self._cbt_op(curr_vdi,
                                                    cbtutil.get_cbt_bitmap,
                                                    logpath))
                 curr_bitmap.bytereverse()
                 util.SMlog("Size of bitmap: %d" % len(curr_bitmap))
                 if merged_bitmap:
-                    # TODO: Consider resized VDIs, bitmaps have to be of equal
-                    # lengths for ORing
+                    # Rule out error conditions
+                    # 1) New VDI size < original VDI size
+                    # 2) New bitmap size < original bitmap size
+                    # 3) new VDI size > original VDI size but new bitmap
+                    # is not bigger
+                    if (curr_vdi_size < vdi_size or
+                        len(curr_bitmap) < len(merged_bitmap) or
+                        (curr_vdi_size > vdi_size and
+                        len(curr_bitmap) <= len(merged_bitmap))):
+                        # Return error: Failure to calculate changed blocks
+                        util.SMlog("Cannot calculate changed blocks with"
+                        "inconsistent bitmap sizes")
+                        raise xs_errors.XenError('CBTMetadataInconsistent',
+                                                 "Inconsistent bitmaps")
+
+                    # Check if disk has been resized
+                    if curr_vdi_size > vdi_size:
+                        vdi_size = curr_vdi_size
+                        extended_size = len(curr_bitmap) - len(merged_bitmap)
+                        # Extend merged_bitmap to match size of curr_bitmap
+                        extended_bitmap = extended_size * bitarray('0')
+                        merged_bitmap += extended_bitmap
+
+                    # At this point bitmap sizes should be same
+                    if (len(curr_bitmap) > len(merged_bitmap) and
+                        curr_vdi_size == vdi_size):
+                        # This is unusual. Log it but calculate merged
+                        # bitmap by truncating new bitmap
+                        util.SMlog("Bitmap for %s bigger than other bitmaps"
+                        "in chain without change in size" % curr_vdi)
+                        curr_bitmap = curr_bitmap[:len(merged_bitmap)]
+
                     merged_bitmap = merged_bitmap | curr_bitmap
                 else:
                     merged_bitmap = curr_bitmap
+                    vdi_size = curr_vdi_size
 
                 # Check if we have reached "vdi_to"
                 if curr_vdi == vdi_to:
