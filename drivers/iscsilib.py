@@ -44,6 +44,9 @@ _REPLACEMENT_TMO_MPATH = 15
 _REPLACEMENT_TMO_DEFAULT = 144
 _REPLACEMENT_TMO_STANDARD = 120
 
+_ISCSI_DB_PATH = '/var/lib/iscsi'
+
+
 def exn_on_failure(cmd, message):
     '''Executes via util.doexec the command specified. If the return code is 
     non-zero, raises an ISCSIError with the given message'''
@@ -94,17 +97,21 @@ def parse_IP_port(portal):
         ipaddr = ipaddr[1:-1]
     return (ipaddr, port)
 
+
 def save_rootdisk_nodes():
     root_iqns = get_rootdisk_IQNs()
     if root_iqns:
-        srcdirs = map(lambda iqn: '/etc/iscsi/nodes/%s' % iqn, root_iqns)
-        util.doexec(['/bin/cp','-a'] + srcdirs + ['/tmp'])
+        srcdirs = map(lambda iqn: os.path.join(_ISCSI_DB_PATH, 'nodes', iqn),
+                      root_iqns)
+        util.doexec(['/bin/cp', '-a'] + srcdirs + ['/tmp'])
+
 
 def restore_rootdisk_nodes():
     root_iqns = get_rootdisk_IQNs()
     if root_iqns:
-        srcdirs = map(lambda iqn: '/tmp/%s' % iqn, root_iqns)
-        util.doexec(['/bin/cp','-a'] + srcdirs + ['/etc/iscsi/nodes/'])
+        srcdirs = map(lambda iqn: os.path.join('/tmp', iqn), root_iqns)
+        util.doexec(['/bin/cp', '-a'] + srcdirs +
+                    [os.path.join(_ISCSI_DB_PATH, 'nodes')])
 
 
 def discovery(target, port, chapuser, chappass, targetIQN="any",
@@ -325,13 +332,13 @@ def stop_daemon():
 
 def restart_daemon():
     stop_daemon()
-    if os.path.exists('/etc/iscsi/nodes'):
+    if os.path.exists(os.path.join(_ISCSI_DB_PATH, 'nodes')):
         try:
-            shutil.rmtree('/etc/iscsi/nodes')
+            shutil.rmtree(os.path.join(_ISCSI_DB_PATH, 'nodes'))
         except:
             pass
         try:
-            shutil.rmtree('/etc/iscsi/send_targets')
+            shutil.rmtree(os.path.join(_ISCSI_DB_PATH, 'send_targets'))
         except:
             pass
     if os.path.exists("/etc/init.d/open-iscsi"):
