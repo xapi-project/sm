@@ -831,15 +831,23 @@
             <description>Unable to activate changed block tracking.</description>
             <value>457</value>
         </code>
+
         <code>
             <name>CBTDeactivateFailed</name>
             <description>Unable to deactivate changed block tracking.</description>
             <value>458</value>
         </code>
+
         <code>
             <name>CBTMetadataInconsistent</name>
             <description>Changed block tracking log is in an inconsistent state.</description>
             <value>459</value>
+        </code>
+
+        <code>
+            <name>CBTChangedBlocksError</name>
+            <description>Failed to calculate changed blocks for given VDIs.</description>
+            <value>460</value>
         </code>
 
 

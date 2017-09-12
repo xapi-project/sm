@@ -614,17 +614,31 @@ class VDI(object):
         vdi_to = _VDI.get_uuid(params['args'][0])
         sr_uuid = params['sr_uuid']
 
+        if vdi_from == vdi_to: 
+            raise xs_errors.XenError('CBTChangedBlocksError',
+                                     "Source and target VDI are same") 
+
         # Check 1: Check if CBT is enabled on VDIs and they are related
         if (self._get_blocktracking_status(vdi_from) and
                 self._get_blocktracking_status(vdi_to)):
             merged_bitmap = None
             curr_vdi = vdi_from
+            logpath = self._get_cbt_logpath(curr_vdi)
 
-            # Starting at "vdi_from", traverse the CBT chain through child
-            # pointers until one of the following is true
+            # Starting at log file after "vdi_from", traverse the CBT chain
+            # through child pointers until one of the following is true
             #   * We've reached destination VDI
             #   * We've reached end of CBT chain originating at "vdi_from"
             while True:
+                # Check if we have reached end of CBT chain
+                next_vdi = self._cbt_op(curr_vdi, cbtutil.get_cbt_child,
+                                        logpath)
+                if not self._cbt_log_exists(self._get_cbt_logpath(next_vdi)):
+                    # VDIs are not part of the same metadata chain
+                    break
+                else:
+                    curr_vdi = next_vdi
+
                 logpath = self._get_cbt_logpath(curr_vdi)
                 curr_bitmap = bitarray()
                 size = self._cbt_op(curr_vdi, cbtutil.get_cbt_size, logpath)
@@ -645,15 +659,6 @@ class VDI(object):
                 if curr_vdi == vdi_to:
                     encoded_string = base64.b64encode(merged_bitmap.tobytes())
                     return xmlrpclib.dumps((encoded_string,), "", True)
-                else:
-                    # Check if we have reached end of CBT chain
-                    next_vdi = self._cbt_op(curr_vdi, cbtutil.get_cbt_child,
-                                            logpath)
-                    if not self._cbt_log_exists(self._get_cbt_logpath(next_vdi)):
-                        # VDIs are not part of the same metadata chain
-                        break
-                    else:
-                        curr_vdi = next_vdi
 
         # TODO: Check 2: If both VDIs still exist,
         # find common ancestor and find difference
@@ -661,7 +666,9 @@ class VDI(object):
         # TODO: VDIs are unrelated
         # return fully populated bitmap size of to VDI
 
-        return None
+        raise xs_errors.XenError('CBTChangedBlocksError',
+                                 "Source and target VDI are unrelated") 
+
 
     def _cbt_snapshot(self, snapshot_uuid):
         """ CBT snapshot"""
