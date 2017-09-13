@@ -9,6 +9,9 @@ import xs_errors
 import util
 import errno
 import cbtutil
+from bitarray import bitarray
+import base64
+import xmlrpclib
 
 
 class TestVDI(VDI.VDI):
@@ -469,7 +472,7 @@ class TestCBT(unittest.TestCase):
 
     @testlib.with_context
     def test_vdi_data_destroy_cbt_enabled(self, context):
-        # Create the test object and initliase
+        # Create the test object and initialise
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, True)
 
@@ -478,7 +481,7 @@ class TestCBT(unittest.TestCase):
 
     @testlib.with_context
     def test_vdi_data_destroy_cbt_disabled(self, context):
-        # Create the test object and initliase
+        # Create the test object and initialise
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, False)
 
@@ -487,7 +490,7 @@ class TestCBT(unittest.TestCase):
 
     @testlib.with_context
     def test_vdi_delete_cbt_disabled(self, context):
-        # Create the test object and initliase
+        # Create the test object and initialise
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, False)
 
@@ -499,7 +502,7 @@ class TestCBT(unittest.TestCase):
     @mock.patch('VDI.VDI._cbt_log_exists')
     def test_vdi_delete_cbt_enabled_no_child(self, context,
                                              mock_logcheck, mock_cbt):
-        # Create the test object and initliase
+        # Create the test object and initialise
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, True)
         parent_uuid = "parentUUID"
@@ -522,7 +525,7 @@ class TestCBT(unittest.TestCase):
     @mock.patch('VDI.VDI._cbt_log_exists')
     def test_vdi_delete_cbt_enabled_with_child(self, context, mock_logcheck,
                                                mock_cbt, mock_bt):
-        # Create the test object and initliase
+        # Create the test object and initialise
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, True)
         parent_uuid = "parentUUID"
@@ -549,7 +552,7 @@ class TestCBT(unittest.TestCase):
     @mock.patch('VDI.VDI._cbt_log_exists')
     def test_vdi_delete_bitmap_coalesce_exc(self, context, mock_logcheck,
                                             mock_cbt):
-        # Create the test object and initliase
+        # Create the test object and initialise
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, True)
         parent_uuid = "parentUUID"
@@ -566,6 +569,76 @@ class TestCBT(unittest.TestCase):
         mock_cbt.set_cbt_child.assert_called_with(parent_log, self.vdi_uuid)
         mock_cbt.set_cbt_parent.assert_called_with(child_log, self.vdi_uuid)
         self.assertEqual(0, self.vdi.state_mock._delete_cbt_log.call_count)
+
+    @testlib.with_context
+    def test_list_changed_blocks_same_vdi(self, context):
+        context.setup_error_codes()
+        # Create the test object and initialise
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self.xenapi.VDI.get_uuid.return_value = self.vdi_uuid
+
+        with self.assertRaises(SR.SROSError) as exc:
+            self.vdi.list_changed_blocks()
+        # Test CBTChangedBlocksError is raised
+        self.assertEquals(exc.exception.errno, 460) 
+
+    @testlib.with_context
+    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
+    def test_list_changed_blocks_not_related(self, context, mock_log):
+        context.setup_error_codes()
+        # Create the test object and initialise
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self.xenapi.VDI.get_uuid.return_value = "target_uuid"
+        # Terminate the chain before target_uuid is reached
+        mock_log.side_effect = [True, False]
+    
+        with self.assertRaises(SR.SROSError) as exc:
+            self.vdi.list_changed_blocks()
+        # Test CBTChangedBlocksError is raised
+        self.assertEquals(exc.exception.errno, 460) 
+
+    @testlib.with_context
+    def test_list_changed_blocks_cbt_disabled(self, context):
+        context.setup_error_codes()
+        # Create the test object and initialise
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self._set_initial_state(self.vdi, False)
+        self.xenapi.VDI.get_uuid.return_value = "target_uuid"
+
+        with self.assertRaises(SR.SROSError) as exc:
+            self.vdi.list_changed_blocks()
+        # Test CBTChangedBlocksError is raised
+        self.assertEquals(exc.exception.errno, 460) 
+
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
+    def test_list_changed_blocks_success(self, context,
+                                                 mock_log, mock_cbt):
+        context.setup_error_codes()
+        # Create the test object and initialise
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self._set_initial_state(self.vdi, True)
+        # Set up scenario such that metadata chain looks like
+        # source_vdi->snap_vdi->target_vdi
+        snap_uuid = "snapUUID"
+        target_uuid = "targetUUID"
+        self.xenapi.VDI.get_uuid.return_value = target_uuid
+        mock_cbt.get_cbt_child.side_effect = [snap_uuid, target_uuid]
+        bitmap1 = bitarray(1024)
+        bitmap2 = bitarray(1024)
+        mock_cbt.get_cbt_bitmap.side_effect = [bitmap1.tobytes(),
+                                               bitmap2.tobytes()]
+        bitmap1.bytereverse()
+        bitmap2.bytereverse()
+        expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
+        expected_result = xmlrpclib.dumps((expected_string,), "", True)
+
+        result = self.vdi.list_changed_blocks()
+        # Assert that bitmap is only read for VDIs from source + 1 to target
+        self.assertEqual(2, mock_cbt.get_cbt_bitmap.call_count)
+        self.assertEquals(result, expected_result)
+
 
     def _set_initial_state(self, vdi, cbt_enabled):
         self.xenapi.VDI.get_is_a_snapshot.return_value = False
