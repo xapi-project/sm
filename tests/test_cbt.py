@@ -641,6 +641,114 @@ class TestCBT(unittest.TestCase):
         self.assertEqual(2, mock_cbt.get_cbt_bitmap.call_count)
         self.assertEquals(result, expected_result)
 
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
+    def test_list_changed_blocks_vdi_resized_success(self, context,
+                                                       mock_log, mock_cbt):
+        context.setup_error_codes()
+        # Create the test object and initialise
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self._set_initial_state(self.vdi, True)
+        # Set up scenario such that metadata chain looks like
+        # source_vdi->snap_vdi->target_vdi
+        snap_uuid = "snapUUID"
+        target_uuid = "targetUUID"
+        self.xenapi.VDI.get_uuid.return_value = target_uuid
+        mock_cbt.get_cbt_child.side_effect = [snap_uuid, target_uuid]
+        vdi_size1 = 5242880 # 5MB
+        vdi_size2 = 10485760 # 10MB
+        bitmap1 = bitarray(80)
+        bitmap2 = bitarray(160)
+        mock_cbt.get_cbt_size.side_effect = [vdi_size1, vdi_size2]
+        mock_cbt.get_cbt_bitmap.side_effect = [bitmap1.tobytes(),
+                                               bitmap2.tobytes()]
+        bitmap1.bytereverse()
+        # Pad bitmap1 with extra 0s
+        bitmap1 += 80 * bitarray('0')
+        bitmap2.bytereverse()
+        expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
+        expected_result = xmlrpclib.dumps((expected_string,), "", True)
+
+        result = self.vdi.list_changed_blocks()
+        self.assertEquals(result, expected_result)
+
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
+    def test_list_changed_blocks_vdi_shrunk(self, context,
+                                              mock_log, mock_cbt):
+        context.setup_error_codes()
+        # Create the test object and initialise
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self._set_initial_state(self.vdi, True)
+        target_uuid = "targetUUID"
+        self.xenapi.VDI.get_uuid.return_value = target_uuid
+        vdi_size1 = 10485760 # 10MB
+        vdi_size2 = 5242880 # 5MB
+        mock_cbt.get_cbt_size.side_effect = [vdi_size1, vdi_size2]
+        bitmap1 = bitarray(160)
+        bitmap2 = bitarray(80)
+        mock_cbt.get_cbt_bitmap.side_effect = [bitmap1.tobytes(),
+                                               bitmap2.tobytes()]
+
+        with self.assertRaises(SR.SROSError) as exc:
+            self.vdi.list_changed_blocks()
+        # Test CBTChangedBlocksError is raised
+        self.assertEquals(exc.exception.errno, 459)
+
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
+    def test_list_changed_blocks_smaller_bitmap(self, context,
+                                              mock_log, mock_cbt):
+        context.setup_error_codes()
+        # Create the test object and initialise
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self._set_initial_state(self.vdi, True)
+        #target_uuid = "targetUUID"
+        #self.xenapi.VDI.get_uuid.return_value = target_uuid
+        bitmap1 = bitarray(160)
+        bitmap2 = bitarray(80)
+        mock_cbt.get_cbt_bitmap.side_effect = [bitmap1.tobytes(),
+                                               bitmap2.tobytes()]
+
+        with self.assertRaises(SR.SROSError) as exc:
+            self.vdi.list_changed_blocks()
+        # Test CBTChangedBlocksError is raised
+        self.assertEquals(exc.exception.errno, 459)
+
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
+    def test_list_changed_blocks_larger_bitmap(self, context,
+                                                 mock_log, mock_cbt):
+        context.setup_error_codes()
+        # Create the test object and initialise
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self._set_initial_state(self.vdi, True)
+        # Set up scenario such that metadata chain looks like
+        # source_vdi->snap_vdi->target_vdi
+        snap_uuid = "snapUUID"
+        target_uuid = "targetUUID"
+        self.xenapi.VDI.get_uuid.return_value = target_uuid
+        mock_cbt.get_cbt_child.side_effect = [snap_uuid, target_uuid]
+        vdi_size1 = 5242880 # 5MB
+        vdi_size2 = 5242880 # 5MB
+        bitmap1 = bitarray(80)
+        bitmap2 = bitarray(160)
+        mock_cbt.get_cbt_size.side_effect = [vdi_size1, vdi_size2]
+        mock_cbt.get_cbt_bitmap.side_effect = [bitmap1.tobytes(),
+                                               bitmap2.tobytes()]
+        bitmap1.bytereverse()
+        bitmap2.bytereverse()
+        # Trim bitmap to the expected size
+        bitmap2 = bitmap2[:80]
+        expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
+        expected_result = xmlrpclib.dumps((expected_string,), "", True)
+
+        result = self.vdi.list_changed_blocks()
+        self.assertEquals(result, expected_result)
 
     def _set_initial_state(self, vdi, cbt_enabled):
         self.xenapi.VDI.get_is_a_snapshot.return_value = False
