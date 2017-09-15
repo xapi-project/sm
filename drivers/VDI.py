@@ -301,7 +301,7 @@ class VDI(object):
             self._delete_cbt_log()
             vdi_ref = self.sr.srcmd.params['vdi_ref']
             self.sr.session.xenapi.VDI.set_cbt_enabled(vdi_ref, False)
-            alert_name = "Changed Block Tracking interrupted"
+            alert_name = "VDI_CBT_RESIZE_FAILED"
             alert_prio_warning = "3"
             alert_obj = "VDI"
             alert_uuid = str(vdi_uuid)
@@ -425,7 +425,7 @@ class VDI(object):
                 self._delete_cbt_log()
                 vdi_ref = self.sr.srcmd.params['vdi_ref']
                 self.sr.session.xenapi.VDI.set_cbt_enabled(vdi_ref, False)
-                alert_name = "Changed Block Tracking interrupted"
+                alert_name = "VDI_CBT_METADATA_INCONSISTENT"
                 alert_prio_warning = "3"
                 alert_obj = "VDI"
                 alert_uuid = str(vdi_uuid)
@@ -755,7 +755,7 @@ class VDI(object):
             self.sr.session.xenapi.VDI.set_cbt_enabled(vdi_ref, False)
             util.SMlog("Creating the Changed Block Tracking log file failed. "
                        "Reason: %s" % str(ex))
-            alert_name = "Changed Block Tracking interrupted"
+            alert_name = "VDI_CBT_SNAPSHOT_FAILED"
             alert_prio_warning = "3"
             alert_obj = "VDI"
             alert_uuid = str(self.uuid)
