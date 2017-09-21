@@ -303,7 +303,7 @@ class VDI(object):
             self.sr.session.xenapi.message.create("Changed Block Tracking interrupted",
                                           "3", alert_obj, alert_uuid, alert_str) 
 
-    def delete(self, sr_uuid, vdi_uuid, data_only = False):
+    def delete(self, sr_uuid, vdi_uuid, data_only=False):
         """Delete this VDI.
 
         This operation IS idempotent and should succeed if the VDI
@@ -316,16 +316,16 @@ class VDI(object):
 
         if data_only == False and self._get_blocktracking_status():
             logpath = self._get_cbt_logpath(vdi_uuid)
-            parent_uuid = cbtutil.getCBTParent(logpath)
+            parent_uuid = cbtutil.get_cbt_parent(logpath)
             parent_path = self._get_cbt_logpath(parent_uuid)
-            child_uuid = cbtutil.getCBTChild(logpath)
+            child_uuid = cbtutil.get_cbt_child(logpath)
             child_path = self._get_cbt_logpath(child_uuid)
 
             if util.pathexists(parent_path):
-                cbtutil.setCBTChild(parent_path, child_uuid)
+                cbtutil.set_cbt_child(parent_path, child_uuid)
 
             if util.pathexists(child_path):
-                cbtutil.setCBTParent(child_path, parent_uuid)
+                cbtutil.set_cbt_parent(child_path, parent_uuid)
 
             self._delete_cbt_log()
 
@@ -367,11 +367,11 @@ class VDI(object):
         """Activate VDI - called pre tapdisk open"""
         if self._get_blocktracking_status():
             logpath = self._get_cbt_logpath(self.uuid)
-            consistent = cbtutil.getCBTConsistency(logpath)
+            consistent = cbtutil.get_cbt_consistency(logpath)
             if not consistent:
                 raise xs_errors.XenError('CBTMetadataInconsistent')
             #TODO: Check if this is the right place
-            cbtutil.setCBTConsistency(logpath, False) 
+            cbtutil.set_cbt_consistency(logpath, False)
             return {'cbtlog': logpath}
         return None
 
@@ -379,7 +379,7 @@ class VDI(object):
         """Deactivate VDI - called post tapdisk close"""
         if self._get_blocktracking_status():
             logpath = self._get_cbt_logpath(self.uuid)
-            cbtutil.setCBTConsistency(logpath, True)
+            cbtutil.set_cbt_consistency(logpath, True)
 
     def get_params(self):
         """
@@ -483,6 +483,7 @@ class VDI(object):
         return True
 
     def configure_blocktracking(self, sr_uuid, vdi_uuid, enable):
+        """Function for configuring blocktracking"""
         import blktap2
         vdi_ref = self.sr.srcmd.params['vdi_ref']
 
@@ -490,7 +491,7 @@ class VDI(object):
         if self.vdi_type == vhdutil.VDI_TYPE_RAW or \
             self.session.xenapi.VDI.get_is_a_snapshot(vdi_ref):
             raise xs_errors.XenError('VDIType',
-                        opterr='Raw VDI or snapshot not permitted')
+                                     opterr='Raw VDI or snapshot not permitted')
 
         # Check if already enabled
         if self._get_blocktracking_status() == enable:
@@ -502,9 +503,9 @@ class VDI(object):
                 # Check available space
                 self._ensure_cbt_space()
                 logfile = self._create_cbt_log()
-            except Exception as e:
+            except Exception as error:
                 self._delete_cbt_log()
-                raise xs_errors.XenError('CBTActivateFailed', opterr=str(e))
+                raise xs_errors.XenError('CBTActivateFailed', opterr=str(error))
 
         refreshed = blktap2.VDI.tap_refresh(self.session, sr_uuid,
                                             vdi_uuid, cbtlog=logfile)
@@ -513,21 +514,21 @@ class VDI(object):
                 self._delete_cbt_log()
             raise xs_errors.XenError('CBTActivateFailed')
 
-        #TODO: This needs to be done before tapdisk is refreshed. But then again,
-        #file cannot be deleted while tapdisk is using it. Split tapdisk refresh into
-        #Tapdisk pause, file delete, tapdisk unpause?
+        #TODO: This needs to be done before tapdisk is refreshed.
+        #But then again, file cannot be deleted while tapdisk is using it.
+        #Split tapdisk refresh into Tapdisk pause, file delete, tapdisk unpause?
         if not enable:
             try:
-                # Find parent of leaf metadata file, if any, 
+                # Find parent of leaf metadata file, if any,
                 # and nullify its successor
                 logpath = self._get_cbt_logpath(self.uuid)
-                parent = cbtutil.getCBTParent(logpath)
+                parent = cbtutil.get_cbt_parent(logpath)
                 parent_path = self._get_cbt_logpath(parent)
                 if util.pathexists(parent_path):
-                    cbtutil.setCBTChild(parent_path, uuid.UUID(int=0))
+                    cbtutil.set_cbt_child(parent_path, uuid.UUID(int=0))
                 self._delete_cbt_log()
-            except Exception as e:
-                raise xs_errors.XenError('CBTDeactivateFailed', str(e))
+            except Exception as error:
+                raise xs_errors.XenError('CBTDeactivateFailed', str(error))
 
         # Update database
         #self._set_blocktracking_status(vdi_ref, enable)
@@ -543,11 +544,12 @@ class VDI(object):
         vdi_ref = self.sr.srcmd.params['vdi_ref']
         if not self.session.xenapi.VDI.get_is_a_snapshot(vdi_ref):
             raise xs_errors.XenError('VDIType',
-                        opterr='Only allowed for snapshot VDIs')
+                                     opterr='Only allowed for snapshot VDIs')
 
-        self.delete(sr_uuid, vdi_uuid, data_only = True)
+        self.delete(sr_uuid, vdi_uuid, data_only=True)
 
     def list_changed_blocks(self):
+        """ List all changed blocks """
         vdi_from = self.uuid
         params = self.sr.srcmd.params
         _VDI = self.session.xenapi.VDI
@@ -555,19 +557,19 @@ class VDI(object):
         sr_uuid = params['sr_uuid']
 
         # Check 1: Check if CBT is enabled on VDIs and they are related
-        if (self._get_blocktracking_status(vdi_from) and 
-            self._get_blocktracking_status(vdi_to)):
+        if (self._get_blocktracking_status(vdi_from) and
+                self._get_blocktracking_status(vdi_to)):
             merged_bitmap = None
             curr_vdi = vdi_from
 
             # Starting at "vdi_from", traverse the CBT chain through child
             # pointers until one of the following is true
             #   * We've reached destination VDI
-            #   * We've reached end of CBT chain originating at "vdi_from" 
+            #   * We've reached end of CBT chain originating at "vdi_from"
             while True:
                 logpath = self._get_cbt_logpath(curr_vdi)
                 curr_bitmap = bitarray()
-                curr_bitmap.frombytes(cbtutil.getCBTBitmap(logpath))
+                curr_bitmap.frombytes(cbtutil.get_cbt_bitmap(logpath))
                 curr_bitmap.bytereverse()
                 if merged_bitmap:
                     # TODO: Consider resized VDIs, bitmaps have to be of equal
@@ -577,13 +579,12 @@ class VDI(object):
                     merged_bitmap = curr_bitmap
 
                 # Check if we have reached "vdi_to"
-                if curr_vdi == vdi_to: 
-                    encoded_string = base64.b64encode(
-                                     merged_bitmap.tobytes())
+                if curr_vdi == vdi_to:
+                    encoded_string = base64.b64encode(merged_bitmap.tobytes())
                     return xmlrpclib.dumps((encoded_string,), "", True)
-                else: 
+                else:
                     # Check if we have reached end of CBT chain
-                    next_vdi = cbtutil.getCBTChild(logpath)
+                    next_vdi = cbtutil.get_cbt_child(logpath)
                     if not util.pathexists(self._get_cbt_logpath(next_vdi)):
                         # VDIs are not part of the same metadata chain
                         break
@@ -593,69 +594,76 @@ class VDI(object):
         # TODO: Check 2: If both VDIs still exist,
         # find common ancestor and find difference
 
-        # TODO: VDIs are unrelated 
+        # TODO: VDIs are unrelated
         # return fully populated bitmap size of to VDI
 
         return None
 
     def _cbt_snapshot(self, snapshot_uuid):
+        """ CBT snapshot"""
         new_logpath = self._get_cbt_logpath(snapshot_uuid)
         leaf_logpath = self._get_cbt_logpath(self.uuid)
 
         # Rename leaf leaf.cbtlog to snapshot.cbtlog
         # and mark it consistent
         self._rename(leaf_logpath, new_logpath)
-        cbtutil.setCBTConsistency(new_logpath, True)
-        #TODO: Make parent detection logic better. Ideally, getCBTParent
+        cbtutil.set_cbt_consistency(new_logpath, True)
+        #TODO: Make parent detection logic better. Ideally, get_cbt_parent
         # should return None if the parent is set to a UUID made of all 0s.
         # In this case, we don't know the difference between whether it is a
         # NULL UUID or the parent file is missing. See cbtutil for why we can't
         # do this
-        parent = cbtutil.getCBTParent(new_logpath)
+        parent = cbtutil.get_cbt_parent(new_logpath)
         parent_path = self._get_cbt_logpath(parent)
         if util.pathexists(parent_path):
-            cbtutil.setCBTChild(parent_path, snapshot_uuid)
+            cbtutil.set_cbt_child(parent_path, snapshot_uuid)
 
         # Create new leaf.cbtlog
         self._create_cbt_log()
 
         # Set relationship pointers
-        cbtutil.setCBTParent(leaf_logpath, snapshot_uuid)
-        cbtutil.setCBTChild(new_logpath, self.uuid)
+        cbtutil.set_cbt_parent(leaf_logpath, snapshot_uuid)
+        cbtutil.set_cbt_child(new_logpath, self.uuid)
 
     def _get_blocktracking_status(self, uuid=None):
-        if not uuid: 
+        """ Get blocktracking status """
+        if not uuid:
             uuid = self.uuid
         logpath = self._get_cbt_logpath(uuid)
         return util.pathexists(logpath)
 
     def _set_blocktracking_status(self, vdi_ref, enable):
+        """ Set blocktracking status"""
         vdi_config = self.session.xenapi.VDI.get_other_config(vdi_ref)
         if "cbt_enabled" in vdi_config:
             self.session.xenapi.VDI.remove_from_other_config(
-                                    vdi_ref, "cbt_enabled")
+                vdi_ref, "cbt_enabled")
 
         self.session.xenapi.VDI.add_to_other_config(
-                                    vdi_ref, "cbt_enabled", enable)
+            vdi_ref, "cbt_enabled", enable)
 
     def _ensure_cbt_space(self):
+        """ Ensure enough CBT space """
         pass
 
     def _get_cbt_logname(self, uuid):
+        """ Get CBT logname """
         logName = "%s.%s" % (uuid, CBTLOG_TAG)
         return logName
 
     def _get_cbt_logpath(self, uuid):
+        """ Get CBT logpath """
         logName = self._get_cbt_logname(uuid)
         return os.path.join(self.sr.path, logName)
 
     def _create_cbt_log(self):
+        """ Create CBT log """
         try:
             logpath = self._get_cbt_logpath(self.uuid)
             vdi_ref = self.sr.srcmd.params['vdi_ref']
             size = self.session.xenapi.VDI.get_virtual_size(vdi_ref)
-            cbtutil.createCBTLog(logpath, size)
-            cbtutil.setCBTConsistency(logpath, True)
+            cbtutil.create_cbt_log(logpath, size)
+            cbtutil.set_cbt_consistency(logpath, True)
         except Exception as e:
             try:
                 self._delete_cbt_log()

@@ -971,9 +971,9 @@ class FileVDI(VDI.VDI):
         # Create CBT log file
         # Name: <vdi_uuid>.cbtlog
         #Handle if file already exists
-        logPath = self._get_cbt_logpath(self.uuid)
-        f = open(logPath, "w+")
-        f.close()
+        log_path = self._get_cbt_logpath(self.uuid)
+        open_file = open(log_path, "w+")
+        open_file.close()
         return super(FileVDI, self)._create_cbt_log()
 
     def _delete_cbt_log(self):

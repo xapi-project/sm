@@ -1,3 +1,4 @@
+"""Utility for CBT log file operations"""
 #!/usr/bin/python
 #
 # Copyright (C) Citrix Systems Inc.
@@ -23,66 +24,66 @@ import uuid
 
 CBT_UTIL = "/usr/sbin/cbt-util"
 
-def createCBTLog(fileName, size):
+def create_cbt_log(file_name, size):
     """Create and initialise log file for tracking changed blocks"""
-    cmd = [CBT_UTIL, "create", "-n", fileName, "-s", str(size)]
-    _callCBTUtil(cmd)
+    cmd = [CBT_UTIL, "create", "-n", file_name, "-s", str(size)]
+    _call_cbt_util(cmd)
 
-def setCBTParent(fileName, parentUuid):
+def set_cbt_parent(file_name, parent_uuid):
     """Set parent field in log file"""
-    cmd = [CBT_UTIL, "set", "-n", fileName, "-p", str(parentUuid)]
-    _callCBTUtil(cmd)
+    cmd = [CBT_UTIL, "set", "-n", file_name, "-p", str(parent_uuid)]
+    _call_cbt_util(cmd)
 
-def getCBTParent(fileName):
+def get_cbt_parent(file_name):
     """Get parent field from log file"""
-    cmd = [CBT_UTIL, "get", "-n", fileName, "-p"]
-    ret =  _callCBTUtil(cmd)
-    u = uuid.UUID(ret.strip())
+    cmd = [CBT_UTIL, "get", "-n", file_name, "-p"]
+    ret = _call_cbt_util(cmd)
+    uret = uuid.UUID(ret.strip())
     #TODO: Need to check for NULL UUID
     # Ideally, we want to do
     # if uuid.UUID(ret.strip()).int == 0
     #     return None
     # Pylint doesn't like this for reason though
-    return str(u)
+    return str(uret)
 
-def setCBTChild(fileName, childUuid):
+def set_cbt_child(file_name, child_uuid):
     """Set child field in log file"""
-    cmd = [CBT_UTIL, "set", "-n", fileName, "-c", str(childUuid)]
-    _callCBTUtil(cmd)
+    cmd = [CBT_UTIL, "set", "-n", file_name, "-c", str(child_uuid)]
+    _call_cbt_util(cmd)
 
-def getCBTChild(fileName):
+def get_cbt_child(file_name):
     """Get parent field from log file"""
-    cmd = [CBT_UTIL, "get", "-n", fileName, "-c"]
-    ret =  _callCBTUtil(cmd)
-    u = uuid.UUID(ret.strip())
+    cmd = [CBT_UTIL, "get", "-n", file_name, "-c"]
+    ret = _call_cbt_util(cmd)
+    uret = uuid.UUID(ret.strip())
     #TODO: Need to check for NULL UUID
-    return str(u)
+    return str(uret)
 
-def setCBTConsistency(fileName, consistent):
+def set_cbt_consistency(file_name, consistent):
     """Set consistency field in log file"""
     if consistent:
         flag = 1
     else:
         flag = 0
-    cmd = [CBT_UTIL, "set", "-n", fileName, "-f", str(flag)]
-    _callCBTUtil(cmd)
+    cmd = [CBT_UTIL, "set", "-n", file_name, "-f", str(flag)]
+    _call_cbt_util(cmd)
 
-def getCBTConsistency(fileName):
+def get_cbt_consistency(file_name):
     """Get consistency field from log file"""
-    cmd = [CBT_UTIL, "get", "-n", fileName, "-f"]
-    ret =  _callCBTUtil(cmd)
+    cmd = [CBT_UTIL, "get", "-n", file_name, "-f"]
+    ret = _call_cbt_util(cmd)
     return bool(int(ret.strip()))
 
-def getCBTBitmap(fileName):
+def get_cbt_bitmap(file_name):
     """Get bitmap field from log file"""
-    cmd = [CBT_UTIL, "get", "-n", fileName, "-b"]
-    ret =  _callCBTUtil(cmd)
+    cmd = [CBT_UTIL, "get", "-n", file_name, "-b"]
+    ret =  _call_cbt_util(cmd)
     return ret.strip()
 
 def set_cbt_size(filename, size):
     """Set size field in log file"""
     cmd = [CBT_UTIL, "set", "-n", filename, "-s", str(size)]
-    _callCBTUtil(cmd)
+    _call_cbt_util(cmd)
 
-def _callCBTUtil(cmd):
+def _call_cbt_util(cmd):
     return util.ioretry(lambda: util.pread2(cmd))

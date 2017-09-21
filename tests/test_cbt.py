@@ -128,7 +128,7 @@ class TestCBT(unittest.TestCase):
 
         logfile = self._check_setting_state(self.vdi, False)
         self._check_tapdisk_paused_and_resumed(mock_bt_vdi, logfile)
-        mock_cbt.setCBTChild.assert_called_with(expected_parent_path, uuid.UUID(int=0))
+        mock_cbt.set_cbt_child.assert_called_with(expected_parent_path, uuid.UUID(int=0))
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
@@ -238,7 +238,7 @@ class TestCBT(unittest.TestCase):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, False)
-        mock_cbt.createCBTLog.side_effect = Exception(errno.EIO)
+        mock_cbt.create_cbt_log.side_effect = Exception(errno.EIO)
 
         with self.assertRaises(SR.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
@@ -274,7 +274,7 @@ class TestCBT(unittest.TestCase):
 
         self.assertIsNone(vdi_options)
         # python2-mock-1.0.1-9.el doesn't support these asserts
-        #mock_cbt.getCBTConsistency.assert_not_called()
+        #mock_cbt.get_cbt_consistency.assert_not_called()
 
     @testlib.with_context
     @mock.patch('VDI.cbtutil', autospec=True)
@@ -286,11 +286,11 @@ class TestCBT(unittest.TestCase):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, True)
-        mock_cbt.getCBTConsistency.side_effect = [ True ]
+        mock_cbt.get_cbt_consistency.side_effect = [ True ]
 
         log_path = self.vdi.activate(self.sr_uuid, self.vdi_uuid)
 
-        mock_cbt.getCBTConsistency.assert_called_with(expected_log_path)
+        mock_cbt.get_cbt_consistency.assert_called_with(expected_log_path)
         self.assertEquals({'cbtlog': expected_log_path}, log_path)
 
     @testlib.with_context
@@ -301,7 +301,7 @@ class TestCBT(unittest.TestCase):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, True)
-        mock_cbt.getCBTConsistency.side_effect = [ False ]
+        mock_cbt.get_cbt_consistency.side_effect = [ False ]
 
         with self.assertRaises(SR.SROSError) as cm:
             self.vdi.activate(self.sr_uuid, self.vdi_uuid)
@@ -320,7 +320,7 @@ class TestCBT(unittest.TestCase):
         self.vdi.deactivate(self.sr_uuid, self.vdi_uuid)
 
         # python2-mock-1.0.1-9.el doesn't support these asserts
-        #mock_cbt.setCBTConsistency.assert_not_called()
+        #mock_cbt.set_cbt_consistency.assert_not_called()
 
     @testlib.with_context
     @mock.patch('VDI.cbtutil', autospec=True)
@@ -335,7 +335,7 @@ class TestCBT(unittest.TestCase):
 
         self.vdi.deactivate(self.sr_uuid, self.vdi_uuid)
 
-        mock_cbt.setCBTConsistency.assert_called_with(expected_log_path, True)
+        mock_cbt.set_cbt_consistency.assert_called_with(expected_log_path, True)
 
     @testlib.with_context
     def test_snapshot_success_with_CBT_disable(self, context):
@@ -436,7 +436,7 @@ class TestCBT(unittest.TestCase):
     def _set_CBT_chain_state(self, mock_util, mock_cbt, parent_exists):
         parent_uuid = None
         if parent_exists:
-            mock_cbt.getCBTParent.return_value = "parentUUID"
+            mock_cbt.get_cbt_parent.return_value = "parentUUID"
         mock_util.pathexists.return_value = parent_exists
         return parent_uuid
 
@@ -473,7 +473,7 @@ class TestCBT(unittest.TestCase):
         vdi.state_mock._rename.assert_called_with(vdi_logpath, snap_logpath)
         if parent_uuid:
             parent_logpath = self._get_cbt_logpath(parent_uuid)
-            mock_cbt.setCBTChild.assert_called_with(parent_logpath, snap_uuid)
+            mock_cbt.set_cbt_child.assert_called_with(parent_logpath, snap_uuid)
         vdi.state_mock._create_cbt_log.assert_called_with()
-        mock_cbt.setCBTChild.assert_called_with(snap_logpath, vdi_uuid)
-        mock_cbt.setCBTParent.assert_called_with(vdi_logpath, snap_uuid)
+        mock_cbt.set_cbt_child.assert_called_with(snap_logpath, vdi_uuid)
+        mock_cbt.set_cbt_parent.assert_called_with(vdi_logpath, snap_uuid)
