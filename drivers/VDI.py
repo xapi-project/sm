@@ -122,6 +122,7 @@ class VDI(object):
         self.sm_config_override = {}
         self.sm_config_keep = []
         self.ty = "user"
+        self.cbt_enabled = False
 
         self.load(uuid)
 
@@ -480,7 +481,8 @@ class VDI(object):
         metadata_of_pool = util.default(self, "metadata_of_pool", lambda: "OpaqueRef:NULL")
         snapshot_time = util.default(self, "snapshot_time", lambda: "19700101T00:00:00Z")
         snapshot_of = util.default(self, "snapshot_of", lambda: "OpaqueRef:NULL")
-        vdi = self.sr.session.xenapi.VDI.db_introduce(uuid, self.label, self.description, self.sr.sr_ref, ty, self.shareable, self.read_only, {}, self.location, {}, sm_config, self.managed, str(self.size), str(self.utilisation), metadata_of_pool, is_a_snapshot, xmlrpclib.DateTime(snapshot_time), snapshot_of)
+        cbt_enabled = util.default(self, "cbt_enabled", lambda: False)
+        vdi = self.sr.session.xenapi.VDI.db_introduce(uuid, self.label, self.description, self.sr.sr_ref, ty, self.shareable, self.read_only, {}, self.location, {}, sm_config, self.managed, str(self.size), str(self.utilisation), metadata_of_pool, is_a_snapshot, xmlrpclib.DateTime(snapshot_time), snapshot_of, cbt_enabled)
         return vdi
 
     def _db_forget(self):
@@ -529,7 +531,9 @@ class VDI(object):
         sm_config = util.default(self, "sm_config", lambda: {})
         self._override_sm_config(sm_config)
         self._db_update_sm_config(vdi, sm_config)
-        
+        self.sr.session.xenapi.VDI.set_cbt_enabled(vdi,
+            self._get_blocktracking_status())
+
     def in_sync_with_xenapi_record(self, x):
         """Returns true if this VDI is in sync with the supplied XenAPI record"""
         if self.location <> util.to_plain_string(x['location']):
@@ -552,6 +556,10 @@ class VDI(object):
             if sm_config[k] <> x['sm_config'][k]:
                 util.SMlog("sm_config %s <> %s" % (repr(sm_config), repr(x['sm_config'])))
                 return False
+        if self.cbt_enabled != x['cbt_enabled']:
+            util.SMlog("cbt_enabled %s <> %s" % (
+                self.cbt_enabled, x['cbt_enabled']))
+            return False
         return True
 
     def configure_blocktracking(self, sr_uuid, vdi_uuid, enable):
