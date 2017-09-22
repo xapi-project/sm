@@ -686,6 +686,7 @@ class LVHDSR(SR.SR):
             if self._refresh_size():
                 self._expand_size()
             self.lvmCache.refresh()
+            cbt_vdis = self.lvmCache.getTagged(CBTLOG_TAG)
             self._loadvdis()
             stats = lvutil._getVGstats(self.vgname)
             self.physical_size = stats['physical_size']
@@ -771,6 +772,19 @@ class LVHDSR(SR.SR):
                         if Dict[vdi][TYPE_TAG] == 'metadata':
                             self.session.xenapi.VDI.set_metadata_of_pool( \
                                 vdi_ref, Dict[vdi][METADATA_OF_POOL_TAG])
+
+                    # Update CBT status of disks either just added
+                    # or already in XAPI
+                    cbt_logname = "%s.%s" % (vdi_uuid, CBTLOG_TAG)
+                    if cbt_logname in cbt_vdis:
+                        vdi_ref = self.session.xenapi.VDI.get_by_uuid(vdi_uuid)
+                        self.session.xenapi.VDI.set_cbt_enabled(vdi_ref, True)
+                        # For existing VDIs, update local state too
+                        # Scan in base class SR updates existing VDIs 
+                        # again based on local states
+                        if self.vdis.has_key(vdi_uuid):
+                            self.vdis[vdi_uuid].cbt_enabled = True
+                        cbt_vdis.remove(cbt_logname)
                         
                 # Now set the snapshot statuses correctly in XAPI
                 for srcvdi in vdiToSnaps.keys():
@@ -789,6 +803,17 @@ class LVHDSR(SR.SR):
                         except Exception, e:
                             util.SMlog("Setting snapshot failed. "\
                                        "Error: %s" % str(e))
+            
+            if cbt_vdis:
+                # If we have items remaining in this list, 
+                # they are cbt_metadata VDI that XAPI doesn't know about
+                # Add them to self.vdis and they'll get added to the DB
+                for cbt_vdi in cbt_vdis:
+                    cbt_uuid = cbt_vdi.split(".")[0]
+                    new_vdi = self.vdi(cbt_uuid)
+                    new_vdi.ty = "cbt_metadata"
+                    new_vdi.cbt_enabled = True
+                    self.vdis[cbt_uuid] = new_vdi
 
             ret = super(LVHDSR, self).scan(uuid)
             self._kickGC()

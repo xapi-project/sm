@@ -26,6 +26,7 @@ import blktap2
 import time
 from lock import Lock
 import xmlrpclib
+from constants import CBTLOG_TAG
 
 geneology = {}
 CAPABILITIES = ["SR_PROBE","SR_UPDATE", \
@@ -261,13 +262,23 @@ class FileSR(SR.SR):
                 raise xs_errors.XenError('SRScan', opterr='uuid=%s' % uuid)
             self.vdis[uuid] = self.vdi(uuid, True)
 
-        # raw VDIs
+        # raw VDIs and CBT log files
         files = util.ioretry(lambda: util.listdir(self.path))
         for fn in files:
-            if not fn.endswith(vhdutil.FILE_EXTN_RAW):
-                continue
-            uuid = fn[:-(len(vhdutil.FILE_EXTN_RAW))]
-            self.vdis[uuid] = self.vdi(uuid, True)
+            if fn.endswith(vhdutil.FILE_EXTN_RAW):
+                uuid = fn[:-(len(vhdutil.FILE_EXTN_RAW))]
+                self.vdis[uuid] = self.vdi(uuid, True)
+            elif fn.endswith(CBTLOG_TAG):
+                cbt_uuid = fn.split(".")[0] 
+                # If an associated disk exists, update CBT status
+                # else create new VDI of type cbt_metadata
+                if self.vdis.has_key(cbt_uuid):
+                    self.vdis[cbt_uuid].cbt_enabled = True
+                else:
+                    new_vdi = self.vdi(cbt_uuid)
+                    new_vdi.ty = "cbt_metadata"
+                    new_vdi.cbt_enabled = True
+                    self.vdis[cbt_uuid] = new_vdi
 
         # Mark parent VDIs as Read-only and generate virtual allocation
         self.virtual_allocation = 0
@@ -402,6 +413,8 @@ class FileVDI(VDI.VDI):
                                 (vdi_uuid, self.PARAM_VHD))
         raw_path = os.path.join(self.sr.path, "%s.%s" % \
                                 (vdi_uuid, self.PARAM_RAW))
+        cbt_path = os.path.join(self.sr.path, "%s.%s" %
+                                (vdi_uuid, CBTLOG_TAG))
         found = False
         tries = 0
         while tries < maxretry and not found:
@@ -413,6 +426,11 @@ class FileVDI(VDI.VDI):
             elif util.ioretry(lambda: util.pathexists(raw_path)):
                 self.vdi_type = vhdutil.VDI_TYPE_RAW
                 self.path = raw_path
+                self.hidden = False
+                found = True
+            elif util.ioretry(lambda: util.pathexists(cbt_path)):
+                self.vdi_type = CBTLOG_TAG
+                self.path = cbt_path
                 self.hidden = False
                 found = True
 
@@ -492,6 +510,11 @@ class FileVDI(VDI.VDI):
                 self.size = self.utilisation
                 self.sm_config_override = {'type':self.PARAM_RAW}
                 return
+
+            if self.vdi_type == CBTLOG_TAG:
+                self.exists = True
+                self.size = self.utilisation
+                return 
 
             try:
                 # The VDI might be activated in R/W mode so the VHD footer
