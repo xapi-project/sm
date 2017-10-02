@@ -25,6 +25,7 @@ import time
 import scsiutil
 import mpp_luncheck
 import wwid_conf
+import errno
 
 iscsi_mpath_file = "/etc/iscsi/iscsid-mpath.conf"
 iscsi_default_file = "/etc/iscsi/iscsid-default.conf"
@@ -55,8 +56,13 @@ def _is_mpp_daemon_running():
         return False
 
 def activate_MPdev(sid, dst):
-    if not os.path.exists(MP_INUSEDIR):
+    try:
         os.mkdir(MP_INUSEDIR)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST:
+            pass
+        else:
+            raise
     if (mpp_luncheck.is_RdacLun(sid)):
         suffix = get_TargetID_LunNUM(sid)
         sid_with_suffix = sid + "-" + suffix
