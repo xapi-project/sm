@@ -1740,6 +1740,11 @@ class LVHDVDI(VDI.VDI):
                 snapVDI2 = self._createSnap(clonUuid, lvSizeClon, True)
             util.fistpoint.activate("LVHDRT_clone_vdi_after_second_snap", self.sr.uuid)
 
+            # If we have CBT enabled on the VDI,
+            # set CBT status for the new snapshot disk
+            if cbtlog:
+                snapVDI2.cbt_enabled = True
+
             # note: it is important to mark the parent hidden only AFTER the 
             # new VHD children have been created, which are referencing it; 
             # otherwise we would introduce a race with GC that could reclaim 
