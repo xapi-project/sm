@@ -820,6 +820,10 @@ class FileVDI(VDI.VDI):
                 leaf_vdi.utilisation = self.utilisation
                 leaf_vdi.sm_config = {}
                 leaf_vdi.sm_config['vhd-parent'] = dstparent
+                # If we have CBT enabled on the VDI,
+                # set CBT status for the new snapshot disk
+                if cbtlog:
+                    leaf_vdi.cbt_enabled = True
 
             base_vdi = None
             if introduce_parent:
