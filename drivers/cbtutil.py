@@ -78,7 +78,9 @@ def get_cbt_bitmap(file_name):
     """Get bitmap field from log file"""
     cmd = [CBT_UTIL, "get", "-n", file_name, "-b"]
     ret =  _call_cbt_util(cmd)
-    return ret.strip()
+    #Do not strip the return string. It's a byte string and stripping
+    #it sometimes leads to loss of information
+    return ret
 
 def set_cbt_size(filename, size):
     """Set size field in log file"""

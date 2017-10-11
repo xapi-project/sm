@@ -35,6 +35,7 @@ SM_CONFIG_PASS_THROUGH_FIELDS = ["base_mirror"]
 SNAPSHOT_SINGLE = 1 # true snapshot: 1 leaf, 1 read-only parent
 SNAPSHOT_DOUBLE = 2 # regular snapshot/clone that creates 2 leaves
 SNAPSHOT_INTERNAL = 3 # SNAPSHOT_SINGLE but don't update SR's virtual allocation
+CBT_BLOCK_SIZE = (64 * 1024)
 
 def VDIMetadataSize(type, virtualsize):
     size = 0
@@ -712,6 +713,16 @@ class VDI(object):
                                                    logpath))
                 curr_bitmap.bytereverse()
                 util.SMlog("Size of bitmap: %d" % len(curr_bitmap))
+
+                expected_bitmap_len = curr_vdi_size // CBT_BLOCK_SIZE
+                # This should ideally never happen but fail call to calculate
+                # changed blocks instead of returning corrupt data 
+                if len(curr_bitmap) < expected_bitmap_len:
+                    util.SMlog("Size of bitmap %d is less than expected size %d"
+                               % (len(curr_bitmap), expected_bitmap_len))
+                    raise xs_errors.XenError('CBTMetadataInconsistent',
+                                              "Inconsistent bitmaps")
+
                 if merged_bitmap:
                     # Rule out error conditions
                     # 1) New VDI size < original VDI size
@@ -764,7 +775,6 @@ class VDI(object):
         raise xs_errors.XenError('CBTChangedBlocksError',
                                  "Source and target VDI are unrelated") 
 
-
     def _cbt_snapshot(self, snapshot_uuid):
         """ CBT snapshot"""
         snap_logpath = self._get_cbt_logpath(snapshot_uuid)
@@ -775,6 +785,7 @@ class VDI(object):
         self._rename(leaf_logpath, snap_logpath)
         self._cbt_op(snapshot_uuid, cbtutil.set_cbt_consistency,
                      snap_logpath, True)
+
         #TODO: Make parent detection logic better. Ideally, get_cbt_parent
         # should return None if the parent is set to a UUID made of all 0s.
         # In this case, we don't know the difference between whether it is a
