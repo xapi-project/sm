@@ -324,6 +324,7 @@ class VDI(object):
         disk is still attached.
         """
         import blktap2
+        from lock import Lock
 
         if data_only == False and self._get_blocktracking_status():
             logpath = self._get_cbt_logpath(vdi_uuid)
@@ -333,6 +334,8 @@ class VDI(object):
             child_uuid = self._cbt_op(vdi_uuid, cbtutil.get_cbt_child, logpath)
             child_path = self._get_cbt_logpath(child_uuid)
 
+            lock = Lock("cbtlog", str(vdi_uuid))
+
             if self._cbt_log_exists(parent_path):
                 self._cbt_op(parent_uuid, cbtutil.set_cbt_child,
                              parent_path, child_uuid)
@@ -340,6 +343,7 @@ class VDI(object):
             if self._cbt_log_exists(child_path):
                 self._cbt_op(child_uuid, cbtutil.set_cbt_parent,
                              child_path, parent_uuid)
+                lock.acquire()
                 try:
                     # Coalesce contents of bitmap with child's bitmap
                     # Check if child bitmap is currently attached
@@ -355,26 +359,35 @@ class VDI(object):
                     self._activate_cbt_log(self._get_cbt_logname(vdi_uuid))
                     self._cbt_op(child_uuid, cbtutil.coalesce_bitmap,
                                  logpath, child_path)
+                    lock.release()
                 except util.CommandException:
                     # If there is an exception in coalescing,
                     # CBT log file is not deleted and pointers are reset
                     # to what they were
                     util.SMlog("Exception in coalescing bitmaps on VDI delete,"
                                " restoring to previous state")
-                    if self._cbt_log_exists(parent_path):
-                        self._cbt_op(parent_uuid, cbtutil.set_cbt_child,
-                                     parent_path, vdi_uuid)
-                    if self._cbt_log_exists(child_path):
-                        self._cbt_op(child_uuid, cbtutil.set_cbt_parent,
-                                     child_path, vdi_uuid)
+                    try:
+                        if self._cbt_log_exists(parent_path):
+                            self._cbt_op(parent_uuid, cbtutil.set_cbt_child,
+                                         parent_path, vdi_uuid)
+                        if self._cbt_log_exists(child_path):
+                            self._cbt_op(child_uuid, cbtutil.set_cbt_parent,
+                                         child_path, vdi_uuid)
+                    finally:
+                        lock.release()
+                        lock.cleanup("cbtlog", str(vdi_uuid))
                     return
                 finally:
                     # Unpause tapdisk if it wasn't originally paused
                     if paused_for_coalesce:
                         blktap2.VDI.tap_unpause(self.session, sr_uuid,
                                                 child_uuid, cbtlog=child_path)
-
-            self._delete_cbt_log()
+            lock.acquire()
+            try:
+                self._delete_cbt_log()
+            finally:
+                lock.release()
+                lock.cleanup("cbtlog", str(vdi_uuid))
 
     def snapshot(self, sr_uuid, vdi_uuid):
         """Save an immutable copy of the referenced VDI.
@@ -413,17 +426,28 @@ class VDI(object):
     def activate(self, sr_uuid, vdi_uuid):
         """Activate VDI - called pre tapdisk open"""
         if self._get_blocktracking_status():
-            logpath = self._get_cbt_logpath(vdi_uuid)
-            logname = self._get_cbt_logname(vdi_uuid)
+            from lock import Lock
+            lock = Lock("cbtlog", str(vdi_uuid))
+            lock.acquire()
 
-            # Activate CBT log file, if required
-            self._activate_cbt_log(logname)
+            try:
+                logpath = self._get_cbt_logpath(vdi_uuid)
+                logname = self._get_cbt_logname(vdi_uuid)
+
+                # Activate CBT log file, if required
+                self._activate_cbt_log(logname)
+            finally:
+                lock.release()
 
             # Check and update consistency
             consistent = self._cbt_op(vdi_uuid, cbtutil.get_cbt_consistency,
                                       logpath)
             if not consistent:
-                self._delete_cbt_log()
+                lock.acquire()
+                try:
+                    self._delete_cbt_log()
+                finally:
+                    lock.release()
                 vdi_ref = self.sr.srcmd.params['vdi_ref']
                 self.sr.session.xenapi.VDI.set_cbt_enabled(vdi_ref, False)
                 alert_name = "VDI_CBT_METADATA_INCONSISTENT"
@@ -441,18 +465,24 @@ class VDI(object):
 
             self._cbt_op(self.uuid, cbtutil.set_cbt_consistency,
                          logpath, False)
-
             return {'cbtlog': logpath}
         return None
 
     def deactivate(self, sr_uuid, vdi_uuid):
         """Deactivate VDI - called post tapdisk close"""
         if self._get_blocktracking_status():
-            logpath = self._get_cbt_logpath(vdi_uuid)
-            logname = self._get_cbt_logname(vdi_uuid)
-            self._cbt_op(vdi_uuid, cbtutil.set_cbt_consistency, logpath, True)
-            #Finally deactivate log file
-            self._deactivate_cbt_log(logname)
+            from lock import Lock
+            lock = Lock("cbtlog", str(vdi_uuid))
+            lock.acquire()
+
+            try:
+                logpath = self._get_cbt_logpath(vdi_uuid)
+                logname = self._get_cbt_logname(vdi_uuid)
+                self._cbt_op(vdi_uuid, cbtutil.set_cbt_consistency, logpath, True)
+                # Finally deactivate log file
+                self._deactivate_cbt_log(logname)
+            finally:
+                lock.release()
 
     def get_params(self):
         """
@@ -598,6 +628,9 @@ class VDI(object):
         #But then again, file cannot be deleted while tapdisk is using it.
         #Split tapdisk refresh into Tapdisk pause, file delete, tapdisk unpause?
         if not enable:
+            from lock import Lock
+            lock = Lock("cbtlog", str(vdi_uuid))
+            lock.acquire()
             try:
                 # Find parent of leaf metadata file, if any,
                 # and nullify its successor
@@ -609,8 +642,12 @@ class VDI(object):
                     self._cbt_op(parent, cbtutil.set_cbt_child,
                                  parent_path, uuid.UUID(int=0))
                 self._delete_cbt_log()
+
             except Exception as error:
                 raise xs_errors.XenError('CBTDeactivateFailed', str(error))
+            finally:
+                lock.release()
+                lock.cleanup("cbtlog", str(vdi_uuid))
 
         # Update database
         #self._set_blocktracking_status(vdi_ref, enable)
@@ -845,9 +882,17 @@ class VDI(object):
         pass
 
     def _cbt_op(self, uuid, func, *args):
-        logname = self._get_cbt_logname(uuid)
-        activated = self._activate_cbt_log(logname)
-        ret = func(*args)
-        if activated:
-            self._deactivate_cbt_log(logname)
-        return ret
+        # Lock cbtlog operations
+        from lock import Lock
+        lock = Lock("cbtlog", str(uuid))
+        lock.acquire()
+
+        try:
+            logname = self._get_cbt_logname(uuid)
+            activated = self._activate_cbt_log(logname)
+            ret = func(*args)
+            if activated:
+                self._deactivate_cbt_log(logname)
+            return ret
+        finally:
+            lock.release()

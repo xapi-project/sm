@@ -2159,6 +2159,7 @@ class LVHDVDI(VDI.VDI):
         self.sr.lvmCache.rename(oldname, newname)
 
     def _activate_cbt_log(self, lv_name):
+        self.sr.lvmCache.refresh()
         if not self.sr.lvmCache.is_active(lv_name):
             try:
                 self.sr.lvmCache.activateNoRefcount(lv_name)
