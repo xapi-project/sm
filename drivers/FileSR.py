@@ -865,8 +865,8 @@ class FileVDI(VDI.VDI):
             raise xs_errors.XenError('VDIClone',
                   opterr='VDI clone failed error %d' % inst.code)
 
-        # Update cbt files
-        if cbtlog:
+        # Update cbt files if user created snapshot (SNAPSHOT_DOUBLE)
+        if snap_type == VDI.SNAPSHOT_DOUBLE and cbtlog:
             try:
                 self._cbt_snapshot(dest)
             except:
