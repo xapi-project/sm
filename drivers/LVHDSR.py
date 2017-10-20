@@ -1625,13 +1625,12 @@ class LVHDVDI(VDI.VDI):
         except Exception, e1:
             try:
                 blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid,
-                                        secondary=None, cbtlog=cbtlog)
+                                        secondary=None)
             except Exception, e2:
                 util.SMlog('WARNING: failed to clean up failed snapshot: '
                         '%s (error ignored)' % e2)
             raise e1
-        blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid,
-                                secondary, cbtlog=cbtlog)
+        blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
         return snapResult
 
     def _snapshot(self, snapType, cloneOp = False, cbtlog = None):

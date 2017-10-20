@@ -721,8 +721,7 @@ class FileVDI(VDI.VDI):
         try:
             return self._snapshot(snap_type, cbtlog)
         finally:
-            blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid,
-                                    secondary, cbtlog=cbtlog)
+            blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
 
     def _snapshot(self, snap_type, cbtlog=None):
         util.SMlog("FileVDI._snapshot for %s (type %s)" % (self.uuid, snap_type))

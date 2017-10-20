@@ -86,9 +86,7 @@ class TestCBT(unittest.TestCase):
 
         self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
-        logfile = self._check_setting_state(self.vdi, True)
-        self._check_tapdisk_paused_and_resumed(mock_bt_vdi,
-                                               self.vdi_uuid, logfile)
+        self._check_tapdisk_paused_and_resumed(mock_bt_vdi, self.vdi_uuid)
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
@@ -121,9 +119,7 @@ class TestCBT(unittest.TestCase):
 
         self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, False)
 
-        logfile = self._check_setting_state(self.vdi, False)
-        self._check_tapdisk_paused_and_resumed(mock_bt_vdi, self.vdi_uuid,
-                                               logfile)
+        self._check_tapdisk_paused_and_resumed(mock_bt_vdi, self.vdi_uuid)
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
@@ -145,8 +141,7 @@ class TestCBT(unittest.TestCase):
         self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, False)
 
         logfile = self._check_setting_state(self.vdi, False)
-        self._check_tapdisk_paused_and_resumed(mock_bt_vdi, self.vdi_uuid,
-                                               logfile)
+        self._check_tapdisk_paused_and_resumed(mock_bt_vdi, self.vdi_uuid)
         args1 = (logpath)
         args2 = (expected_parent_path, uuid.UUID(int=0))
         calls = [mock.call(self.vdi, self.vdi_uuid,
@@ -592,7 +587,7 @@ class TestCBT(unittest.TestCase):
 
         mock_cbt.set_cbt_child.assert_called_with(parent_log, child_uuid)
         mock_cbt.set_cbt_parent.assert_called_with(child_log, parent_uuid)
-        self._check_tapdisk_paused_and_resumed(mock_bt, child_uuid, child_log)
+        self._check_tapdisk_paused_and_resumed(mock_bt, child_uuid)
         mock_cbt.coalesce_bitmap.assert_called_with(logpath, child_log)
         self.vdi.state_mock._delete_cbt_log.assert_called_with()
 
@@ -865,20 +860,18 @@ class TestCBT(unittest.TestCase):
     def _check_setting_not_changed(self):
         pass
 
-    def _check_tapdisk_refreshed(self, check_mock, logfile):
+    def _check_tapdisk_refreshed(self, check_mock):
         check_mock.tap_refresh.assert_called_with(self.sr.session,
-                                                  self.sr_uuid, self.vdi_uuid,
-                                                  cbtlog=logfile)
+                                                  self.sr_uuid, self.vdi_uuid)
         # python2-mock-1.0.1-9.el doesn't support these asserts
         #check_mock.tap_pause.assert_not_called()
         #check_mock.tap_unpause.assert_not_called()
 
-    def _check_tapdisk_paused_and_resumed(self, check_mock, vdi_uuid, logfile):
+    def _check_tapdisk_paused_and_resumed(self, check_mock, vdi_uuid):
         check_mock.tap_pause.assert_called_with(self.sr.session,
                                                 self.sr_uuid, vdi_uuid)
         check_mock.tap_unpause.assert_called_with(self.sr.session,
-                                                  self.sr_uuid, vdi_uuid,
-                                                  cbtlog=logfile)
+                                                  self.sr_uuid, vdi_uuid)
 
     def _check_tapdisk_not_modified(self, mock):
         # python2-mock-1.0.1-9.el doesn't support these asserts
