@@ -382,7 +382,7 @@ class VDI(object):
                     # Unpause tapdisk if it wasn't originally paused
                     if paused_for_coalesce:
                         blktap2.VDI.tap_unpause(self.session, sr_uuid,
-                                                child_uuid, cbtlog=child_path)
+                                                child_uuid)
             lock.acquire()
             try:
                 self._delete_cbt_log()
@@ -644,7 +644,7 @@ class VDI(object):
                     lock.release()
                     lock.cleanup("cbtlog", str(vdi_uuid))
         finally:
-            blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, cbtlog=logfile)
+            blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid)
 
     def data_destroy(self, sr_uuid, vdi_uuid):
         """Delete the data associated with a CBT enabled snapshot

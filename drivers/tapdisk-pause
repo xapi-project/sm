@@ -127,10 +127,6 @@ class Tapdisk:
         self.activate_parents = False
         if args.get("activate_parents") == "true":
             self.activate_parents = True
-        if args.has_key("cbtlog"):
-            self.cbtlog = args["cbtlog"]
-        else:
-            self.cbtlog = None
 
     def _pathRefresh(self):
         # LVM rename check
@@ -202,7 +198,8 @@ class Tapdisk:
             # is activated before use
             vdi._activate_cbt_log(logname)
             self.cbtlog = vdi._get_cbt_logpath(self.vdi_uuid)
-
+        else:
+            self.cbtlog = None
 
         tapargs = {"minor":self.minor}
         util.SMlog("Calling tap unpause with minor %d" % self.minor)

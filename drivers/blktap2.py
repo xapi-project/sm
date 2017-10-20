@@ -1359,7 +1359,7 @@ class VDI(object):
 
     @classmethod
     def tap_unpause(cls, session, sr_uuid, vdi_uuid, secondary = None,
-            activate_parents = False, cbtlog = None):
+                    activate_parents = False):
         util.SMlog("Unpause request for %s secondary=%s" % (vdi_uuid, secondary))
         vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
         sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
@@ -1367,16 +1367,14 @@ class VDI(object):
             host_ref = key[len('host_'):]
             util.SMlog("Calling tap-unpause on host %s" % host_ref)
             if not cls.call_pluginhandler(session, host_ref,
-                    sr_uuid, vdi_uuid, "unpause", secondary, activate_parents,
-                    cbtlog=cbtlog):
+                    sr_uuid, vdi_uuid, "unpause", secondary, activate_parents):
                 # Failed to unpause node
                 return False
         session.xenapi.VDI.remove_from_sm_config(vdi_ref, 'paused')
         return True
 
     @classmethod
-    def tap_refresh(cls, session, sr_uuid, vdi_uuid, activate_parents = False, 
-                    cbtlog = None):
+    def tap_refresh(cls, session, sr_uuid, vdi_uuid, activate_parents = False):
         util.SMlog("Refresh request for %s" % vdi_uuid)
         vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
         sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
@@ -1385,15 +1383,14 @@ class VDI(object):
             util.SMlog("Calling tap-refresh on host %s" % host_ref)
             if not cls.call_pluginhandler(session, host_ref,
                        sr_uuid, vdi_uuid, "refresh", None, 
-                       activate_parents=activate_parents, cbtlog=cbtlog):
+                       activate_parents=activate_parents):
                 # Failed to refresh node
                 return False
         return True
 
     @classmethod
     def call_pluginhandler(cls, session, host_ref, sr_uuid, vdi_uuid, action,
-            secondary = None, activate_parents = False, failfast=False,
-            cbtlog = None):
+            secondary = None, activate_parents = False, failfast=False):
         """Optionally, activate the parent LV before unpausing"""
         try:
             args = {"sr_uuid":sr_uuid, "vdi_uuid":vdi_uuid,
@@ -1402,8 +1399,6 @@ class VDI(object):
                 args["secondary"] = secondary
             if activate_parents:
                 args["activate_parents"] = "true"
-            if cbtlog:
-                args["cbtlog"] = cbtlog
             ret = session.xenapi.host.call_plugin(
                     host_ref, PLUGIN_TAP_PAUSE, action,
                     args)
