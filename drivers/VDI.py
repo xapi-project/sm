@@ -608,50 +608,43 @@ class VDI(object):
         if self._get_blocktracking_status() == enable:
             return
 
+        if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
+            error = "Failed to pause VDI %s" % vdi_uuid
+            raise xs_errors.XenError('CBTActivateFailed', opterr=error)
         logfile = None
-        if enable:
-            try:
-                # Check available space
-                self._ensure_cbt_space()
-                logfile = self._create_cbt_log()
-            except Exception as error:
-                self._delete_cbt_log()
-                raise xs_errors.XenError('CBTActivateFailed', opterr=str(error))
 
-        refreshed = blktap2.VDI.tap_refresh(self.session, sr_uuid,
-                                            vdi_uuid, cbtlog=logfile)
-        if not refreshed:
+        try:
             if enable:
-                self._delete_cbt_log()
-            raise xs_errors.XenError('CBTActivateFailed')
-
-        #TODO: This needs to be done before tapdisk is refreshed.
-        #But then again, file cannot be deleted while tapdisk is using it.
-        #Split tapdisk refresh into Tapdisk pause, file delete, tapdisk unpause?
-        if not enable:
-            from lock import Lock
-            lock = Lock("cbtlog", str(vdi_uuid))
-            lock.acquire()
-            try:
-                # Find parent of leaf metadata file, if any,
-                # and nullify its successor
-                logpath = self._get_cbt_logpath(self.uuid)
-                parent = self._cbt_op(self.uuid,
-                                      cbtutil.get_cbt_parent, logpath)
-                parent_path = self._get_cbt_logpath(parent)
-                if self._cbt_log_exists(parent_path):
-                    self._cbt_op(parent, cbtutil.set_cbt_child,
-                                 parent_path, uuid.UUID(int=0))
-                self._delete_cbt_log()
-
-            except Exception as error:
-                raise xs_errors.XenError('CBTDeactivateFailed', str(error))
-            finally:
-                lock.release()
-                lock.cleanup("cbtlog", str(vdi_uuid))
-
-        # Update database
-        #self._set_blocktracking_status(vdi_ref, enable)
+                try:
+                    # Check available space
+                    self._ensure_cbt_space()
+                    logfile = self._create_cbt_log()
+                except Exception as error:
+                    self._delete_cbt_log()
+                    raise xs_errors.XenError('CBTActivateFailed',
+                                             opterr=str(error))
+            else:
+                from lock import Lock
+                lock = Lock("cbtlog", str(vdi_uuid))
+                lock.acquire()
+                try:
+                    # Find parent of leaf metadata file, if any,
+                    # and nullify its successor
+                    logpath = self._get_cbt_logpath(self.uuid)
+                    parent = self._cbt_op(self.uuid,
+                                          cbtutil.get_cbt_parent, logpath)
+                    self._delete_cbt_log()
+                    parent_path = self._get_cbt_logpath(parent)
+                    if self._cbt_log_exists(parent_path):
+                        self._cbt_op(parent, cbtutil.set_cbt_child,
+                                     parent_path, uuid.UUID(int=0))
+                except Exception as error:
+                    raise xs_errors.XenError('CBTDeactivateFailed', str(error))
+                finally:
+                    lock.release()
+                    lock.cleanup("cbtlog", str(vdi_uuid))
+        finally:
+            blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, cbtlog=logfile)
 
     def data_destroy(self, sr_uuid, vdi_uuid):
         """Delete the data associated with a CBT enabled snapshot

@@ -192,13 +192,16 @@ class Tapdisk:
                 if uuid == self.vdi_uuid:
                     continue
                 lvm_cache.activate(ns, uuid, lv_name, False)
-        if self.cbtlog:
+
+        import VDI
+        vdi = VDI.VDI.from_uuid(self.session, self.vdi_uuid)
+        # Check if CBT is enabled on disk we are about to unpause
+        if vdi._get_blocktracking_status():
+            logname = vdi._get_cbt_logname(self.vdi_uuid)
             # Ensure CBT log file associated with virtual disk
             # is activated before use
-            import VDI
-            vdi = VDI.VDI.from_uuid(self.session, self.vdi_uuid)
-            logname = vdi._get_cbt_logname(self.vdi_uuid)
             vdi._activate_cbt_log(logname)
+            self.cbtlog = vdi._get_cbt_logpath(self.vdi_uuid)
 
 
         tapargs = {"minor":self.minor}
