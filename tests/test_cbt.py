@@ -87,7 +87,8 @@ class TestCBT(unittest.TestCase):
         self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
         logfile = self._check_setting_state(self.vdi, True)
-        self._check_tapdisk_refreshed(mock_bt_vdi, logfile)
+        self._check_tapdisk_paused_and_resumed(mock_bt_vdi,
+                                               self.vdi_uuid, logfile)
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
@@ -121,7 +122,8 @@ class TestCBT(unittest.TestCase):
         self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, False)
 
         logfile = self._check_setting_state(self.vdi, False)
-        self._check_tapdisk_refreshed(mock_bt_vdi, logfile)
+        self._check_tapdisk_paused_and_resumed(mock_bt_vdi, self.vdi_uuid,
+                                               logfile)
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
@@ -143,7 +145,8 @@ class TestCBT(unittest.TestCase):
         self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, False)
 
         logfile = self._check_setting_state(self.vdi, False)
-        self._check_tapdisk_refreshed(mock_bt_vdi, logfile)
+        self._check_tapdisk_paused_and_resumed(mock_bt_vdi, self.vdi_uuid,
+                                               logfile)
         args1 = (logpath)
         args2 = (expected_parent_path, uuid.UUID(int=0))
         calls = [mock.call(self.vdi, self.vdi_uuid,
@@ -193,14 +196,14 @@ class TestCBT(unittest.TestCase):
     @mock.patch('blktap2.VDI', autospec=True)
     @mock.patch('VDI.util', autospec=True)
     @mock.patch('VDI.cbtutil', autospec=True)
-    def test_configure_blocktracking_enable_refresh_fail(self, context, mock_cbt, mock_util, mock_bt_vdi):
+    def test_configure_blocktracking_enable_pause_fail(self, context, mock_cbt, mock_util, mock_bt_vdi):
         context.setup_error_codes()
 
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
 
         self._set_initial_state(self.vdi, False)
-        mock_bt_vdi.tap_refresh.return_value = False
+        mock_bt_vdi.tap_pause.return_value = False
 
         with self.assertRaises(SR.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
@@ -208,14 +211,14 @@ class TestCBT(unittest.TestCase):
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
     @mock.patch('VDI.util', autospec=True)
-    def test_configure_blocktracking_disable_refresh_fail(self, context, mock_util, mock_bt_vdi):
+    def test_configure_blocktracking_disable_pause_fail(self, context, mock_util, mock_bt_vdi):
         context.setup_error_codes()
 
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
 
         self._set_initial_state(self.vdi, True)
-        mock_bt_vdi.tap_refresh.return_value = False
+        mock_bt_vdi.tap_pause.return_value = False
 
         with self.assertRaises(SR.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, False)
