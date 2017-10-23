@@ -803,6 +803,43 @@ class TestCBT(unittest.TestCase):
         result = self.vdi.list_changed_blocks()
         self.assertEquals(result, expected_result)
 
+    @testlib.with_context
+    @mock.patch('VDI.cbtutil.get_cbt_size')
+    @mock.patch('VDI.cbtutil.get_cbt_child')
+    @mock.patch('VDI.cbtutil._call_cbt_util')
+    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
+    @mock.patch('lock.Lock', autospec=True)
+    def test_list_changed_blocks_strip_sensitive_bitmap(self, context, mock_lock,
+                                                        mock_log, mock_call,
+                                                        mock_child, mock_size):
+        context.setup_error_codes()
+        # Create the test object and initialise
+        self.vdi = TestVDI(self.sr, self.vdi_uuid)
+        self._set_initial_state(self.vdi, True)
+        # Set up scenario such that metadata chain looks like
+        # source_vdi->snap_vdi->target_vdi
+        snap_uuid = "snapUUID"
+        target_uuid = "targetUUID"
+        self.xenapi.VDI.get_uuid.return_value = target_uuid
+        mock_child.side_effect = [snap_uuid, target_uuid]
+        vdi_size1 = 8388608 # 8MB
+        vdi_size2 = 8388608 # 8MB
+        bitmap1 = bitarray(128)
+        bitmap2 = bitarray()
+        # strip sensitive byte string
+        data = b'\x0c\xbb3a\xf75Jy\x17\x04\x92;\x0b\x93\xf3E'
+        bitmap2.frombytes(data)
+        mock_size.side_effect = [vdi_size1, vdi_size2]
+        mock_call.side_effect = [bitmap1.tobytes(), data]
+        bitmap1.bytereverse()
+        bitmap2.bytereverse()
+        expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
+        expected_result = xmlrpclib.dumps((expected_string,), "", True)
+
+        result = self.vdi.list_changed_blocks()
+        self.assertEquals(result, expected_result)
+
+
     def _set_initial_state(self, vdi, cbt_enabled):
         self.xenapi.VDI.get_is_a_snapshot.return_value = False
         vdi.block_tracking_state = cbt_enabled
