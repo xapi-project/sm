@@ -1414,9 +1414,15 @@ class LVHDVDI(VDI.VDI):
 
         if not self.hidden:
             self._markHidden()
-        # If this is a data_destroy call, don't remove from XAPI db
+
         if not data_only:
+            # Remove from XAPI and delete from MGT
             self._db_forget()
+        else:
+            # If this is a data_destroy call, don't remove from XAPI db
+            # Only delete from MGT
+            if not self.sr.legacyMode:
+                LVMMetadataHandler(self.sr.mdpath).deleteVdiFromMetadata(self.uuid)
 
         # deactivate here because it might be too late to do it in the "final" 
         # step: GC might have removed the LV by then
