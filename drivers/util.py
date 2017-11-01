@@ -1035,6 +1035,13 @@ def _containsVDIinuse(srobj):
                 pass
     return False
 
+def isVDICommand(cmd):
+    if cmd == None or cmd in ["vdi_attach", "vdi_detach",
+                              "vdi_activate", "vdi_deactivate"]:
+        return True
+    else:
+        return False
+
 
 #########################
 # Daemon helper functions
