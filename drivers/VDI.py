@@ -781,11 +781,11 @@ class VDI(object):
     def _cbt_snapshot(self, snapshot_uuid, consistency_state):
         """ CBT snapshot"""
         snap_logpath = self._get_cbt_logpath(snapshot_uuid)
-        leaf_logpath = self._get_cbt_logpath(self.uuid)
+        vdi_logpath = self._get_cbt_logpath(self.uuid)
 
-        # Rename leaf leaf.cbtlog to snapshot.cbtlog
+        # Rename vdi vdi.cbtlog to snapshot.cbtlog
         # and mark it consistent
-        self._rename(leaf_logpath, snap_logpath)
+        self._rename(vdi_logpath, snap_logpath)
         self._cbt_op(snapshot_uuid, cbtutil.set_cbt_consistency,
                      snap_logpath, True)
 
@@ -803,15 +803,21 @@ class VDI(object):
         try:
             # Ensure enough space for metadata file
             self._ensure_cbt_space()
-            # Create new leaf.cbtlog
+            # Create new vdi.cbtlog
             self._create_cbt_log()
-            # Set previous leaf node consistency status
+            # Set previous vdi node consistency status
             if not consistency_state:
                 self._cbt_op(self.uuid, cbtutil.set_cbt_consistency,
-                             leaf_logpath, consistency_state)
+                             vdi_logpath, consistency_state)
             # Set relationship pointers
+            # Save the child of the VDI just snapshotted
+            curr_child_uuid = self._cbt_op(snapshot_uuid, cbtutil.get_cbt_child,
+                                           snap_logpath)
             self._cbt_op(self.uuid, cbtutil.set_cbt_parent,
-                         leaf_logpath, snapshot_uuid)
+                         vdi_logpath, snapshot_uuid)
+            # Set child of new vdi to existing child of snapshotted VDI
+            self._cbt_op(self.uuid, cbtutil.set_cbt_child,
+                         vdi_logpath, curr_child_uuid)
             self._cbt_op(snapshot_uuid, cbtutil.set_cbt_child,
                          snap_logpath, self.uuid)
         except Exception as ex:
