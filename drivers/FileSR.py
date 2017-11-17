@@ -607,6 +607,8 @@ class FileVDI(VDI.VDI):
         return super(FileVDI, self).delete(sr_uuid, vdi_uuid, data_only)
 
     def attach(self, sr_uuid, vdi_uuid):
+        if self.path is None:
+            self._find_path_with_retries(vdi_uuid)
         if not self._checkpath(self.path):
             raise xs_errors.XenError('VDIUnavailable', \
                   opterr='VDI %s unavailable %s' % (vdi_uuid, self.path))
