@@ -835,7 +835,9 @@ class VDI(object):
         """ Get blocktracking status """
         if not uuid:
             uuid = self.uuid
-        if 'VDI_CONFIG_CBT' not in util.sr_get_capability(self.sr.uuid):
+        if self.vdi_type == vhdutil.VDI_TYPE_RAW:
+            return False
+        elif 'VDI_CONFIG_CBT' not in util.sr_get_capability(self.sr.uuid):
             return False
         logpath = self._get_cbt_logpath(uuid)
         return self._cbt_log_exists(logpath)
