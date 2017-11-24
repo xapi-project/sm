@@ -73,6 +73,33 @@ class SRBusyException(SMException):
     """The SR could not be locked"""
     pass
 
+
+def disabled(reason = None):
+    """This function is used as decorator to deprecate functions.
+
+    It does that by making the decorated function a no-op and printing
+    a warning message in the logs.
+    It is possible to pass an optional parameter to explain why it was
+    replaced (if replaced).
+
+    For example:
+      @disabled("foo function")
+    will add to the message ": use foo function instead"
+    """
+    if reason:
+        str_append = ": use {} instead".format(reason)
+    else:
+        str_append = ""
+
+    def disabled_decor(fun):
+        SMlog("WARNING: {} has been disabled{}".format(fun.__name__,
+                                                        str_append))
+        def wrapper(*args, **kwargs):
+            pass
+        return wrapper
+    return disabled_decor
+
+
 def logException(tag):
     info = sys.exc_info()
     if info[0] == exceptions.SystemExit:
@@ -969,6 +996,8 @@ def dom0_disks():
     SMlog("Dom0 disks: %s" % disks)
     return disks
 
+
+@disabled("udev rules")
 def set_scheduler(dev, str):
     devices = []
     if not scsiutil.match_dm(dev):

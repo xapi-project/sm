@@ -331,6 +331,7 @@ tests/run_python_unittests.sh
 %config /etc/udev/rules.d/40-multipath.rules
 %config /etc/udev/rules.d/55-xs-mpath-scsidev.rules
 %config /etc/udev/rules.d/58-xapi.rules
+%config /etc/udev/rules.d/90-xs-ioscheduler.rules
 %config /etc/multipath.xenserver/multipath.conf
 %config /etc/udev/rules.d/69-dm-lvm-metad.rules
 %config /etc/modprobe.d/cifs.conf

@@ -195,6 +195,8 @@ class SR(object):
 
         return target(cmd, sr_uuid)
 
+
+    @util.disabled("udev rules")
     def block_setscheduler(self, dev):
         try:
             realdev = os.path.realpath(dev)

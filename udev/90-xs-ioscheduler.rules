@@ -1,0 +1,28 @@
+SUBSYSTEM!="block", GOTO="xs_ioscheduler_end"
+
+# If non-rotational it is a no-brainer
+ATTR{queue/rotational}=="0", GOTO="xs_ioscheduler_action"
+
+# Take care of physical devices
+KERNEL=="sd*", GOTO="xs_ioscheduler_sd"
+
+# Multipath devices have their own scheduler unlike
+# LVM ones, so make sure their defaults are right.
+# We use a property set by a previous dm rule not by the kernel
+ENV{DM_UUID}=="mpath-?*", GOTO="xs_ioscheduler_action"
+
+# Not interested any more
+GOTO="xs_ioscheduler_end"
+
+# We assume if the model is "LUN" there is a clever array that
+# can do the job.
+# Not interested in partitions.
+LABEL="xs_ioscheduler_sd"
+ENV{ID_MODEL}!="LUN", GOTO="xs_ioscheduler_end"
+ENV{DEVTYPE}=="partition", GOTO="xs_ioscheduler_end"
+
+# Now set the scheduler
+LABEL="xs_ioscheduler_action"
+ACTION=="add|change", ATTR{queue/scheduler}="noop"
+
+LABEL="xs_ioscheduler_end"
