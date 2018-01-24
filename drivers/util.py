@@ -18,7 +18,7 @@
 # Miscellaneous utility functions
 #
 
-import os, re, sys, subprocess, shutil, tempfile, commands, signal
+import os, re, sys, subprocess, shutil, tempfile, signal
 import time, datetime
 import errno, socket
 import xml.dom.minidom
