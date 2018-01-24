@@ -17,17 +17,15 @@
 #
 # FileSR: local-file storage repository
 
-import SR, VDI, SRCommand, FileSR, util
+import SR, SRCommand, FileSR, util
 import errno
-import os, re, sys
-import xml.dom.minidom
+import os, sys
 import xmlrpclib
 import xs_errors
 import nfs
 import vhdutil
 from lock import Lock
 import cleanup
-import XenAPI
 
 CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_CACHING",
                 "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH",
