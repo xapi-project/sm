@@ -18,9 +18,6 @@
 # Miscellaneous utility functions for Borehamwood project
 #
 
-import os
-import scsiutil
-
 def is_vdi_attached(session, vdi_ref):
     """ Check if a vdi is attached to a vm"""
     # This function could fit into util.py
