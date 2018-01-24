@@ -1,6 +1,8 @@
 import unittest
 import mock
+import SR
 import SMBSR
+import testlib
 import xs_errors
 import XenAPI
 import vhdutil
@@ -45,56 +47,67 @@ class Test_SMBSR(unittest.TestCase):
         return smbsr
 
     #Attach
+    @testlib.with_context
     @mock.patch('SMBSR.SMBSR.checkmount')
     @mock.patch('SMBSR.SMBSR.mount')
     @mock.patch('SMBSR.Lock')
-    def test_attach_smbexception_raises_xenerror(self, mock_lock, mock_mount, mock_checkmount):
+    def test_attach_smbexception_raises_xenerror(self, context, mock_lock, mock_mount, mock_checkmount):
+        context.setup_error_codes()
+
         smbsr = self.create_smbsr()
-        mock_mount = mock.Mock(side_effect=SMBSR.SMBException("mount raised SMBException"))
-        mock_checkmount = mock.Mock(return_value=False)
-        try:
+        mock_mount.side_effect=SMBSR.SMBException("mount raised SMBException")
+        mock_checkmount.return_value=False
+        with self.assertRaises(SR.SROSError) as cm:
             smbsr.attach('asr_uuid')
-        except Exception, exc:
-            self.assertTrue(isinstance(exc,xs_errors.XenError))
+        # Check that we get the SMBMount error from XE_SR_ERRORCODES.xml
+        self.assertEquals(cm.exception.errno, 111)
 
     @mock.patch('SMBSR.SMBSR.checkmount')
     @mock.patch('SMBSR.Lock')
     def test_attach_if_mounted_then_attached(self, mock_lock, mock_checkmount):
         smbsr = self.create_smbsr()
-        mock_checkmount = mock.Mock(return_value=True)
+        mock_checkmount.return_value=True
         smbsr.attach('asr_uuid')
         self.assertTrue(smbsr.attached)
 
     #Detach
+    @testlib.with_context
+    @mock.patch('SMBSR.SMBSR.checkmount',return_value=True)
     @mock.patch('SMBSR.SMBSR.unmount')
     @mock.patch('SMBSR.Lock')
-    def test_detach_smbexception_raises_xenerror(self, mock_lock, mock_unmount):
+    @mock.patch('SMBSR.os.chdir')
+    @mock.patch('SMBSR.cleanup')
+    def test_detach_smbexception_raises_xenerror(self, context, mock_cleanup, mock_chdir, mock_lock, mock_unmount, mock_checkmount):
+        context.setup_error_codes()
+
         smbsr = self.create_smbsr()
-        mock_unmount = mock.Mock(side_effect=SMBSR.SMBException("unmount raised SMBException"))
-        try:
+        mock_unmount.side_effect=SMBSR.SMBException("unmount raised SMBException")
+        with self.assertRaises(SR.SROSError) as cm:
             smbsr.detach('asr_uuid')
-        except Exception, exc:
-            self.assertTrue(isinstance(exc,xs_errors.XenError))
+        # Check that we get the SMBUnMount error from XE_SR_ERRORCODES.xml
+        self.assertEquals(cm.exception.errno, 112)
 
     @mock.patch('SMBSR.SMBSR.checkmount',return_value=False)
     @mock.patch('SMBSR.Lock')
     def test_detach_not_detached_if_not_mounted(self, mock_lock, mock_checkmount):
         smbsr = self.create_smbsr()
         smbsr.attached = True
-        mock_checkmount = mock.Mock(return_value=False)
+        mock_checkmount.return_value=False
         smbsr.detach('asr_uuid')
         self.assertTrue(smbsr.attached)
 
     #Mount
-    @mock.patch('util.isdir')
+    @mock.patch('SMBSR.util.isdir')
     @mock.patch('SMBSR.Lock')
-    def test_mount_mountpoint_isdir(self, mock_lock, mock_isdir):
-        mock_isdir = mock.Mock(side_effect=util.CommandException(errno.EIO, "Not a directory"))
+    @mock.patch('util.time')
+    def test_mount_mountpoint_isdir(self, mock_time, mock_lock, mock_isdir):
+        # Not sure that the code rerying in an ioretry loop in the case of a
+        # missing dir is correct?
+        mock_isdir.side_effect = util.CommandException(
+            errno.EIO, "Not a directory")
         smbsr = self.create_smbsr()
-        try:
+        with self.assertRaises(SMBSR.SMBException) as cm:
             smbsr.mount()
-        except Exception, exc:
-            self.assertTrue(isinstance(exc,SMBSR.SMBException))
 
     @mock.patch('SMBSR.Lock')
     def test_mount_mountpoint_empty_string(self, mock_lock):
