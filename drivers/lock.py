@@ -17,8 +17,7 @@
 
 """Serialization for concurrent operations"""
 
-import os, stat, errno
-import time
+import os, errno
 import flock
 import util
 
