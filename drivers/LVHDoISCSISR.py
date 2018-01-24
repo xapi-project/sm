@@ -18,9 +18,9 @@
 # LVHDoISCSISR: LVHD over ISCSI software initiator SR driver
 #
 
-import SR, VDI, LVHDSR, BaseISCSI, SRCommand, util, scsiutil, lvutil
-import statvfs, time
-import os, socket, sys, re
+import SR, LVHDSR, BaseISCSI, SRCommand, util, scsiutil, lvutil
+import time
+import os, sys
 import xs_errors
 import xmlrpclib
 import mpath_cli, iscsilib
