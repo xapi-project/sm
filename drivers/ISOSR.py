@@ -21,8 +21,6 @@ import SR, VDI, SRCommand, util
 import nfs
 import os, re
 import xs_errors
-import xmlrpclib
-import string
 
 CAPABILITIES = ["VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH", 
                 "SR_SCAN", "SR_ATTACH", "SR_DETACH"]
