@@ -28,7 +28,7 @@ import util
 import xs_errors
 import xml.dom.minidom
 from lvhdutil import VG_LOCATION,VG_PREFIX
-from EXTSR import EXT_PREFIX
+from constants import EXT_PREFIX
 import lvmcache
 import srmetadata
 

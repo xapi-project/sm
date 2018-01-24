@@ -23,6 +23,7 @@ import os
 import xs_errors
 import vhdutil
 from lock import Lock
+from constants import EXT_PREFIX
 
 CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_SUPPORTS_LOCAL_CACHING", \
                 "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH", \
@@ -44,8 +45,6 @@ DRIVER_INFO = {
     }
 
 DRIVER_CONFIG = {"ATTACH_FROM_CONFIG_WITH_TAPDISK": True}
-
-EXT_PREFIX = 'XSLocalEXT-'
 
 class EXTSR(FileSR.FileSR):
     """EXT3 Local file storage repository"""
