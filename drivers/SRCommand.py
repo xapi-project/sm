@@ -19,14 +19,13 @@
 #
 
 import XenAPI
-import sys, errno, syslog
+import sys
 import xs_errors
 import xmlrpclib
-import SR, VDI, util
+import SR, util
 import blktap2
 import resetvdis
 import os
-import copy
 
 NEEDS_VDI_OBJECT = [
         "vdi_update", "vdi_create", "vdi_delete", "vdi_snapshot", "vdi_clone",
@@ -79,7 +78,7 @@ class SRCommand:
         #             ( sys.argv[0], \
         #               util.splitXmlText( util.hideMemberValuesInXmlParams( \
         #                                  sys.argv[1] ), showContd=True ) ), \
-        #                                  priority=syslog.LOG_DEBUG )
+        #                                  priority=util.LOG_DEBUG )
 
         try:
             params, methodname = xmlrpclib.loads(sys.argv[1])
