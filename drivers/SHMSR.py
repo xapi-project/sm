@@ -16,10 +16,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 import SR, VDI, SRCommand, util
-import os, re
+import os
 import xs_errors
-import xmlrpclib
-import string
 
 CAPABILITIES = ["VDI_ATTACH", "VDI_DETACH", "VDI_CLONE", "VDI_SNAPSHOT",
                 "SR_SCAN", "SR_ATTACH", "SR_DETACH"]
