@@ -22,8 +22,6 @@ import os
 import util
 import glob
 import time
-import XenAPI
-import mpath_dmp
 import mpp_mpathutil
 import gc
 import mpp_luncheck
