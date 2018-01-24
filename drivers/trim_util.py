@@ -19,7 +19,6 @@
 # in Storage arrays.
 
 import xml
-import sys
 import os
 import time
 import util
@@ -27,8 +26,6 @@ import lock
 import lvhdutil
 import vhdutil
 import lvutil
-import xs_errors
-import xmlrpclib
 
 TRIM_LV_TAG = "_trim_lv"
 TRIM_CAP = "SR_TRIM"
