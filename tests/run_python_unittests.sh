@@ -24,6 +24,7 @@ fi
         coverage run --branch \
             --source="$SMROOT/drivers,$SMROOT/tests" \
             $(which nosetests) \
+            -c .noserc \
             --with-xunit \
             --xunit-file=nosetests.xml \
             tests
