@@ -20,12 +20,9 @@
 import SR, SRCommand, FileSR, util, lvutil, scsiutil
 
 import os
-import tempfile
-import errno
 import xs_errors
 import vhdutil
 from lock import Lock
-import cleanup
 
 CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_SUPPORTS_LOCAL_CACHING", \
                 "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH", \
