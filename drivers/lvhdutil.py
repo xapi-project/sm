@@ -25,7 +25,6 @@ import time
 
 import util
 import vhdutil
-import xs_errors
 from lock import Lock
 from refcounter import RefCounter
 
