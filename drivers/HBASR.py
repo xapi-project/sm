@@ -19,9 +19,9 @@
 # hardware based iSCSI
 #
 
-import SR, VDI, SRCommand
+import SR, SRCommand
 import devscan, scsiutil, util, LUNperVDI
-import os, sys, re, time
+import os, time
 import xs_errors
 import xml.dom.minidom
 
