@@ -24,7 +24,6 @@ import os
 import errno
 import time
 
-import SR
 import util
 import xs_errors
 import xml.dom.minidom
@@ -32,8 +31,6 @@ from lvhdutil import VG_LOCATION,VG_PREFIX
 from EXTSR import EXT_PREFIX
 import lvmcache
 import srmetadata
-import vhdutil
-from scsiutil import getSCSIid
 
 MDVOLUME_NAME = 'MGT'
 VDI_UUID_TAG_PREFIX = 'vdi_'
