@@ -87,6 +87,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
             self.iscsiSRs = []
             self.iscsiSRs.append(iscsi)
 
+            saved_exc = None
             if self.dconf['target'].find(',') == 0 or self.dconf['targetIQN'] == "*":
                 # Instantiate multiple sessions
                 self.iscsiSRs = []
@@ -154,9 +155,18 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                         dconf = self.session.xenapi.PBD.get_device_config(pbd)
                         dconf['multiSession'] = IQNstring
                         self.session.xenapi.PBD.set_device_config(pbd, dconf)
-                except:
+                except Exception as exc:
                     util.logException("LVHDoISCSISR.load")
-            self.iscsi = self.iscsiSRs[0]
+                    saved_exc = exc
+            try:
+                self.iscsi = self.iscsiSRs[0]
+            except IndexError as exc:
+                if isinstance(saved_exc, SR.SROSError):
+                    raise saved_exc # pylint: disable-msg=E0702
+                elif isinstance(saved_exc, Exception):
+                    raise xs_errors.XenError('SMGeneral', str(saved_exc))
+                else:
+                    raise xs_errors.XenError('SMGeneral', str(exc))
 
             # Be extremely careful not to throw exceptions here since this function
             # is the main one used by all operations including probing and creating
