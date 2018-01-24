@@ -17,10 +17,9 @@
 #
 # SMBSR: SMB filesystem based storage repository
 
-import SR, VDI, SRCommand, FileSR, util
+import SR, SRCommand, FileSR, util
 import errno
-import os, re, sys
-import xml.dom.minidom
+import os
 import xmlrpclib
 import xs_errors
 import vhdutil
