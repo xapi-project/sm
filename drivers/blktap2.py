@@ -26,7 +26,6 @@ import time
 import copy
 from lock import Lock
 import util
-import lvutil
 import xmlrpclib
 import httplib
 import errno
@@ -39,7 +38,6 @@ import XenAPI
 import scsiutil
 from syslog import openlog, syslog
 from stat import * # S_ISBLK(), ...
-from SR import SROSError
 import nfs
 
 import resetvdis
@@ -47,9 +45,7 @@ import vhdutil
 import lvhdutil
 
 # For RRDD Plugin Registration
-from SocketServer import UnixStreamServer
-from SimpleXMLRPCServer import SimpleXMLRPCDispatcher, SimpleXMLRPCRequestHandler
-from xmlrpclib import ServerProxy, Fault, Transport
+from xmlrpclib import ServerProxy, Transport
 from socket import socket, AF_UNIX, SOCK_STREAM
 from httplib import HTTP, HTTPConnection
 
