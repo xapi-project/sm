@@ -9,11 +9,6 @@ import testlib
 import lock
 
 
-class FailingOpenContext(testlib.TestContext):
-    def fake_open(self, fname, mode='r'):
-        raise IOError()
-
-
 class TestLock(unittest.TestCase):
     @testlib.with_context
     def test_lock_without_namespace_creates_nil_namespace(self, context):
