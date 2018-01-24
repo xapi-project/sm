@@ -18,8 +18,7 @@
 # LUNperVDI: Generic Raw LUN handler, used by HBASR and ISCSISR
 #
 
-import SR, VDI, SRCommand, util
-import os, sys
+import VDI, util
 import scsiutil
 import xs_errors
 
