@@ -27,9 +27,7 @@ import lvmcache
 import vhdutil
 import lvhdutil
 import scsiutil
-import time
 import os, sys
-import xml.dom.minidom
 import errno
 import xs_errors
 import cleanup
