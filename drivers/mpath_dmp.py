@@ -17,8 +17,6 @@
 
 import util
 import xs_errors
-import statvfs
-import stat
 import iscsilib
 import mpath_cli
 import os
@@ -26,9 +24,6 @@ import glob
 import time
 import scsiutil
 import mpp_luncheck
-import mpp_mpathutil
-import devscan
-import re
 import wwid_conf
 
 iscsi_mpath_file = "/etc/iscsi/iscsid-mpath.conf"
