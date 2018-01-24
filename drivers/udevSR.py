@@ -18,11 +18,8 @@
 # udevSR: represents VDIs which are hotplugged into dom0 via udev e.g.
 #         USB CDROM/disk devices
 
-import SR, VDI, SRCommand, util, lvutil
-import errno
-import os, sys, time, stat
-import xml.dom.minidom
-import xmlrpclib
+import SR, VDI, SRCommand, util
+import os, time, stat
 import xs_errors
 import sysdevice
 
@@ -66,7 +63,6 @@ class udevSR(SR.SR):
         return udevVDI(self, vdi_location)
 
     def get_vdi_location(self, uuid):
-        import XenAPI
         vdi = self.session.xenapi.VDI
         vdi_ref = vdi.get_by_uuid(uuid)
         return vdi.get_location(vdi_ref)
