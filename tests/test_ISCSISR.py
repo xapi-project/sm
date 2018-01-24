@@ -55,6 +55,7 @@ class NonInitingISCSISR(BaseISCSI.BaseISCSISR):
             'localIQN': 'localIQN',
             'targetIQN': 'targetIQN'
         }
+        self.localIQN = self.dconf['localIQN']
         self.original_srcmd = mock.Mock()
         self.original_srcmd.cmd = 'some_command'
 
