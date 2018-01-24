@@ -18,15 +18,12 @@
 # FileSR: local-file storage repository
 
 import SR, VDI, SRCommand, util, scsiutil, vhdutil
-import lvhdutil
-import os, re
+import os
 import errno
-import xml.dom.minidom
 import xs_errors
 import cleanup
 import blktap2
 import time
-import XenAPI
 from lock import Lock
 import xmlrpclib
 
