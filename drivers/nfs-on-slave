@@ -19,7 +19,7 @@
 
 import sys; sys.path.append("/opt/xensource/sm/")
 import util
-import os, glob, errno, re
+import os, glob, errno
 
 class NfsCheckException(Exception):
     def __init__(self, path, pid, fd):
