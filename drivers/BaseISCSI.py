@@ -18,13 +18,12 @@
 # ISCSISR: ISCSI software initiator SR driver
 #
 
-import SR, VDI, SRCommand, util
-import statvfs, time, LUNperVDI
-import os, socket, sys, re, glob
+import SR, util
+import time, LUNperVDI
+import os, sys, re, glob
 import xml.dom.minidom
-import shutil, xmlrpclib
 import scsiutil, iscsilib
-import xs_errors, errno
+import xs_errors
 
 INITIATORNAME_FILE = '/etc/iscsi/initiatorname.iscsi'
 SECTOR_SHIFT = 9
