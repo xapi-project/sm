@@ -240,13 +240,9 @@ class TestTestContext(unittest.TestCase):
 
     @testlib.with_context
     def test_write_a_file_in_non_existing_dir(self, context):
-        import os
-
-        try:
+        with self.assertRaises(IOError) as cm:
             open('/blah/subdir/somefile', 'w')
-            raise AssertionError('No exception raised')
-        except IOError, e:
-            self.assertEquals(errno.ENOENT, e.errno)
+        self.assertEquals(errno.ENOENT, cm.exception.errno)
 
     @testlib.with_context
     def test_file_returns_an_object_with_fileno_callable(self, context):
@@ -344,11 +340,9 @@ class TestTestContext(unittest.TestCase):
     def test_rmdir_raises_error_if_dir_not_found(self):
         context = testlib.TestContext()
 
-        try:
+        with self.assertRaises(OSError) as cm:
             context.fake_rmdir('nonexisting')
-            raise AssertionError('No Exception raised')
-        except OSError, e:
-            self.assertEquals(errno.ENOENT, e.errno)
+        self.assertEquals(errno.ENOENT, cm.exception.errno)
 
     def test_rmdir_removes_dir_if_found(self):
         context = testlib.TestContext()
@@ -364,11 +358,9 @@ class TestTestContext(unittest.TestCase):
 
         context.fake_makedirs('/existing_dir/somefile')
 
-        try:
+        with self.assertRaises(OSError) as cm:
             context.fake_rmdir('/existing_dir')
-            raise AssertionError('No Exception raised')
-        except OSError, e:
-            self.assertEquals(errno.ENOTEMPTY, e.errno)
+        self.assertEquals(errno.ENOTEMPTY, cm.exception.errno)
 
 
 class TestFilesystemFor(unittest.TestCase):
