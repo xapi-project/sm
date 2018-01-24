@@ -17,8 +17,6 @@
 
 import sys
 import mpath_cli
-import scsiutil
-import os
 import time
 
 
