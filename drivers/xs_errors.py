@@ -25,13 +25,13 @@ import util
 
 XML_DEFS = '/opt/xensource/sm/XE_SR_ERRORCODES.xml'
 class XenError(Exception):
-    def __init__(self, key, opterr=None):
+    def __new__(self, key, opterr=None):
         # Check the XML definition file exists
         if not os.path.exists(XML_DEFS):
             raise Exception("No XML def file found")
 
         # Read the definition list
-        self._fromxml('SM-errorcodes')
+        errorlist = self._fromxml('SM-errorcodes')
 
         ########DEBUG#######
         #for val in self.errorlist.keys():
@@ -42,24 +42,25 @@ class XenError(Exception):
         ########END#######
 
         # Now find the specific error
-        if self.errorlist.has_key(key):
-            subdict = self.errorlist[key]
+        if errorlist.has_key(key):
+            subdict = errorlist[key]
             errorcode = int(subdict['value'])
             errormessage = subdict['description']
             if opterr is not None:
                 errormessage += " [opterr=%s]" % opterr
             util.SMlog("Raising exception [%d, %s]" % (errorcode, errormessage))
-            raise SR.SROSError(errorcode, errormessage)
+            return SR.SROSError(errorcode, errormessage)
 
         # development error
-        raise SR.SROSError(1, "Error reporting error, unknown key %s" % key)
-            
+        return SR.SROSError(1, "Error reporting error, unknown key %s" % key)
+ 
 
-    def _fromxml(self, tag):
+    @staticmethod
+    def _fromxml(tag):
         dom = xml.dom.minidom.parse(XML_DEFS)
         objectlist = dom.getElementsByTagName(tag)[0]
 
-        self.errorlist = {}
+        errorlist = {}
         for node in objectlist.childNodes:
             taglist = {}
             newval = False
@@ -72,5 +73,6 @@ class XenError(Exception):
                             taglist[n.nodeName] += e.data
             if newval:
                 name = taglist['name']
-                self.errorlist[name] = taglist
+                errorlist[name] = taglist
+        return errorlist
 

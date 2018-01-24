@@ -22,7 +22,7 @@ class TestXenError(unittest.TestCase):
 
         raised_exception = None
         try:
-            xs_errors.XenError('SRInUse')
+            raise xs_errors.XenError('SRInUse')
         except Exception, e:
             raised_exception = e
 
