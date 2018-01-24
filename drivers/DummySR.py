@@ -17,11 +17,8 @@
 #
 # DummySR: an example dummy SR for the SDK
 
-import SR, VDI, SRCommand, util, lvutil
-import errno
-import os, sys, time
-import xml.dom.minidom
-import xmlrpclib
+import SR, VDI, SRCommand, util
+import time
 import xs_errors
 
 CAPABILITIES = ["SR_PROBE","VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH",
