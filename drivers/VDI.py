@@ -19,7 +19,6 @@
 #
 
 import SR
-import xml.dom.minidom
 import xmlrpclib
 import xs_errors
 import util
