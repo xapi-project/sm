@@ -20,7 +20,6 @@
 
 
 import fileinput, shutil, sys, re
-import os, subprocess
 import util, lock
 
 LOCK_TYPE_HOST = "host"
