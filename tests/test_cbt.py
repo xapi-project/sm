@@ -410,7 +410,7 @@ class TestCBT(unittest.TestCase):
                                                 mock_cbt, False) 
         snap_uuid = uuid.uuid4()
 
-        self.vdi._cbt_snapshot(snap_uuid)
+        self.vdi._cbt_snapshot(snap_uuid, True)
 
         self._check_CBT_chain_created(self.vdi, mock_cbt,
                                       self.vdi_uuid, snap_uuid, parent_uuid)
@@ -429,7 +429,7 @@ class TestCBT(unittest.TestCase):
         parent_uuid = self._set_CBT_chain_state(mock_logcheck, mock_cbt, True) 
         snap_uuid = uuid.uuid4()
 
-        self.vdi._cbt_snapshot(snap_uuid)
+        self.vdi._cbt_snapshot(snap_uuid, True)
         self._check_CBT_chain_created(self.vdi, mock_cbt,
                                       self.vdi_uuid, snap_uuid, None)
 
@@ -457,7 +457,7 @@ class TestCBT(unittest.TestCase):
         mock_smlog.side_effect = fakeSMlog
         mock_ensure_space.side_effect = xs_errors.XenError('SRNoSpace')
 
-        self.vdi._cbt_snapshot(snap_uuid)
+        self.vdi._cbt_snapshot(snap_uuid, True)
 
         self.assertEqual(1, self.vdi.state_mock._delete_cbt_log.call_count)
         self.assertTrue("insufficient space" in self.fakesmlog)

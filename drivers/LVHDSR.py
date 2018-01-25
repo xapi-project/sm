@@ -1622,12 +1622,23 @@ class LVHDVDI(VDI.VDI):
 
     def _do_snapshot(self, sr_uuid, vdi_uuid, snapType,
                      cloneOp=False, secondary=None, cbtlog=None):
+        # If cbt enabled, save file consistency state
+        if cbtlog is not None:
+            if blktap2.VDI.tap_status(self.session, vdi_uuid):
+                consistency_state = False
+            else:
+                consistency_state = True
+            util.SMlog("Saving log consistency state of %s for vdi: %s" %
+                       (consistency_state, vdi_uuid))
+        else:
+            consistency_state = None
+
         if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
             raise util.SMException("failed to pause VDI %s" % vdi_uuid)
         
         snapResult = None
         try:
-            snapResult = self._snapshot(snapType, cloneOp, cbtlog)
+            snapResult = self._snapshot(snapType, cloneOp, cbtlog, consistency_state)
         except Exception, e1:
             try:
                 blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid,
@@ -1639,7 +1650,7 @@ class LVHDVDI(VDI.VDI):
         blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
         return snapResult
 
-    def _snapshot(self, snapType, cloneOp = False, cbtlog = None):
+    def _snapshot(self, snapType, cloneOp = False, cbtlog = None, cbt_consistency = None):
         util.SMlog("LVHDVDI._snapshot for %s (type %s)" % (self.uuid, snapType))
 
         if not self.sr.isMaster:
@@ -1770,7 +1781,7 @@ class LVHDVDI(VDI.VDI):
 
             # Update cbt files if user created snapshot (SNAPSHOT_DOUBLE)
             if snapType == VDI.SNAPSHOT_DOUBLE and cbtlog:
-                snapVDI._cbt_snapshot(clonUuid)
+                snapVDI._cbt_snapshot(clonUuid, cbt_consistency)
 
         except (util.SMException, XenAPI.Failure), e:
             util.logException("LVHDVDI._snapshot")

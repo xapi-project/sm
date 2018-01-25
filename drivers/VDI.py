@@ -608,6 +608,9 @@ class VDI(object):
         if self._get_blocktracking_status() == enable:
             return
 
+        # Save disk state before pause
+        disk_state = blktap2.VDI.tap_status(self.session, vdi_uuid)
+
         if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
             error = "Failed to pause VDI %s" % vdi_uuid
             raise xs_errors.XenError('CBTActivateFailed', opterr=error)
@@ -619,6 +622,13 @@ class VDI(object):
                     # Check available space
                     self._ensure_cbt_space()
                     logfile = self._create_cbt_log()
+                    # Set consistency
+                    if disk_state:
+                        util.SMlog("Setting consistency of cbtlog file to False for VDI: %s"
+                                   % self.uuid)
+                        logpath = self._get_cbt_logpath(self.uuid)
+                        self._cbt_op(self.uuid, cbtutil.set_cbt_consistency,
+                                     logpath, False)
                 except Exception as error:
                     self._delete_cbt_log()
                     raise xs_errors.XenError('CBTActivateFailed',
@@ -768,7 +778,7 @@ class VDI(object):
         raise xs_errors.XenError('CBTChangedBlocksError',
                                  "Source and target VDI are unrelated") 
 
-    def _cbt_snapshot(self, snapshot_uuid):
+    def _cbt_snapshot(self, snapshot_uuid, consistency_state):
         """ CBT snapshot"""
         snap_logpath = self._get_cbt_logpath(snapshot_uuid)
         leaf_logpath = self._get_cbt_logpath(self.uuid)
@@ -795,6 +805,10 @@ class VDI(object):
             self._ensure_cbt_space()
             # Create new leaf.cbtlog
             self._create_cbt_log()
+            # Set previous leaf node consistency status
+            if not consistency_state:
+                self._cbt_op(self.uuid, cbtutil.set_cbt_consistency,
+                             leaf_logpath, consistency_state)
             # Set relationship pointers
             self._cbt_op(self.uuid, cbtutil.set_cbt_parent,
                          leaf_logpath, snapshot_uuid)
