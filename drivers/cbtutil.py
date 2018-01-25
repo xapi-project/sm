@@ -21,8 +21,8 @@
 
 import util
 import uuid
+from constants import CBT_UTIL
 
-CBT_UTIL = "/usr/sbin/cbt-util"
 
 def create_cbt_log(file_name, size):
     """Create and initialise log file for tracking changed blocks"""
