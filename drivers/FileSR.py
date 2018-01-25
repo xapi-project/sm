@@ -713,17 +713,28 @@ class FileVDI(VDI.VDI):
 
     def _do_snapshot(self, sr_uuid, vdi_uuid, snap_type,
                      secondary=None, cbtlog=None):
+        # If cbt enabled, save file consistency state
+        if cbtlog is not None:
+            if blktap2.VDI.tap_status(self.session, vdi_uuid):
+                consistency_state = False
+            else:
+                consistency_state = True
+            util.SMlog("Saving log consistency state of %s for vdi: %s" %
+                       (consistency_state, vdi_uuid))
+        else:
+            consistency_state = None
+
         if self.vdi_type != vhdutil.VDI_TYPE_VHD:
             raise xs_errors.XenError('Unimplemented')
 
         if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
             raise util.SMException("failed to pause VDI %s" % vdi_uuid)
         try:
-            return self._snapshot(snap_type, cbtlog)
+            return self._snapshot(snap_type, cbtlog, consistency_state)
         finally:
             blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
 
-    def _snapshot(self, snap_type, cbtlog=None):
+    def _snapshot(self, snap_type, cbtlog=None, cbt_consistency=None):
         util.SMlog("FileVDI._snapshot for %s (type %s)" % (self.uuid, snap_type))
 
         args = []
@@ -867,7 +878,7 @@ class FileVDI(VDI.VDI):
         # Update cbt files if user created snapshot (SNAPSHOT_DOUBLE)
         if snap_type == VDI.SNAPSHOT_DOUBLE and cbtlog:
             try:
-                self._cbt_snapshot(dest)
+                self._cbt_snapshot(dest, cbt_consistency)
             except:
                 # CBT operation failed.
                 util.end_log_entry(self.sr.path, self.path, ["error"])

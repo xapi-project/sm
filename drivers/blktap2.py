@@ -1389,6 +1389,16 @@ class VDI(object):
         return True
 
     @classmethod
+    def tap_status(cls, session, vdi_uuid):
+        """Return True if disk is attached, false if it isn't"""
+        util.SMlog("Disk status request for %s" % vdi_uuid)
+        vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
+        sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
+        for key in filter(lambda x: x.startswith('host_'), sm_config.keys()):
+                return True
+        return False
+
+    @classmethod
     def call_pluginhandler(cls, session, host_ref, sr_uuid, vdi_uuid, action,
             secondary = None, activate_parents = False, failfast=False):
         """Optionally, activate the parent LV before unpausing"""
