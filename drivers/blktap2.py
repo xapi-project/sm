@@ -398,7 +398,7 @@ class TapCtl(object):
         if not options.get("o_direct", True):
             args.append("-D")
         if options.get('cbtlog'):
-            args.extend(['-c', options['cbtlog']])
+            args.extend(['-C', options['cbtlog']])
         cls._pread(args)
 
     @classmethod
