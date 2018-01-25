@@ -750,6 +750,8 @@ class VDI(object):
             self._cbt_op(parent, cbtutil.set_cbt_child,
                          parent_path, snapshot_uuid)
         try:
+            # Ensure enough space for metadata file
+            self._ensure_cbt_space()
             # Create new leaf.cbtlog
             self._create_cbt_log()
             # Set relationship pointers
@@ -757,7 +759,7 @@ class VDI(object):
                          leaf_logpath, snapshot_uuid)
             self._cbt_op(snapshot_uuid, cbtutil.set_cbt_child,
                          snap_logpath, self.uuid)
-        except util.CommandException as ex:
+        except Exception as ex:
             self._delete_cbt_log() 
             vdi_ref = self.sr.srcmd.params['vdi_ref']
             self.sr.session.xenapi.VDI.set_cbt_enabled(vdi_ref, False)
