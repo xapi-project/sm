@@ -2,7 +2,7 @@ import unittest
 import mock
 
 import SRCommand
-
+import SR
 
 class SomeException(Exception):
     pass
@@ -10,6 +10,7 @@ class SomeException(Exception):
 
 class TestStandaloneFunctions(unittest.TestCase):
 
+    @mock.patch("sys.exit", autospec=True)
     @mock.patch('util.SMlog', autospec=True)
     @mock.patch('__builtin__.reduce', autospec=True)
     @mock.patch('SRCommand.SRCommand.run_statics', autospec=True)
@@ -19,7 +20,8 @@ class TestStandaloneFunctions(unittest.TestCase):
             mock_parse,
             mock_run_statics,
             mock_reduce,
-            mock_SMlog):
+            mock_SMlog,
+            mock_exit):
 
         """ Assert that any arbitrary exception raised and with a big message length is logged to SMlog. Only the first line of the message is asserted (traceback ommited).
         """
@@ -31,7 +33,7 @@ class TestStandaloneFunctions(unittest.TestCase):
         MSG_LEN = 2048
 
         # TestSRCommand data member to hold SMlog output.
-        self.smlog_out = None
+        self.smlog_out = ""
 
         # Generate random exception message of MSG_LEN characters
         rand_huge_msg = ''.join(choice(ascii_letters) for _ in range(MSG_LEN))
@@ -42,19 +44,15 @@ class TestStandaloneFunctions(unittest.TestCase):
         # MockSMlog replaces util.SMlog. Instead of printing to
         # /var/log/SMlog, it writes the output to self.smlog_out.
         def MockSMlog(str_arg):
-            self.smlog_out = str_arg.strip()
+            self.smlog_out = self.smlog_out + str_arg.strip()
 
         mock_reduce.return_value = ''
         mock_SMlog.side_effect = MockSMlog
 
-        try:
-            SRCommand.run(mock_driver, DRIVER_INFO)
-        except SomeException:
-            # SomeException needs to be suppressed for this
-            # test, as it is re-raised after it is logged.
-            pass
+        SRCommand.run(mock_driver, DRIVER_INFO)
 
         self.assertTrue(rand_huge_msg in self.smlog_out)
+
 
     @mock.patch('util.logException', autospec=True)
     @mock.patch('SRCommand.SRCommand.run_statics', autospec=True)
@@ -104,16 +102,18 @@ class TestStandaloneFunctions(unittest.TestCase):
 
         self.assertEqual(actual_out, expected_out)
 
+    @mock.patch("sys.exit", autospec=True)
     @mock.patch('util.logException', autospec=True)
     @mock.patch('SRCommand.SRCommand.run_statics', autospec=True)
     @mock.patch('SRCommand.SRCommand.parse', autospec=True)
-    def test_run_reraise_if_not_SRException(
+    def test_run_wrapped_if_not_SRException(
             self,
             mock_parse,
             mock_run_statics,
-            mock_logException):
+            mock_logException,
+            mock_exit):
 
-        """ If an exception other than SR.SRException is thrown, assert that it is re-raised.
+        """ If an exception other than SR.SRException is thrown, assert that it is wrapped and not thrown.
         """
 
         from DummySR import DRIVER_INFO
@@ -121,7 +121,4 @@ class TestStandaloneFunctions(unittest.TestCase):
         # Create function to raise exception in SRCommand.run()
         mock_driver = mock.Mock(side_effect=SomeException)
 
-        try:
-            SRCommand.run(mock_driver, DRIVER_INFO)
-        except Exception, e:
-            self.assertTrue(isinstance(e, SomeException))
+        SRCommand.run(mock_driver, DRIVER_INFO)

@@ -384,11 +384,12 @@ def run(driver, driver_info):
         except:
             pass
 
-        # If exception is of type SR.SRException,
-        # pass to xapi, else re-raise.
+        # If exception is of type SR.SRException, pass to Xapi.
+        # If generic python Exception, print a generic xmlrpclib
+        # dump and pass to XAPI.
         if isinstance(e, SR.SRException):
             print e.toxml()
         else:
-            raise
+            print xmlrpclib.dumps(xmlrpclib.Fault(1200, str(e)), "", True) 
 
     sys.exit(0)

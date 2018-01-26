@@ -850,5 +850,11 @@
             <value>460</value>
         </code>
 
+        <code>
+            <name>GenericException</name>
+            <description>SM has thrown a generic python exception</description>
+            <value>1200</value>
+        </code>
+
 
 </SM-errorcodes>
