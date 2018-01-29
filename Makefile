@@ -65,7 +65,7 @@ SM_LIBS += fcoelib
 SM_LIBS += constants
 SM_LIBS += cbtutil
 
-UDEV_RULES = 39-multipath 40-multipath 55-xs-mpath-scsidev 58-xapi
+UDEV_RULES = 39-multipath 40-multipath 55-xs-mpath-scsidev 57-usb 58-xapi
 MPATH_DAEMON = sm-multipath
 MPATH_CONF = multipath.conf
 CIFS_CONF = cifs.conf
@@ -199,6 +199,7 @@ install: precheck
 	mkdir -p $(SM_STAGING)$(LIBEXEC)
 	install -m 755 scripts/local-device-change $(SM_STAGING)$(LIBEXEC)
 	install -m 755 scripts/check-device-sharing $(SM_STAGING)$(LIBEXEC)
+	install -m 755 scripts/usb_change $(SM_STAGING)$(LIBEXEC)
 	$(MAKE) -C dcopy install DESTDIR=$(SM_STAGING)
 	$(MAKE) -C snapwatchd install DESTDIR=$(SM_STAGING)
 	$(MAKE) -C mpathroot install DESTDIR=$(SM_STAGING)
