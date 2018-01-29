@@ -35,6 +35,37 @@ def list():
 	 return os.path.exists(device)
     return filter(is_physical_device, all)
 
+def get_usb_node(usb_path):
+    """ Given a full usb block device path, return the device node part
+    usb_path: device path
+    return: the usb device node
+    example:
+    1. devices/pci0000:00/0000:00:1a.0/usb1/1-0:1.0    => ""
+    This is invalid input. This means a block device interface directly
+    attached to bus.
+    2. devices/pci0000:00/0000:00:1a.0/usb1/1-1    => "1-1"
+    This could be valid usb device, but is unexpected and seems truncated.
+    We should see the interface info.
+    3. devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.1     => "1-1.1"
+    This could be valid usb device, but is unexpected and seems truncated.
+    We should see the interface info.
+    4. devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1:1.0     => "1-1"
+    This is a valid usb interface, the function return "1-1".
+    5. devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.1/1-1.1:1.0     => "1-1.1"
+    This is a valid usb interface, the function return "1-1.1".
+    """
+    parts = usb_path.split("/")
+    node = ""
+    usb = False
+    for part in parts:
+        if usb:
+            if ":" in part:
+                return node
+            else:
+                node = part
+        elif part.startswith("usb"):
+            usb = True
+    return node
 
 def stat(device):
     """Given a device name, return a dictionary containing keys:
@@ -64,6 +95,9 @@ def stat(device):
         elif os.readlink(os.path.join(device, "subsystem")).endswith("scsi"):
             results["bus"] = "SCSI"
             results["bus_path"] = os.path.basename(device_path)
+        real_path = os.path.realpath(device)
+        if "/usb" in real_path:
+            results["usb_path"] = get_usb_node(real_path)
     except:
         pass
 
