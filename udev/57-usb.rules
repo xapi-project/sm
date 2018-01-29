@@ -1,0 +1,17 @@
+# enable the following line info about usb device
+# SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", GOTO="label_usb"
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_interface", GOTO="label_usb"
+# enable the following line info about usb block disk
+# SUBSYSTEM=="block", SUBSYSTEMS=="usb", KERNEL!="*[0-9]", GOTO="label_usb"
+
+GOTO="label_end_usb"
+
+###############################################################################
+
+LABEL="label_usb"
+
+ACTION=="add|change|remove", RUN+="/opt/xensource/libexec/usb_change %E{DEVTYPE} %E{ACTION} %E{SEQNUM} %k"
+
+###############################################################################
+
+LABEL="label_end_usb"
