@@ -151,6 +151,16 @@ class udevVDI(VDI.VDI):
             # XXX: what other information can we recover?
             if self.sr.sm_config.has_key('type'):
                 self.read_only = self.sr.sm_config['type'] == "cd"
+
+            usb_path = info.get("usb_path")
+            if usb_path:
+                self.sm_config["usb_path"] = info["usb_path"]
+                pusbs = self.session.xenapi.PUSB.get_all_records()
+                for pusb in pusbs.itervalues():
+                    if usb_path == pusb.get("path"):
+                        if pusb.get("passthrough_enabled"):
+                            raise xs_errors.XenError('VDIUnavailable')
+                        break
                 
         except OSError, e:
             self.deleted = True
