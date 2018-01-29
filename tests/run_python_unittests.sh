@@ -4,7 +4,7 @@ set -eu
 
 SMROOT=$(cd $(dirname $0) && cd .. && pwd)
 
-if  [ ! -x "$(command -v nosetests)" ] || [ ! -x "$(command -v coverage)" ]; then
+if  [ ! -v RPM_BUILD_ROOT ]; then
     echo "Activating virtual env"
 
     ENVDIR="$SMROOT/.env"

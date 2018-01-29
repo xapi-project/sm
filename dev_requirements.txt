@@ -1,2 +1,2 @@
+nose
 -r base_requirements.txt
-coveralls
