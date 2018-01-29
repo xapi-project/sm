@@ -1263,7 +1263,7 @@ def findRunningProcessOrOpenFile(name, process = True):
                     f = open(os.path.join('/proc', pid, 'cmdline'), 'rb')
                     prog = f.read()[:-1]
                 except IOError, e:
-                    if e.errno != errno.ENOENT:
+                    if e.errno in (errno.ENOENT, errno.ESRCH):
                         SMlog("ERROR %s reading %s, ignore" % (e.errno, pid))
                     continue
             finally:
@@ -1274,7 +1274,8 @@ def findRunningProcessOrOpenFile(name, process = True):
                 fd_dir = os.path.join('/proc', pid, 'fd')
                 files = os.listdir(fd_dir)
             except OSError, e:
-                if e.errno == errno.ENOENT:
+                if e.errno in (errno.ENOENT, errno.ESRCH):
+                    SMlog("ERROR %s reading fds for %s, ignore" % (e.errno, pid))
                     # Ignore pid that are no longer valid
                     continue
                 else:
