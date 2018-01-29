@@ -201,7 +201,43 @@ def refresh(sid,npaths):
     else:
         raise xs_errors.XenError('MPath not written yet')
 
+
+def _is_valid_multipath_device(sid):
+    by_id_path = "/dev/disk/by-id/scsi-"+sid
+    real_path = util.get_real_path(by_id_path)
+    (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath', '-a', sid])
+    if ret == 1:
+        util.SMlog("Failed to add {}: wwid could be explicitly blacklisted\n"
+                   " Continue with multipath disabled for this SR".format(sid))
+        return False
+    (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath', '-c',
+                                         real_path])
+    if ret == 1:
+        # This is very fragile but it is not a good sign to fail without
+        # any output. At least until multipath 0.4.9, for example, multipath -c
+        # fails without any log if it is able to retrieve the wwid of the
+        # device.
+        # In this case it is better to fail immediately.
+        if not stdout+stderr:
+            # Attempt to cleanup wwids file before raising
+            try:
+                (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath',
+                                                     '-w', sid])
+            except OSError:
+                util.SMlog("Error removing {} from wwids file".format(sid))
+            raise xs_errors.XenError('MultipathGenericFailure',
+                                     '"multipath -c" failed without any'
+                                     ' output on {}'.format(real_path))
+        util.SMlog("When dealing with {} returned with:\n"
+                   " {}{} Continue with multipath disabled for this SR"
+                   .format(sid, stdout, stderr))
+        return False
+    return True
+
+
 def _refresh_DMP(sid, npaths):
+    if not _is_valid_multipath_device(sid):
+        return
     util.retry(lambda: util.pread2(['/usr/sbin/multipath', '-r', sid]), maxretry = 3,
                            period = 4)
     path = os.path.join(DEVMAPPERPATH, sid)
@@ -289,7 +325,7 @@ def deactivate():
     util.SMlog("MPATH: multipath deactivated.")
 
 def path(SCSIid):
-    if _is_mpath_daemon_running():
+    if _is_valid_multipath_device(SCSIid) and _is_mpath_daemon_running():
         if (mpp_luncheck.is_RdacLun(SCSIid)):
             pathlist = glob.glob('/dev/disk/mpInuse/%s-*' % SCSIid)
             util.SMlog("pathlist is:")

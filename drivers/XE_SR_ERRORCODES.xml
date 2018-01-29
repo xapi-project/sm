@@ -759,6 +759,11 @@
                 <value>430</value>
         </code>
         <code>
+                <name>MultipathGenericFailure</name>
+                <description>Multipath generic failure</description>
+                <value>431</value>
+        </code>
+        <code>
             <name>TapdiskAlreadyRunning</name>
             <description>The tapdisk is already running</description>
             <value>445</value>
