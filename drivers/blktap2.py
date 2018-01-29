@@ -1844,6 +1844,11 @@ class VDI(object):
         parent_uuid = parent_uuid.strip()
         shared_target = NFSSR.NFSFileVDI(self.target.vdi.sr, parent_uuid)
 
+        if shared_target.parent:
+            util.SMlog("ERROR: Parent VDI %s has parent, not enabling" %
+                       shared_target.uuid)
+            return
+
         SR.registerSR(EXTSR.EXTSR)
         local_sr = SR.SR.from_uuid(session, local_sr_uuid)
 
