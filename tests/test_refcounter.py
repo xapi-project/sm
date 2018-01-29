@@ -103,3 +103,9 @@ class TestRefCounter(unittest.TestCase):
 
         rmdir.assert_called_once_with(
             os.path.join(refcounter.RefCounter.BASE_DIR, 'namespace'))
+
+
+# Re-use legacy tests embedded in refcounter
+testcase = unittest.FunctionTestCase(refcounter.RefCounter._runTests)
+with mock.patch.object(refcounter.RefCounter, "BASE_DIR", "./fakesm/refcount"):
+        unittest.TextTestRunner().run(testcase)
