@@ -1,3 +1,29 @@
+Version 1.18.0 -  30th Jan 2018
+===============================
+  * Changed Block Tracking
+  * USB device passthrough
+  * Unit test improvements
+  * Code Cleanup
+  * CA-214749: Fix infinite loop in getAllVHDs
+  * CA-245400: Use right rpcinfo option to query service status
+  * CA-244822: retry loading VDIs to guard against race when GC is running
+  * CA-231356: Conditionally return empty VDI list from getAllVHDs
+  * CP-21357: Improve error message on iSCSI login failure
+  * CP-22423: Convert XenError into an exception factory
+  * CA-248228: Removable Storage Disk attached to VM lost after reboot
+  * CA-128095: Unhandled exception in LVMoISCSISR.load()
+  * CA-254408: Fix variable shadowing
+  * CP-22880: [REQ-490] Add support for ISOSR over SMB3
+  * CA-188721: Fix a few potential hazards of XAPI session leaking
+  * CA-218867: Handle exceptions and fail more elegantly
+  * CA-240718: Fail multi-step plugins on first failure
+  * CP-24279: Ignore multipath flag for blacklisted devices
+  * CP-24280: blacklist ScaleIO devices in multipath
+  * CA-263084: Fix path to iSCSI database
+  * CA-255945: fix race on mkdir
+  * CA-264210: Intellicache only supports a single base disk with deltas.
+  * CA-267032: add ESRCH to list of acceptable errors in pid search
+
 Version 1.17.1 -  21st Mar 2017
 ==============================
   CP-19491: Remove assumption that XenAPI is present and mock
