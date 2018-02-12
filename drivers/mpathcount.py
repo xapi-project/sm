@@ -23,8 +23,9 @@ import mpath_cli
 import mpp_luncheck
 import mpp_mpathutil
 import glob
+import json
 
-supported = ['iscsi','lvmoiscsi','rawhba','lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp','lvmofcoe']
+supported = ['iscsi','lvmoiscsi','rawhba','lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp','lvmofcoe', 'gfs2']
 
 LOCK_TYPE_HOST = "host"
 LOCK_NS1 = "mpathcount1"
@@ -195,6 +196,9 @@ def get_SCSIidlist(devconfig, sm_config):
         SCSIidlist = sm_config['SCSIid'].split(',')
     elif devconfig.has_key('SCSIid'):
         SCSIidlist.append(devconfig['SCSIid'])
+    elif devconfig.has_key('uri'):
+        config = json.loads(devconfig['uri'])
+        SCSIidlist.append(config['ScsiId'])
     else:
         for key in sm_config:
             if util._isSCSIid(key):
@@ -208,12 +212,11 @@ except:
     sys.exit(-1)
 
 localhost = session.xenapi.host.get_by_uuid(get_localhost_uuid())
-# Check whether DMP Multipathing is enabled (either for root dev or SRs)
+# Check whether multipathing is enabled (either for root dev or SRs)
 try:
     if get_root_dev_major() != get_dm_major():
         hconf = session.xenapi.host.get_other_config(localhost)
         assert(hconf['multipathing'] == 'true')
-        assert(hconf['multipathhandle'] == 'dmp')
 except:
     mpc_exit(session,0)
 
