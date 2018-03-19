@@ -69,10 +69,11 @@ class TestISOSR_overNFS(unittest.TestCase):
     @mock.patch('util._convertDNS', autospec=True)
     @mock.patch('nfs.validate_nfsversion', autospec=True)
     @mock.patch('util.makedirs', autospec=True)
+    @mock.patch('util._testHost', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('ISOSR.ISOSR._checkmount')
-    def test_attach_nfs(self, _checkmount, makedirs, validate_nfsversion,
-                        convertDNS, soft_mount, gen_uuid):
+    def test_attach_nfs(self, _checkmount, testHost, makedirs,
+                        validate_nfsversion, convertDNS, soft_mount, gen_uuid):
         validate_nfsversion.return_value = 'aNfsversionChanged'
         isosr = self.create_isosr(location='aServer:/aLocation', atype='nfs_iso',
                                   sr_uuid='asr_uuid')
@@ -87,6 +88,29 @@ class TestISOSR_overNFS(unittest.TestCase):
                                            'tcp',
                                            useroptions='',
                                            nfsversion='aNfsversionChanged')
+
+    @mock.patch('util.gen_uuid', autospec=True)
+    @mock.patch('util._convertDNS', autospec=True)
+    @mock.patch('nfs.validate_nfsversion', autospec=True)
+    @mock.patch('util.makedirs', autospec=True)
+    @mock.patch('util._testHost', autospec=True)
+    # Can't use autospec due to http://bugs.python.org/issue17826
+    @mock.patch('ISOSR.ISOSR._checkmount')
+    def test_attach_nfs_no_server(
+            self, _checkmount, testHost, makedirs, validate_nfsversion,
+            convertDNS, gen_uuid):
+
+        isosr = self.create_isosr(location='aServer:/aLocation', atype='nfs_iso',
+                                  sr_uuid='asr_uuid')
+
+        _checkmount.side_effect = [False]
+        testHost.side_effect = SR.SROSError(140, 'Incorrect DNS name, unable to resolve.')
+
+        with self.assertRaises(SR.SROSError) as ose:
+            isosr.attach(None)
+
+        self.assertEqual(140, ose.exception.errno)
+
 
 class TestISOSR_overSMB(unittest.TestCase):
 
