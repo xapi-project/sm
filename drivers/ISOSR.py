@@ -46,6 +46,7 @@ DRIVER_INFO = {
 TYPE = "iso"
 SMB_VERSION_1 = '1.0'
 SMB_VERSION_3 = '3.0'
+NFSPORT = 2049
 
 def is_image_utf8_compatible(s):
     regex = re.compile("\.iso$|\.img$", re.I)
@@ -314,6 +315,7 @@ class ISOSR(SR.SR):
                 # going to be r-only, a failure in nfs link can be reported back
                 # to the process waiting.
                 serv_path = location.split(':')
+                util._testHost(serv_path[0], NFSPORT, 'NFSTarget')
                 nfs.soft_mount(self.mountpoint, serv_path[0], serv_path[1],
                                'tcp', useroptions=options,
                                nfsversion=self.nfsversion)
