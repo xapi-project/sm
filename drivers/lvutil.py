@@ -700,7 +700,7 @@ def removeDevMapperEntry(path, strict=True):
                 return True
             except:
                 pass  # Continuining will fail and log the right way
+        ret = util.pread2(["lsof", path])
         util.SMlog("removeDevMapperEntry: dmsetup remove failed for file %s " \
-                   "with error %s." % (path, str(e)))
+                   "with error %s, and lsof ret is %s." % (path, str(e), ret))
         return False
-    
