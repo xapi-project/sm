@@ -1,0 +1,16 @@
+[Unit]
+Description=XenServer Storage Manager (SM)
+Before=xapi.service
+Conflicts=shutdown.target
+RefuseManualStop=yes
+After=iscsi-shutdown.service
+Wants=iscsi-shutdown.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=True
+ExecStart=-/bin/true
+ExecStop=-/bin/true
+
+[Install]
+WantedBy=multi-user.target
