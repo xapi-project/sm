@@ -1245,6 +1245,24 @@ class LVHDSR(SR.SR):
             if not rv:
                 raise Exception('plugin %s failed' % self.PLUGIN_ON_SLAVE)
 
+    def _updateSlavesOnRemove(self, hostRefs, baseUuid, baseLV):
+        """Tell the slave we deleted the base image"""
+        args = {"vgName" : self.vgname,
+                "action1": "cleanupLockAndRefcount",
+                "uuid1": baseUuid,
+                "ns1": lvhdutil.NS_PREFIX_LVM + self.uuid}
+
+        masterRef = util.get_this_host_ref(self.session)
+        for hostRef in hostRefs:
+            if hostRef == masterRef:
+                continue
+            util.SMlog("Cleaning locks for %s on slave %s" % (baseLV, hostRef))
+            rv = eval(self.session.xenapi.host.call_plugin(
+                hostRef, self.PLUGIN_ON_SLAVE, "multi", args))
+            util.SMlog("call-plugin returned: %s" % rv)
+            if not rv:
+                raise Exception('plugin %s failed' % self.PLUGIN_ON_SLAVE)
+
     def _cleanup(self, skipLockCleanup = False):
         """delete stale refcounter, flag, and lock files"""
         RefCounter.resetAll(lvhdutil.NS_PREFIX_LVM + self.uuid)
@@ -1646,7 +1664,7 @@ class LVHDVDI(VDI.VDI):
             except Exception, e2:
                 util.SMlog('WARNING: failed to clean up failed snapshot: '
                         '%s (error ignored)' % e2)
-            raise e1
+            raise
         blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
         return snapResult
 
@@ -1790,7 +1808,7 @@ class LVHDVDI(VDI.VDI):
 
         self.sr.journaler.remove(self.JRN_CLONE, origUuid)
 
-        return self._finishSnapshot(snapVDI, snapVDI2, cloneOp, snapType)
+        return self._finishSnapshot(snapVDI, snapVDI2, hostRefs, cloneOp, snapType)
 
 
     def _createSnap(self, snapUuid, snapSizeLV, isNew):
@@ -1821,7 +1839,7 @@ class LVHDVDI(VDI.VDI):
         snapVDI.lvname = snapLV
         return snapVDI
 
-    def _finishSnapshot(self, snapVDI, snapVDI2, cloneOp = False, snapType=None):
+    def _finishSnapshot(self, snapVDI, snapVDI2, hostRefs, cloneOp = False, snapType=None):
         if snapType is not VDI.SNAPSHOT_INTERNAL:
             self.sr._updateStats(self.sr.uuid, self.size)
         basePresent = True
@@ -1836,8 +1854,11 @@ class LVHDVDI(VDI.VDI):
                 (not snapVDI2 or snap2Parent != self.uuid):
             util.SMlog("%s != %s != %s => deleting unused base %s" % \
                     (snapParent, self.uuid, snap2Parent, self.lvname))
+            RefCounter.put(self.uuid, False, lvhdutil.NS_PREFIX_LVM + self.sr.uuid)
             self.sr.lvmCache.remove(self.lvname)
             self.sr.lvActivator.remove(self.uuid, False)
+            if hostRefs:
+                self.sr._updateSlavesOnRemove(hostRefs, self.uuid, self.lvname)
             basePresent = False
         else:
             # assign the _binary_ refcount of the original VDI to the new base 
