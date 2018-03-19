@@ -1262,6 +1262,9 @@ def findRunningProcessOrOpenFile(name, process = True):
                     f = None
                     f = open(os.path.join('/proc', pid, 'cmdline'), 'rb')
                     prog = f.read()[:-1]
+                    if prog:
+                        # Just want the process name
+                        prog =  prog[:prog.find('\x00')]
                 except IOError, e:
                     if e.errno in (errno.ENOENT, errno.ESRCH):
                         SMlog("ERROR %s reading %s, ignore" % (e.errno, pid))
@@ -1286,9 +1289,10 @@ def findRunningProcessOrOpenFile(name, process = True):
                     link = os.readlink(os.path.join(fd_dir, file))
                 except OSError:
                     continue
-                
-                if process and name == prog:
-                    links.append(link)
+
+                if process:
+                    if name == prog:
+                        links.append(link)
                 else:
                     # need to return process name and pid tuples
                     if link == name:
