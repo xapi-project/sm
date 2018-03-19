@@ -9,7 +9,7 @@ Wants=iscsi-shutdown.service
 [Service]
 Type=oneshot
 RemainAfterExit=True
-ExecStart=-/bin/true
+ExecStart=-/usr/sbin/multipath -W
 ExecStop=-/bin/true
 
 [Install]
