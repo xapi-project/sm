@@ -427,6 +427,13 @@ class VDI(object):
     def activate(self, sr_uuid, vdi_uuid):
         """Activate VDI - called pre tapdisk open"""
         if self._get_blocktracking_status():
+            if self.sr.srcmd.params.has_key('args'):
+                read_write = self.sr.srcmd.params['args'][0]
+                if read_write == "false":
+                    # Disk is being attached in RO mode, 
+                    # don't attach metadata log file
+                    return None
+ 
             from lock import Lock
             lock = Lock("cbtlog", str(vdi_uuid))
             lock.acquire()
