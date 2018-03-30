@@ -726,6 +726,11 @@
                 <description>Error in Metadata volume operation for SR.</description>
                 <value>181</value>
         </code>
+        <code>
+                <name>ISCSIDelete</name>
+                <description>ISCSI delete failed</description>
+                <value>182</value>
+        </code>
         <!-- Catch all error 200 (arbitrary) -->
         <code>
                 <name>EIO</name>
