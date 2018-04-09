@@ -108,7 +108,7 @@ def file_read_wrapper(fd, offset, bytesToRead, min_block_size):
         os.lseek(fd, offset, os.SEEK_SET)
         result = os.read(fd, bytesToRead)
     except OSError, e:
-        raise OSError("Failed to write file with params %s. Error: %s" % \
+        raise OSError("Failed to read file with params %s. Error: %s" % \
                           ([fd, offset, min_block_size, bytesToRead], \
                             (e.errno)))
     return result
