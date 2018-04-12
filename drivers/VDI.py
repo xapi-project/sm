@@ -298,21 +298,10 @@ class VDI(object):
                 logpath = self._get_cbt_logpath(vdi_uuid)
                 self._cbt_op(vdi_uuid, cbtutil.set_cbt_size, logpath, size)
         except util.CommandException as ex:
-            util.SMlog("Resizing of log file %s failed, "
-                       "disabling CBT. Reason: %s" % (logpath, str(ex)))
-            self._delete_cbt_log()
-            vdi_ref = self.sr.srcmd.params['vdi_ref']
-            self.sr.session.xenapi.VDI.set_cbt_enabled(vdi_ref, False)
             alert_name = "VDI_CBT_RESIZE_FAILED"
-            alert_prio_warning = "3"
-            alert_obj = "VDI"
-            alert_uuid = str(vdi_uuid)
             alert_str = ("Resizing of CBT metadata for disk %s failed."
                          % vdi_uuid)
-            self.sr.session.xenapi.message.create(alert_name,
-                                                  alert_prio_warning,
-                                                  alert_obj, alert_uuid,
-                                                  alert_str)
+            self._disable_cbt_on_error(alert_name, alert_str)
 
     def delete(self, sr_uuid, vdi_uuid, data_only=False):
         """Delete this VDI.
@@ -451,24 +440,10 @@ class VDI(object):
             consistent = self._cbt_op(vdi_uuid, cbtutil.get_cbt_consistency,
                                       logpath)
             if not consistent:
-                lock.acquire()
-                try:
-                    self._delete_cbt_log()
-                finally:
-                    lock.release()
-                vdi_ref = self.sr.srcmd.params['vdi_ref']
-                self.sr.session.xenapi.VDI.set_cbt_enabled(vdi_ref, False)
                 alert_name = "VDI_CBT_METADATA_INCONSISTENT"
-                alert_prio_warning = "3"
-                alert_obj = "VDI"
-                alert_uuid = str(vdi_uuid)
                 alert_str = ("Changed Block Tracking metadata is inconsistent"
                              " for disk %s." % vdi_uuid)
-                util.SMlog(alert_str)
-                self.sr.session.xenapi.message.create(alert_name,
-                                                      alert_prio_warning,
-                                                      alert_obj, alert_uuid,
-                                                      alert_str)
+                self._disable_cbt_on_error(alert_name, alert_str)
                 return None
 
             self._cbt_op(self.uuid, cbtutil.set_cbt_consistency,
@@ -828,21 +803,11 @@ class VDI(object):
             self._cbt_op(snapshot_uuid, cbtutil.set_cbt_child,
                          snap_logpath, self.uuid)
         except Exception as ex:
-            self._delete_cbt_log() 
-            vdi_ref = self.sr.srcmd.params['vdi_ref']
-            self.sr.session.xenapi.VDI.set_cbt_enabled(vdi_ref, False)
-            util.SMlog("Creating the Changed Block Tracking log file failed. "
-                       "Reason: %s" % str(ex))
             alert_name = "VDI_CBT_SNAPSHOT_FAILED"
-            alert_prio_warning = "3"
-            alert_obj = "VDI"
-            alert_uuid = str(self.uuid)
             alert_str = ("Creating CBT metadata log for disk %s failed."
                          % self.uuid)
-            self.sr.session.xenapi.message.create(alert_name,
-                                                  alert_prio_warning,
-                                                  alert_obj, alert_uuid,
-                                                  alert_str)
+            self._disable_cbt_on_error(alert_name, alert_str)
+
 
     def _get_blocktracking_status(self, uuid=None):
         """ Get blocktracking status """
@@ -929,3 +894,16 @@ class VDI(object):
             return ret
         finally:
             lock.release()
+
+    def _disable_cbt_on_error(self, alert_name, alert_str):
+        util.SMlog(alert_str)
+        self._delete_cbt_log()
+        vdi_ref = self.sr.srcmd.params['vdi_ref']
+        self.sr.session.xenapi.VDI.set_cbt_enabled(vdi_ref, False)
+        alert_prio_warning = "3"
+        alert_obj = "VDI"
+        alert_uuid = str(self.uuid)
+        self.sr.session.xenapi.message.create(alert_name,
+                                              alert_prio_warning,
+                                              alert_obj, alert_uuid,
+                                              alert_str)

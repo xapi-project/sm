@@ -1245,6 +1245,25 @@ class LVHDSR(SR.SR):
             if not rv:
                 raise Exception('plugin %s failed' % self.PLUGIN_ON_SLAVE)
 
+    def _updateSlavesOnCBTClone(self, hostRefs, cbtlog):
+        """Reactivate and refresh CBT log file on slaves"""
+        args = {"vgName" : self.vgname,
+                "action1": "deactivateNoRefcount",
+                "lvName1": cbtlog,
+                "action2": "refresh",
+                "lvName2": cbtlog}
+
+        masterRef = util.get_this_host_ref(self.session)
+        for hostRef in hostRefs:
+            if hostRef == masterRef:
+                continue
+            util.SMlog("Updating %s on slave %s" % (cbtlog, hostRef))
+            rv = eval(self.session.xenapi.host.call_plugin(
+                    hostRef, self.PLUGIN_ON_SLAVE, "multi", args))
+            util.SMlog("call-plugin returned: %s" % rv)
+            if not rv:
+                raise Exception('plugin %s failed' % self.PLUGIN_ON_SLAVE)
+
     def _updateSlavesOnRemove(self, hostRefs, baseUuid, baseLV):
         """Tell the slave we deleted the base image"""
         args = {"vgName" : self.vgname,
@@ -1800,6 +1819,16 @@ class LVHDVDI(VDI.VDI):
             # Update cbt files if user created snapshot (SNAPSHOT_DOUBLE)
             if snapType == VDI.SNAPSHOT_DOUBLE and cbtlog:
                 snapVDI._cbt_snapshot(clonUuid, cbt_consistency)
+                if hostRefs:
+                    cbtlog_file = self._get_cbt_logname(snapVDI.uuid)
+                    try:
+                        self.sr._updateSlavesOnCBTClone(hostRefs, cbtlog_file)
+                    except:
+                        alert_name = "VDI_CBT_SNAPSHOT_FAILED"
+                        alert_str = ("Creating CBT snapshot for {} failed"
+                                     .format(snapVDI.uuid))
+                        snapVDI._disable_cbt_on_error(alert_name, alert_str)
+                        pass
 
         except (util.SMException, XenAPI.Failure), e:
             util.logException("LVHDVDI._snapshot")
