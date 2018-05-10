@@ -84,10 +84,8 @@ class TestCreate(unittest.TestCase):
         lvutil.create('volume', ONE_MEGABYTE, 'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7',
                       size_in_percentage="10%F")
 
-        mock_pread.assert_called_once_with(
-            [os.path.join(lvutil.LVM_BIN,lvutil.CMD_LVCREATE)] +
-            "-n volume -l 10%F VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7".split(),
-            quiet=False)
+        self.assertEqual(1, mock_pread.call_count)
+        self.assertIn("10%F", mock_pread.call_args[0][0])
 
 class TestRemove(unittest.TestCase):
     @with_lvm_subsystem

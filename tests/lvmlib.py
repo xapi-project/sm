@@ -71,6 +71,7 @@ class LVSubsystem(object):
         parser.add_option("--addtag", dest='tag')
         parser.add_option("--inactive", dest='inactive', action='store_true')
         parser.add_option("--zero", dest='zero', default='y')
+        parser.add_option("-W", dest='wipe_sig')
         try:
             options, args = parser.parse_args(args[1:])
         except SystemExit, e:

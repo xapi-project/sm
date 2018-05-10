@@ -507,6 +507,8 @@ def create(name, size, vgname, tag=None, size_in_percentage=None):
         cmd = [CMD_LVCREATE, "-n", name, "-L", str(size_mb), vgname]
     if tag:
         cmd.extend(["--addtag", tag])
+
+    cmd.extend(['-W', 'n'])
     cmd_lvm(cmd)
 
 def remove(path, config_param=None):
