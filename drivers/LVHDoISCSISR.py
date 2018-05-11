@@ -525,6 +525,15 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
         for i in self.iscsiSRs:
             i.detach(sr_uuid)
 
+    def scan(self, sr_uuid):
+        if self.mpath == "true":
+            for i in self.iscsiSRs:
+                try:
+                    i.attach(sr_uuid)
+                except SR.SROSError:
+                    util.SMlog("Connection failed for target %s, continuing.." %i.target)
+        LVHDSR.LVHDSR.scan(self, sr_uuid)
+
     def probe(self):
         self.uuid = util.gen_uuid()
 

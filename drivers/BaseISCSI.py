@@ -290,8 +290,18 @@ class BaseISCSISR(SR.SR):
     def attach(self, sr_uuid):
         self._mpathHandle()
 
+        multiTargets=False
+
         npaths=0
-        if not self.attached:
+        try:
+            pbdref = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
+            if pbdref:
+                other_config = self.session.xenapi.PBD.get_other_config(pbdref)
+                multiTargets = util.sessions_less_than_targets(other_config, self.dconf)
+        except:
+            pass
+
+        if not self.attached or multiTargets:
             # Verify iSCSI target and port
             if self.dconf.has_key('multihomelist') and not self.dconf.has_key('multiSession'):
                 targetlist = self.dconf['multihomelist'].split(',')
@@ -315,7 +325,7 @@ class BaseISCSISR(SR.SR):
             iscsilib.ensure_daemon_running_ok(self.localIQN)
 
             # Check to see if auto attach was set
-            if not iscsilib._checkTGT(self.targetIQN):
+            if not iscsilib._checkTGT(self.targetIQN) or multiTargets:
                 try:
                     map = []
                     if 'any' != self.targetIQN:
@@ -388,17 +398,13 @@ class BaseISCSISR(SR.SR):
                 util.SMlog("Failed to read targetname path," \
                            + "iscsi_sessions value may be incorrect")
 
-        try:
-            pbdref = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
-            if pbdref <> None:
-                # Just to be safe in case of garbage left during crashes
-                # we remove the key and add it
-                self.session.xenapi.PBD.remove_from_other_config(
-                    pbdref, "iscsi_sessions")
-                self.session.xenapi.PBD.add_to_other_config(
-                    pbdref, "iscsi_sessions", str(sessions))
-        except:
-            pass
+        if pbdref:
+            # Just to be safe in case of garbage left during crashes
+            # we remove the key and add it
+            self.session.xenapi.PBD.remove_from_other_config(
+                pbdref, "iscsi_sessions")
+            self.session.xenapi.PBD.add_to_other_config(
+                pbdref, "iscsi_sessions", str(sessions))
 
         if self.dconf.has_key('SCSIid'):
             if self.mpath == 'true':

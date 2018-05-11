@@ -1700,3 +1700,13 @@ def read_caching_is_restricted(session):
             restrictions['restrict_read_caching'] == "true":
         return True
     return False
+
+def sessions_less_than_targets(other_config, device_config):
+    if device_config.has_key('multihomelist') and other_config.has_key('iscsi_sessions'):
+        sessions = int(other_config['iscsi_sessions'])
+        targets = len(device_config['multihomelist'].split(','))
+        SMlog("Targets %d and iscsi_sessions %d" %(targets, sessions))
+        return (sessions < targets)
+    else:
+        return False
+
