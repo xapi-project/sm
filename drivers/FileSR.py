@@ -595,7 +595,11 @@ class FileVDI(VDI.VDI):
         if self.attached:
             raise xs_errors.XenError('VDIInUse')
 
-        os.unlink(self.path)
+        try:
+            os.unlink(self.path)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                raise
 
         self.sr.deleted_vdi(vdi_uuid)
         # If this is a data_destroy call, don't remove from XAPI db
