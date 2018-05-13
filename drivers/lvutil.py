@@ -640,9 +640,12 @@ def _lvmBugCleanup(path):
     mapperPath = "/dev/mapper/" + mapperDevice
             
     nodeExists = False
-    cmd = [CMD_DMSETUP, "status", mapperDevice]
+    cmd_st = [CMD_DMSETUP, "status", mapperDevice]
+    cmd_rm = [CMD_DMSETUP, "remove", mapperDevice]
+    cmd_rf = [CMD_DMSETUP, "remove", mapperDevice, "--force"]
+
     try:
-        util.pread(cmd, expect_rc=1)
+        util.pread(cmd_st, expect_rc=1)
     except util.CommandException, e:
         if e.code == 0:
             nodeExists = True
@@ -655,22 +658,21 @@ def _lvmBugCleanup(path):
     # destroy the dm device
     if nodeExists:
         util.SMlog("_lvmBugCleanup: removing dm device %s" % mapperDevice)
-        cmd = [CMD_DMSETUP, "remove", mapperDevice]
         for i in range(LVM_FAIL_RETRIES):
             try:
-                util.pread2(cmd)
+                util.pread2(cmd_rm)
                 break
             except util.CommandException, e:
                 if i < LVM_FAIL_RETRIES - 1:
                     util.SMlog("Failed on try %d, retrying" % i)
-                    cmd = [CMD_DMSETUP, "status", mapperDevice]
                     try:
-                        util.pread(cmd, expect_rc=1)
+                        util.pread(cmd_st, expect_rc=1)
                         util.SMlog("_lvmBugCleanup: dm device {}"
                                    " removed".format(mapperDevice)
                                    )
                         break
                     except:
+                        cmd_rm = cmd_rf
                         time.sleep(1)
                 else:
                     # make sure the symlink is still there for consistency

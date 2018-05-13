@@ -1218,20 +1218,32 @@ class LVHDSR(SR.SR):
         delattr(self,"vdiInfo")
         delattr(self,"allVDIs")
 
+    def _updateSlavesPreClone(self, hostRefs, origOldLV):
+        masterRef = util.get_this_host_ref(self.session)
+        args = {"vgName": self.vgname,
+                "action1": "deactivateNoRefcount",
+                "lvName1": origOldLV}
+        for hostRef in hostRefs:
+            if hostRef == masterRef:
+                continue
+            util.SMlog("Deactivate VDI on %s" % hostRef)
+            rv = eval(self.session.xenapi.host.call_plugin(hostRef, self.PLUGIN_ON_SLAVE, "multi", args))
+            util.SMlog("call-plugin returned: %s" % rv)
+            if not rv:
+                raise Exception('plugin %s failed' % self.PLUGIN_ON_SLAVE)
+
     def _updateSlavesOnClone(self, hostRefs, origOldLV, origLV,
             baseUuid, baseLV):
         """We need to reactivate the original LV on each slave (note that the
         name for the original LV might change), as well as init the refcount
         for the base LV"""
         args = {"vgName" : self.vgname,
-                "action1": "deactivateNoRefcount",
-                "lvName1": origOldLV,
-                "action2": "refresh",
-                "lvName2": origLV,
-                "action3": "activate",
-                "ns3"    : lvhdutil.NS_PREFIX_LVM + self.uuid,
-                "lvName3": baseLV,
-                "uuid3"  : baseUuid}
+                "action1": "refresh",
+                "lvName1": origLV,
+                "action2": "activate",
+                "ns2"    : lvhdutil.NS_PREFIX_LVM + self.uuid,
+                "lvName2": baseLV,
+                "uuid2"  : baseUuid}
 
         masterRef = util.get_this_host_ref(self.session)
         for hostRef in hostRefs:
@@ -1754,6 +1766,9 @@ class LVHDVDI(VDI.VDI):
                     vhdutil.getSizePhys(self.path))
             size_req -= (self.utilisation - lvSizeBase)
         self.sr._ensureSpaceAvailable(size_req)
+
+        if hostRefs:
+            self.sr._updateSlavesPreClone(hostRefs, self.lvname)
 
         baseUuid = util.gen_uuid()
         origUuid = self.uuid
