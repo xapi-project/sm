@@ -602,10 +602,11 @@ class FileVDI(VDI.VDI):
             raise xs_errors.XenError('VDIInUse')
 
         try:
-            os.unlink(self.path)
-        except OSError as e:
-            if e.errno != errno.ENOENT:
-                raise
+            util.force_unlink(self.path)
+        except Exception, e:
+            raise xs_errors.XenError(
+                'VDIDelete',
+                opterr='Failed to unlink file during deleting VDI: %s' % str(e))
 
         self.sr.deleted_vdi(vdi_uuid)
         # If this is a data_destroy call, don't remove from XAPI db
