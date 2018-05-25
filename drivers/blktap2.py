@@ -1750,23 +1750,19 @@ class VDI(object):
                 util.SMlog("Error: scratch mode not supported by this SR")
                 return
 
-        session = XenAPI.xapi_local()
-        session.xenapi.login_with_password('root', '', '', 'SM')
-
         dev_path = None
         local_sr_uuid = params.get(self.CONF_KEY_CACHE_SR)
         if not local_sr_uuid:
             util.SMlog("ERROR: Local cache SR not specified, not enabling")
             return
-        dev_path = self._setup_cache(session, sr_uuid, vdi_uuid,
+        dev_path = self._setup_cache(self._session, sr_uuid, vdi_uuid,
                 local_sr_uuid, scratch_mode, params)
 
         if dev_path:
-            self._updateCacheRecord(session, self.target.vdi.uuid,
+            self._updateCacheRecord(self._session, self.target.vdi.uuid,
                     params.get(self.CONF_KEY_MODE_ON_BOOT),
                     params.get(self.CONF_KEY_ALLOW_CACHING))
 
-        session.xenapi.session.logout()
         return dev_path
 
     def alert_no_cache(self, session, vdi_uuid, cache_sr_uuid, err):
