@@ -18,6 +18,7 @@
 # Clear the attach status for all VDIs in the given SR on this host.  
 # Additionally, reset the paused state if this host is the master.
 
+import cleanup
 import util
 import lock
 import XenAPI
@@ -25,6 +26,9 @@ import XenAPI
 def reset_sr(session, host_uuid, sr_uuid, is_sr_master):
     from vhdutil import LOCK_TYPE_SR
     from cleanup import LOCK_TYPE_RUNNING
+
+    cleanup.abort(sr_uuid)
+
     gc_lock = lock.Lock(LOCK_TYPE_RUNNING, sr_uuid)
     sr_lock = lock.Lock(LOCK_TYPE_SR, sr_uuid)
     gc_lock.acquire()
