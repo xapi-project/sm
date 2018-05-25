@@ -1,3 +1,12 @@
+Version 1.20.0 -  25th May 2018
+===============================
+  * CA-247723: check lsof when EBUSY on device
+  * CA-287511: add ENOENT to acceptable IO retry errors in VDI load to avoid race
+  * CA-247723: refactor open exclusive and allow a single shot retry to counter new device tool race
+  * CA-277616: add retry into pathexists to diagnose underlying issue
+  * CA-288738: add dependency on multipathd.service
+  * CA-289543: get mpathcount to return the GFS2 multipath count
+
 Version 1.19.0 -  25th May 2018
 ===============================
   * CA-270011: Handle snapshotting a snapshot in a CBT chain
