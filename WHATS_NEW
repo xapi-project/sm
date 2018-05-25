@@ -1,3 +1,24 @@
+Version 1.19.0 -  25th May 2018
+===============================
+  * CA-270011: Handle snapshotting a snapshot in a CBT chain
+  * CA-276601: cleanup refcounts when deleting unused volume
+  * CA-274584: Provide SM service to take care of reboot issues with iscsi
+  * CA-276751: clean-up wwids at start-up
+  * CA-267460: Make device multipath eligibility check more robust
+  * CA-277346: Fix flawed parsing of /proc/<pid>/cmdline, split on NUL
+  * CA-273731: call _testHost before trying to mount ISO SR NFS share
+  * CA-274822: SR detach fails with parameter errors(add extra lsof log)
+  * CA-268337: have resetvdis.py request the GC abort before acquiring locks
+  * CA-283207: Modify mpathcount script to work for GFS2 SRs
+  * CA-283724: Don't attach CBT log when VDI attached in RO mode
+  * CA-274386: Ensure that get_supported_nfs_versions always returns a list
+  * iscsi: Delete LUN on detach of RawISCSI
+  * CA-247723: add log trace for error on exclusive open to track reason.
+  * CA-287286: correct error logging message read not write
+  * CA-277128: Remove broken RRD code from SM
+  * CA-287884: reuse existing session in _get_pool_config
+  * CA-287883: Refresh CBT log LV on slave after snapshot
+
 Version 1.18.0 -  30th Jan 2018
 ===============================
   * Changed Block Tracking
