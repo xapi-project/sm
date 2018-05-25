@@ -400,7 +400,12 @@ def createVG(root, vgname):
 
         try:
             f = os.open("%s" % dev, os.O_RDWR | os.O_EXCL)
-        except:
+        except OSError as ose:
+            opened_by = ''
+            if ose.errno == 16:
+                opened_by = util.pread2(['lsof', dev])
+            util.SMlog('Opening device %s failed with %d - "%s"' % (
+                dev, ose.errno, opened_by))
             raise xs_errors.XenError('SRInUse', \
                   opterr=('Device %s in use, please check your existing ' \
                   + 'SRs for an instance of this device') % dev)
