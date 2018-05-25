@@ -495,15 +495,20 @@ class FileVDI(VDI.VDI):
                        str(chdir_exception))
             raise xs_errors.XenError('SRUnavailable', opterr=str(chdir_exception))
 
-        if util.ioretry(lambda: util.pathexists(self.path)):
+        if util.ioretry(
+                lambda: util.pathexists(self.path),
+                errlist=[errno.EIO, errno.ENOENT]):
             try:
-                st = util.ioretry(lambda: os.stat(self.path))
+                st = util.ioretry(lambda: os.stat(self.path),
+                                  errlist=[errno.EIO, errno.ENOENT])
                 self.utilisation = long(st.st_size)
             except util.CommandException, inst:
                 if inst.code == errno.EIO:
                     raise xs_errors.XenError('VDILoad', \
                           opterr='Failed load VDI information %s' % self.path)
                 else:
+                    util.SMlog("Stat failed for %s, %s" % (
+                        self.path, str(inst)))
                     raise xs_errors.XenError('VDIType', \
                           opterr='Invalid VDI type %s' % self.vdi_type)
 
@@ -521,8 +526,9 @@ class FileVDI(VDI.VDI):
             try:
                 # The VDI might be activated in R/W mode so the VHD footer
                 # won't be valid, use the back-up one instead.
-                diskinfo = util.ioretry(lambda: self._query_info(self.path,
-                    True))
+                diskinfo = util.ioretry(
+                    lambda: self._query_info(self.path, True),
+                    errlist=[errno.EIO, errno.ENOENT])
 
                 if diskinfo.has_key('parent'):
                     self.parent = diskinfo['parent']
