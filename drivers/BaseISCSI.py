@@ -408,7 +408,7 @@ class BaseISCSISR(SR.SR):
                 realdev = os.path.realpath("/dev/disk/by-scsid/%s/%s" % (self.dconf['SCSIid'], dev))
                 util.set_scheduler(realdev.split("/")[-1], "noop")
 
-    def detach(self, sr_uuid):
+    def detach(self, sr_uuid, delete=False):
         keys = []
         pbdref = None
         try:
@@ -438,6 +438,8 @@ class BaseISCSISR(SR.SR):
         if iscsilib._checkTGT(self.targetIQN):
             try:
                 iscsilib.logout(self.target, self.targetIQN, all=True)
+                if delete:
+                    iscsilib.delete(self.targetIQN)
             except util.CommandException, inst:
                     raise xs_errors.XenError('ISCSIQueryDaemon', \
                           opterr='error is %d' % inst.code)

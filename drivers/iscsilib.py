@@ -303,6 +303,14 @@ def logout(portal, target, all=False):
     except:
         raise xs_errors.XenError('ISCSILogout')
 
+def delete(target):
+    cmd = ["iscsiadm", "-m", "node", "-o", "delete", "-T", target]
+    failuremessage = "Failed to delete target"
+    try:
+        (stdout,stderr) = exn_on_failure(cmd,failuremessage)
+    except:
+        raise xs_errors.XenError('ISCSIDelete')
+
 def get_luns(targetIQN, portal):
     refresh_luns(targetIQN, portal)
     luns=[]
