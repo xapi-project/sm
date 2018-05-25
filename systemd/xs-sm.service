@@ -3,7 +3,7 @@ Description=XenServer Storage Manager (SM)
 Before=xapi.service
 Conflicts=shutdown.target
 RefuseManualStop=yes
-After=iscsi-shutdown.service
+After=iscsi-shutdown.service multipathd.service
 Wants=iscsi-shutdown.service
 
 [Service]
