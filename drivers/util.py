@@ -397,11 +397,18 @@ def SRtoXML(SRlist):
 
 def pathexists(path):
     try:
-        os.stat(path)
+        os.lstat(path)
         return True
     except OSError, inst:
         if inst.errno == errno.EIO:
-            raise CommandException(errno.EIO, "os.stat(%s)" % path, "failed")
+            time.sleep(1)
+            try:
+                listdir(os.path.realpath(os.path.dirname(path)))
+                os.lstat(path)
+                return True
+            except:
+                pass
+            raise CommandException(errno.EIO, "os.lstat(%s)" % path, "failed")
         return False
 
 def force_unlink(path):

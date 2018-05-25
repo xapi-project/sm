@@ -15,7 +15,7 @@ class FakeFileVDI(FileSR.FileVDI):
 
 
 class TestFileVDI(unittest.TestCase):
-    @mock.patch('os.stat', autospec=True)
+    @mock.patch('os.lstat', autospec=True)
     def test_find_vhd_path(self, mock_os_stat):
         vdi_uuid=uuid.uuid4()
         vdi = FakeFileVDI("a command", None)
@@ -31,7 +31,7 @@ class TestFileVDI(unittest.TestCase):
         mock_os_stat.assert_called_with(expected_path)
         self.assertEqual(vdi.path, expected_path)
 
-    @mock.patch('os.stat', autospec=True)
+    @mock.patch('os.lstat', autospec=True)
     def test_find_raw_path(self, mock_os_stat):
         vdi_uuid=uuid.uuid4()
         vdi = FakeFileVDI("a command", None)
@@ -49,7 +49,7 @@ class TestFileVDI(unittest.TestCase):
         self.assertEqual(vdi.path, expected_path)
 
     @mock.patch('time.sleep', autospec=True)
-    @mock.patch('os.stat', autospec=True)
+    @mock.patch('os.lstat', autospec=True)
     def test_find_retry_vhd_path(self, mock_os_stat, sleep):
         vdi_uuid=uuid.uuid4()
         vdi = FakeFileVDI("a command", None)
