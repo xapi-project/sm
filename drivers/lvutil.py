@@ -384,6 +384,21 @@ def srlist_toxml(VGs, prefix, includeMetadata = False):
                 
     return dom.toprettyxml()
 
+def _openExclusive(dev, retry):
+    try:
+        return os.open("%s" % dev, os.O_RDWR | os.O_EXCL)
+    except OSError as ose:
+        opened_by = ''
+        if ose.errno == 16 and retry:
+            util.SMlog('Device %s is busy, one shot retry' % dev)
+            time.sleep(0.2)
+            return _openExclusive(dev, False)
+
+        util.SMlog('Opening device %s failed with %d' % (dev, ose.errno))
+        raise xs_errors.XenError(
+            'SRInUse', opterr=('Device %s in use, please check your existing '
+                               + 'SRs for an instance of this device') % dev)
+
 def createVG(root, vgname):
     systemroot = util.getrootdev()
     rootdev = root.split(',')[0]
@@ -398,17 +413,7 @@ def createVG(root, vgname):
             raise xs_errors.XenError('InvalidDev', \
                   opterr=('Device %s does not exist') % dev)
 
-        try:
-            f = os.open("%s" % dev, os.O_RDWR | os.O_EXCL)
-        except OSError as ose:
-            opened_by = ''
-            if ose.errno == 16:
-                opened_by = util.pread2(['lsof', dev])
-            util.SMlog('Opening device %s failed with %d - "%s"' % (
-                dev, ose.errno, opened_by))
-            raise xs_errors.XenError('SRInUse', \
-                  opterr=('Device %s in use, please check your existing ' \
-                  + 'SRs for an instance of this device') % dev)
+        f = _openExclusive(dev, True)
         os.close(f)
         try:
             # Overwrite the disk header, try direct IO first
