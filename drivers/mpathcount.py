@@ -196,9 +196,8 @@ def get_SCSIidlist(devconfig, sm_config):
         SCSIidlist = sm_config['SCSIid'].split(',')
     elif devconfig.has_key('SCSIid'):
         SCSIidlist.append(devconfig['SCSIid'])
-    elif devconfig.has_key('uri'):
-        config = json.loads(devconfig['uri'])
-        SCSIidlist.append(config['ScsiId'])
+    elif devconfig.has_key('provider'):
+        SCSIidlist.append(devconfig['ScsiId'])
     else:
         for key in sm_config:
             if util._isSCSIid(key):
