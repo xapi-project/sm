@@ -234,15 +234,19 @@ def scan_srlist(path, dconf):
     from NFSSR import PROBEVERSION
     if dconf.has_key(PROBEVERSION):
         util.SMlog("Add supported nfs versions to sr-probe")
-        supported_versions = get_supported_nfs_versions(dconf.get('server'))
-        supp_ver = dom.createElement("SupportedVersions")
-        element.appendChild(supp_ver)
+        try:
+            supported_versions = get_supported_nfs_versions(dconf.get('server'))
+            supp_ver = dom.createElement("SupportedVersions")
+            element.appendChild(supp_ver)
 
-        for ver in supported_versions:
-            version = dom.createElement('Version')
-            supp_ver.appendChild(version)
-            textnode = dom.createTextNode(ver)
-            version.appendChild(textnode)
+            for ver in supported_versions:
+                version = dom.createElement('Version')
+                supp_ver.appendChild(version)
+                textnode = dom.createTextNode(ver)
+                version.appendChild(textnode)
+        except NfsException:
+            # Server failed to give us supported versions
+            pass
 
     return dom.toprettyxml()
 
@@ -261,6 +265,8 @@ def get_supported_nfs_versions(server):
         return list(cv & valid_versions)
     except:
         util.SMlog("Unable to obtain list of valid nfs versions")
+        raise NfsException('Failed to read supported NFS version from server' %
+                           (server))
 
 def get_nfs_timeout(other_config):
     nfs_timeout = 10
