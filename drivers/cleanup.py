@@ -234,10 +234,13 @@ class XAPI:
     CONFIG_SM = 0
     CONFIG_OTHER = 1
     CONFIG_ON_BOOT = 2
+    CONFIG_ALLOW_CACHING = 3
+
     CONFIG_NAME = { 
             CONFIG_SM: "sm-config",
             CONFIG_OTHER: "other-config",
             CONFIG_ON_BOOT: "on-boot",
+            CONFIG_ALLOW_CACHING: "allow_caching"
     }
 
     class LookupError(util.SMException):
@@ -343,6 +346,8 @@ class XAPI:
             cfg = self.session.xenapi.VDI.get_other_config(vdi.getRef())
         elif kind == self.CONFIG_ON_BOOT:
             cfg = self.session.xenapi.VDI.get_on_boot(vdi.getRef())
+        elif kind == self.CONFIG_ALLOW_CACHING:
+            cfg = self.session.xenapi.VDI.get_allow_caching(vdi.getRef())
         else:
             assert(False)
         Util.log("Got %s for %s: %s" % (self.CONFIG_NAME[kind], vdi, repr(cfg)))
@@ -425,6 +430,7 @@ class VDI:
                                  # might be used by external components.
     DB_ONBOOT = "on-boot"
     ONBOOT_RESET = "reset"
+    DB_ALLOW_CACHING = "allow_caching"
 
     CONFIG_TYPE = {
             DB_VHD_PARENT:   XAPI.CONFIG_SM,
@@ -435,6 +441,7 @@ class VDI:
             DB_COALESCE:     XAPI.CONFIG_OTHER,
             DB_LEAFCLSC:     XAPI.CONFIG_OTHER,
             DB_ONBOOT:       XAPI.CONFIG_ON_BOOT,
+            DB_ALLOW_CACHING:XAPI.CONFIG_ALLOW_CACHING,
     }
 
     LIVE_LEAF_COALESCE_MAX_SIZE = 20 * 1024 * 1024 # bytes
@@ -475,7 +482,7 @@ class VDI:
 
     def getConfig(self, key, default = None):
         config = self.sr.xapi.getConfigVDI(self, key)
-        if key == self.DB_ONBOOT:
+        if key == self.DB_ONBOOT or key == self.DB_ALLOW_CACHING:
             val = config
         else:
             val = config.get(key)
@@ -1500,6 +1507,9 @@ class SR:
                 continue
             if vdi.getConfig(vdi.DB_ONBOOT) == vdi.ONBOOT_RESET:
                 Util.log("Skipping reset-on-boot %s" % vdi)
+                continue
+            if vdi.getConfig(vdi.DB_ALLOW_CACHING):
+                Util.log("Skipping allow_caching=true %s" % vdi)
                 continue
             if vdi.getConfig(vdi.DB_LEAFCLSC) == vdi.LEAFCLSC_DISABLED:
                 Util.log("Leaf-coalesce disabled for %s" % vdi)
