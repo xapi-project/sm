@@ -414,6 +414,7 @@ class VDI:
     DB_VDI_TYPE = "vdi_type"
     DB_VHD_BLOCKS = "vhd-blocks"
     DB_VDI_PAUSED = "paused"
+    DB_CACHING = "caching"
     DB_GC = "gc"
     DB_COALESCE = "coalesce"
     DB_LEAFCLSC = "leaf-coalesce" # config key
@@ -431,6 +432,7 @@ class VDI:
             DB_VDI_TYPE:     XAPI.CONFIG_SM,
             DB_VHD_BLOCKS:   XAPI.CONFIG_SM,
             DB_VDI_PAUSED:   XAPI.CONFIG_SM,
+            DB_CACHING:      XAPI.CONFIG_SM,
             DB_GC:           XAPI.CONFIG_OTHER,
             DB_COALESCE:     XAPI.CONFIG_OTHER,
             DB_LEAFCLSC:     XAPI.CONFIG_OTHER,
@@ -1500,6 +1502,9 @@ class SR:
                 continue
             if vdi.getConfig(vdi.DB_ONBOOT) == vdi.ONBOOT_RESET:
                 Util.log("Skipping reset-on-boot %s" % vdi)
+                continue
+            if vdi.getConfig(vdi.DB_CACHING) == "true":
+                Util.log("Skipping caching %s" % vdi)
                 continue
             if vdi.getConfig(vdi.DB_LEAFCLSC) == vdi.LEAFCLSC_DISABLED:
                 Util.log("Leaf-coalesce disabled for %s" % vdi)
