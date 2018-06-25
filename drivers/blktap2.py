@@ -361,10 +361,17 @@ class TapCtl(object):
         cls._pread(args)
 
     @classmethod
+    @retried(backoff=.5, limit=10)
     def spawn(cls):
         args = [ "spawn" ]
-        pid = cls._pread(args)
-        return int(pid)
+        try:
+            pid = cls._pread(args)
+            return int(pid)
+        except cls.CommandFailure as ce:
+            # intermittent failures to spawn. CA-292268
+            if ce.status == 1:
+                raise RetryLoop.TransientFailure(ce)
+            raise
 
     @classmethod
     def attach(cls, pid, minor):
