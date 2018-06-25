@@ -389,10 +389,15 @@ def _openExclusive(dev, retry):
         return os.open("%s" % dev, os.O_RDWR | os.O_EXCL)
     except OSError as ose:
         opened_by = ''
-        if ose.errno == 16 and retry:
-            util.SMlog('Device %s is busy, one shot retry' % dev)
-            time.sleep(0.2)
-            return _openExclusive(dev, False)
+        if ose.errno == 16:
+            if retry:
+                util.SMlog('Device %s is busy, one shot retry' % dev)
+                time.sleep(2)
+                return _openExclusive(dev, False)
+            else:
+                (rc, stdout, stderr) = util.doexec(['lsof', dev])
+                util.SMlog('Device %s is busy after retry, opened by %s' %
+                           (dev, stdout))
 
         util.SMlog('Opening device %s failed with %d' % (dev, ose.errno))
         raise xs_errors.XenError(
