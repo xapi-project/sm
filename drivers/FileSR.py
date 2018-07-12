@@ -809,7 +809,14 @@ class FileVDI(VDI.VDI):
                     raise
 
             try:
-                util.ioretry(lambda: self._snap(src, newsrcname))
+                # Create the snapshot under a temporary name, then rename
+                # it afterwards. This avoids a small window where it exists
+                # but is invalid. We do not need to do this for
+                # snap_type == VDI.SNAPSHOT_DOUBLE because dst never existed
+                # before so nobody will try to query it.
+                tmpsrc = "%s.%s" % (src, "new")
+                util.ioretry(lambda: self._snap(tmpsrc, newsrcname))
+                util.ioretry(lambda: os.rename(tmpsrc, src))
                 if snap_type == VDI.SNAPSHOT_DOUBLE:
                     util.ioretry(lambda: self._snap(dst, newsrcname))
                 # mark the original file (in this case, its newsrc) 
