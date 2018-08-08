@@ -47,9 +47,8 @@ _REPLACEMENT_TMO_STANDARD = 120
 _ISCSI_DB_PATH = '/var/lib/iscsi'
 
 
-def exn_on_failure(cmd, message):
-    '''Executes via util.doexec the command specified. If the return code is 
-    non-zero, raises an ISCSIError with the given message'''
+def doexec_locked(cmd):
+    '''Executes via util.doexec the command specified whilst holding lock'''
     _lock = None
     if os.path.basename(cmd[0]) == 'iscsiadm':
         _lock = lock.Lock(LOCK_TYPE_RUNNING, 'iscsiadm')
@@ -58,6 +57,17 @@ def exn_on_failure(cmd, message):
     (rc,stdout,stderr) = util.doexec(cmd)
     if _lock <> None and _lock.held():
         _lock.release()
+    return (rc, stdout, stderr)
+
+def noexn_on_failure(cmd):
+    '''Executes via util.doexec the command specified as best effort.'''
+    (rc, stdout, stderr) = doexec_locked(cmd)
+    return (stdout, stderr)
+
+def exn_on_failure(cmd, message):
+    '''Executes via util.doexec the command specified. If the return code is 
+    non-zero, raises an ISCSIError with the given message'''
+    (rc, stdout, stderr) = doexec_locked(cmd)
     if rc==0:
         return (stdout,stderr)
     else:
@@ -199,6 +209,27 @@ def set_chap_settings (portal, targetIQN, username, password, username_in, passw
                password_in]
         (stdout,stderr) = exn_on_failure(cmd, failuremessage)
 
+def remove_chap_settings(portal, targetIQN):
+    cmd = ["iscsiadm", "-m", "node", "-p", portal, "-T", targetIQN, "--op",
+           "update", "-n", "node.session.auth.authmethod", "-v", "None"]
+    (stdout,stderr) = noexn_on_failure(cmd)
+
+    cmd = ["iscsiadm", "-m", "node", "-p", portal, "-T", targetIQN, "--op",
+           "update", "-n", "node.session.auth.username", "-v", ""]
+    (stdout,stderr) = noexn_on_failure(cmd)
+
+    cmd = ["iscsiadm", "-m", "node", "-p", portal, "-T", targetIQN, "--op",
+           "update", "-n", "node.session.auth.password", "-v", ""]
+    (stdout,stderr) = noexn_on_failure(cmd)
+
+    cmd = ["iscsiadm", "-m", "node", "-p", portal, "-T", targetIQN, "--op",
+           "update", "-n", "node.session.auth.username_in", "-v", ""]
+    (stdout,stderr) = noexn_on_failure(cmd)
+
+    cmd = ["iscsiadm", "-m", "node", "-p", portal, "-T", targetIQN, "--op",
+           "update", "-n", "node.session.auth.password_in", "-v", ""]
+    (stdout,stderr) = noexn_on_failure(cmd)
+
 def get_node_config (portal, targetIQN):
     ''' Using iscsadm to get the current configuration of a iscsi node.
     The output is parsed in ini format, and returned as a dictionary.'''
@@ -284,6 +315,9 @@ def login(portal, target, username, password, username_in="", password_in="",
           multipath=False):
     if username != "" and password != "":
         set_chap_settings(portal, target, username, password, username_in, password_in)
+    else:
+        remove_chap_settings(portal, target)
+
     set_replacement_tmo(portal,target, multipath)
     cmd = ["iscsiadm", "-m", "node", "-p", portal, "-T", target, "-l"]
     failuremessage = "Failed to login to target."
