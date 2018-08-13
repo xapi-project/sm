@@ -1271,7 +1271,8 @@ def findRunningProcessOrOpenFile(name, process = True):
                     prog = f.read()[:-1]
                     if prog:
                         # Just want the process name
-                        prog =  prog[:prog.find('\x00')]
+                        argv = prog.split('\x00')
+                        prog =  argv[0]
                 except IOError, e:
                     if e.errno in (errno.ENOENT, errno.ESRCH):
                         SMlog("ERROR %s reading %s, ignore" % (e.errno, pid))
