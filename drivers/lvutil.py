@@ -178,7 +178,7 @@ class LVInfo:
 
 def _checkVG(vgname):
     try:
-        cmd_lvm([CMD_VGS, vgname])
+        cmd_lvm([CMD_VGS, "--readonly", vgname])
         return True
     except:
         return False
