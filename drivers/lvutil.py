@@ -390,12 +390,13 @@ def _openExclusive(dev, retry):
     except OSError as ose:
         opened_by = ''
         if ose.errno == 16:
+            (rc, stdout, stderr) = util.doexec(['fuser', '-v',  dev])
             if retry:
-                util.SMlog('Device %s is busy, one shot retry' % dev)
+                util.SMlog('Device %s is busy, in use by %s, one shot retry' %
+                           (dev, stdout))
                 time.sleep(2)
                 return _openExclusive(dev, False)
             else:
-                (rc, stdout, stderr) = util.doexec(['lsof', dev])
                 util.SMlog('Device %s is busy after retry, opened by %s' %
                            (dev, stdout))
 
