@@ -36,7 +36,6 @@ rm -rf $RPM_BUILD_ROOT
 [ ! -x /sbin/chkconfig ] || chkconfig --add sm-multipath
 service sm-multipath start
 %systemd_post make-dummy-sr.service
-%systemd_post mpcount.service
 %systemd_post snapwatchd.service
 %systemd_post updatempppathd.service
 
@@ -65,7 +64,6 @@ update-alternatives --install /etc/multipath.conf multipath.conf /etc/multipath.
 
 %preun
 %systemd_preun make-dummy-sr.service
-%systemd_preun mpcount.service
 %systemd_preun snapwatchd.service
 %systemd_preun updatempppathd.service
 #only remove in case of erase (but not at upgrade)
@@ -77,7 +75,6 @@ exit 0
 
 %postun
 %systemd_postun make-dummy-sr.service
-%systemd_postun mpcount.service
 %systemd_postun_with_restart snapwatchd.service
 %systemd_postun updatempppathd.service
 if [ $1 -eq 0 ]; then
@@ -99,7 +96,7 @@ tests/run_python_unittests.sh
 %defattr(-,root,root,-)
 /etc/rc.d/init.d/mpathroot
 /etc/udev/scripts/xs-mpath-scsidev.sh
-/etc/udev/scripts/udevmpath.sh
+/etc/udev/scripts/onequeue.sh
 /etc/xapi.d/plugins/coalesce-leaf
 /etc/xapi.d/plugins/lvhd-thin
 /etc/xapi.d/plugins/nfs-on-slave
@@ -331,7 +328,6 @@ tests/run_python_unittests.sh
 /sbin/mpathutil
 /etc/rc.d/init.d/sm-multipath
 %{_unitdir}/make-dummy-sr.service
-%{_unitdir}/mpcount.service
 %{_unitdir}/snapwatchd.service
 %{_unitdir}/updatempppathd.service
 %config /etc/udev/rules.d/40-multipath.rules

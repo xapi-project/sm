@@ -1,6 +1,0 @@
-[Unit]
-Description=Multipath Count Service
-
-[Service]
-Type=forking
-ExecStart=/etc/udev/scripts/udevmpath.sh

@@ -7,5 +7,5 @@ ACTION=="change", PROGRAM!="/sbin/dmsetup info -c --noheadings -j %M -m %m", GOT
 PROGRAM!="/sbin/dmsetup info -c -o uuid,name --separator ' ' --noheadings -j %M -m %m", GOTO="end_mpath"
 RESULT!="mpath-*", GOTO="end_mpath"
 # ENV is necessary otherwise the child process of mpathcount cannot find multipathd executable
-ACTION=="change", RUN+="/usr/bin/systemctl --no-block start mpcount.service"
+ACTION=="change", RUN+="/etc/udev/scripts/onequeue.sh mpathcount /opt/xensource/sm/mpathcount.py"
 LABEL="end_mpath"

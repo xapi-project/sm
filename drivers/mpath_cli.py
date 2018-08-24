@@ -29,7 +29,7 @@ class MPathCLIFail(exceptions.Exception):
 	def __str__(self):
 		print "","MPath CLI failed"
 
-mpathcmd = ["multipathd","-k"]
+mpathcmd = ["/usr/sbin/multipathd","-k"]
 
 def mpexec(cmd):
     util.SMlog("mpath cmd: %s" % cmd)
