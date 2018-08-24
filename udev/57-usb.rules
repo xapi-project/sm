@@ -10,7 +10,7 @@ GOTO="label_end_usb"
 
 LABEL="label_usb"
 
-ACTION=="add|change|remove", RUN+="/opt/xensource/libexec/xe-usb-scan %E{DEVTYPE} %E{ACTION} %E{SEQNUM} %k"
+ACTION=="add|change|remove", RUN+="/usr/bin/systemctl --no-block start xe-usb-scan.service"
 
 ###############################################################################
 
