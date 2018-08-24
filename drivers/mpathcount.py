@@ -34,7 +34,6 @@ LOCK_NS2 = "mpathcount2"
 MP_INUSEDIR = "/dev/disk/mpInuse"
 mpp_path_update = False
 match_bySCSIid = False
-MPATHCOUNT_WAIT_INTERVAL = 2
 
 util.daemon()
 if len(sys.argv) == 3:
@@ -64,8 +63,6 @@ elif not mpathcountlock.acquireNoblock():
     mpathcountqueue.release()
 
 util.SMlog("MPATH: I get the lock")
-time.sleep(MPATHCOUNT_WAIT_INTERVAL)
-util.SMlog("MPATH: Time wait is done")
 
 cached_DM_maj = None
 def get_dm_major():
@@ -107,15 +104,11 @@ def match_dmpLUN(s):
     return regex.search(s, 0)
 
 def match_pathup(s):
-    s = re.sub('\]',' ',re.sub('\[','',s)).split()
-    # The new multipath has a different output. Fixed it
-    dm_status = s[-2]
-    path_status = s[-3]
-    # path_status is more reliable, at least for failures initiated or spotted by multipath
-    # To be tested for failures during high I/O when dm should spot errors first
-    for val in [path_status]:
-        if val in ['faulty','shaky','failed']:
-            return False
+    match = re.match(r'.*\d+:\d+:\d+:\d+\s+\S+\s+\S+\s+\S+\s+(\S+)', s)
+    if match:
+        path_status = match.group(1)
+    if path_status in ['faulty', 'shaky', 'failed']:
+        return False
     return True
 
 def _tostring(l):
@@ -188,7 +181,7 @@ def update_config(key, SCSIid, entry, remove, add, mpp_path_update = False):
                 add('MPPEnabled','true')
             add('multipathed','true')
             add(key,str(newentry))
-            util.SMlog("MPATH: \tSet val: %s" % str(newentry))
+            util.SMlog("MPATH: Set val: %s" % str(newentry))
 
 def get_SCSIidlist(devconfig, sm_config):
     SCSIidlist = []
@@ -281,7 +274,7 @@ try:
                     else:
                         update_config(key, i, config[key], remove, add)
 except:
-    util.SMlog("MPATH: Failure updating db")
+    util.SMlog("MPATH: Failure updating db. %s" % sys.exc_info())
     mpc_exit(session, -1)
     
 util.SMlog("MPATH: Update done")
