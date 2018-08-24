@@ -15,15 +15,10 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
-# called by UDEV (indirectly) rule to trigger pusb scan, when USB device change is detected
+# called by UDEV rule to trigger pusb scan, when USB device change is detected
 
-. /etc/xensource-inventory
+# To prevent the inner scripts calling xe command before xapi is ready, there is
+# to add wait for xapi is ready. However the wait may further case usdev to hang
+# for long, so here using atd to do the job to make itis detached from udev daemon.
+echo "/opt/xensource/libexec/usb_change" | at now
 
-/opt/xensource/bin/xapi-wait-init-complete 180
-
-if [ $? -eq 0 ]
-then
-    xe pusb-scan host-uuid=${INSTALLATION_UUID}
-else
-    logger --tag "usb_change" --stderr "Cannot wait xapi ready to do pusb-scan after 180 seconds."
-fi
