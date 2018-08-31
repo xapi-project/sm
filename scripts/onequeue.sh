@@ -39,6 +39,7 @@ PROGARGS="$*"
 
 runprog() {
     (
+        ## Log that we're waiting
         /usr/bin/logger -t onequeue -p daemon.notice "'$PROGARGS' waiting to run"
         ## Acquire an exclusive lock on fd 10 (LOCK.run). Wait as long as necessary
         /usr/bin/flock -x 10
@@ -58,13 +59,26 @@ runprog() {
 }
 
 (
-	## Attempt to acquire an exclusive lock on fd 9 (LOCK.wait)
+    ## Attempt to acquire an exclusive lock on fd 9 (LOCK.wait)
     /usr/bin/flock -x -n 9
     if [ $? -ne 0 ]; then
         ## If we didn't get it, someone is already waiting, so just exit.
         /usr/bin/logger -t onequeue -p daemon.notice "'$PROGARGS' already queued on $LOCK; skipping."
         exit 0
     fi
+    ## Escape from UDEV's control group into one we know exists for us.
+    ## We create the control group by making a directory under systemd's
+    ## system.slice. We should be short lived, and at least we can
+    ## find all the processes to kill them later even if systemd won't notice.
+    ## This escape will prevent systemd-udevd from finding and killing us
+    ## whenever it has run out of events to process.
+    if [ ! -d /sys/fs/cgroup/systemd/system.slice/onequeue ]; then
+        mkdir /sys/fs/cgroup/systemd/system.slice/onequeue
+    fi
+    ## Note we need to use BASHPID here because we are a subshell. The usual
+    ## $$ would get the PID of the main shell. All our children will
+    ## inherit
+    echo $BASHPID > /sys/fs/cgroup/systemd/system.slice/onequeue/cgroup.procs
     ## Start the wait for LOCK.run in the background.
     runprog &
 ) 9>"$LOCKDIR/$LOCK.wait"
