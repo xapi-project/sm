@@ -1,0 +1,10 @@
+[Unit]
+Description=Trigger xapi to do pusb-scan
+RefuseManualStop=yes
+
+[Service]
+Type=oneshot
+ExecStart=-/opt/xensource/libexec/usb_change
+
+[Install]
+WantedBy=multi-user.target
