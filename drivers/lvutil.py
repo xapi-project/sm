@@ -440,15 +440,16 @@ def createVG(root, vgname):
                 raise xs_errors.XenError('LVMWrite', \
                       opterr='device %s' % dev)
 
-        try:
-            cmd_lvm([CMD_PVCREATE, "-ff", "-y", "--metadatasize", "10M", dev])
-        except util.CommandException, inst:
-            raise xs_errors.XenError('LVMPartCreate',
-                                     opterr='error is %d' % inst.code)
+        if not (dev == rootdev):
+            try:
+                cmd_lvm([CMD_PVCREATE, "-ff", "-y", "--metadatasize", "10M", dev])
+            except util.CommandException, inst:
+                raise xs_errors.XenError('LVMPartCreate',
+                                         opterr='error is %d' % inst.code)
 
     # Create VG on first device
     try:
-        cmd_lvm([CMD_VGCREATE, vgname, rootdev])
+        cmd_lvm([CMD_VGCREATE, "--metadatasize", "10M", vgname, rootdev])
     except :
         raise xs_errors.XenError('LVMGroupCreate')
 
