@@ -163,6 +163,8 @@ install: precheck
 	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
 	install -m 644 systemd/xs-sm.service \
 	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
+	install -m 644 systemd/xe-usb-scan.service \
+	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
 	for i in $(UDEV_RULES); do \
 	  install -m 644 udev/$$i.rules \
 	    $(SM_STAGING)$(UDEV_RULES_DIR); done
@@ -200,6 +202,7 @@ install: precheck
 	install -m 755 scripts/local-device-change $(SM_STAGING)$(LIBEXEC)
 	install -m 755 scripts/check-device-sharing $(SM_STAGING)$(LIBEXEC)
 	install -m 755 scripts/usb_change $(SM_STAGING)$(LIBEXEC)
+	install -m 755 scripts/service.py $(SM_STAGING)$(LIBEXEC)
 	$(MAKE) -C dcopy install DESTDIR=$(SM_STAGING)
 	$(MAKE) -C snapwatchd install DESTDIR=$(SM_STAGING)
 	$(MAKE) -C mpathroot install DESTDIR=$(SM_STAGING)

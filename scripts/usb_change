@@ -18,4 +18,12 @@
 # called by UDEV rule to trigger pusb scan, when USB device change is detected
 
 . /etc/xensource-inventory
-xe pusb-scan host-uuid=${INSTALLATION_UUID}
+
+/opt/xensource/bin/xapi-wait-init-complete 180
+
+if [ $? -eq 0 ]
+    then
+        xe pusb-scan host-uuid=${INSTALLATION_UUID}
+    else
+        logger --tag "usb_change" --stderr "Cannot wait xapi ready to do pusb-scan after 180 seconds."
+fi

@@ -10,7 +10,7 @@ GOTO="label_end_usb"
 
 LABEL="label_usb"
 
-ACTION=="add|change|remove", RUN+="/opt/xensource/libexec/usb_change %E{DEVTYPE} %E{ACTION} %E{SEQNUM} %k"
+ACTION=="add|change|remove", RUN+="/opt/xensource/libexec/service.py -s usbscan -m client"
 
 ###############################################################################
 
