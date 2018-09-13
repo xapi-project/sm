@@ -147,6 +147,11 @@ def buildHeader(len, major = metadata.MD_MAJOR, minor = metadata.MD_MINOR):
 
 def unpackHeader(input):
     vals = input.split(HEADER_SEP)
+    if len(vals) != 4 or vals[0] != metadata.HDR_STRING:
+        util.SMlog("Exception unpacking metadata header: "
+                   "Error: Bad header '%s'" % (input))
+        raise xs_errors.XenError('MetadataError', \
+                        opterr='Bad header')
     return (vals[0], vals[1], vals[2], vals[3])
 
 def getSector(str):
@@ -185,12 +190,13 @@ def updateLengthInHeader(fd, length, major = metadata.MD_MAJOR, \
 def getMetadataLength(fd):
     try:
         min_blk_size = get_min_blk_size_wrapper(fd)
-        sector1 = file_read_wrapper(fd, 0, SECTOR_SIZE, min_blk_size)
-        lenstr = sector1.split(HEADER_SEP)[1]
-        len = int(lenstr.strip(' '))
+        sector1 = \
+            file_read_wrapper(fd, 0, SECTOR_SIZE, min_blk_size).strip()
+        hdr = unpackHeader(sector1)
+        len = int(hdr[1])
         return len
     except Exception, e:
-        util.SMlog("Exception getting metadata length." 
+        util.SMlog("Exception getting metadata length: "
                    "Error: %s" % str(e))
         raise
     
