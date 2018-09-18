@@ -229,6 +229,11 @@ class ServiceTests(unittest.TestCase):
     def test_client_openWrite_fail(self):
         prepare_clean_start()
 
+        try:
+            os.mkdir('/tmp/test_service/', 0755)
+        except Exception:
+            pass
+
         clnt = ClientTest('testservice')
         try:
             os.remove(clnt.pipePath)
