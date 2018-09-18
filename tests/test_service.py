@@ -227,6 +227,8 @@ class ServiceTests(unittest.TestCase):
         self.assertTrue(os.path.exists(ServerTest.PIPE_BASE_PATH + "target"))
 
     def test_client_openWrite_fail(self):
+        prepare_clean_start()
+
         clnt = ClientTest('testservice')
         try:
             os.remove(clnt.pipePath)
