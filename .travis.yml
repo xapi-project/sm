@@ -9,7 +9,7 @@ script:
         - "python --version"
         - "pylint --version"
         - "PYTHONPATH=./snapwatchd:./drivers pylint --rcfile=tests/pylintrc ./drivers/*.py"
-        - "PYTHONPATH=./drivers/ coverage run --branch --source='./drivers,./tests' $(which nosetests) -c .noserc tests"
+        - "PYTHONPATH=./drivers/:./scripts coverage run --branch --source='./drivers,./scripts,./tests' $(which nosetests) -c .noserc tests"
         - "coverage report --include='./*'"
 after_success:
         coveralls
