@@ -20,9 +20,9 @@ fi
 
 (
     cd "$SMROOT"
-    PYTHONPATH="$SMROOT/tests/mocks:$SMROOT/drivers/" \
+    PYTHONPATH="$SMROOT/tests/mocks:$SMROOT/drivers/:$SMROOT/scripts/" \
         coverage run --branch \
-            --source="$SMROOT/drivers,$SMROOT/tests" \
+            --source="$SMROOT/drivers,$SMROOT/tests,$SMROOT/scripts/" \
             $(which nosetests) \
             -c .noserc \
             --with-xunit \
