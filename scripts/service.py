@@ -45,6 +45,9 @@ import subprocess
 import logging
 import xcp.logger as logger
 import errno
+import shutil
+import stat
+import sys
 
 BUFFER_SIZE = 2048
 
@@ -69,20 +72,44 @@ class ServiceSkeleton(object):
                 os.mkdir(self.PIPE_BASE_PATH, 0755)
             except OSError as err:
                 self.logErr("create base path failed!")
-                raise err
+                raise
         
-        if not os.path.exists(self.pipePath):
+        create_fifo = False
+        if os.path.exists(self.pipePath):
+            if not stat.S_ISFIFO(os.stat(self.pipePath).st_mode):
+                # as this is a specific file in our specific dir,
+                # assume it is used exclusively, so the current none pipe
+                # stuff is considered garbage and try to delete that here.
+                if os.path.isfile(self.pipePath):
+                    os.remove(self.pipePath)  # remove the file
+                    self.logInfo("removed file:" + self.pipePath)
+                elif os.path.isdir(self.pipePath):
+                    shutil.rmtree(self.pipePath)  # remove dir and all contains
+                    self.logInfo("removed dir:" + self.pipePath)
+                else:
+                    self.logErr("Unexpected file node at:" + self.pipePath)
+                    raise OSError(errno.EEXIST, "Unexpected file node exists", self.pipePath)
+
+                create_fifo = True
+        else:
+                create_fifo = True
+
+        if create_fifo:
             try:
                 os.mkfifo(self.pipePath)
-            except OSError:
-                pass # just ignore
-            
+            except OSError as err:
+                if err.errno != errno.EEXIST:
+                    self.loggErr("Error encoutnered while create pipe")
+                    raise
+
     def _closeFIFO(self):
         if self.fifo != None:
             try:
                 os.close(self.fifo)
             except OSError:
                 pass # just ignore
+
+            self.fifo = None
                 
     def logInfo(self, logtxt):
         logger.info(self.logPrefix + logtxt)
@@ -102,12 +129,6 @@ class ServerInstance(ServiceSkeleton):
         self.script = script
         self.epollObj = select.epoll()
         
-        # check if the script to be invoked exists
-        subargs = script.split(' ')
-        if not os.path.isfile(subargs[0]):
-            self.logErr("script passed is not found")
-            raise error
-        
     def _openRead(self):
         """ server side open named pipe to read """
         try:
@@ -117,7 +138,7 @@ class ServerInstance(ServiceSkeleton):
             self.epollObj.register(self.fifo, select.EPOLLIN)
         except OSError as err:
             self.logErr("open file read error:" + str(err))
-            raise err
+            raise
 
     def _executeSub(self):
         """ execute the passed script with subprocess """
@@ -138,10 +159,13 @@ class ServerInstance(ServiceSkeleton):
                     if len(self.buffer) == 0:
                         # hung up
                         self.logErr("hung up found while read, exiting")
-                        raise OSError
+                        raise IOError(errno.EPIPE, 'hung up occurred while read pipe', self.pipePath)
             except OSError as err:
                 if err.errno == errno.EAGAIN or err.errno == errno.EWOULDBLOCK:
                     return True # assume already read as invoked after poll
+                else:
+                    self.logErr("Error occurred while read pipe:" + str(err))
+                    raise
         else:
             return False
             
@@ -149,14 +173,24 @@ class ServerInstance(ServiceSkeleton):
         """ hang on the poll to wait for incoming requests.
             As we hold one writer, there should be no EPOLLHUP when others closed the pipe.
         """
-        events = self.epollObj.poll(-1)
+        try:
+            events = self.epollObj.poll(-1)
+        except KeyboardInterrupt:
+            return False
+        except IOError as err:
+            if err.errno == errno.EINTR:
+                return False
+            else:
+                self.logErr("Error at polling fd:" + str(err))
+                raise
+
         for fileno, event in events:
             if fileno == self.fifo and event & select.EPOLLIN:
                 return True
             elif fileno == self.fifo and event & (select.EPOLLERR | select.EPOLLHUP):
                 # probably some log and raise failure
                 self.logErr("exit due to unexpected events:" + str(event))
-                raise OSError
+                raise IOError(errno.EPIPE, 'hung up or error occurred while poll', self.pipePath)
 
         return False
                 
@@ -189,7 +223,7 @@ class ClientInstance(ServiceSkeleton):
             os.write(self.fifo, self.name)
         except OSError as err:
             self.logErr("Write error at:" + str(err))
-            raise err
+            raise
 
     def _openWrite(self):
         """ open pipe for write """
@@ -197,7 +231,7 @@ class ClientInstance(ServiceSkeleton):
             self.fifo = os.open(self.pipePath, os.O_WRONLY)
         except OSError as err:
             self.logErr("open file write error:" + str(err))
-            raise err
+            raise
             
     def work(self):
         """ simply write the request and end ourselves """
@@ -206,17 +240,18 @@ class ClientInstance(ServiceSkeleton):
         try:
             self._openWrite()
             self._writeRequest()
-            self._closeFIFO()
         except Exception as err:
             self.logErr("error at:" + str(err))
+            raise
+        finally:
             self._closeFIFO()
             
-def parseArguments():
+def parseArguments(args):
     parser = argparse.ArgumentParser()
     argServ = parser.add_argument("-s", "--service", required=True)
     argMode = parser.add_argument("-m", "--mode", choices=['client', 'server'], required=True)
     argExec = parser.add_argument("-e", "--executable", required=False)
-    args = parser.parse_args()
+    args = parser.parse_args(args)
     
     if args.mode == 'server':
         # more check for server side, for the script parameter and whether the file exists.
@@ -234,14 +269,18 @@ def parseArguments():
 if __name__ == "__main__":
     logger.logToSyslog(level=logging.DEBUG)
     
-    args = parseArguments()
+    args = parseArguments(sys.argv[1:])
     service = args.service
     mode = args.mode
     executable = args.executable
     
-    if mode == 'client':
-        inst = ClientInstance(service)
-    else: # server
-        inst = ServerInstance(service, executable)
+    try:
+        if mode == 'client':
+            inst = ClientInstance(service)
+        else: # server
+            inst = ServerInstance(service, executable)
+    except Exception as err:
+        logger.error("Unable to initialize '" + service + "' service, mode:" + mode + " err:" + str(err))
+        rasie
     
     inst.work()
