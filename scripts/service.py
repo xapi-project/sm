@@ -54,7 +54,7 @@ BUFFER_SIZE = 2048
 class ServiceSkeleton(object):
     """ base class for both client and server, maily as utilities """
 
-    PIPE_BASE_PATH = '/var/run/sm/pipes/'
+    PIPE_BASE_PATH = '/var/lib/misc/'
     
     def __init__(self, name):
         super(ServiceSkeleton, self).__init__()
