@@ -60,8 +60,8 @@ class ServiceSkeleton(object):
         super(ServiceSkeleton, self).__init__()
         self.name = name
         self.pipePath = self.PIPE_BASE_PATH + name
-        self._checkPath()
         self.logPrefix = name + ":"
+        self._checkPath()
         self.fifo = None
 
     def _checkPath(self):
