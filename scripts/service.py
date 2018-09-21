@@ -99,7 +99,7 @@ class ServiceSkeleton(object):
                 os.mkfifo(self.pipePath)
             except OSError as err:
                 if err.errno != errno.EEXIST:
-                    self.loggErr("Error encoutnered while create pipe")
+                    self.loggErr("Error encountered while creating pipe")
                     raise
 
     def _closeFIFO(self):
