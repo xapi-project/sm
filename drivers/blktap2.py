@@ -1187,7 +1187,7 @@ class VDI(object):
                 # idempotent. However, a *wrong* target should never
                 # be seen.
                 if e.errno != errno.EEXIST: raise
-                assert self._equals(target)
+                assert self._equals(target), "'%s' not equal to '%s'" % (path, target)
 
         def unlink(self):
             try:
