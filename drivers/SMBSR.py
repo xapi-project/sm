@@ -144,8 +144,7 @@ class SMBSR(FileSR.FileSR):
 
     def getMountOptions(self):
         """Creates option string based on parameters provided"""
-        options = ['sec=ntlm',
-                'cache=loose',
+        options = ['cache=loose',
                 'vers=3.0',
                 'actimeo=0'
         ]
