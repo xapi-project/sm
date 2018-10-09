@@ -1,4 +1,9 @@
 #!/usr/bin/env python
 
-class logger():
-    pass
+class error:
+    def __init__(self, log):
+        pass
+
+class info:
+    def __init__(self, log):
+        pass

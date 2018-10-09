@@ -52,9 +52,9 @@ import sys
 BUFFER_SIZE = 2048
 
 class ServiceSkeleton(object):
-    """ base class for both client and server, maily as utilities """
+    """ base class for both client and server, mainly as utilities """
 
-    PIPE_BASE_PATH = '/var/lib/misc/'
+    PIPE_BASE_PATH = '/var/run/serviced/'
     
     def __init__(self, name):
         super(ServiceSkeleton, self).__init__()
@@ -96,7 +96,7 @@ class ServiceSkeleton(object):
 
         if create_fifo:
             try:
-                os.mkfifo(self.pipePath)
+                os.mkfifo(self.pipePath, 0600)
             except OSError as err:
                 if err.errno != errno.EEXIST:
                     self.loggErr("Error encountered while creating pipe")
@@ -124,8 +124,10 @@ class ServiceSkeleton(object):
 class ServerInstance(ServiceSkeleton):
     """ server side implementation """
 
-    def __init__(self, name, script):
+    def __init__(self, name, script, uniq):
         super(ServerInstance, self).__init__(name)
+        self.uniq = uniq
+        self.child = None
         self.script = script
         self.epollObj = select.epoll()
         
@@ -142,9 +144,15 @@ class ServerInstance(ServiceSkeleton):
 
     def _executeSub(self):
         """ execute the passed script with subprocess """
-        self.logInfo("will invoke scripts:" + self.script)
+
         try:
-            subprocess.Popen(self.script)
+            if self.uniq:
+                if self.child:
+                    if self.child.poll() == None:
+                        self.logInfo("Skip invoke scripts, due to previous one in progress")
+                        return
+            self.logInfo("Will invoke scripts:" + self.script)
+            self.child = subprocess.Popen(self.script)
         except OSError as err:
             self.logErr("execute script error:" + str(err))
             
@@ -211,8 +219,9 @@ class ServerInstance(ServiceSkeleton):
 
 class ClientInstance(ServiceSkeleton):
     """ client side implementation, to invoke the server/daemon to do work """
-    def __init__(self, name):
+    def __init__(self, name, wait):
         super(ClientInstance, self).__init__(name)
+        self.wait = wait
         
     def _writeRequest(self):
         """ write the pipe to wake up the daemon to do the work """
@@ -227,8 +236,11 @@ class ClientInstance(ServiceSkeleton):
 
     def _openWrite(self):
         """ open pipe for write """
+        flags = os.O_WRONLY
+        if not self.wait:
+            flags = flags | os.O_NONBLOCK
         try:
-            self.fifo = os.open(self.pipePath, os.O_WRONLY)
+            self.fifo = os.open(self.pipePath, flags)
         except OSError as err:
             self.logErr("open file write error:" + str(err))
             raise
@@ -251,6 +263,8 @@ def parseArguments(args):
     argServ = parser.add_argument("-s", "--service", required=True)
     argMode = parser.add_argument("-m", "--mode", choices=['client', 'server'], required=True)
     argExec = parser.add_argument("-e", "--executable", required=False)
+    argWait = parser.add_argument("-w", "--wait", required=False, action="store_true")
+    argUniq = parser.add_argument("-u", "--uniq", required=False, action="store_true")
     args = parser.parse_args(args)
     
     if args.mode == 'server':
@@ -276,9 +290,9 @@ if __name__ == "__main__":
     
     try:
         if mode == 'client':
-            inst = ClientInstance(service)
+            inst = ClientInstance(service, args.wait)
         else: # server
-            inst = ServerInstance(service, executable)
+            inst = ServerInstance(service, executable, args.uniq)
     except Exception as err:
         logger.error("Unable to initialize '" + service + "' service, mode:" + mode + " err:" + str(err))
         rasie
