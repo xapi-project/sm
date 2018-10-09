@@ -65,7 +65,7 @@ SM_LIBS += fcoelib
 SM_LIBS += constants
 SM_LIBS += cbtutil
 
-UDEV_RULES = 39-multipath 40-multipath 55-xs-mpath-scsidev 57-usb 58-xapi
+UDEV_RULES = 40-multipath 55-xs-mpath-scsidev 57-usb 58-xapi
 MPATH_DAEMON = sm-multipath
 MPATH_CONF = multipath.conf
 CIFS_CONF = cifs.conf
