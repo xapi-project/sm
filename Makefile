@@ -131,6 +131,7 @@ install: precheck
 	mkdir -p $(SM_STAGING)
 	$(call mkdir_clean,$(SM_STAGING))
 	mkdir -p $(SM_STAGING)$(SM_DEST)
+	mkdir -p $(SM_STAGING)$(SM_DEST)/plugins
 	mkdir -p $(SM_STAGING)$(UDEV_RULES_DIR)
 	mkdir -p $(SM_STAGING)$(UDEV_SCRIPTS_DIR)
 	mkdir -p $(SM_STAGING)$(INIT_DIR)
@@ -147,6 +148,8 @@ install: precheck
 	for i in $(SM_PY_FILES); do \
 	  install -m 755 $$i $(SM_STAGING)$(SM_DEST); \
 	done
+	install -m 755 drivers/plugins/__init__.py \
+	  $(SM_STAGING)$(SM_DEST)/plugins/
 	install -m 644 multipath/$(MPATH_CONF) \
 	  $(SM_STAGING)/$(MPATH_CONF_DIR)
 	install -m 755 multipath/$(MPATH_DAEMON) \
