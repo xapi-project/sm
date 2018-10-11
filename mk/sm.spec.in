@@ -335,7 +335,6 @@ tests/run_python_unittests.sh
 %config /etc/udev/rules.d/58-xapi.rules
 %config /etc/multipath.xenserver/multipath.conf
 %config /etc/udev/rules.d/69-dm-lvm-metad.rules
-%config /etc/modprobe.d/cifs.conf
 %config /etc/logrotate.d/SMlog
 %doc CONTRIB LICENSE MAINTAINERS README.md WHATS_NEW
 
