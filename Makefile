@@ -68,7 +68,6 @@ SM_LIBS += cbtutil
 UDEV_RULES = 40-multipath 55-xs-mpath-scsidev 57-usb 58-xapi
 MPATH_DAEMON = sm-multipath
 MPATH_CONF = multipath.conf
-CIFS_CONF = cifs.conf
 SMLOG_CONF = SMlog
 
 SM_XML := XE_SR_ERRORCODES
@@ -156,8 +155,6 @@ install: precheck
 	  $(SM_STAGING)/$(MPATH_CONF_DIR)
 	install -m 755 multipath/$(MPATH_DAEMON) \
 	  $(SM_STAGING)/$(INIT_DIR)
-	install -m 644 etc/modprobe.d/$(CIFS_CONF) \
-	  $(SM_STAGING)/$(MODPROBE_DIR)
 	install -m 644 etc/logrotate.d/$(SMLOG_CONF) \
 	  $(SM_STAGING)/$(LOGROTATE_DIR)
 	install -m 644 drivers/updatempppathd.service \
