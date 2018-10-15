@@ -1772,7 +1772,7 @@ class SR:
             if vdi.getSizeVHD() >= prevSizeVHD:
                 Util.log("Snapshot-coalesce did not help, abandoning attempts")
                 vdi.setConfig(vdi.DB_LEAFCLSC, vdi.LEAFCLSC_OFFLINE)
-                break
+                return False
         return self._liveLeafCoalesce(vdi)
 
     def _snapshotCoalesce(self, vdi):
