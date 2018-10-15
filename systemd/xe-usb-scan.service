@@ -3,7 +3,7 @@ Description=Daemon to wait for request to trigger xapi to do pusb-scan
 
 [Service]
 Type=simple
-ExecStart=/opt/xensource/libexec/service.py -s usbscan -m server -e /opt/xensource/libexec/usb_change
+ExecStart=/opt/xensource/libexec/service.py -b -s usbscan -m server -e /opt/xensource/libexec/usb_change
 Restart=on-failure
 
 [Install]

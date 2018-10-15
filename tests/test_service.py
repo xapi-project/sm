@@ -39,7 +39,7 @@ def prepare_clean_start(childHold=False):
 
 class ServerTest(ServerInstance):
 
-    def __init__(self, name, script, basedir, uniq):
+    def __init__(self, name, script, basedir, uniq, block):
 
         ServerInstance.PIPE_BASE_PATH = '/tmp/test_service/run/'
         if basedir:
@@ -50,7 +50,7 @@ class ServerTest(ServerInstance):
         else:
             shutil.rmtree('/tmp/test_service/')
 
-        super(ServerTest, self).__init__(name, script, uniq)
+        super(ServerTest, self).__init__(name, script, uniq, block)
         self.logInfoNum = 0
 
     def _testCloseFifo(self):
@@ -89,11 +89,11 @@ class ClientTest(ClientInstance):
         pass
 
 def create_server():
-    serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False)
+    serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False, True)
     serv.work()
 
 def create_uniq_server():
-    serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, True)
+    serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, True, True)
     global servInst
     servInst = serv
     serv.work()
@@ -119,7 +119,7 @@ class ServiceTests(unittest.TestCase):
     def test_server_init_success_clean(self):
         prepare_clean_start()
 
-        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False)
+        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False, True)
 
         self.assertTrue(stat.S_ISFIFO(os.stat(serv.pipePath).st_mode))
 
@@ -138,7 +138,7 @@ class ServiceTests(unittest.TestCase):
         except Exception:
             pass
 
-        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False)
+        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False, True)
 
         self.assertTrue(stat.S_ISFIFO(os.stat(serv.pipePath).st_mode))
 
@@ -150,7 +150,7 @@ class ServiceTests(unittest.TestCase):
             pass
         
         with self.assertRaises(OSError) as ctx:
-            serv = ServerTest('testservice', ServerTest.PIPE_BASE_PATH + "test_service_script.sh", False, False)
+            serv = ServerTest('testservice', ServerTest.PIPE_BASE_PATH + "test_service_script.sh", False, False, True)
 
         self.assertEquals(ctx.exception.errno, 2)
 
@@ -175,14 +175,14 @@ class ServiceTests(unittest.TestCase):
         os.chmod("/tmp/test_service_script.sh", stat.S_IEXEC| stat.S_IWRITE)
 
         with self.assertRaises(OSError) as ctx:
-            serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False)
+            serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False, True)
 
         self.assertEquals(ctx.exception.errno, errno.EEXIST)
 
     def test_server_close_fifo(self):
         prepare_clean_start()
 
-        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False)
+        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False, True)
         serv._openRead()
         serv._closeFIFO()
         self.assertTrue(True)
@@ -190,7 +190,7 @@ class ServiceTests(unittest.TestCase):
     def test_server_openRead_fail(self):
         prepare_clean_start()
 
-        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False)
+        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False, True)
         try:
             os.remove(serv.pipePath)
         except Exception:
@@ -204,7 +204,7 @@ class ServiceTests(unittest.TestCase):
     def test_server_readRequest_nofifo(self):
         prepare_clean_start()
 
-        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False)
+        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False, True)
         serv._openRead()
         serv._closeFIFO()
       
@@ -213,7 +213,7 @@ class ServiceTests(unittest.TestCase):
     def test_server_readRequest_again(self):
         prepare_clean_start()
 
-        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False)
+        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False, True)
         serv._openRead()
 
         clnt = ClientTest('testservice', False)
@@ -226,7 +226,7 @@ class ServiceTests(unittest.TestCase):
     def test_server_readRequest_fail(self):
         prepare_clean_start()
 
-        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False)
+        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False, True)
         serv._openRead()
         serv._testCloseFifo()
 
@@ -238,7 +238,7 @@ class ServiceTests(unittest.TestCase):
     def test_server_waitForInput_false(self):
         prepare_clean_start()
 
-        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False)
+        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False, True)
         serv._openRead()
 
         thread.start_new_thread(sig_me, ())
@@ -304,7 +304,7 @@ class ServiceTests(unittest.TestCase):
     def test_client_writeRequest_fail(self):
         prepare_clean_start()
 
-        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False)
+        serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, False, True)
         serv._openRead()
 
         clnt = ClientTest('testservice', False)

@@ -124,9 +124,10 @@ class ServiceSkeleton(object):
 class ServerInstance(ServiceSkeleton):
     """ server side implementation """
 
-    def __init__(self, name, script, uniq):
+    def __init__(self, name, script, uniq, block):
         super(ServerInstance, self).__init__(name)
         self.uniq = uniq
+        self.block = block
         self.child = None
         self.script = script
         self.epollObj = select.epoll()
@@ -153,6 +154,9 @@ class ServerInstance(ServiceSkeleton):
                         return
             self.logInfo("Will invoke scripts:" + self.script)
             self.child = subprocess.Popen(self.script)
+            if self.block:
+                while self.child == None:
+                    pass
         except OSError as err:
             self.logErr("execute script error:" + str(err))
             
@@ -265,6 +269,7 @@ def parseArguments(args):
     argExec = parser.add_argument("-e", "--executable", required=False)
     argWait = parser.add_argument("-w", "--wait", required=False, action="store_true")
     argUniq = parser.add_argument("-u", "--uniq", required=False, action="store_true")
+    argBlk  = parser.add_argument("-b", "--block", required=False, action="store_true")
     args = parser.parse_args(args)
     
     if args.mode == 'server':
@@ -287,12 +292,12 @@ if __name__ == "__main__":
     service = args.service
     mode = args.mode
     executable = args.executable
-    
+
     try:
         if mode == 'client':
             inst = ClientInstance(service, args.wait)
         else: # server
-            inst = ServerInstance(service, executable, args.uniq)
+            inst = ServerInstance(service, executable, args.uniq, args.block)
     except Exception as err:
         logger.error("Unable to initialize '" + service + "' service, mode:" + mode + " err:" + str(err))
         rasie
