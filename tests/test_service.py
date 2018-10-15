@@ -93,7 +93,7 @@ def create_server():
     serv.work()
 
 def create_uniq_server():
-    serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, True, True)
+    serv = ServerTest('testservice', "/tmp/test_service_script.sh", True, True, False)
     global servInst
     servInst = serv
     serv.work()

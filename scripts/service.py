@@ -147,16 +147,18 @@ class ServerInstance(ServiceSkeleton):
         """ execute the passed script with subprocess """
 
         try:
+            if self.block:
+                self.logInfo("Will block invoke scripts:" + self.script)
+                subprocess.call(self.script.split(" "))
+                return
+
             if self.uniq:
                 if self.child:
                     if self.child.poll() == None:
                         self.logInfo("Skip invoke scripts, due to previous one in progress")
                         return
             self.logInfo("Will invoke scripts:" + self.script)
-            self.child = subprocess.Popen(self.script)
-            if self.block:
-                while self.child == None:
-                    pass
+            self.child = subprocess.Popen(self.script.split(" "))
         except OSError as err:
             self.logErr("execute script error:" + str(err))
             
