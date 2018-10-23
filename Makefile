@@ -150,6 +150,8 @@ install: precheck
 	done
 	install -m 755 drivers/plugins/__init__.py \
 	  $(SM_STAGING)$(SM_DEST)/plugins/
+	install -m 755 drivers/plugins/keymanagerutil.py \
+	  $(SM_STAGING)$(SM_DEST)/plugins/
 	install -m 644 multipath/$(MPATH_CONF) \
 	  $(SM_STAGING)/$(MPATH_CONF_DIR)
 	install -m 755 multipath/$(MPATH_DAEMON) \
