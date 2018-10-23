@@ -11,7 +11,7 @@ from random import SystemRandom
 "load_key is called by SM plugin when it needs to find the key for specified key_hash from the key store"
 def load_key(key_hash):
     try:
-        key = KeyManager(key_hash=key_hash).get_key()
+        key = KeyManager(key_hash=key_hash).get_key(log_key_info=False)
         return key
     except Exception:
         return None
@@ -101,7 +101,7 @@ class KeyManager(object):
         self.logger.log_key_info()
         self.__update_keystore()
     
-    def get_key(self):
+    def get_key(self, log_key_info=True):
         
         #fetch the key from the key store based on the key_hash - requires key hash
         if not self.key_hash:
@@ -112,10 +112,10 @@ class KeyManager(object):
             for line in key_store:
                 keyInfo.update(json.loads(line))
             key = keyInfo.get(self.key_hash, None)
-            if key:
+            if key and log_key_info:
                 logger = Logger(key=key)
                 logger.log_key_info()
-            else:
+            if not key:
                 raise KeyLookUpError("No keys in the keystore which matches the given key hash")
 
         return key
