@@ -30,7 +30,7 @@ from constants import CBTLOG_TAG
 from bitarray import bitarray
 import uuid
 
-SM_CONFIG_PASS_THROUGH_FIELDS = ["base_mirror"]
+SM_CONFIG_PASS_THROUGH_FIELDS = ["base_mirror", "key_hash"]
 
 SNAPSHOT_SINGLE = 1 # true snapshot: 1 leaf, 1 read-only parent
 SNAPSHOT_DOUBLE = 2 # regular snapshot/clone that creates 2 leaves

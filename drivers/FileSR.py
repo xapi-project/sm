@@ -979,6 +979,8 @@ class FileVDI(VDI.VDI):
     def _create(self, size, path):
         cmd = [SR.TAPDISK_UTIL, "create", vhdutil.VDI_TYPE_VHD, size, path]
         text = util.pread(cmd)
+        if "key_hash" in self.sm_config:
+            vhdutil.setKey(path, self.sm_config["key_hash"])
 
     def _mark_hidden(self, path):
         vhdutil.setHidden(path, True)

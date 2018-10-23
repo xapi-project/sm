@@ -372,3 +372,8 @@ def validate_and_round_vhd_size(size):
     size = util.roundup(VHD_BLOCK_SIZE, size)
 
     return size
+
+def setKey(path, key_hash):
+    """Set the encryption key for a VHD"""
+    cmd = ["vhd-util", "key", "-s", "-n", path, "-H", key_hash]
+    ioretry(cmd)
