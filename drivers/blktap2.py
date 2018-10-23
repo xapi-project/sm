@@ -44,6 +44,8 @@ import resetvdis
 import vhdutil
 import lvhdutil
 
+import plugins
+
 # For RRDD Plugin Registration
 from xmlrpclib import ServerProxy, Transport
 from socket import socket, AF_UNIX, SOCK_STREAM
@@ -234,7 +236,7 @@ class TapCtl(object):
         cls.__next_mkcmd = __next_mkcmd
 
     @classmethod
-    def _call(cls, args, quiet = False):
+    def _call(cls, args, quiet = False, input = None):
         """
         Spawn a tap-ctl process. Return a TapCtl invocation.
         Raises a TapCtl.CommandFailure if subprocess creation failed.
@@ -245,8 +247,12 @@ class TapCtl(object):
             util.SMlog(cmd)
         try:
             p = subprocess.Popen(cmd,
+                                 stdin=subprocess.PIPE,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE)
+            if input:
+                p.stdin.write(input)
+                p.stdin.close()
         except OSError, e:
             raise cls.CommandFailure(cmd, errno=e.errno)
 
@@ -278,11 +284,11 @@ class TapCtl(object):
         raise self.CommandFailure(self.cmd, **info)
 
     @classmethod
-    def _pread(cls, args, quiet = False):
+    def _pread(cls, args, quiet = False, input = None):
         """
         Spawn a tap-ctl invocation and read a single line.
         """
-        tapctl = cls._call(args, quiet)
+        tapctl = cls._call(args=args, quiet=quiet, input=input)
 
         output = tapctl.stdout.readline().rstrip()
 
@@ -387,6 +393,7 @@ class TapCtl(object):
     def open(cls, pid, minor, _type, _file, options):
         params = Tapdisk.Arg(_type, _file)
         args = [ "open", "-p", pid, "-m", minor, '-a', str(params) ]
+        input = None
         if options.get("rdonly"):
             args.append('-R')
         if options.get("lcache"):
@@ -406,7 +413,14 @@ class TapCtl(object):
             args.append("-D")
         if options.get('cbtlog'):
             args.extend(['-C', options['cbtlog']])
-        cls._pread(args)
+        if options.get('key_hash'):
+            key_hash = options['key_hash']
+            key = plugins.load_key(key_hash)
+            if not key:
+                raise util.SMException("No key found with key hash {}".format(key_hash))
+            input = key
+            args.append('-E')
+        cls._pread(args=args, input=input)
 
     @classmethod
     def close(cls, pid, minor, force = False):
@@ -1576,6 +1590,8 @@ class VDI(object):
             if self.target.has_cap("ATOMIC_PAUSE"):
                 self._attach(sr_uuid, vdi_uuid)
 
+            vdi_type = self.target.get_vdi_type()
+
             # Take lvchange-p Lock before running
             # tap-ctl open
             # Needed to avoid race with lvchange -p which is
@@ -1583,10 +1599,20 @@ class VDI(object):
             # This is a fix for CA-155766
             if hasattr(self.target.vdi.sr, 'DRIVER_TYPE') and \
                self.target.vdi.sr.DRIVER_TYPE == 'lvhd' and \
-               self.target.get_vdi_type() == vhdutil.VDI_TYPE_VHD:
+               vdi_type == vhdutil.VDI_TYPE_VHD:
                 lock = Lock("lvchange-p", lvhdutil.NS_PREFIX_LVM + sr_uuid)
                 lock.acquire()
 
+            # When we attach a static VDI for HA, we cannot communicate with
+            # xapi, because has not started yet. These VDIs are raw.
+            if vdi_type != vhdutil.VDI_TYPE_RAW:
+                session = self.target.vdi.session
+                vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
+                sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
+                if 'key_hash' in sm_config:
+                    key_hash = sm_config['key_hash']
+                    options['key_hash'] = key_hash
+                    util.SMlog('Using key with hash {} for VDI {}'.format(key_hash, vdi_uuid))
             # Activate the physical node
             dev_path = self._activate(sr_uuid, vdi_uuid, options)
 
