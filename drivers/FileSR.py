@@ -447,13 +447,17 @@ class FileVDI(VDI.VDI):
 
         if self.sr.srcmd.cmd == "vdi_create":
             self.vdi_type = vhdutil.VDI_TYPE_VHD
-            if self.sr.srcmd.params.has_key("vdi_sm_config") and \
-                    self.sr.srcmd.params["vdi_sm_config"].has_key("type"):
-                vdi_type = self.sr.srcmd.params["vdi_sm_config"]["type"]
-                if not self.VDI_TYPE.get(vdi_type):
-                    raise xs_errors.XenError('VDIType', 
-                            opterr='Invalid VDI type %s' % vdi_type)
-                self.vdi_type = self.VDI_TYPE[vdi_type]
+            self.key_hash = None
+            if self.sr.srcmd.params.has_key("vdi_sm_config"):
+                if self.sr.srcmd.params["vdi_sm_config"].has_key("key_hash"):
+                    self.key_hash = self.sr.srcmd.params["vdi_sm_config"]["key_hash"]
+
+                if self.sr.srcmd.params["vdi_sm_config"].has_key("type"):
+                    vdi_type = self.sr.srcmd.params["vdi_sm_config"]["type"]
+                    if not self.VDI_TYPE.get(vdi_type):
+                        raise xs_errors.XenError('VDIType',
+                                opterr='Invalid VDI type %s' % vdi_type)
+                    self.vdi_type = self.VDI_TYPE[vdi_type]
             self.path = os.path.join(self.sr.path, "%s%s" % \
                     (vdi_uuid, vhdutil.FILE_EXTN[self.vdi_type]))
         else:
@@ -979,8 +983,8 @@ class FileVDI(VDI.VDI):
     def _create(self, size, path):
         cmd = [SR.TAPDISK_UTIL, "create", vhdutil.VDI_TYPE_VHD, size, path]
         text = util.pread(cmd)
-        if "key_hash" in self.sm_config:
-            vhdutil.setKey(path, self.sm_config["key_hash"])
+        if self.key_hash:
+            vhdutil.setKey(path, self.key_hash)
 
     def _mark_hidden(self, path):
         vhdutil.setHidden(path, True)
