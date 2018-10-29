@@ -261,6 +261,10 @@ class FileSR(SR.SR):
             if self.vhds[uuid].error:
                 raise xs_errors.XenError('SRScan', opterr='uuid=%s' % uuid)
             self.vdis[uuid] = self.vdi(uuid, True)
+            # Get the key hash of any encrypted VDIs:
+            vhd_path = os.path.join(self.path, self.vhds[uuid].path)
+            key_hash = vhdutil.getKeyHash(vhd_path)
+            self.vdis[uuid].sm_config_override['key_hash'] = key_hash
 
         # raw VDIs and CBT log files
         files = util.ioretry(lambda: util.listdir(self.path))

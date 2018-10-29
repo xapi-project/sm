@@ -373,6 +373,21 @@ def validate_and_round_vhd_size(size):
 
     return size
 
+def getKeyHash(path):
+    """Set the encryption key for a VHD"""
+    cmd = ["vhd-util", "key", "-p", "-n", path]
+    ret = ioretry(cmd)
+    ret = ret.strip()
+    if ret == 'none':
+        return None
+    vals = ret.split()
+    if len(vals) != 2:
+        util.SMlog('***** malformed output from vhd-util'
+                   ' for VHD {}: "{}"'.format(path, ret))
+        return None
+    [_nonce, key_hash] = vals
+    return key_hash
+
 def setKey(path, key_hash):
     """Set the encryption key for a VHD"""
     cmd = ["vhd-util", "key", "-s", "-n", path, "-H", key_hash]
