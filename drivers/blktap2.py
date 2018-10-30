@@ -1536,6 +1536,8 @@ class VDI(object):
         sr_other_config = self._session.xenapi.SR.get_other_config(sr_ref)
         timeout = nfs.get_nfs_timeout(sr_other_config)
         if timeout:
+            # Note NFS timeout values are in deciseconds
+            timeout = int((timeout+5) / 10)
             options["timeout"] = timeout + self.TAPDISK_TIMEOUT_MARGIN
         for i in range(self.ATTACH_DETACH_RETRY_SECS):
             try:
