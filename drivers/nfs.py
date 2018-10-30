@@ -120,7 +120,8 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
                timeout=None, nfsversion=DEFAULT_NFSVERSION, retrans=None):
     """Mount the remote NFS export at 'mountpoint'.
 
-    The 'timeout' param here is in seconds
+    The 'timeout' param here is in deciseconds (tenths of a second). See
+    nfs(5) for details.
     """
     try:
         if not util.ioretry(lambda: util.isdir(mountpoint)):
@@ -149,7 +150,7 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
     options += ',acdirmin=0,acdirmax=0'
 
     if timeout != None:
-        options += ",timeo=%s" % (timeout * 10)
+        options += ",timeo=%s" % timeout
     if retrans != None:
         options += ",retrans=%s" % retrans
     if useroptions != '':
@@ -269,7 +270,7 @@ def get_supported_nfs_versions(server):
                            (server))
 
 def get_nfs_timeout(other_config):
-    nfs_timeout = 10
+    nfs_timeout = 5
 
     if other_config.has_key('nfs-timeout'):
         val = int(other_config['nfs-timeout'])
@@ -281,7 +282,7 @@ def get_nfs_timeout(other_config):
     return nfs_timeout
 
 def get_nfs_retrans(other_config):
-    nfs_retrans = 12
+    nfs_retrans = 5
 
     if other_config.has_key('nfs-retrans'):
         val = int(other_config['nfs-retrans']) 
