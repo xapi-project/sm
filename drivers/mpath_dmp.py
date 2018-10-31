@@ -214,7 +214,7 @@ def _is_valid_multipath_device(sid):
     (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath', '-ll', sid])
     if not stdout+stderr:
         (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath', '-a', sid])
-        if ret == 1:
+        if ret < 0:
             util.SMlog("Failed to add {}: wwid could be explicitly "
                        "blacklisted\n Continue with multipath disabled for "
                        "this SR".format(sid))
