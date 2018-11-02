@@ -1,0 +1,9 @@
+[Unit]
+Before=systemd-udevd
+
+[Socket]
+ListenFIFO=/var/run/usb-scan.sock
+PipeSize=4096
+
+[Install]
+WantedBy=multi-user.target

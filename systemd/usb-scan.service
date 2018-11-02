@@ -1,0 +1,7 @@
+Unit]
+Description=USB device scanner
+
+[Service]
+StandardInput=socket
+ExecStart=/usr/bin/sh -c '. /etc/xensource-inventory; while dd of=/dev/null bs=4096 count=1 status=none conv=noerror; do xe pusb-scan host-uuid=$${INSTALLATION_UUID}; done'
+Restart=always
