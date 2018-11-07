@@ -86,6 +86,6 @@ class TestNFSSR(unittest.TestCase):
                                            '/aServerpath/UUID',
                                            'tcp',
                                            useroptions='options',
-                                           timeout=5,
+                                           timeout=100,
                                            nfsversion='aNfsversionChanged',
-                                           retrans=5)
+                                           retrans=3)
