@@ -860,6 +860,12 @@ class FileVDI(VDI.VDI):
                 leaf_vdi.utilisation = self.utilisation
                 leaf_vdi.sm_config = {}
                 leaf_vdi.sm_config['vhd-parent'] = dstparent
+                # If the parent is encrypted set the key_hash
+                # for the new snapshot disk
+                vdi_ref = self.sr.srcmd.params['vdi_ref']
+                sm_config = self.session.xenapi.VDI.get_sm_config(vdi_ref)
+                if "key_hash" in sm_config:
+                    leaf_vdi.sm_config['key_hash'] = sm_config['key_hash']
                 # If we have CBT enabled on the VDI,
                 # set CBT status for the new snapshot disk
                 if cbtlog:
