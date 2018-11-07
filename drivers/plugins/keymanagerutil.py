@@ -14,7 +14,8 @@ import os.path
 import hashlib
 import json
 import argparse
-
+import string
+from random import SystemRandom 
 
 def load_key(key_hash):
     """
@@ -46,7 +47,6 @@ class Logger(object):
     def log_key_info(self):
         data = {}
         if self.key:
-            data['key'] = repr(self.key)
             data['key_base64'] = base64.b64encode(self.key)
         if self.key_hash:
             data['key_hash'] = self.key_hash
@@ -180,7 +180,9 @@ class KeyManager(object):
 
 
 def _get_key_generator(key_length=None, key_type=None):
-    if key_length:
+    if key_type == "alphanumeric":
+        return AlphaNumericKeyGenerator(key_length=key_length)
+    elif key_length:
         return RandomKeyGenerator(key_length=key_length)
     elif key_type == "weak":
         return WeakKeyGenerator()
@@ -189,7 +191,6 @@ def _get_key_generator(key_length=None, key_type=None):
     else:
         raise InputError("Either key_length in byte or key_type(\"strong OR weak\")"
                          " should be specified to generate the key")
-
 
 class RandomKeyGenerator(object):
     """Generates a completely random key of the specified length"""
@@ -215,6 +216,16 @@ class WeakKeyGenerator(RandomKeyGenerator):
     def __init__(self):
         super(WeakKeyGenerator, self).__init__(key_length=32)
 
+class AlphaNumericKeyGenerator(object):
+    """Generates alphanumeric keys"""
+
+    def __init__(self, key_length=None):
+        self.key_length = 64 if key_length is None else key_length
+
+    def generate(self):
+        """Generate a completely random alphanumeric sequence"""
+        keys_from = string.ascii_letters + string.digits
+        return "".join([SystemRandom().choice(keys_from) for _ in range(self.key_length)])
 
 if __name__ == '__main__':
 
