@@ -374,7 +374,7 @@ def validate_and_round_vhd_size(size):
     return size
 
 def getKeyHash(path):
-    """Set the encryption key for a VHD"""
+    """Extract the hash of the encryption key from the header of an encrypted VHD"""
     cmd = ["vhd-util", "key", "-p", "-n", path]
     ret = ioretry(cmd)
     ret = ret.strip()
