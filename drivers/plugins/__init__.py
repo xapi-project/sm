@@ -19,10 +19,10 @@ for file_name in glob.glob(os.path.join(plugindir, '*.py')):
         # ignore module import errors
         pass
 
-def load_key(key_hash):
+def load_key(key_hash, vdi_uuid):
     for plugin in plugins:
         try:
-            key = plugin.load_key(key_hash)
+            key = plugin.load_key(key_hash, vdi_uuid)
             if key:
                 return key
         except:

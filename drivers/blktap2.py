@@ -415,7 +415,8 @@ class TapCtl(object):
             args.extend(['-C', options['cbtlog']])
         if options.get('key_hash'):
             key_hash = options['key_hash']
-            key = plugins.load_key(key_hash)
+            vdi_uuid = options['vdi_uuid']
+            key = plugins.load_key(key_hash, vdi_uuid)
             if not key:
                 raise util.SMException("No key found with key hash {}".format(key_hash))
             input = key
@@ -1612,6 +1613,7 @@ class VDI(object):
                 if 'key_hash' in sm_config:
                     key_hash = sm_config['key_hash']
                     options['key_hash'] = key_hash
+                    options['vdi_uuid'] = vdi_uuid
                     util.SMlog('Using key with hash {} for VDI {}'.format(key_hash, vdi_uuid))
             # Activate the physical node
             dev_path = self._activate(sr_uuid, vdi_uuid, options)

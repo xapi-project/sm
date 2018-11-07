@@ -17,16 +17,38 @@ import argparse
 import string
 from random import SystemRandom 
 
-def load_key(key_hash):
+import XenAPI
+
+def load_key(key_hash, vdi_uuid):
     """
     load_key is called by SM plugin when it needs to find the key for
     specified key_hash from the key store
     """
     try:
+        check_key(key_hash, vdi_uuid)
         key = KeyManager(key_hash=key_hash).get_key(log_key_info=False)
         return key
     except Exception:
         return None
+
+def check_key(key_hash, vdi_uuid):
+    session = XenAPI.xapi_local()
+    session.xenapi.login_with_password('root', '', '', 'keymanagerutil')
+    try:
+        vdi = session.xenapi.VDI.get_by_uuid(vdi_uuid)
+        sm_config = session.xenapi.VDI.get_sm_config(vdi)
+        if 'key_hash' in sm_config:
+            if key_hash != sm_config['key_hash']:
+                raise Exception('A key was requested with key hash {}'
+                                ' for VDI {}, but it has a different'
+                                ' key_hash in its sm_config:'
+                                ' {}'.format(key_hash, vdi_uuid, sm_config['key_hash']))
+        else:
+            raise Exception('Encryption key requested for VDI {}'
+                            ' whose sm_config does not contain the key_hash'
+                            ' entry. Its sm_config is {}'.format(vdi_uuid, sm_config))
+    finally:
+        session.xenapi.logout()
 
 
 class InputError(Exception):
