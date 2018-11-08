@@ -1,32 +1,54 @@
 import glob
 import importlib
+import logging
+import logging.handlers
 import os
 import re
 import sys
+import traceback
+
+import util
 
 plugindir = os.path.dirname(__file__)
 
 plugins = []
 
+def _log_exn_backtrace():
+    for line in traceback.format_exc().splitlines():
+        util.SMlog(line)
+
 for file_name in glob.glob(os.path.join(plugindir, '*.py')):
-    if file_name == __file__:
+    # Avoid recursively loading this module again. The __file__ variable might
+    # have a .pyc extension, so we have to compare the filenames without
+    # extension:
+    if os.path.splitext(file_name)[0] == os.path.splitext(__file__)[0]:
         continue
     module_name = os.path.splitext(os.path.split(file_name)[-1])[0]
     try:
         module = importlib.import_module('{}.{}'.format(__name__, module_name))
         plugins.append(module)
+        util.SMlog('Loaded key lookup plugin {}'.format(module_name))
     except:
-        # ignore module import errors
-        pass
+        # ignore and log module import errors
+        util.SMlog('Failed to load key lookup plugin {}'.format(module_name))
+        _log_exn_backtrace()
 
 def load_key(key_hash, vdi_uuid):
     for plugin in plugins:
         try:
             key = plugin.load_key(key_hash, vdi_uuid)
             if key:
+                util.SMlog('Loaded key with hash {} for VDI {} using plugin {}'.format(
+                    key_hash, vdi_uuid, plugin.__name__))
                 return key
+            else:
+                util.SMlog('Plugin {} did not return a key for key hash {} and VDI {}'.format(
+                    plugin.__name__, key_hash, vdi_uuid))
         except:
-            # ignore plugin failures
-            pass
+            # ignore and log plugin failures
+            util.SMlog('Key lookup plugin {} failed while loading key'
+                       ' with hash {} for VDI {}'.format(
+                           plugin.__name__, key_hash, vdi_uuid))
+            _log_exn_backtrace()
 
     return None
