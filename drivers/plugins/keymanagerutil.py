@@ -15,25 +15,27 @@ import hashlib
 import json
 import argparse
 import string
-from random import SystemRandom 
+from random import SystemRandom
 
 import XenAPI
+
+PROGRAM_NAME = 'keymanagerutil'
 
 def load_key(key_hash, vdi_uuid):
     """
     load_key is called by SM plugin when it needs to find the key for
     specified key_hash from the key store
     """
+    _check_key(key_hash, vdi_uuid)
     try:
-        check_key(key_hash, vdi_uuid)
         key = KeyManager(key_hash=key_hash).get_key(log_key_info=False)
         return key
-    except Exception:
+    except KeyLookUpError:
         return None
 
-def check_key(key_hash, vdi_uuid):
+def _check_key(key_hash, vdi_uuid):
     session = XenAPI.xapi_local()
-    session.xenapi.login_with_password('root', '', '', 'keymanagerutil')
+    session.xenapi.login_with_password('root', '', '', PROGRAM_NAME)
     try:
         vdi = session.xenapi.VDI.get_by_uuid(vdi_uuid)
         sm_config = session.xenapi.VDI.get_sm_config(vdi)
@@ -57,26 +59,22 @@ class InputError(Exception):
 
 
 class KeyLookUpError(Exception):
+    """Raised when the key / key hash we've requested is not in the keystore"""
     def __init__(self, message):
         super(KeyLookUpError, self).__init__(message)
 
 
-class Logger(object):
-    def __init__(self, key=None, key_hash=None):
-        self.key = key
-        self.key_hash = key_hash
-
-    def log_key_info(self):
-        data = {}
-        if self.key:
-            data['key_base64'] = base64.b64encode(self.key)
-        if self.key_hash:
-            data['key_hash'] = self.key_hash
-        print(json.dumps(data))
-
-    def log_message(self, message):
-        print(message)
-
+def _print_key_info(key=None, key_hash=None):
+    """
+    Output the key details as JSON to the standard output. This output
+    will be interpreted by XenRT.
+    """
+    data = {}
+    if key:
+        data['key_base64'] = base64.b64encode(key)
+    if key_hash:
+        data['key_hash'] = key_hash
+    print(json.dumps(data))
 
 KEYSTORE_PATH = '/tmp/keystore.json'
 
@@ -155,8 +153,7 @@ class KeyManager(object):
         """
         self.key = _get_key_generator(key_length=self.key_length, key_type=self.key_type).generate()
         self.key_hash = self.__hash_key()
-        logger = Logger(self.key, self.key_hash)
-        logger.log_key_info()
+        _print_key_info(key=self.key, key_hash=self.key_hash)
         self.__add_to_keystore()
 
     def get_key(self, log_key_info=True):
@@ -167,8 +164,7 @@ class KeyManager(object):
         key_store = _read_keystore()
         key = key_store.get(self.key_hash, None)
         if key and log_key_info:
-            logger = Logger(key=key)
-            logger.log_key_info()
+            _print_key_info(key=key)
         if not key:
             raise KeyLookUpError("No keys in the keystore which matches the given key hash")
 
@@ -181,8 +177,7 @@ class KeyManager(object):
         key_store = _read_keystore()
         try:
             key_hash = key_store.keys()[key_store.values().index(self.key)]
-            logger = Logger(key_hash=key_hash)
-            logger.log_key_info()
+            _print_key_info(key_hash=key_hash)
         except ValueError:
             raise KeyLookUpError("No key hash in the keystore which matches the given key")
 
