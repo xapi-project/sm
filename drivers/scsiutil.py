@@ -182,9 +182,8 @@ def scsi_dev_ctrl(ids, cmd):
             opterr='An error occured during the scsi operation')
 
 def getdev(path):
-    realpath = os.path.realpath(path)
-    if match_dm(realpath):
-        newpath = realpath.replace("/dev/mapper/","/dev/disk/by-id/scsi-")
+    if match_dm(path):
+        newpath = path.replace("/dev/mapper/","/dev/disk/by-id/scsi-")
     else:
         newpath = path
     return os.path.realpath(newpath).split('/')[-1]
