@@ -121,7 +121,7 @@ class VDI(object):
         self.session = sr.session
         self.managed = True
         self.sm_config_override = {}
-        self.sm_config_keep = []
+        self.sm_config_keep = ["key_hash"]
         self.ty = "user"
         self.cbt_enabled = False
 
