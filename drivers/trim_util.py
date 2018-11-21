@@ -127,16 +127,11 @@ def do_trim(session, args):
                 util.SMlog("Trim on SR: %s complete. " % sr_uuid)
                 result = str(True)
         except util.CommandException, e:
-            if (lvutil.vgIsFullyProvisioned(vg_name)):
-                util.SMlog(
-                    "blkdiscard failed on fully provisioned lun, %s" % lv_path)
-                result = str(True)
-            else:
-                err_msg = {
-                    ERROR_CODE_KEY: 'TrimException',
-                    ERROR_MSG_KEY: e.reason
-                }
-                result = to_xml(err_msg)
+            err_msg = {
+                ERROR_CODE_KEY: 'TrimException',
+                ERROR_MSG_KEY: e.reason
+            }
+            result = to_xml(err_msg)
         except:
             err_msg = {
                 ERROR_CODE_KEY: 'UnknownTrimException',
