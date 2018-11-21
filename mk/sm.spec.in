@@ -40,6 +40,8 @@ service sm-multipath start
 %systemd_post updatempppathd.service
 %systemd_post usb-scan.service
 %systemd_post usb-scan.socket
+%systemd_post mpathcount.service
+%systemd_post mpathcount.socket
 
 [ -f /etc/lvm/lvm.conf.orig ] || cp /etc/lvm/lvm.conf /etc/lvm/lvm.conf.orig || exit $?
 [ -d /etc/lvm/master ] || mkdir /etc/lvm/master || exit $?
@@ -70,6 +72,8 @@ update-alternatives --install /etc/multipath.conf multipath.conf /etc/multipath.
 %systemd_preun updatempppathd.service
 %systemd_preun usb-scan.service
 %systemd_preun usb-scan.socket
+%systemd_preun mpathcount.service
+%systemd_preun mpathcount.socket
 #only remove in case of erase (but not at upgrade)
 if [ $1 -eq 0 ] ; then
     [ ! -x /sbin/chkconfig ] || chkconfig --del sm-multipath
@@ -100,7 +104,6 @@ tests/run_python_unittests.sh
 %defattr(-,root,root,-)
 /etc/rc.d/init.d/mpathroot
 /etc/udev/scripts/xs-mpath-scsidev.sh
-/etc/udev/scripts/onequeue.sh
 /etc/xapi.d/plugins/coalesce-leaf
 /etc/xapi.d/plugins/lvhd-thin
 /etc/xapi.d/plugins/nfs-on-slave
@@ -338,6 +341,8 @@ tests/run_python_unittests.sh
 %{_unitdir}/updatempppathd.service
 %{_unitdir}/usb-scan.service
 %{_unitdir}/usb-scan.socket
+%{_unitdir}/mpathcount.service
+%{_unitdir}/mpathcount.socket
 %config /etc/udev/rules.d/40-multipath.rules
 %config /etc/udev/rules.d/55-xs-mpath-scsidev.rules
 %config /etc/udev/rules.d/58-xapi.rules

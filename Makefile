@@ -170,6 +170,8 @@ install: precheck
 	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
 	install -m 644 systemd/usb-scan.* \
 	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
+	install -m 644 systemd/mpathcount.* \
+	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
 	for i in $(UDEV_RULES); do \
 	  install -m 644 udev/$$i.rules \
 	    $(SM_STAGING)$(UDEV_RULES_DIR); done
@@ -215,7 +217,6 @@ install: precheck
 	ln -sf $(SM_DEST)lcache.py $(SM_STAGING)$(BIN_DEST)tapdisk-cache-stats
 	ln -sf /dev/null $(SM_STAGING)$(UDEV_RULES_DIR)/69-dm-lvm-metad.rules
 	install -m 755 scripts/xs-mpath-scsidev.sh $(SM_STAGING)$(UDEV_SCRIPTS_DIR)
-	install -m 755 scripts/onequeue.sh $(SM_STAGING)$(UDEV_SCRIPTS_DIR)
 	install -m 755 scripts/xe-get-arrayid-lunnum $(SM_STAGING)$(BIN_DEST)
 	install -m 755 scripts/xe-getarrayidentifier $(SM_STAGING)$(BIN_DEST)
 	install -m 755 scripts/xe-getlunidentifier $(SM_STAGING)$(BIN_DEST)

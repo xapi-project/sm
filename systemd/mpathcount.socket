@@ -1,0 +1,9 @@
+[Unit]
+Description=Multipath scanner kick socket
+
+[Socket]
+ListenFIFO=/var/run/mpathcount.sock
+PipeSize=4096
+
+[Install]
+WantedBy=multi-user.target
