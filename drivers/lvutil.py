@@ -19,14 +19,12 @@
 #
 
 
-import glob
 import re
 import os
 import errno
 import time
 
 import util
-import scsiutil
 import xs_errors
 import xml.dom.minidom
 from lvhdutil import VG_LOCATION,VG_PREFIX
@@ -42,7 +40,6 @@ CMD_VGCREATE  = "vgcreate"
 CMD_VGREMOVE  = "vgremove"
 CMD_VGCHANGE  = "vgchange"
 CMD_VGEXTEND  = "vgextend"
-CMD_VGDISPLAY = "vgdisplay"
 CMD_PVS       = "pvs"
 CMD_PVCREATE  = "pvcreate"
 CMD_PVREMOVE  = "pvremove"
@@ -67,7 +64,7 @@ MASTER_LVM_CONF = '/etc/lvm/master'
 DEF_LVM_CONF = '/etc/lvm'
 
 VG_COMMANDS = frozenset({CMD_VGS, CMD_VGCREATE, CMD_VGREMOVE, CMD_VGCHANGE,
-                         CMD_VGEXTEND, CMD_VGDISPLAY})
+                         CMD_VGEXTEND})
 PV_COMMANDS = frozenset({CMD_PVS, CMD_PVCREATE, CMD_PVREMOVE, CMD_PVRESIZE})
 LV_COMMANDS = frozenset({CMD_LVS, CMD_LVDISPLAY, CMD_LVCREATE, CMD_LVREMOVE,
                          CMD_LVCHANGE, CMD_LVRENAME, CMD_LVRESIZE,
@@ -728,23 +725,3 @@ def removeDevMapperEntry(path, strict=True):
         util.SMlog("removeDevMapperEntry: dmsetup remove failed for file %s " \
                    "with error %s, and lsof ret is %s." % (path, str(e), ret))
         return False
-
-def vgIsFullyProvisioned(vgname):
-    """
-    Check the PVs behind the specified VG and return
-    True if any of them is fully provisioned
-    """
-    text = cmd_lvm([CMD_VGDISPLAY, '-v', vgname])
-    for line in text.splitlines():
-        match = re.search(r'PV Name\s+(\S+)', line)
-        if match:
-            device = util.diskFromPartition(scsiutil.getdev(match.group(1)))
-
-            for path in glob.glob(
-                    '/sys/block/%s/device/scsi_disk/*/provisioning_mode' %
-                    (device)):
-                with open(path) as mode_file:
-                    mode = mode_file.read().strip()
-                    if mode == 'full':
-                        return True
-    return False
