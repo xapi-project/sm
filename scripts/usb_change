@@ -18,4 +18,4 @@
 # called by UDEV rule to trigger pusb scan, when USB device change is detected
 
 # wake up usb-scan.service waiting on the pipe
-dd if=/dev/zero of=/var/run/usb-scan.sock bs=8 count=1 status=none conv=notrunc,noerror oflag=nonblock
+/opt/xensource/libexec/kickpipe usb-scan

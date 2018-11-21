@@ -207,6 +207,7 @@ install: precheck
 	install -m 755 scripts/local-device-change $(SM_STAGING)$(LIBEXEC)
 	install -m 755 scripts/check-device-sharing $(SM_STAGING)$(LIBEXEC)
 	install -m 755 scripts/usb_change $(SM_STAGING)$(LIBEXEC)
+	install -m 755 scripts/kickpipe $(SM_STAGING)$(LIBEXEC)
 	$(MAKE) -C dcopy install DESTDIR=$(SM_STAGING)
 	$(MAKE) -C snapwatchd install DESTDIR=$(SM_STAGING)
 	$(MAKE) -C mpathroot install DESTDIR=$(SM_STAGING)

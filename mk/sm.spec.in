@@ -38,6 +38,8 @@ service sm-multipath start
 %systemd_post make-dummy-sr.service
 %systemd_post snapwatchd.service
 %systemd_post updatempppathd.service
+%systemd_post usb-scan.service
+%systemd_post usb-scan.socket
 
 [ -f /etc/lvm/lvm.conf.orig ] || cp /etc/lvm/lvm.conf /etc/lvm/lvm.conf.orig || exit $?
 [ -d /etc/lvm/master ] || mkdir /etc/lvm/master || exit $?
@@ -66,6 +68,8 @@ update-alternatives --install /etc/multipath.conf multipath.conf /etc/multipath.
 %systemd_preun make-dummy-sr.service
 %systemd_preun snapwatchd.service
 %systemd_preun updatempppathd.service
+%systemd_preun usb-scan.service
+%systemd_preun usb-scan.socket
 #only remove in case of erase (but not at upgrade)
 if [ $1 -eq 0 ] ; then
     [ ! -x /sbin/chkconfig ] || chkconfig --del sm-multipath
@@ -117,6 +121,8 @@ tests/run_python_unittests.sh
 /opt/xensource/libexec/dcopy
 /opt/xensource/libexec/local-device-change
 /opt/xensource/libexec/make-dummy-sr
+/opt/xensource/libexec/kickpipe
+/opt/xensource/libexec/usb_change
 /opt/xensource/sm/DummySR
 /opt/xensource/sm/DummySR.py
 /opt/xensource/sm/DummySR.pyc
@@ -330,6 +336,8 @@ tests/run_python_unittests.sh
 %{_unitdir}/make-dummy-sr.service
 %{_unitdir}/snapwatchd.service
 %{_unitdir}/updatempppathd.service
+%{_unitdir}/usb-scan.service
+%{_unitdir}/usb-scan.socket
 %config /etc/udev/rules.d/40-multipath.rules
 %config /etc/udev/rules.d/55-xs-mpath-scsidev.rules
 %config /etc/udev/rules.d/58-xapi.rules

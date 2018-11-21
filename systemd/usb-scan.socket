@@ -1,5 +1,5 @@
 [Unit]
-Before=systemd-udevd
+Description=USB device scanner kick socket
 
 [Socket]
 ListenFIFO=/var/run/usb-scan.sock
