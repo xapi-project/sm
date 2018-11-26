@@ -44,7 +44,6 @@ import resetvdis
 import vhdutil
 import lvhdutil
 
-import plugins
 
 # For RRDD Plugin Registration
 from xmlrpclib import ServerProxy, Transport
@@ -414,6 +413,8 @@ class TapCtl(object):
         if options.get('cbtlog'):
             args.extend(['-C', options['cbtlog']])
         if options.get('key_hash'):
+            import plugins
+
             key_hash = options['key_hash']
             vdi_uuid = options['vdi_uuid']
             key = plugins.load_key(key_hash, vdi_uuid)

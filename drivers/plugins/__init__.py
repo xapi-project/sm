@@ -27,7 +27,6 @@ for file_name in glob.glob(os.path.join(plugindir, '*.py')):
     try:
         module = importlib.import_module('{}.{}'.format(__name__, module_name))
         plugins.append(module)
-        util.SMlog('Loaded key lookup plugin {}'.format(module_name))
     except:
         # ignore and log module import errors
         util.SMlog('Failed to load key lookup plugin {}'.format(module_name))
@@ -38,12 +37,7 @@ def load_key(key_hash, vdi_uuid):
         try:
             key = plugin.load_key(key_hash, vdi_uuid)
             if key:
-                util.SMlog('Loaded key with hash {} for VDI {} using plugin {}'.format(
-                    key_hash, vdi_uuid, plugin.__name__))
                 return key
-            else:
-                util.SMlog('Plugin {} did not return a key for key hash {} and VDI {}'.format(
-                    plugin.__name__, key_hash, vdi_uuid))
         except:
             # ignore and log plugin failures
             util.SMlog('Key lookup plugin {} failed while loading key'
