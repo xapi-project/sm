@@ -28,7 +28,7 @@ import xs_errors
 import time
 
 MIN_VHD_SIZE = 2 * 1024 * 1024
-MAX_VHD_SIZE = 2093050 * 1024 * 1024
+MAX_VHD_SIZE = 2040 * 1024 * 1024 * 1024
 MAX_VHD_JOURNAL_SIZE = 6 * 1024 * 1024 # 2MB VHD block size, max 2TB VHD size
 MAX_CHAIN_SIZE = 30 # max VHD parent chain size
 VHD_UTIL = "/usr/bin/vhd-util"
