@@ -34,6 +34,7 @@ LOCK_NS2 = "mpathcount2"
 MP_INUSEDIR = "/dev/disk/mpInuse"
 mpp_path_update = False
 match_bySCSIid = False
+mpath_enabled = True
 
 if len(sys.argv) == 3:
     match_bySCSIid = True
@@ -186,8 +187,9 @@ try:
     if get_root_dev_major() != get_dm_major():
         hconf = session.xenapi.host.get_other_config(localhost)
         assert(hconf['multipathing'] == 'true')
+        mpath_enabled = True
 except:
-    mpc_exit(session,0)
+    mpath_enabled = False
 
 # Check root disk if multipathed
 try:
@@ -242,7 +244,10 @@ try:
                     continue
                 util.SMlog("Matched SCSIid, updating %s" % i)
                 key = "mpath-" + i
-                if mpp_path_update:
+                if not mpath_enabled:
+                    remove(key)
+                    remove('multipathed')
+                elif mpp_path_update:
                     util.SMlog("Matched SCSIid, updating entry %s" % str(mpp_entry))
                     update_config(key, i, mpp_entry, remove, add, mpp_path_update)
                 else:
