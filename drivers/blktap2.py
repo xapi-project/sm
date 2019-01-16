@@ -2417,13 +2417,8 @@ class Blkback(XenBackendDevice):
     def shutdown_done(self):
         return self.has_key("shutdown-done")
 
-    def kthread_pid(self):
-        pid = self.read("kthread-pid")
-        if pid is not None: return int(pid)
-        return None
-
     def running(self):
-        return self.kthread_pid() is not None
+        return self.has_key('queue-0/kthread-pid')
 
     @classmethod
     def find_by_physical_device(cls, phy):
