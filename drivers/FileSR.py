@@ -808,31 +808,21 @@ class FileVDI(VDI.VDI):
 
         # We assume the filehandle has been released
         try:
-            try:
-                util.ioretry(lambda: os.rename(src,newsrc))
-            except util.CommandException, inst:
-                if inst.code != errno.ENOENT:
-                    # failed to rename, simply raise error
-                    util.end_log_entry(self.sr.path, self.path, ["error"])
-                    raise
+            util.ioretry(lambda: os.rename(src,newsrc))
 
-            try:
-                # Create the snapshot under a temporary name, then rename
-                # it afterwards. This avoids a small window where it exists
-                # but is invalid. We do not need to do this for
-                # snap_type == VDI.SNAPSHOT_DOUBLE because dst never existed
-                # before so nobody will try to query it.
-                tmpsrc = "%s.%s" % (src, "new")
-                util.ioretry(lambda: self._snap(tmpsrc, newsrcname))
-                util.ioretry(lambda: os.rename(tmpsrc, src))
-                if snap_type == VDI.SNAPSHOT_DOUBLE:
-                    util.ioretry(lambda: self._snap(dst, newsrcname))
-                # mark the original file (in this case, its newsrc) 
-                # as hidden so that it does not show up in subsequent scans
-                util.ioretry(lambda: self._mark_hidden(newsrc))
-            except util.CommandException, inst:
-                if inst.code != errno.EIO:
-                    raise
+            # Create the snapshot under a temporary name, then rename
+            # it afterwards. This avoids a small window where it exists
+            # but is invalid. We do not need to do this for
+            # snap_type == VDI.SNAPSHOT_DOUBLE because dst never existed
+            # before so nobody will try to query it.
+            tmpsrc = "%s.%s" % (src, "new")
+            util.ioretry(lambda: self._snap(tmpsrc, newsrcname))
+            util.ioretry(lambda: os.rename(tmpsrc, src))
+            if snap_type == VDI.SNAPSHOT_DOUBLE:
+                util.ioretry(lambda: self._snap(dst, newsrcname))
+            # mark the original file (in this case, its newsrc)
+            # as hidden so that it does not show up in subsequent scans
+            util.ioretry(lambda: self._mark_hidden(newsrc))
 
             #Verify parent locator field of both children and delete newsrc if unused
             introduce_parent = True
