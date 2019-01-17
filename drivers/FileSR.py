@@ -943,16 +943,13 @@ class FileVDI(VDI.VDI):
 
     def _clonecleanup(self,src,dst,newsrc):
         try:
-            util.ioretry(lambda: os.unlink(src))
-        except util.CommandException, inst:
-            pass
-        try:
             if dst:
                 util.ioretry(lambda: os.unlink(dst))
         except util.CommandException, inst:
             pass
         try:
-            util.ioretry(lambda: os.rename(newsrc,src))
+            if util.ioretry(lambda: util.pathexists(newsrc)):
+                util.ioretry(lambda: os.rename(newsrc,src))
         except util.CommandException, inst:
             pass
       
