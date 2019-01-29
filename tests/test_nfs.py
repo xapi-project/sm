@@ -114,6 +114,11 @@ class Test_nfs(unittest.TestCase):
                                                                 '4'))
 
     def test_validate_nfsversion_invalid(self):
+        for thenfsversion in ['0', '5']:
+            self.assertRaises(nfs.NfsException, nfs.validate_nfsversion,
+                              thenfsversion)
+
+    def test_validate_nfsversion_unsupported(self):
         for thenfsversion in ['2', '4.1']:
             self.assertRaises(nfs.NfsException, nfs.validate_nfsversion,
                               thenfsversion)
