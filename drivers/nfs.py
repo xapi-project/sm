@@ -111,7 +111,7 @@ def validate_nfsversion(nfsversion):
     if not nfsversion:
         nfsversion = DEFAULT_NFSVERSION
     else:
-        if nfsversion not in ['3', '4']:
+        if nfsversion not in ['3', '4', '4.1']:
             raise NfsException("Invalid nfsversion.")
     return nfsversion
 
@@ -142,6 +142,9 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
 
     mountcommand = 'mount.nfs'
     if nfsversion == '4':
+        mountcommand = 'mount.nfs4'
+        
+    if nfsversion == '4.1':
         mountcommand = 'mount.nfs4'
 
     options = "soft,proto=%s,vers=%s" % (
