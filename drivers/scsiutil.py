@@ -83,7 +83,7 @@ def gen_uuid_from_string(str):
     return str[0:8]+'-'+str[8:12]+'-'+str[12:16]+'-'+str[16:20]+'-'+str[20:32]
 
 def SCSIid_sanitise(str):
-    text = re.sub("^\s+","",str)
+    text = str.strip()
     return re.sub("\s+","_",text)
 
 def getSCSIid(path):
@@ -106,7 +106,7 @@ def getSCSIid(path):
 
     stdout = util.pread2([SCSI_ID_BIN, '-g', '--device', path])
 
-    return SCSIid_sanitise(stdout[:-1])
+    return SCSIid_sanitise(stdout)
 
 def compareSCSIid_2_6_18(SCSIid, path):
     serial = getserial(path)
