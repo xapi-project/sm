@@ -9,18 +9,20 @@ License: LGPL
 URL:  http://www.citrix.com
 Source0: sm-@SM_VERSION@.tar.bz2
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
-BuildRequires: python-devel xen-devel systemd
+BuildRequires: python-devel xen-devel systemd pylint python-nose python-coverage python2-mock python2-bitarray
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
 Requires: xenserver-multipath
-Requires: xenserver-lvm2
+Requires: xenserver-lvm2 >= 2.02.177
+Requires: python2-bitarray
+Conflicts: kernel < 4.19.19-5.0.0
 
 %description
 This package contains storage backends used in XCP
 
 %prep
-%setup -q
+%autosetup -p1
 
 %build
 DESTDIR=$RPM_BUILD_ROOT make
@@ -36,19 +38,20 @@ rm -rf $RPM_BUILD_ROOT
 [ ! -x /sbin/chkconfig ] || chkconfig --add sm-multipath
 service sm-multipath start
 %systemd_post make-dummy-sr.service
+%systemd_post mpcount.service
 %systemd_post snapwatchd.service
-%systemd_post updatempppathd.service
-%systemd_post usb-scan.service
+%systemd_post xs-sm.service
 %systemd_post usb-scan.socket
-%systemd_post mpathcount.service
 %systemd_post mpathcount.socket
+/bin/systemctl enable xs-sm.service >/dev/null 2>&1 || :
+/bin/systemctl enable usb-scan.socket >/dev/null 2>&1 || :
+/bin/systemctl enable mpathcount.socket >/dev/null 2>&1 || :
 
 [ -f /etc/lvm/lvm.conf.orig ] || cp /etc/lvm/lvm.conf /etc/lvm/lvm.conf.orig || exit $?
 [ -d /etc/lvm/master ] || mkdir /etc/lvm/master || exit $?
 mv -f /etc/lvm/lvm.conf /etc/lvm/master/lvm.conf || exit $?
 sed -i 's/metadata_read_only =.*/metadata_read_only = 0/' /etc/lvm/master/lvm.conf || exit $?
 sed -i 's/archive = .*/archive = 0/' /etc/lvm/master/lvm.conf || exit $?
-sed -i 's/use_lvmetad = 1/use_lvmetad = 0/' /etc/lvm/master/lvm.conf || exit $?
 sed -i 's/udev_sync = 1/udev_sync = 0/' /etc/lvm/master/lvm.conf || exit $?
 sed -i 's/udev_rules = 1/udev_rules = 0/' /etc/lvm/master/lvm.conf || exit $?
 sed -i 's/obtain_device_list_from_udev = 1/obtain_device_list_from_udev = 0/' /etc/lvm/master/lvm.conf || exit $?
@@ -57,7 +60,6 @@ cp /etc/lvm/master/lvm.conf /etc/lvm/lvm.conf || exit $?
 sed -i 's/metadata_read_only =.*/metadata_read_only = 1/' /etc/lvm/lvm.conf || exit $?
 rm -f /etc/lvm/cache/.cache
 touch /etc/lvm/cache/.cache
-mv /usr/sbin/lvmetad /usr/sbin/lvmetad_
 
 # We try to be "update-alternatives" ready.
 # If a file exists and it is not a symlink we back it up
@@ -68,11 +70,10 @@ update-alternatives --install /etc/multipath.conf multipath.conf /etc/multipath.
 
 %preun
 %systemd_preun make-dummy-sr.service
+%systemd_preun mpcount.service
 %systemd_preun snapwatchd.service
-%systemd_preun updatempppathd.service
-%systemd_preun usb-scan.service
+%systemd_preun xs-sm.service
 %systemd_preun usb-scan.socket
-%systemd_preun mpathcount.service
 %systemd_preun mpathcount.socket
 #only remove in case of erase (but not at upgrade)
 if [ $1 -eq 0 ] ; then
@@ -83,14 +84,14 @@ exit 0
 
 %postun
 %systemd_postun make-dummy-sr.service
+%systemd_postun mpcount.service
 %systemd_postun_with_restart snapwatchd.service
-%systemd_postun updatempppathd.service
+%systemd_postun xs-sm.service
 if [ $1 -eq 0 ]; then
     [ ! -d /etc/lvm/master ] || rm -Rf /etc/lvm/master || exit $?
     cp -f /etc/lvm/lvm.conf.orig /etc/lvm/lvm.conf || exit $?
-    mv /usr/sbin/lvmetad_ /usr/sbin/lvmetad
 elif [ $1 -eq 1 ]; then
-    true; 
+    true;
 fi
 
 %posttrans
@@ -124,8 +125,8 @@ tests/run_python_unittests.sh
 /opt/xensource/libexec/dcopy
 /opt/xensource/libexec/local-device-change
 /opt/xensource/libexec/make-dummy-sr
-/opt/xensource/libexec/kickpipe
 /opt/xensource/libexec/usb_change
+/opt/xensource/libexec/kickpipe
 /opt/xensource/sm/DummySR
 /opt/xensource/sm/DummySR.py
 /opt/xensource/sm/DummySR.pyc
@@ -268,9 +269,6 @@ tests/run_python_unittests.sh
 /opt/xensource/sm/mpathutil.py
 /opt/xensource/sm/mpathutil.pyc
 /opt/xensource/sm/mpathutil.pyo
-/opt/xensource/sm/mpp_luncheck.py
-/opt/xensource/sm/mpp_luncheck.pyc
-/opt/xensource/sm/mpp_luncheck.pyo
 /opt/xensource/sm/mpp_mpathutil.py
 /opt/xensource/sm/mpp_mpathutil.pyc
 /opt/xensource/sm/mpp_mpathutil.pyo
@@ -303,9 +301,6 @@ tests/run_python_unittests.sh
 /opt/xensource/sm/udevSR.py
 /opt/xensource/sm/udevSR.pyc
 /opt/xensource/sm/udevSR.pyo
-/opt/xensource/sm/updatempppathd.py
-/opt/xensource/sm/updatempppathd.pyc
-/opt/xensource/sm/updatempppathd.pyo
 /opt/xensource/sm/util.py
 /opt/xensource/sm/util.pyc
 /opt/xensource/sm/util.pyo
@@ -338,7 +333,7 @@ tests/run_python_unittests.sh
 /etc/rc.d/init.d/sm-multipath
 %{_unitdir}/make-dummy-sr.service
 %{_unitdir}/snapwatchd.service
-%{_unitdir}/updatempppathd.service
+%{_unitdir}/xs-sm.service
 %{_unitdir}/usb-scan.service
 %{_unitdir}/usb-scan.socket
 %{_unitdir}/mpathcount.service
@@ -349,7 +344,8 @@ tests/run_python_unittests.sh
 %config /etc/multipath.xenserver/multipath.conf
 %config /etc/udev/rules.d/69-dm-lvm-metad.rules
 %config /etc/logrotate.d/SMlog
-%doc CONTRIB LICENSE MAINTAINERS README.md WHATS_NEW
+%config /etc/udev/rules.d/57-usb.rules
+%doc CONTRIB LICENSE MAINTAINERS README.md
 
 %changelog
 

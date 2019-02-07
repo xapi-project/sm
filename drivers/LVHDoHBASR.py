@@ -29,7 +29,6 @@ import util
 import scsiutil
 import mpath_cli
 import glob
-import mpp_luncheck
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_METADATA", "SR_TRIM",
                 "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
@@ -160,15 +159,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
                 pass
 
             if self.dconf['SCSIid'] in maps:
-                if (mpp_luncheck.is_RdacLun(self.dconf['SCSIid'])):
-                    mpath_cli.remove_map(self.dconf['SCSIid'])
-                else:
-                    raise xs_errors.XenError('SRInUse')
-            else:
-                if (mpp_luncheck.is_RdacLun(self.dconf['SCSIid'])):
-                    link=glob.glob('/dev/disk/mpInuse/%s-*' % self.dconf['SCSIid'])
-                    if (len(link)):
-                        raise xs_errors.XenError('SRInUse')
+                raise xs_errors.XenError('SRInUse')
 
             self.mpathmodule.refresh(self.SCSIid,0)
 

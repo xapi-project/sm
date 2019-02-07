@@ -53,8 +53,6 @@ SM_LIBS += metadata
 SM_LIBS += lvmanager
 SM_LIBS += blktap2
 SM_LIBS += mpp_mpathutil
-SM_LIBS += mpp_luncheck
-SM_LIBS += updatempppathd
 SM_LIBS += lcache
 SM_LIBS += resetvdis
 SM_LIBS += B_util
@@ -157,8 +155,6 @@ install: precheck
 	  $(SM_STAGING)/$(INIT_DIR)
 	install -m 644 etc/logrotate.d/$(SMLOG_CONF) \
 	  $(SM_STAGING)/$(LOGROTATE_DIR)
-	install -m 644 drivers/updatempppathd.service \
-	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
 	install -m 644 etc/make-dummy-sr.service \
 	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
 	install -m 644 snapwatchd/snapwatchd.service \

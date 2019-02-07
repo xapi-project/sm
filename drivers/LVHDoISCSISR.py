@@ -25,7 +25,6 @@ import xs_errors
 import xmlrpclib
 import mpath_cli, iscsilib
 import glob, copy
-import mpp_luncheck
 import scsiutil
 import xml.dom.minidom
 
@@ -397,18 +396,11 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 nluns=len(luns)-1 # remove the line relating to the final \n
                 # check if the LUNs are MPP-RDAC Luns
                 scsi_id = scsiutil.getSCSIid(sgdev)
-                mpp_lun = False
-                if (mpp_luncheck.is_RdacLun(scsi_id)):
-                    mpp_lun = True
-                    link=glob.glob('/dev/disk/by-scsibus/%s-*' % scsi_id)
-                    mpp_adapter = link[0].split('/')[-1].split('-')[-1].split(':')[0]
 
                 # make sure we've got that many sg devices present
                 for i in range(0,30): 
                     luns=scsiutil._dosgscan()
                     sgdevs=filter(lambda r: r[1]==adapter, luns)
-                    if mpp_lun:
-                        sgdevs.extend(filter(lambda r: r[1]==mpp_adapter, luns))
                     if len(sgdevs)>=nluns:
                         util.SMlog("Got all %d sg devices" % nluns)
                         break
@@ -542,22 +534,13 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
 # as this will remove it (which may well be in use).
         if self.mpath == 'true' and self.dconf.has_key('SCSIid'):
             maps = []
-            mpp_lun = False
             try:
-                if (mpp_luncheck.is_RdacLun(self.dconf['SCSIid'])):
-                    mpp_lun = True
-                    link=glob.glob('/dev/disk/mpInuse/%s-*' % self.dconf['SCSIid'])
-                else:
-                    maps = mpath_cli.list_maps()
+                maps = mpath_cli.list_maps()
             except:
                 pass
 
-            if (mpp_lun):
-                if (len(link)):
-                    raise xs_errors.XenError('SRInUse')
-            else:
-                if self.dconf['SCSIid'] in maps:
-                    raise xs_errors.XenError('SRInUse')
+            if self.dconf['SCSIid'] in maps:
+                raise xs_errors.XenError('SRInUse')
 
         self.iscsi.attach(self.uuid)
         if not self.iscsi._attach_LUN_bySCSIid(self.SCSIid):

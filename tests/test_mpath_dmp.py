@@ -73,26 +73,22 @@ class TestMpathDmp(unittest.TestCase):
                                        (0, "out", "err")]
         self.assertTrue(mpath_dmp._is_valid_multipath_device("fake_dev"))
 
-    @mock.patch('mpath_dmp.mpp_luncheck.is_RdacLun', autospec=True)
     @mock.patch('util.pread2', autospec=True)
     @mock.patch('mpath_dmp.os.mkdir', autospec=True)
-    def test_activate_no_exception(self, mock_mkdir, pread2, is_rdaclun):
+    def test_activate_no_exception(self, mock_mkdir, pread2):
         """
         Test that activeate MPDev works if directory does not exist
         """
-        is_rdaclun.return_value = False
         mpath_dmp.activate_MPdev("sid", "dst")
         pread2.assert_called_with(['ln', '-sf', "dst", os.path.join(mpath_dmp.MP_INUSEDIR, "sid")])
 
-    @mock.patch('mpath_dmp.mpp_luncheck.is_RdacLun', autospec=True)
     @mock.patch('util.pread2', autospec=True)
     @mock.patch('mpath_dmp.os.mkdir', autospec=True)
-    def test_activate_exists_success(self, mock_mkdir, pread2, is_rdaclun):
+    def test_activate_exists_success(self, mock_mkdir, pread2):
         """
         Test that activeate MPDev works if directory exists
         """
         mock_mkdir.side_effect = [OSError(errno.EEXIST, "Directory exists")]
-        is_rdaclun.return_value = False
         mpath_dmp.activate_MPdev("sid", "dst")
         pread2.assert_called_with(['ln', '-sf', "dst", os.path.join(mpath_dmp.MP_INUSEDIR, "sid")])
 
