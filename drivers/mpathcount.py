@@ -20,7 +20,6 @@ import time, os, sys, re
 import xs_errors
 import lock
 import mpath_cli
-import mpp_luncheck
 import mpp_mpathutil
 import glob
 import json
@@ -94,9 +93,6 @@ def _tostring(l):
 
 def get_path_count(SCSIid, active=True):
     count = 0
-    if (mpp_luncheck.is_RdacLun(SCSIid)):
-        (total_count, active_count) = mpp_mpathutil.get_pathinfo(SCSIid)
-        return (total_count, active_count)
     lines = mpath_cli.get_topology(SCSIid)
     for line in filter(match_dmpLUN,lines):
         if not active:
@@ -125,20 +121,11 @@ def update_config(key, SCSIid, entry, remove, add, mpp_path_update = False):
         add(key,str(entry))
         return
 
-    rdaclun = False
-    if (mpp_luncheck.is_RdacLun(SCSIid)):
-        rdaclun = True
-        pathlist = glob.glob('/dev/disk/mpInuse/%s-*' % SCSIid)
-        path = pathlist[0]
-    else:
-        path = MP_INUSEDIR + "/" + SCSIid
+    path = MP_INUSEDIR + "/" + SCSIid
     util.SMlog("MPATH: Updating entry for [%s], current: %s" % (SCSIid,entry))
     if os.path.exists(path):
-        if rdaclun:
-            (total, count) = get_path_count(SCSIid)
-        else:
-            count = get_path_count(SCSIid)
-            total = get_path_count(SCSIid, active=False)
+        count = get_path_count(SCSIid)
+        total = get_path_count(SCSIid, active=False)
         max = 0
 	if len(entry) != 0:
             try:
@@ -154,9 +141,6 @@ def update_config(key, SCSIid, entry, remove, add, mpp_path_update = False):
         if str(newentry) != entry:
             remove('multipathed')
             remove(key)
-            if rdaclun:
-                remove('MPPEnabled')
-                add('MPPEnabled','true')
             add('multipathed','true')
             add(key,str(newentry))
             util.SMlog("MPATH: Set val: %s" % str(newentry))

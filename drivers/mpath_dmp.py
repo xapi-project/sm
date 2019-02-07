@@ -23,7 +23,6 @@ import os
 import glob
 import time
 import scsiutil
-import mpp_luncheck
 import wwid_conf
 import errno
 
@@ -37,7 +36,6 @@ DEVBYIDPATH = "/dev/disk/by-id"
 DEVBYSCSIPATH = "/dev/disk/by-scsibus"
 DEVBYMPPPATH = "/dev/disk/by-mpp"
 SYSFS_PATH='/sys/class/scsi_host'
-UMPD_PATH='/var/run/updatempppathd.py.pid'
 MP_INUSEDIR = "/dev/disk/mpInuse"
 
 MPPGETAIDLNOBIN = "/opt/xensource/bin/xe-get-arrayid-lunnum"
@@ -47,14 +45,6 @@ def _is_mpath_daemon_running():
     (rc,stdout,stderr) = util.doexec(cmd)
     return (rc==0)
 
-def _is_mpp_daemon_running():
-    #cmd = ["/sbin/pidof", "-s", "/opt/xensource/sm/updatempppathd.py"]
-    #(rc,stdout,stderr) = util.doexec(cmd)
-    if os.path.exists(UMPD_PATH):
-        return True
-    else:
-        return False
-
 def activate_MPdev(sid, dst):
     try:
         os.mkdir(MP_INUSEDIR)
@@ -63,34 +53,18 @@ def activate_MPdev(sid, dst):
             pass
         else:
             raise
-    if (mpp_luncheck.is_RdacLun(sid)):
-        suffix = get_TargetID_LunNUM(sid)
-        sid_with_suffix = sid + "-" + suffix
-        path = os.path.join(MP_INUSEDIR, sid_with_suffix)
-    else:
-        path = os.path.join(MP_INUSEDIR, sid)
+    path = os.path.join(MP_INUSEDIR, sid)
     cmd = ['ln', '-sf', dst, path]
     util.pread2(cmd)
 
 def deactivate_MPdev(sid):
-    if (mpp_luncheck.is_RdacLun(sid)):
-        pathlist = glob.glob('/dev/disk/mpInuse/%s-*' % sid)
-        path = pathlist[0]
-    else:
-        path = os.path.join(MP_INUSEDIR, sid)
+    path = os.path.join(MP_INUSEDIR, sid)
     if os.path.exists(path):
         os.unlink(path)
         
 def reset(sid,explicit_unmap=False,delete_nodes=False):
     util.SMlog("Resetting LUN %s" % sid)
-    if (mpp_luncheck.is_RdacLun(sid)):
-        _resetMPP(sid,explicit_unmap)
-    else:
-        _resetDMP(sid,explicit_unmap,delete_nodes)
-
-def _resetMPP(sid,explicit_unmap):
-    deactivate_MPdev(sid)
-    return
+    _resetDMP(sid,explicit_unmap,delete_nodes)
 
 def _delete_node(dev):
     try:
@@ -200,10 +174,7 @@ def refresh(sid,npaths):
             scsiutil.rescan(scsiutil._genHostList(""))
             if not util.wait_for_path(path,60):
                 raise xs_errors.XenError('Device not appeared yet')
-        if not (mpp_luncheck.is_RdacLun(sid)):
-            _refresh_DMP(sid,npaths)
-        else:
-            _refresh_MPP(sid,npaths)
+        _refresh_DMP(sid,npaths)
     else:
         raise xs_errors.XenError('MPath not written yet')
 
@@ -273,13 +244,6 @@ def _refresh_DMP(sid, npaths):
     util.wait_for_path(lvm_path, 10)
     activate_MPdev(sid, path)
 
-def _refresh_MPP(sid, npaths):
-    path = os.path.join(DEVBYMPPPATH,"%s" % sid)
-    mpppath = glob.glob(path)
-    if not len(mpppath):
-            raise xs_errors.XenError('MPP RDAC activate failed to detect mpp path')
-    activate_MPdev(sid,mpppath[0])
-
 def activate():
     util.SMlog("MPATH: multipath activate called")
     cmd = ['ln', '-sf', iscsi_mpath_file, iscsi_file]
@@ -296,11 +260,6 @@ def activate():
     if iscsilib.is_iscsi_daemon_running():
         if not iscsilib._checkAnyTGT():
             iscsilib.restart_daemon()
-        
-    # Start the updatempppathd daemon
-    if not _is_mpp_daemon_running():
-        cmd = ["service", "updatempppathd", "start"]
-        util.pread2(cmd)
 
     if not _is_mpath_daemon_running():
         util.SMlog("Warning: multipath daemon not running.  Starting daemon!")
@@ -321,11 +280,6 @@ def deactivate():
     cmd = ['ln', '-sf', iscsi_default_file, iscsi_file]
     if os.path.exists(iscsi_default_file):
         # Only do this if using our customized open-iscsi package
-        util.pread2(cmd)
-
-    # Stop the updatempppathd daemon
-    if _is_mpp_daemon_running():
-        cmd = ["service", "updatempppathd", "stop"]
         util.pread2(cmd)
 
     if _is_mpath_daemon_running():
@@ -351,16 +305,7 @@ def deactivate():
 
 def path(SCSIid):
     if _is_valid_multipath_device(SCSIid) and _is_mpath_daemon_running():
-        if (mpp_luncheck.is_RdacLun(SCSIid)):
-            pathlist = glob.glob('/dev/disk/mpInuse/%s-*' % SCSIid)
-            util.SMlog("pathlist is:")
-            util.SMlog(pathlist)
-            if len(pathlist):
-                path = pathlist[0]
-            else:
-                path = os.path.join(MP_INUSEDIR, SCSIid)
-        else:
-            path = os.path.join(MP_INUSEDIR, SCSIid)
+        path = os.path.join(MP_INUSEDIR, SCSIid)
         return path
     else:
         return DEVBYIDPATH + "/scsi-" + SCSIid
