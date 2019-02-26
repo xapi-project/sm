@@ -1,4 +1,5 @@
 SUBSYSTEM!="block", GOTO="end_mpath"
+KERNEL=="nbd*", GOTO="end_mpath"
 KERNEL!="dm-*", GOTO="count_mpath"
 ACTION=="add", PROGRAM=="/bin/bash -c '/sbin/dmsetup info -c -o name --noheadings -j %M -m %m | /bin/grep VG_XenStorage'", GOTO="end_mpath"
 ACTION=="add", PROGRAM=="/bin/bash -c '/sbin/dmsetup info -c -o name --noheadings -j %M -m %m | /bin/grep XSLocalEXT'", GOTO="end_mpath"
