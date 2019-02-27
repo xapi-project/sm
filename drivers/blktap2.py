@@ -1472,9 +1472,11 @@ class VDI(object):
         host_ref = self._session.xenapi.host.get_by_uuid(util.get_this_host())
         sm_config = self._session.xenapi.VDI.get_sm_config(vdi_ref)
         host_key = "host_%s" % host_ref
-        assert sm_config.has_key(host_key)
-        self._session.xenapi.VDI.remove_from_sm_config(vdi_ref, host_key)
-        util.SMlog("Removed host key %s for %s" % (host_key, vdi_uuid))
+        if sm_config.has_key(host_key):
+            self._session.xenapi.VDI.remove_from_sm_config(vdi_ref, host_key)
+            util.SMlog("Removed host key %s for %s" % (host_key, vdi_uuid))
+        else:
+            util.SMlog("_remove_tag: host key %s not found, ignore" % host_key)
 
     def _get_pool_config(self, pool_name):
         pool_info = dict()
