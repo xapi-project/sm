@@ -136,14 +136,21 @@ def getVHDInfoLVM(lvName, extractUuidFunction, vgName):
 def getAllVHDs(pattern, extractUuidFunction, vgName = None, \
         parentsOnly = False, exitOnError = False):
     vhds = dict()
-    cmd = [VHD_UTIL, "scan", "-f", "-c", "-m", pattern]
+    cmd = [VHD_UTIL, "scan", "-f", "-m", pattern]
     if vgName:
         cmd.append("-l")
         cmd.append(vgName)
     if parentsOnly:
         cmd.append("-a")
-    ret = ioretry(cmd)
+    try:
+        ret = ioretry(cmd)
+    except Exception, e:
+        util.SMlog("WARN: vhd scan failed: output: %s" % e)
+        ret = ioretry(cmd + ["-c"])
+        util.SMlog("WARN: vhd scan with NOFAIL flag, output: %s" % ret)
     for line in ret.split('\n'):
+        if len(line.strip()) == 0:
+            continue
         vhdInfo = _parseVHDInfo(line, extractUuidFunction)
         if vhdInfo:
             if vhdInfo.error != 0 and exitOnError:
@@ -152,6 +159,8 @@ def getAllVHDs(pattern, extractUuidFunction, vgName = None, \
                 # how this has been discovered during the stress tests.
                 return dict()
             vhds[vhdInfo.uuid] = vhdInfo
+        else:
+            util.SMlog("WARN: vhdinfo line doesn't parse correctly: %s" % line)
     return vhds
 
 def getParentChain(lvName, extractUuidFunction, vgName):

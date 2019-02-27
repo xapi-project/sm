@@ -24,6 +24,7 @@ import xs_errors
 import cleanup
 import blktap2
 import time
+import glob
 from lock import Lock
 import xmlrpclib
 from constants import CBTLOG_TAG
@@ -257,6 +258,13 @@ class FileSR(SR.SR):
         except util.CommandException, inst:
             raise xs_errors.XenError('SRScan', opterr="error VHD-scanning " \
                     "path %s (%s)" % (self.path, inst))
+        try:
+            list_vhds = [FileVDI.extractUuid(v) for v in util.ioretry(lambda: glob.glob(pattern))]
+            if len(self.vhds) != len(list_vhds):
+                util.SMlog("VHD scan returns %d VHDs: %s" % (len(self.vhds), sorted(list(self.vhds))))
+                util.SMlog("VHD list returns %d VHDs: %s" % (len(list_vhds), sorted(list_vhds)))
+        except:
+            pass
         for uuid in self.vhds.iterkeys():
             if self.vhds[uuid].error:
                 raise xs_errors.XenError('SRScan', opterr='uuid=%s' % uuid)
