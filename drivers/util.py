@@ -1135,6 +1135,9 @@ class FistPoint:
         #SMlog("Fist points loaded")
         self.points = points
 
+    def is_legal(self, name):
+        return (name in self.points)
+
     def is_active(self, name):
         return os.path.exists("/tmp/fist_%s" % name)
 
@@ -1172,6 +1175,8 @@ def list_find(f, seq):
     for item in seq:
         if f(item): 
             return item
+
+GCPAUSE_FISTPOINT = "GCLoop_no_pause"
 
 fistpoint = FistPoint( ["LVHDRT_finding_a_suitable_pair", 
                         "LVHDRT_inflating_the_parent", 
@@ -1218,7 +1223,8 @@ fistpoint = FistPoint( ["LVHDRT_finding_a_suitable_pair",
                         "testsm_clone_allow_raw",
                         "xenrt_default_vdi_type_legacy",
                         "blktap_activate_inject_failure",
-                        "blktap_activate_error_handling"] )
+                        "blktap_activate_error_handling",
+                        GCPAUSE_FISTPOINT] )
 
 def set_dirty(session, sr):
     try:
