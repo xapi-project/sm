@@ -44,7 +44,6 @@ import blktap2
 from refcounter import RefCounter
 from ipc import IPCFlag
 from lvmanager import LVActivator
-import blktap2
 from srmetadata import LVMMetadataHandler
 
 # Disable automatic leaf-coalescing. Online leaf-coalesce is currently not 
@@ -2541,16 +2540,38 @@ def normalizeType(type):
         raise util.SMException("Unsupported SR type: %s" % type)
     return type
 
+
+GCPAUSE_DEFAULT_SLEEP = 5 * 60
+
+
+def _gcLoopPause(sr, dryRun):
+
+    # Check to see if the GCPAUSE_FISTPOINT is present. If so the fist
+    # point will just return. Otherwise, fall back on an abortable sleep.
+
+    if util.fistpoint.is_active(util.GCPAUSE_FISTPOINT):
+
+        util.fistpoint.activate_custom_fn(util.GCPAUSE_FISTPOINT,
+                                          lambda *args: None)
+    else:
+        def abortTest():
+            return IPCFlag(sr.uuid).test(FLAG_TYPE_ABORT)
+
+        # If time.sleep hangs we are in deep trouble, however for
+        # completeness we set the timeout of the abort thread to
+        # 110% of GCPAUSE_DEFAULT_SLEEP.
+        Util.log("GC active, about to go quiet")
+        Util.runAbortable(lambda: time.sleep(GCPAUSE_DEFAULT_SLEEP),
+                          None, sr.uuid, abortTest, VDI.POLL_INTERVAL,
+                          GCPAUSE_DEFAULT_SLEEP*1.1)
+        Util.log("GC active, quiet period ended")
+
 def _gcLoop(sr, dryRun):
     if not lockActive.acquireNoblock():
         Util.log("Another GC instance already active, exiting")
         return
     try:
-        # TODO: make the delay configurable
-        Util.log("GC active, about to go quiet")
-        time.sleep(5 * 60)
-        Util.log("GC active, quiet period ended")
-
+        _gcLoopPause(sr, dryRun)
         while True:
             if not sr.xapi.isPluggedHere():
                 Util.log("SR no longer attached, exiting")
@@ -2617,19 +2638,19 @@ def _abort(srUuid, soft=False):
     soft: If set to True and there is a pending abort signal, the function
     doesn't do anything. If set to False, a new abort signal is issued.
 
-    returns: If soft is set to False, we return True holding lockRunning. If
+    returns: If soft is set to False, we return True holding lockActive. If
     soft is set to False and an abort signal is pending, we return False
-    without holding lockRunning. An exception is raised in case of error."""
+    without holding lockActive. An exception is raised in case of error."""
     Util.log("=== SR %s: abort ===" % (srUuid))
     init(srUuid)
-    if not lockRunning.acquireNoblock():
+    if not lockActive.acquireNoblock():
         gotLock = False
         Util.log("Aborting currently-running instance (SR %s)" % srUuid)
         abortFlag = IPCFlag(srUuid)
         if not abortFlag.set(FLAG_TYPE_ABORT, soft):
             return False
         for i in range(SR.LOCK_RETRY_ATTEMPTS):
-            gotLock = lockRunning.acquireNoblock()
+            gotLock = lockActive.acquireNoblock()
             if gotLock:
                 break
             time.sleep(SR.LOCK_RETRY_INTERVAL)
@@ -2691,7 +2712,7 @@ def abort(srUuid, soft=False):
     """
     if _abort(srUuid, soft):
         Util.log("abort: releasing the process lock")
-        lockRunning.release()
+        lockActive.release()
         return True
     else:
         return False
@@ -2742,7 +2763,7 @@ def gc_force(session, srUuid, force = False, dryRun = False, lockSR = False):
     init(srUuid)
     sr = SR.getInstance(srUuid, session, lockSR, True)
     if not lockRunning.acquireNoblock():
-        _abort(srUuid)
+        abort(srUuid)
     else:
         Util.log("Nothing was running, clear to proceed")
 
@@ -2829,6 +2850,16 @@ def debug(sr_uuid, cmd, vdi_uuid):
     sr.scanLocked()
     print "VDI after:  %s" % vdi
 
+
+def abort_optional_reenable(uuid):
+    print "Disabling GC/coalesce for %s" % uuid
+    ret = _abort(uuid)
+    raw_input("Press enter to re-enable...")
+    print "GC/coalesce re-enabled"
+    lockRunning.release()
+    if ret:
+        lockActive.release()
+
 ##############################################################################
 #
 #  CLI
@@ -2898,11 +2929,7 @@ def main():
     elif action == "query":
         print "Currently running: %s" % get_state(uuid)
     elif action == "disable":
-        print "Disabling GC/coalesce for %s" % uuid
-        _abort(uuid)
-        raw_input("Press enter to re-enable...")
-        print "GC/coalesce re-enabled"
-        lockRunning.release()
+        abort_optional_reenable(uuid)
     elif action == "debug":
         debug(uuid, debug_cmd, vdi_uuid)
 
