@@ -977,6 +977,22 @@ def dom0_disks():
     SMlog("Dom0 disks: %s" % disks)
     return disks
 
+def set_scheduler_sysfs_node(node, str):
+    """Set the scheduler for a sysfs node (e.g. '/sys/block/sda')"""
+
+    path = os.path.join(node, "queue", "scheduler")
+    if not os.path.exists(path):
+        SMlog("no path %s" % path)
+        return
+    try:
+        f = open(path, 'w')
+        f.write("%s\n" % str)
+        f.close()
+        SMlog("Set scheduler to [%s] on [%s]" % (str, node))
+    except:
+        SMlog("Error setting scheduler to [%s] on [%s]" % (str, node))
+        pass
+
 def set_scheduler(dev, str):
     devices = []
     if not scsiutil.match_dm(dev):
@@ -987,18 +1003,7 @@ def set_scheduler(dev, str):
         devices = map(lambda x: os.path.realpath(x)[5:], scsiutil._genReverseSCSIidmap(rawdev.split('/')[-1]))
 
     for d in devices:
-        path = "/sys/block/%s/queue/scheduler" % d
-        if not os.path.exists(path):
-            SMlog("no path %s" % path)
-            return
-        try:
-            f = open(path, 'w')
-            f.write("%s\n" % str)
-            f.close()
-            SMlog("Set scheduler to [%s] on dev [%s]" % (str,d))
-        except:
-            SMlog("Error setting scheduler to [%s] on dev [%s]" % (str,d))
-            pass
+        set_scheduler_sysfs_node("/sys/block/%s" % d, str)
 
 # This function queries XAPI for the existing VDI records for this SR
 def _getVDIs(srobj):
