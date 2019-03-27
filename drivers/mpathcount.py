@@ -30,7 +30,7 @@ LOCK_TYPE_HOST = "host"
 LOCK_NS1 = "mpathcount1"
 LOCK_NS2 = "mpathcount2"
 
-MP_INUSEDIR = "/dev/disk/mpInuse"
+MAPPER_DIR = "/dev/mapper"
 mpp_path_update = False
 match_bySCSIid = False
 mpath_enabled = True
@@ -121,7 +121,7 @@ def update_config(key, SCSIid, entry, remove, add, mpp_path_update = False):
         add(key,str(entry))
         return
 
-    path = MP_INUSEDIR + "/" + SCSIid
+    path = os.path.join(MAPPER_DIR, SCSIid)
     util.SMlog("MPATH: Updating entry for [%s], current: %s" % (SCSIid,entry))
     if os.path.exists(path):
         count = get_path_count(SCSIid)
