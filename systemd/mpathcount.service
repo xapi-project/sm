@@ -3,5 +3,7 @@ Description=Multipath scanner
 
 [Service]
 StandardInput=socket
+StandardOutput=null
+StandardError=journal
 ExecStart=/usr/bin/sh -c '. /etc/xensource-inventory; while dd of=/dev/null bs=4096 count=1 status=none conv=noerror; do /opt/xensource/sm/mpathcount.py; done'
 Restart=always
