@@ -1,7 +1,6 @@
 XS_INCLUDE ?= /usr/include
 
 PREFIX ?= /opt/xensource/sm/snapwatchd
-INITDIR ?= /etc/rc.d/init.d
 SYSTEMD_SERVICE_DIR ?= /usr/lib/systemd/system
 DESTDIR ?= 
 
