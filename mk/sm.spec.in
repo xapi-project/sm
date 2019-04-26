@@ -33,19 +33,18 @@ DESTDIR=$RPM_BUILD_ROOT make install
 %clean
 rm -rf $RPM_BUILD_ROOT
 
+%pre
+# Remove sm-multipath on install or upgrade, to ensure it goes
+[ ! -x /sbin/chkconfig ] || chkconfig --del sm-multipath || :
+
 %post
-[ ! -x /sbin/chkconfig ] || chkconfig --add mpathroot
-[ ! -x /sbin/chkconfig ] || chkconfig --add sm-multipath
-service sm-multipath start
 %systemd_post make-dummy-sr.service
 %systemd_post mpcount.service
 %systemd_post snapwatchd.service
+%systemd_post sm-mpath-root.service
 %systemd_post xs-sm.service
 %systemd_post usb-scan.socket
 %systemd_post mpathcount.socket
-/bin/systemctl enable xs-sm.service >/dev/null 2>&1 || :
-/bin/systemctl enable usb-scan.socket >/dev/null 2>&1 || :
-/bin/systemctl enable mpathcount.socket >/dev/null 2>&1 || :
 
 [ -f /etc/lvm/lvm.conf.orig ] || cp /etc/lvm/lvm.conf /etc/lvm/lvm.conf.orig || exit $?
 [ -d /etc/lvm/master ] || mkdir /etc/lvm/master || exit $?
@@ -72,12 +71,14 @@ update-alternatives --install /etc/multipath.conf multipath.conf /etc/multipath.
 %systemd_preun make-dummy-sr.service
 %systemd_preun mpcount.service
 %systemd_preun snapwatchd.service
+%systemd_preun sm-mpath-root.service
 %systemd_preun xs-sm.service
 %systemd_preun usb-scan.socket
 %systemd_preun mpathcount.socket
-#only remove in case of erase (but not at upgrade)
+# Remove sm-multipath on upgrade or uninstall, to ensure it goes
+[ ! -x /sbin/chkconfig ] || chkconfig --del sm-multipath || :
+# only remove in case of erase (but not at upgrade)
 if [ $1 -eq 0 ] ; then
-    [ ! -x /sbin/chkconfig ] || chkconfig --del sm-multipath
     update-alternatives --remove multipath.conf /etc/multipath.xenserver/multipath.conf
 fi
 exit 0
@@ -86,6 +87,7 @@ exit 0
 %systemd_postun make-dummy-sr.service
 %systemd_postun mpcount.service
 %systemd_postun_with_restart snapwatchd.service
+%systemd_postun sm-mpath-root.service
 %systemd_postun xs-sm.service
 if [ $1 -eq 0 ]; then
     [ ! -d /etc/lvm/master ] || rm -Rf /etc/lvm/master || exit $?
@@ -94,16 +96,11 @@ elif [ $1 -eq 1 ]; then
     true;
 fi
 
-%posttrans
-[ ! -x /sbin/chkconfig ] || chkconfig --add sm-multipath
-
-
 %check
 tests/run_python_unittests.sh
 
 %files
 %defattr(-,root,root,-)
-/etc/rc.d/init.d/mpathroot
 /etc/udev/scripts/xs-mpath-scsidev.sh
 /etc/xapi.d/plugins/coalesce-leaf
 /etc/xapi.d/plugins/lvhd-thin
@@ -329,11 +326,13 @@ tests/run_python_unittests.sh
 /opt/xensource/sm/cbtutil.py
 /opt/xensource/sm/cbtutil.pyc
 /opt/xensource/sm/cbtutil.pyo
+/opt/xensource/sm/multipath-root-setup
 /sbin/mpathutil
 /etc/rc.d/init.d/sm-multipath
 %{_unitdir}/make-dummy-sr.service
 %{_unitdir}/snapwatchd.service
 %{_unitdir}/xs-sm.service
+%{_unitdir}/sm-mpath-root.service
 %{_unitdir}/usb-scan.service
 %{_unitdir}/usb-scan.socket
 %{_unitdir}/mpathcount.service

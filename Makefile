@@ -93,7 +93,6 @@ SM_PY_FILES = $(foreach LIB, $(SM_LIBS), drivers/$(LIB).py) $(foreach DRIVER, $(
 .PHONY: build
 build:
 	make -C dcopy 
-	make -C mpathroot
 
 .PHONY: precommit
 precommit: build
@@ -151,8 +150,10 @@ install: precheck
 	  $(SM_STAGING)$(SM_DEST)/plugins/
 	install -m 644 multipath/$(MPATH_CONF) \
 	  $(SM_STAGING)/$(MPATH_CONF_DIR)
-	install -m 755 multipath/$(MPATH_DAEMON) \
+	install -m 755 multipath/sm-multipath \
 	  $(SM_STAGING)/$(INIT_DIR)
+	install -m 755 multipath/multipath-root-setup \
+	  $(SM_STAGING)/$(SM_DEST)
 	install -m 644 etc/logrotate.d/$(SMLOG_CONF) \
 	  $(SM_STAGING)/$(LOGROTATE_DIR)
 	install -m 644 etc/make-dummy-sr.service \
@@ -160,6 +161,8 @@ install: precheck
 	install -m 644 snapwatchd/snapwatchd.service \
 	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
 	install -m 644 systemd/xs-sm.service \
+	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
+	install -m 644 systemd/sm-mpath-root.service \
 	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
 	install -m 644 systemd/usb-scan.* \
 	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
@@ -205,7 +208,6 @@ install: precheck
 	install -m 755 scripts/kickpipe $(SM_STAGING)$(LIBEXEC)
 	$(MAKE) -C dcopy install DESTDIR=$(SM_STAGING)
 	$(MAKE) -C snapwatchd install DESTDIR=$(SM_STAGING)
-	$(MAKE) -C mpathroot install DESTDIR=$(SM_STAGING)
 	ln -sf $(SM_DEST)blktap2.py $(SM_STAGING)$(BIN_DEST)/blktap2
 	ln -sf $(SM_DEST)lcache.py $(SM_STAGING)$(BIN_DEST)tapdisk-cache-stats
 	ln -sf /dev/null $(SM_STAGING)$(UDEV_RULES_DIR)/69-dm-lvm-metad.rules
