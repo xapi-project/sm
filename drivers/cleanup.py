@@ -2571,6 +2571,11 @@ def _gcLoop(sr, dryRun):
         Util.log("Another GC instance already active, exiting")
         return
     try:
+        # Check if any work needs to be done
+        sr.scanLocked()
+        if not sr.hasWork():
+            Util.log("No work, exiting")
+            return
         _gcLoopPause(sr, dryRun)
         while True:
             if not sr.xapi.isPluggedHere():
