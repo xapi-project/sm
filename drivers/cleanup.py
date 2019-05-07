@@ -2767,7 +2767,7 @@ def gc_force(session, srUuid, force = False, dryRun = False, lockSR = False):
     Util.log("=== SR %s: gc_force ===" % srUuid)
     init(srUuid)
     sr = SR.getInstance(srUuid, session, lockSR, True)
-    if not lockRunning.acquireNoblock():
+    if not lockActive.acquireNoblock():
         abort(srUuid)
     else:
         Util.log("Nothing was running, clear to proceed")
@@ -2783,7 +2783,7 @@ def gc_force(session, srUuid, force = False, dryRun = False, lockSR = False):
     finally:
         sr.cleanup()
         sr.logFilter.logState()
-        lockRunning.release()
+        lockActive.release()
 
 def get_state(srUuid):
     """Return whether GC/coalesce is currently running or not. The information
