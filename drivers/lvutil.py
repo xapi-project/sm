@@ -545,12 +545,8 @@ def setReadonly(path, readonly):
     ret = cmd_lvm([CMD_LVCHANGE, path, "-p", val], pread_func=util.pread)
 
 def exists(path):
-    try:
-        ret = cmd_lvm([CMD_LVS, "--noheadings", path])
-        return True
-    except util.CommandException, e:
-        util.SMlog("Ignoring exception for LV check: %s !" % path)
-        return False
+    (rc, stdout, stderr) = cmd_lvm([CMD_LVS, "--noheadings", path], pread_func=util.doexec)
+    return rc == 0
 
 def setSize(path, size, confirm):
     sizeMB = size / (1024 * 1024)
