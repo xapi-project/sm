@@ -2803,7 +2803,7 @@ def should_preempt(session, srUuid):
         return False
     elif len(entries) > 1:
         raise util.SMException("More than one coalesce entry: " + str(entries))
-    sr.scan()
+    sr.scanLocked()
     coalescedUuid = entries.popitem()[0]
     garbage = sr.findGarbage()
     for vdi in garbage:
