@@ -870,17 +870,19 @@ def _testHost(hostname, port, errstring):
 	logException('Exception occured getting IP for %s'%hostname)
         raise xs_errors.XenError('DNSError')
 
+    timeout = 5
+
     sock = socket.socket(sockinfo[0], socket.SOCK_STREAM)
-    # Only allow the connect to block for up to 2 seconds
-    sock.settimeout(2)
+    # Only allow the connect to block for up to timeout seconds
+    sock.settimeout(timeout)
     try:
         sock.connect(sockinfo[4])
         # Fix for MS storage server bug
         sock.send('\n')
         sock.close()
     except socket.error, reason:
-        SMlog("_testHost: Connect failed after 2 seconds (%s) - %s" \
-                   % (hostname, reason))
+        SMlog("_testHost: Connect failed after %d seconds (%s) - %s" \
+                   % (timeout, hostname, reason))
         raise xs_errors.XenError(errstring)
 
 def match_scsiID(s, id):
