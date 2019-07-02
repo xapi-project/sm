@@ -493,12 +493,14 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                         raise
                 else:
                     connected = True
-                # Check if at least on iscsi succeeded
-                if not connected:
-                    raise stored_exception
 
                 if not i._attach_LUN_bySCSIid(self.SCSIid):
                     raise xs_errors.XenError('InvalidDev')
+
+            # Check if at least one iscsi succeeded
+            if not connected:
+                raise stored_exception
+
             if self.dconf.has_key('multiSession'):
                 # Force a manual bus refresh
                 for a in self.iscsi.adapter:
