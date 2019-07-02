@@ -863,13 +863,6 @@ class TestCBT(unittest.TestCase):
     def _check_setting_not_changed(self):
         pass
 
-    def _check_tapdisk_refreshed(self, check_mock):
-        check_mock.tap_refresh.assert_called_with(self.sr.session,
-                                                  self.sr_uuid, self.vdi_uuid)
-        # python2-mock-1.0.1-9.el doesn't support these asserts
-        #check_mock.tap_pause.assert_not_called()
-        #check_mock.tap_unpause.assert_not_called()
-
     def _check_tapdisk_paused_and_resumed(self, check_mock, vdi_uuid):
         check_mock.tap_pause.assert_called_with(self.sr.session,
                                                 self.sr_uuid, vdi_uuid)

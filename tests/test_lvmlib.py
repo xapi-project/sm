@@ -55,6 +55,20 @@ class TestLVSubSystem(unittest.TestCase, ExecResultMixIn):
 
         self.assertEquals('vg', vg.name)
 
+    def test_add_multiple_volume_groups(self):
+        lvsubsystem = lvmlib.LVSubsystem(None, mock.Mock())
+
+        lvsubsystem.add_volume_group('vg1')
+        lvsubsystem.add_volume_group('vg2')
+        lvsubsystem.add_volume_group('vg3')
+        vg1 = lvsubsystem.get_volume_group('vg1')
+        vg2 = lvsubsystem.get_volume_group('vg2')
+        vg3 = lvsubsystem.get_volume_group('vg3')
+
+        self.assertEquals('vg1', vg1.name)
+        self.assertEquals('vg2', vg2.name)
+        self.assertEquals('vg3', vg3.name)
+
     def test_fake_lvcreate_creates_volume(self):
         lvsubsystem = lvmlib.LVSubsystem(mock.Mock(), mock.Mock())
         vg = lvsubsystem.add_volume_group('vg')
@@ -102,6 +116,25 @@ class TestLVSubSystem(unittest.TestCase, ExecResultMixIn):
 
         self.assertFalse(lv.zeroed)
         self.assertExecutionSucceeded(exec_result)
+
+    def test_get_the_correct_volume(self):
+        lvsubsystem = lvmlib.LVSubsystem(mock.Mock(), mock.Mock())
+        lvsubsystem.add_volume_group('vg')
+
+        result1 = lvsubsystem.fake_lvcreate(
+            "someprog -n name1 --zero n -L 100 vg".split(), '')
+
+        result2 = lvsubsystem.fake_lvcreate(
+            "someprog -n name2 --zero n -L 200 vg".split(), '')
+
+        lv, = lvsubsystem.get_logical_volumes_with_name('name1')
+        self.assertEqual(100, lv.size_mb)
+
+        lv, = lvsubsystem.get_logical_volumes_with_name('name2')
+        self.assertEqual(200, lv.size_mb)
+
+        # Now remove them
+        lvsubsystem.fake_lvremove('someprog vg/name2'.split(), '')
 
     def test_fake_lvcreate_called_with_wrong_params(self):
         lvsubsystem = lvmlib.LVSubsystem(mock.Mock(), mock.Mock())
