@@ -1,3 +1,4 @@
+import errno
 import unittest
 import mock
 import __builtin__
@@ -31,9 +32,7 @@ class AlwaysFreeLock(object):
 
 
 class TestRelease(object):
-    def release(self):
-        None
-
+    pass
 
 class IrrelevantLock(object):
     pass
@@ -55,12 +54,6 @@ class TestSR(unittest.TestCase):
     def setup_abort_flag(self, ipc_mock, should_abort=False):
         flag = mock.Mock()
         flag.test = mock.Mock(return_value=should_abort)
-
-        ipc_mock.return_value = flag
-
-    def setup_flag_set(self, ipc_mock):
-        flag = mock.Mock()
-        flag.set = mock.Mock(return_value=False)
 
         ipc_mock.return_value = flag
 
@@ -438,10 +431,14 @@ class TestSR(unittest.TestCase):
         cleanup.lockActive = mocked_lock
 
         # We've failed repeatedly to gain the lock so raise exception.
-        with self.assertRaises(util.CommandException):
+        with self.assertRaises(util.CommandException) as te:
             cleanup._abort(None)
-            self.assertEqual(mocked_lock.acquireNoblock.call_count,
-                             cleanup.SR.LOCK_RETRY_ATTEMPTS+1)
+
+        the_exception = te.exception
+        self.assertIsNotNone(the_exception)
+        self.assertEqual(errno.ETIMEDOUT, the_exception.code)
+        self.assertEqual(mocked_lock.acquireNoblock.call_count,
+                         cleanup.SR.LOCK_RETRY_ATTEMPTS+1)
 
     @mock.patch('cleanup.IPCFlag', autospec=True)
     @mock.patch('cleanup.init')
