@@ -29,7 +29,23 @@ fi
             --xunit-file=nosetests.xml \
             tests
 
+    # Handle coverage errors explicitly
+    set +e
+
+    echo "Test coverage"
+    coverage report -m --fail-under=100 --include=$SMROOT/tests/*
+
+    if [ $? -ne 0 ]
+    then
+        echo "Test code not fully covered"
+        exit 1
+    fi
+
+    set -e
+
+    echo "Code coverage"
+    OMITS="$SMROOT/tests/*,$SMROOT/.env/*,$SMROOT/tests/mocks/*"
     for format in xml html report; do
-        coverage $format --include="$SMROOT/*" --omit="$SMROOT/.env/*,$SMROOT/tests/mocks/*"
+        coverage $format --include="$SMROOT/*" --omit=$OMITS
     done
 )
