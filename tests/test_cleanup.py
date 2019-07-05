@@ -3,7 +3,10 @@ import unittest
 import mock
 import __builtin__
 
+from uuid import uuid4
+
 import cleanup
+import lock
 
 import util
 
@@ -38,9 +41,9 @@ class IrrelevantLock(object):
     pass
 
 
-def create_cleanup_sr():
+def create_cleanup_sr(uuid=None):
     xapi = FakeXapi()
-    return cleanup.SR(uuid=None, xapi=xapi, createLock=False, force=False)
+    return cleanup.SR(uuid=uuid, xapi=xapi, createLock=False, force=False)
 
 
 class TestSR(unittest.TestCase):
@@ -468,3 +471,19 @@ class TestSR(unittest.TestCase):
         self.assertEqual(mocked_lock.acquireNoblock.call_count,
                          cleanup.SR.LOCK_RETRY_ATTEMPTS+1)
         self.assertEqual(ret, True)
+
+    @mock.patch('cleanup.lock', autospec=True)
+    def test_file_vdi_delete(self, mock_lock):
+        """
+        Test to confirm fix for HFX-651
+        """
+        mock_lock.Lock = mock.MagicMock(spec=lock.Lock)
+
+        sr_uuid = uuid4()
+        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        vdi_uuid = uuid4()
+
+        vdi = cleanup.VDI(sr, str(vdi_uuid), False)
+
+        vdi.delete()
+        mock_lock.Lock.cleanupAll.assert_called_with(str(vdi_uuid))
