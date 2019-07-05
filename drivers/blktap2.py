@@ -248,7 +248,8 @@ class TapCtl(object):
             p = subprocess.Popen(cmd,
                                  stdin=subprocess.PIPE,
                                  stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
+                                 stderr=subprocess.PIPE,
+                                 close_fds=True)
             if input:
                 p.stdin.write(input)
                 p.stdin.close()
