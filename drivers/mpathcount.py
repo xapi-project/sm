@@ -91,15 +91,15 @@ def match_pathup(s):
 def _tostring(l):
     return str(l)
 
-def get_path_count(SCSIid, active=True):
+def get_path_count(SCSIid):
     count = 0
+    total = 0
     lines = mpath_cli.get_topology(SCSIid)
     for line in filter(match_dmpLUN,lines):
-        if not active:
+        total += 1
+        if match_pathup(line):
             count += 1
-        elif match_pathup(line):
-            count += 1
-    return count
+    return (count, total)
 
 def get_root_dev_major():
     buf = os.stat('/')
@@ -124,8 +124,7 @@ def update_config(key, SCSIid, entry, remove, add, mpp_path_update = False):
     path = os.path.join(MAPPER_DIR, SCSIid)
     util.SMlog("MPATH: Updating entry for [%s], current: %s" % (SCSIid,entry))
     if os.path.exists(path):
-        count = get_path_count(SCSIid)
-        total = get_path_count(SCSIid, active=False)
+        count, total = get_path_count(SCSIid)
         max = 0
 	if len(entry) != 0:
             try:
