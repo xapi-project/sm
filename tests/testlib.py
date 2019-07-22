@@ -100,6 +100,7 @@ class TestContext(object):
         self._created_directories = []
         self._path_content = {}
         self._next_fileno = 0
+        self.mock_fcntl = None
 
     def _get_inc_fileno(self):
         result = self._next_fileno
@@ -121,6 +122,7 @@ class TestContext(object):
         self.patchers = [
             mock.patch('__builtin__.open', new=self.fake_open),
             mock.patch('__builtin__.file', new=self.fake_open),
+            mock.patch('fcntl.fcntl', new=self.fake_fcntl),
             mock.patch('os.path.exists', new=self.fake_exists),
             mock.patch('os.makedirs', new=self.fake_makedirs),
             mock.patch('os.listdir', new=self.fake_listdir),
@@ -128,10 +130,14 @@ class TestContext(object):
             mock.patch('os.uname', new=self.fake_uname),
             mock.patch('subprocess.Popen', new=self.fake_popen),
             mock.patch('os.rmdir', new=self.fake_rmdir),
-            mock.patch('os.stat', new=self.fake_stat),
+            mock.patch('os.stat', new=self.fake_stat)
         ]
         map(lambda patcher: patcher.start(), self.patchers)
         self.setup_modinfo()
+
+    def fake_fcntl(self, fd, cmd, arg):
+        assert(self.mock_fcntl)
+        return self.mock_fcntl(fd, cmd, arg)
 
     def fake_rmdir(self, path):
         if path not in self.get_filesystem():
@@ -317,12 +323,9 @@ def with_custom_context(context_class):
             context = context_class()
             context.start()
             try:
-                result = func(self, context, *args, **kwargs)
+                return func(self, context, *args, **kwargs)
+            finally:
                 context.stop()
-                return result
-            except:
-                context.stop()
-                raise
 
         decorated.__name__ = func.__name__
         return decorated
