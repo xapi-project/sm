@@ -1,4 +1,3 @@
-#!/usr/bin/python
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -189,35 +188,3 @@ class Lock:
         self.lock.unlock()
         if VERBOSE:
             util.SMlog("lock: released %s" % self.lockpath)
-
-if __debug__:
-    import sys
-
-    def test():
-
-        # Create a Lock
-        lock = Lock("test");
-
-        # Should not be yet held.
-        assert lock.held() == False
-
-        # Go get it
-        lock.acquire()
-
-        # Second lock shall throw in debug mode.
-        try:
-            lock.acquire()
-        except AssertionError, e:
-            if str(e) != flock.WriteLock.ERROR_ISLOCKED:
-                raise
-        else:
-            raise AssertionError("Reaquired a locked lock")
-
-        lock.release()
-
-        Lock.cleanup()
-
-    if __name__ == '__main__':
-        print >>sys.stderr, "Running self tests..."
-        test()
-        print >>sys.stderr, "OK."
