@@ -100,7 +100,7 @@ precommit: build
 	CHANGED=$$(git status --porcelain $(SM_PY_FILES) | awk '{print $$2}'); \
 	for i in $$CHANGED; do \
 		echo Checking $${i} ...; \
-		PYTHONPATH=./snapwatchd:./drivers:$$PYTHONPATH pylint --rcfile=tests/pylintrc $${i}; \
+		PYTHONPATH=./drivers:$$PYTHONPATH pylint --rcfile=tests/pylintrc $${i}; \
 		[ $$? -ne 0 ] && QUIT=1 ; \
 	done; \
 	if [ $$QUIT -ne 0 ]; then \
@@ -114,7 +114,7 @@ precheck: build
 	@ QUIT=0; \
 	for i in $(SM_PY_FILES); do \
 		echo Checking $${i} ...; \
-		PYTHONPATH=./snapwatchd:./drivers:$$PYTHONPATH pylint --rcfile=tests/pylintrc $${i}; \
+		PYTHONPATH=./drivers:$$PYTHONPATH pylint --rcfile=tests/pylintrc $${i}; \
 		[ $$? -ne 0 ] && QUIT=1 ; \
 	done; \
 	if [ $$QUIT -ne 0 ]; then \
@@ -158,8 +158,6 @@ install: precheck
 	  $(SM_STAGING)/$(LOGROTATE_DIR)
 	install -m 644 etc/make-dummy-sr.service \
 	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
-	install -m 644 snapwatchd/snapwatchd.service \
-	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
 	install -m 644 systemd/xs-sm.service \
 	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
 	install -m 644 systemd/sm-mpath-root.service \
@@ -194,11 +192,9 @@ install: precheck
 	install -m 755 drivers/coalesce-leaf $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/nfs-on-slave $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/tapdisk-pause $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
-	install -m 755 drivers/vss_control $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/intellicache-clean $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/enable-borehamwood $(SM_STAGING)$(SM_DEST)
 	install -m 755 drivers/trim $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
-	ln -sf $(PLUGIN_SCRIPT_DEST)vss_control $(SM_STAGING)$(SM_DEST)
 	install -m 755 drivers/iscsilib.py $(SM_STAGING)$(SM_DEST)
 	install -m 755 drivers/fcoelib.py $(SM_STAGING)$(SM_DEST)
 	mkdir -p $(SM_STAGING)$(LIBEXEC)
@@ -207,7 +203,6 @@ install: precheck
 	install -m 755 scripts/usb_change $(SM_STAGING)$(LIBEXEC)
 	install -m 755 scripts/kickpipe $(SM_STAGING)$(LIBEXEC)
 	$(MAKE) -C dcopy install DESTDIR=$(SM_STAGING)
-	$(MAKE) -C snapwatchd install DESTDIR=$(SM_STAGING)
 	ln -sf $(SM_DEST)blktap2.py $(SM_STAGING)$(BIN_DEST)/blktap2
 	ln -sf $(SM_DEST)lcache.py $(SM_STAGING)$(BIN_DEST)tapdisk-cache-stats
 	ln -sf /dev/null $(SM_STAGING)$(UDEV_RULES_DIR)/69-dm-lvm-metad.rules

@@ -21,7 +21,6 @@ import util
 import metadata
 import os
 import sys
-sys.path.insert(0,'/opt/xensource/sm/snapwatchd')
 import xs_errors
 import lvutil
 import xml.sax.saxutils
