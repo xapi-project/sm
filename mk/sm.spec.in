@@ -40,7 +40,6 @@ rm -rf $RPM_BUILD_ROOT
 %post
 %systemd_post make-dummy-sr.service
 %systemd_post mpcount.service
-%systemd_post snapwatchd.service
 %systemd_post sm-mpath-root.service
 %systemd_post xs-sm.service
 %systemd_post usb-scan.socket
@@ -70,7 +69,6 @@ update-alternatives --install /etc/multipath.conf multipath.conf /etc/multipath.
 %preun
 %systemd_preun make-dummy-sr.service
 %systemd_preun mpcount.service
-%systemd_preun snapwatchd.service
 %systemd_preun sm-mpath-root.service
 %systemd_preun xs-sm.service
 %systemd_preun usb-scan.socket
@@ -86,7 +84,6 @@ exit 0
 %postun
 %systemd_postun make-dummy-sr.service
 %systemd_postun mpcount.service
-%systemd_postun_with_restart snapwatchd.service
 %systemd_postun sm-mpath-root.service
 %systemd_postun xs-sm.service
 if [ $1 -eq 0 ]; then
@@ -108,7 +105,6 @@ tests/run_python_unittests.sh
 /etc/xapi.d/plugins/on-slave
 /etc/xapi.d/plugins/tapdisk-pause
 /etc/xapi.d/plugins/testing-hooks
-/etc/xapi.d/plugins/vss_control
 /etc/xapi.d/plugins/intellicache-clean
 /etc/xapi.d/plugins/trim
 /etc/xensource/master.d/02-vhdcleanup
@@ -284,13 +280,6 @@ tests/run_python_unittests.sh
 /opt/xensource/sm/scsi_host_rescan.py
 /opt/xensource/sm/scsi_host_rescan.pyc
 /opt/xensource/sm/scsi_host_rescan.pyo
-/opt/xensource/sm/snapwatchd/snapwatchd
-/opt/xensource/sm/snapwatchd/xslib.py
-/opt/xensource/sm/snapwatchd/xslib.pyc
-/opt/xensource/sm/snapwatchd/xslib.pyo
-/opt/xensource/sm/snapwatchd/snapdebug.py
-/opt/xensource/sm/snapwatchd/snapdebug.pyc
-/opt/xensource/sm/snapwatchd/snapdebug.pyo
 /opt/xensource/sm/sysdevice.py
 /opt/xensource/sm/sysdevice.pyc
 /opt/xensource/sm/sysdevice.pyo
@@ -310,7 +299,6 @@ tests/run_python_unittests.sh
 /opt/xensource/sm/trim_util.py
 /opt/xensource/sm/trim_util.pyc
 /opt/xensource/sm/trim_util.pyo
-/opt/xensource/sm/vss_control
 /opt/xensource/sm/xs_errors.py
 /opt/xensource/sm/xs_errors.pyc
 /opt/xensource/sm/xs_errors.pyo
@@ -330,7 +318,6 @@ tests/run_python_unittests.sh
 /sbin/mpathutil
 /etc/rc.d/init.d/sm-multipath
 %{_unitdir}/make-dummy-sr.service
-%{_unitdir}/snapwatchd.service
 %{_unitdir}/xs-sm.service
 %{_unitdir}/sm-mpath-root.service
 %{_unitdir}/usb-scan.service
