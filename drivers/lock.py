@@ -69,6 +69,14 @@ class Lock(object):
         return ns
     _mknamespace = staticmethod(_mknamespace)
 
+    @staticmethod
+    def clearAll():
+        """
+        Drop all lock instances, to be used when forking, but not execing
+        """
+        Lock.INSTANCES = {}
+        Lock.BASE_INSTANCES = {}
+
     def cleanup(name, ns = None):
         if ns:
             if ns in Lock.INSTANCES:
