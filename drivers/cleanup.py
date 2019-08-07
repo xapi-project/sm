@@ -2526,6 +2526,8 @@ def daemonize():
     sys.stdin = open("/dev/null", 'r')
     sys.stderr = open("/dev/null", 'w')
     sys.stdout = open("/dev/null", 'w')
+    # As we're a new process we need to clear the lock objects
+    lock.Lock.clearAll()
     return True
 
 def normalizeType(type):
@@ -2599,8 +2601,12 @@ def _gcLoop(sr, dryRun):
                 howmany = len(sr.findGarbage())
                 if howmany > 0:
                     Util.log("Found %d orphaned vdis" % howmany)
-                    sr.garbageCollect(dryRun)
-                    sr.xapi.srUpdate()
+                    sr.lock()
+                    try:
+                        sr.garbageCollect(dryRun)
+                        sr.xapi.srUpdate()
+                    finally:
+                        sr.unlock()
 
                 candidate = sr.findCoalesceable()
                 if candidate:
