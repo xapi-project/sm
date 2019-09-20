@@ -147,22 +147,35 @@ class Util:
         pid = os.fork()
         if pid:
             startTime = time.time()
-            while True:
-                if resultFlag.test("success"):
-                    Util.log("  Child process completed successfully")
-                    resultFlag.clear("success")
-                    return
-                if resultFlag.test("failure"):
-                    resultFlag.clear("failure")
-                    raise util.SMException("Child process exited with error")
-                if abortTest() or abortSignaled:
-                    os.killpg(pid, signal.SIGKILL)
-                    raise AbortException("Aborting due to signal")
-                if timeOut and time.time() - startTime > timeOut:
-                    os.killpg(pid, signal.SIGKILL)
-                    resultFlag.clearAll()
-                    raise util.SMException("Timed out")
-                time.sleep(pollInterval)
+            try:
+                while True:
+                    if resultFlag.test("success"):
+                        Util.log("  Child process completed successfully")
+                        resultFlag.clear("success")
+                        return
+                    if resultFlag.test("failure"):
+                        resultFlag.clear("failure")
+                        raise util.SMException("Child process exited with error")
+                    if abortTest() or abortSignaled:
+                        os.killpg(pid, signal.SIGKILL)
+                        raise AbortException("Aborting due to signal")
+                    if timeOut and time.time() - startTime > timeOut:
+                        os.killpg(pid, signal.SIGKILL)
+                        resultFlag.clearAll()
+                        raise util.SMException("Timed out")
+                    time.sleep(pollInterval)
+            finally:
+                wait_pid = 0
+                rc = -1
+                count = 0
+                while wait_pid == 0 and count < 10:
+                    wait_pid, rc = os.waitpid(pid, os.WNOHANG)
+                    if wait_pid == 0:
+                        time.sleep(2)
+                        count += 1
+
+                if wait_pid == 0:
+                    Util.log("runAbortable: wait for process completion timed out")
         else:
             os.setpgrp()
             try:
