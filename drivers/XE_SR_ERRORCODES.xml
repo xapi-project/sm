@@ -752,6 +752,11 @@
                 <description>An active FIST point was reached that causes the process to exit abnormally</description>
                 <value>203</value>
         </code>
+        <code>
+                <name>LeafGCSkip</name>
+                <description>Gave up on leaf coalesce after leaf grew bigger than startbefore snapshot taken</description>
+                <value>204</value>
+        </code>
 
         <code>
                 <name>XMLParse</name>

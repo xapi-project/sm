@@ -41,6 +41,7 @@ import journaler
 import fjournaler
 import lock
 import blktap2
+import xs_errors
 from refcounter import RefCounter
 from ipc import IPCFlag
 from lvmanager import LVActivator
@@ -1587,14 +1588,13 @@ class SR:
                 vdi = self.getVDI(uuid)
                 if vdi:
                     vdi.delConfig(vdi.DB_LEAFCLSC)
+        except AbortException:
+            self.cleanup()
+            raise
         except (util.SMException, XenAPI.Failure), e:
-            if isinstance(e, AbortException):
-                self.cleanup()
-                raise
-            else:
-                self._failedCoalesceTargets.append(vdi)
-                Util.logException("leaf-coalesce")
-                Util.log("Leaf-coalesce failed, skipping")
+            self._failedCoalesceTargets.append(vdi)
+            Util.logException("leaf-coalesce")
+            Util.log("Leaf-coalesce failed on %s, skipping" % vdi)
         self.cleanup()
 
     def garbageCollect(self, dryRun = False):
@@ -1786,7 +1786,7 @@ class SR:
                          "current %s. Abandoning attempts" %
                          (prevSizeVHD, vdi.getSizeVHD()))
                 vdi.setConfig(vdi.DB_LEAFCLSC, vdi.LEAFCLSC_OFFLINE)
-                return False
+                raise xs_errors.XenError('LeafGCSkip', opterr='VDI=%s' % vdi)
         return self._liveLeafCoalesce(vdi)
 
     def _snapshotCoalesce(self, vdi):
