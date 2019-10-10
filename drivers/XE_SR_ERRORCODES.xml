@@ -754,7 +754,7 @@
         </code>
         <code>
                 <name>LeafGCSkip</name>
-                <description>Gave up on leaf coalesce after leaf grew bigger than startbefore snapshot taken</description>
+                <description>Gave up on leaf coalesce after leaf grew bigger than before snapshot taken</description>
                 <value>204</value>
         </code>
 
