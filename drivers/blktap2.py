@@ -1224,6 +1224,12 @@ class VDI(object):
         def readlink(self):
             return os.readlink(self.path())
 
+        def realpath(self):
+            return os.path.realpath(self.path())
+
+        def is_block(self):
+            return S_ISBLK(os.stat(self.realpath()).st_mode)
+
         def symlink(self):
             return self.path()
 
@@ -1528,6 +1534,13 @@ class VDI(object):
                     {"rdonly": not writable})
             self.BackendLink.from_uuid(sr_uuid, vdi_uuid).mklink(dev_path)
 
+        # Decide whether to use tapdisk3 or blkback
+        if (self.target.get_vdi_type() == "aio") and \
+           (self.target.vdi.sr.handles("lvm")):
+            self.xenstore_data['backend-kind'] = 'vbd'
+        else:
+            self.xenstore_data['backend-kind'] = 'vbd3'
+
         # Return backend/ link
         back_path = self.BackendLink.from_uuid(sr_uuid, vdi_uuid).path()
         options = {"rdonly": not writable}
@@ -1650,8 +1663,14 @@ class VDI(object):
                         break
             raise
 
+        # Link backend directly to RAW LV VDIs
+        phy_dev = self.PhyLink.from_uuid(sr_uuid, vdi_uuid)
+        if phy_dev.is_block() and self.target.get_vdi_type() == "aio":
+            dev_path = phy_dev.realpath()
+
         # Link result to backend/
         self.BackendLink.from_uuid(sr_uuid, vdi_uuid).mklink(dev_path)
+
         return True
     
     def _activate(self, sr_uuid, vdi_uuid, options):
