@@ -42,7 +42,7 @@ class XenError(Exception):
         ########END#######
 
         # Now find the specific error
-        if errorlist.has_key(key):
+        if key in errorlist:
             subdict = errorlist[key]
             errorcode = int(subdict['value'])
             errormessage = subdict['description']

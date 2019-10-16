@@ -15,6 +15,7 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+from __future__ import print_function
 import sys
 import os
 import util
@@ -50,7 +51,7 @@ def get_pathinfo(scsi_id, verbose = False):
     luninfo = get_luninfo(scsi_id)
     (rc,stdout,stderr) = query_pathdata(scsi_id, luninfo)
     if verbose:
-        print stdout
+        print(stdout)
         return
     lines = stdout.split('\n')
     for line in lines:
@@ -68,10 +69,10 @@ def get_pathinfo(scsi_id, verbose = False):
     return (int(total_count), int(active_count))
 
 def usage():
-    print "Usage:";
-    print "%s pathinfo <scsi_id> Counts" % sys.argv[0]
-    print "%s pathinfo <scsi_id> Status" % sys.argv[0]
-    print "%s luninfo <scsi_id>" % sys.argv[0]
+    print("Usage:");
+    print("%s pathinfo <scsi_id> Counts" % sys.argv[0])
+    print("%s pathinfo <scsi_id> Status" % sys.argv[0])
+    print("%s luninfo <scsi_id>" % sys.argv[0])
 
 
 def main():
@@ -87,7 +88,7 @@ def main():
     if mode == "luninfo":
         luninfo =  get_luninfo(scsi_id)
         if luninfo:
-            print luninfo['lunnum']
+            print(luninfo['lunnum'])
     else:
         if mode == "pathinfo":
             if len(sys.argv) < 4:
@@ -96,9 +97,9 @@ def main():
             submode = sys.argv[3]
             if (submode == "Counts"):
                 (total_count, active_count) = get_pathinfo(scsi_id)
-                print "Total: %s, Active: %s" % (total_count, active_count)
+                print("Total: %s, Active: %s" % (total_count, active_count))
             elif (submode == "HBTL"):
-                print query_hbtl(scsi_id)
+                print(query_hbtl(scsi_id))
             elif (submode == "Status"):
                 get_pathinfo(scsi_id, verbose=True)
             else:

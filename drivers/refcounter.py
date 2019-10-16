@@ -24,6 +24,7 @@
 #
 
 
+from __future__ import print_function
 import os
 import util
 from lock import Lock
@@ -172,7 +173,7 @@ class RefCounter:
         nsDir = os.path.join(RefCounter.BASE_DIR, ns)
         try:
             os.makedirs(nsDir)
-        except OSError, e:
+        except OSError as e:
             if e.errno != errno.EEXIST:
                 raise RefCounterException("failed to makedirs '%s' (%s)" % \
                         (nsDir, e))
@@ -190,7 +191,7 @@ class RefCounter:
 
         try:
             os.rmdir(nsDir)
-        except OSError, e:
+        except OSError as e:
             namespaceAlreadyCleanedUp = e.errno == errno.ENOENT
             newObjectAddedToNamespace = e.errno == errno.ENOTEMPTY
 
@@ -236,7 +237,7 @@ class RefCounter:
             f.write("%d %d\n" % (count, binaryCount))
             f.close()
             return True
-        except IOError, e:
+        except IOError as e:
             fileNotFound = e.errno == errno.ENOENT
             if fileNotFound:
                 return False
@@ -253,283 +254,283 @@ class RefCounter:
         # A
         (cnt, bcnt) = RefCounter.check("X", "A")
         if cnt != 0 or bcnt != 0:
-            print "Error: check = %d != 0 in the beginning" % cnt
+            print("Error: check = %d != 0 in the beginning" % cnt)
             return -1
 
         cnt = RefCounter.get("X", False, "A")
         if cnt != 1:
-            print "Error: count = %d != 1 after first get()" % cnt
+            print("Error: count = %d != 1 after first get()" % cnt)
             return -1
         (cnt, bcnt) = RefCounter.check("X", "A")
         if cnt != 1:
-            print "Error: check = %d != 1 after first get()" % cnt
+            print("Error: check = %d != 1 after first get()" % cnt)
             return -1
 
         cnt = RefCounter.put("X", False, "A")
         if cnt != 0:
-            print "Error: count = %d != 0 after get-put" % cnt
+            print("Error: count = %d != 0 after get-put" % cnt)
             return -1
         (cnt, bcnt) = RefCounter.check("X", "A")
         if cnt != 0:
-            print "Error: check = %d != 0 after get-put" % cnt
+            print("Error: check = %d != 0 after get-put" % cnt)
             return -1
 
         cnt = RefCounter.get("X", False, "A")
         if cnt != 1:
-            print "Error: count = %d != 1 after get-put-get" % cnt
+            print("Error: count = %d != 1 after get-put-get" % cnt)
             return -1
 
         cnt = RefCounter.get("X", False, "A")
         if cnt != 2:
-            print "Error: count = %d != 2 after second get()" % cnt
+            print("Error: count = %d != 2 after second get()" % cnt)
             return -1
 
         cnt = RefCounter.get("X", False, "A")
         if cnt != 3:
-            print "Error: count = %d != 3 after third get()" % cnt
+            print("Error: count = %d != 3 after third get()" % cnt)
             return -1
         (cnt, bcnt) = RefCounter.check("X", "A")
         if cnt != 3:
-            print "Error: check = %d != 3 after third get()" % cnt
+            print("Error: check = %d != 3 after third get()" % cnt)
             return -1
 
         cnt = RefCounter.put("Y", False, "A")
         if cnt != 0:
-            print "Error: count = %d != 0 after first put()" % cnt
+            print("Error: count = %d != 0 after first put()" % cnt)
             return -1
         (cnt, bcnt) = RefCounter.check("Y", "A")
         if cnt != 0:
-            print "Error: check = %d != 0 after first put()" % cnt
+            print("Error: check = %d != 0 after first put()" % cnt)
             return -1
 
         cnt = RefCounter.put("X", False, "A")
         if cnt != 2:
-            print "Error: count = %d != 2 after 3get-1put" % cnt
+            print("Error: count = %d != 2 after 3get-1put" % cnt)
             return -1
 
         cnt = RefCounter.put("X", False, "A")
         if cnt != 1:
-            print "Error: count = %d != 1 after 3get-2put" % cnt
+            print("Error: count = %d != 1 after 3get-2put" % cnt)
             return -1
 
         cnt = RefCounter.get("X", False, "A")
         if cnt != 2:
-            print "Error: count = %d != 2 after 4get-2put" % cnt
+            print("Error: count = %d != 2 after 4get-2put" % cnt)
             return -1
         (cnt, bcnt) = RefCounter.check("X", "A")
         if cnt != 2:
-            print "Error: check = %d != 2 after 4get-2put" % cnt
+            print("Error: check = %d != 2 after 4get-2put" % cnt)
             return -1
 
         cnt = RefCounter.put("X", False, "A")
         if cnt != 1:
-            print "Error: count = %d != 0 after 4get-3put" % cnt
+            print("Error: count = %d != 0 after 4get-3put" % cnt)
             return -1
 
         cnt = RefCounter.put("X", False, "A")
         if cnt != 0:
-            print "Error: count = %d != 0 after 4get-4put" % cnt
+            print("Error: count = %d != 0 after 4get-4put" % cnt)
             return -1
         (cnt, bcnt) = RefCounter.check("X", "A")
         if cnt != 0:
-            print "Error: check = %d != 0 after 4get-4put" % cnt
+            print("Error: check = %d != 0 after 4get-4put" % cnt)
             return -1
 
         # B
         cnt = RefCounter.put("Z", False, "B")
         if cnt != 0:
-            print "Error: count = %d != 0 after new put()" % cnt
+            print("Error: count = %d != 0 after new put()" % cnt)
             return -1
 
         cnt = RefCounter.get("Z", False, "B")
         if cnt != 1:
-            print "Error: count = %d != 1 after put-get" % cnt
+            print("Error: count = %d != 1 after put-get" % cnt)
             return -1
 
         cnt = RefCounter.put("Z", False, "B")
         if cnt != 0:
-            print "Error: count = %d != 0 after put-get-put" % cnt
+            print("Error: count = %d != 0 after put-get-put" % cnt)
             return -1
         (cnt, bcnt) = RefCounter.check("Z", "B")
         if cnt != 0:
-            print "Error: check = %d != 0 after put-get-put" % cnt
+            print("Error: check = %d != 0 after put-get-put" % cnt)
             return -1
 
         cnt = RefCounter.get("Z", False, "B")
         if cnt != 1:
-            print "Error: count = %d != 1 after put-get-put-get" % cnt
+            print("Error: count = %d != 1 after put-get-put-get" % cnt)
             return -1
         (cnt, bcnt) = RefCounter.check("Z", "B")
         if cnt != 1:
-            print "Error: check = %d != 1 after put-get-put-get" % cnt
+            print("Error: check = %d != 1 after put-get-put-get" % cnt)
             return -1
 
         # set
         (cnt, bcnt) = RefCounter.check("a/b")
         if cnt != 0:
-            print "Error: count = %d != 0 initially" % cnt
+            print("Error: count = %d != 0 initially" % cnt)
             return -1
         RefCounter.set("a/b", 2, 0)
         (cnt, bcnt) = RefCounter.check("a/b")
         if cnt != 2 or bcnt != 0:
-            print "Error: count = (%d,%d) != (2,0) after set(2,0)" % (cnt, bcnt)
+            print("Error: count = (%d,%d) != (2,0) after set(2,0)" % (cnt, bcnt))
             return -1
         cnt = RefCounter.put("a/b", False)
         if cnt != 1:
-            print "Error: count = %d != 1 after set(2)-put" % cnt
+            print("Error: count = %d != 1 after set(2)-put" % cnt)
             return -1
         cnt = RefCounter.get("a/b", False)
         if cnt != 2:
-            print "Error: count = %d != 2 after set(2)-put-get" % cnt
+            print("Error: count = %d != 2 after set(2)-put-get" % cnt)
             return -1
         RefCounter.set("a/b", 100, 0)
         (cnt, bcnt) = RefCounter.check("a/b")
         if cnt != 100 or bcnt != 0:
-            print "Error: cnt,bcnt = (%d,%d) != (100,0) after set(100,0)" % \
-                    (cnt, bcnt)
+            print("Error: cnt,bcnt = (%d,%d) != (100,0) after set(100,0)" % \
+                    (cnt, bcnt))
             return -1
         cnt = RefCounter.get("a/b", False)
         if cnt != 101:
-            print "Error: count = %d != 101 after get" % cnt
+            print("Error: count = %d != 101 after get" % cnt)
             return -1
         RefCounter.set("a/b", 100, 1)
         (cnt, bcnt) = RefCounter.check("a/b")
         if cnt != 100 or bcnt != 1:
-            print "Error: cnt,bcnt = (%d,%d) != (100,1) after set(100,1)" % \
-                    (cnt, bcnt)
+            print("Error: cnt,bcnt = (%d,%d) != (100,1) after set(100,1)" % \
+                    (cnt, bcnt))
             return -1
         RefCounter.reset("a/b")
         (cnt, bcnt) = RefCounter.check("a/b")
         if cnt != 0:
-            print "Error: check = %d != 0 after reset" % cnt
+            print("Error: check = %d != 0 after reset" % cnt)
             return -1
 
         # binary
         cnt = RefCounter.get("A", True)
         if cnt != 1:
-            print "Error: count = %d != 1 after get(bin)" % cnt
+            print("Error: count = %d != 1 after get(bin)" % cnt)
             return -1
         cnt = RefCounter.get("A", True)
         if cnt != 1:
-            print "Error: count = %d != 1 after get(bin)*2" % cnt
+            print("Error: count = %d != 1 after get(bin)*2" % cnt)
             return -1
         cnt = RefCounter.put("A", True)
         if cnt != 0:
-            print "Error: count = %d != 0 after get(bin)*2-put(bin)" % cnt
+            print("Error: count = %d != 0 after get(bin)*2-put(bin)" % cnt)
             return -1
         cnt = RefCounter.put("A", True)
         if cnt != 0:
-            print "Error: count = %d != 0 after get(bin)*2-put(bin)*2" % cnt
+            print("Error: count = %d != 0 after get(bin)*2-put(bin)*2" % cnt)
             return -1
         try:
             RefCounter.set("A", 0, 2)
-            print "Error: set(0,2) was allowed"
+            print("Error: set(0,2) was allowed")
             return -1
         except RefCounterException:
             pass
         cnt = RefCounter.get("A", True)
         if cnt != 1:
-            print "Error: count = %d != 1 after get(bin)" % cnt
+            print("Error: count = %d != 1 after get(bin)" % cnt)
             return -1
         cnt = RefCounter.get("A", False)
         if cnt != 2:
-            print "Error: count = %d != 2 after get(bin)-get" % cnt
+            print("Error: count = %d != 2 after get(bin)-get" % cnt)
             return -1
         cnt = RefCounter.get("A", False)
         if cnt != 3:
-            print "Error: count = %d != 3 after get(bin)-get-get" % cnt
+            print("Error: count = %d != 3 after get(bin)-get-get" % cnt)
             return -1
         cnt = RefCounter.get("A", True)
         if cnt != 3:
-            print "Error: count = %d != 3 after get(bin)-get*2-get(bin)" % cnt
+            print("Error: count = %d != 3 after get(bin)-get*2-get(bin)" % cnt)
             return -1
         cnt = RefCounter.put("A", False)
         if cnt != 2:
-            print "Error: count = %d != 2 after get(bin)*2-get*2-put" % cnt
+            print("Error: count = %d != 2 after get(bin)*2-get*2-put" % cnt)
             return -1
         cnt = RefCounter.put("A", True)
         if cnt != 1:
-            print "Error: cnt = %d != 1 after get(b)*2-get*2-put-put(b)" % cnt
+            print("Error: cnt = %d != 1 after get(b)*2-get*2-put-put(b)" % cnt)
             return -1
         cnt = RefCounter.put("A", False)
         if cnt != 0:
-            print "Error: cnt = %d != 0 after get(b)*2-get*2-put*2-put(b)" % cnt
+            print("Error: cnt = %d != 0 after get(b)*2-get*2-put*2-put(b)" % cnt)
             return -1
 
         # names
         cnt = RefCounter.get("Z", False)
         if cnt != 1:
-            print "Error: count = %d != 1 after get (no ns 1)" % cnt
+            print("Error: count = %d != 1 after get (no ns 1)" % cnt)
             return -1
 
         cnt = RefCounter.get("Z/", False)
         if cnt != 1:
-            print "Error: count = %d != 1 after get (no ns 2)" % cnt
+            print("Error: count = %d != 1 after get (no ns 2)" % cnt)
             return -1
 
         cnt = RefCounter.get("/Z", False)
         if cnt != 1:
-            print "Error: count = %d != 1 after get (no ns 3)" % cnt
+            print("Error: count = %d != 1 after get (no ns 3)" % cnt)
             return -1
 
         cnt = RefCounter.get("/Z/*/?/\\", False)
         if cnt != 1:
-            print "Error: count = %d != 1 after get (no ns 4)" % cnt
+            print("Error: count = %d != 1 after get (no ns 4)" % cnt)
             return -1
 
         cnt = RefCounter.get("Z", False)
         if cnt != 2:
-            print "Error: count = %d != 2 after get (no ns 1)" % cnt
+            print("Error: count = %d != 2 after get (no ns 1)" % cnt)
             return -1
 
         cnt = RefCounter.get("Z/", False)
         if cnt != 2:
-            print "Error: count = %d != 2 after get (no ns 2)" % cnt
+            print("Error: count = %d != 2 after get (no ns 2)" % cnt)
             return -1
 
         cnt = RefCounter.get("/Z", False)
         if cnt != 2:
-            print "Error: count = %d != 2 after get (no ns 3)" % cnt
+            print("Error: count = %d != 2 after get (no ns 3)" % cnt)
             return -1
 
         cnt = RefCounter.get("/Z/*/?/\\", False)
         if cnt != 2:
-            print "Error: count = %d != 2 after get (no ns 4)" % cnt
+            print("Error: count = %d != 2 after get (no ns 4)" % cnt)
             return -1
 
         # resetAll
         RefCounter.resetAll("B")
         cnt = RefCounter.get("Z", False, "B")
         if cnt != 1:
-            print "Error: count = %d != 1 after resetAll-get" % cnt
+            print("Error: count = %d != 1 after resetAll-get" % cnt)
             return -1
 
         cnt = RefCounter.get("Z", False, "C")
         if cnt != 1:
-            print "Error: count = %d != 1 after C.get" % cnt
+            print("Error: count = %d != 1 after C.get" % cnt)
             return -1
 
         RefCounter.resetAll("B")
         cnt = RefCounter.get("Z", False, "B")
         if cnt != 1:
-            print "Error: count = %d != 1 after second resetAll-get" % cnt
+            print("Error: count = %d != 1 after second resetAll-get" % cnt)
             return -1
 
         cnt = RefCounter.get("Z", False, "C")
         if cnt != 2:
-            print "Error: count = %d != 2 after second C.get" % cnt
+            print("Error: count = %d != 2 after second C.get" % cnt)
             return -1
 
         RefCounter.resetAll("D")
         RefCounter.resetAll()
         cnt = RefCounter.put("Z", False, "B")
         if cnt != 0:
-            print "Error: count = %d != 0 after resetAll-put" % cnt
+            print("Error: count = %d != 0 after resetAll-put" % cnt)
             return -1
 
         cnt = RefCounter.put("Z", False, "C")
         if cnt != 0:
-            print "Error: count = %d != 0 after C.resetAll-put" % cnt
+            print("Error: count = %d != 0 after C.resetAll-put" % cnt)
             return -1
 
         RefCounter.resetAll()
@@ -539,10 +540,10 @@ class RefCounter:
 
 
 if __name__ == '__main__':
-    print "Running unit tests..."
+    print("Running unit tests...")
     try:
         if RefCounter._runTests() == 0:
-            print "All done, no errors"
-    except RefCounterException, e:
-        print "FAIL: Got exception: %s" % e
+            print("All done, no errors")
+    except RefCounterException as e:
+        print("FAIL: Got exception: %s" % e)
         raise

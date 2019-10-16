@@ -20,6 +20,7 @@
 # on a VHD based SR. (FC or iSCSI)
 #
 
+from __future__ import print_function
 import os
 import sys
 import util
@@ -72,7 +73,7 @@ def activateVdi(sr_uuid, vdi_uuid, vhd_path):
         if count == 1:
             try:
                 lvutil.activateNoRefcount(vhd_path, False)
-            except Exception, e:
+            except Exception as e:
                 util.SMlog("  lv activate failed for %s with error %s" % 
                            (vhd_path, str(e)))
                 RefCounter.put(vdi_uuid, True, name_space)
@@ -92,7 +93,7 @@ def deactivateVdi(sr_uuid, vdi_uuid, vhd_path):
             return
         try:
             lvutil.deactivateNoRefcount(vhd_path)
-        except Exception, e:
+        except Exception as e:
             util.SMlog("  lv de-activate failed for %s with error %s" %
                        (vhd_path, str(e)))
             RefCounter.get(vdi_uuid, False, name_space)

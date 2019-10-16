@@ -69,7 +69,7 @@ class udevSR(SR.SR):
 
     def load(self, sr_uuid):
         # First of all, check we've got the correct keys in dconf
-        if not self.dconf.has_key('location'):        
+        if 'location' not in self.dconf:        
             raise xs_errors.XenError('ConfigLocationMissing')
         self.sr_vditype = 'phy'
         # Cache the sm_config 
@@ -85,7 +85,7 @@ class udevSR(SR.SR):
                 x = udevVDI(self, path)
                 self.vdis[path] = x
 
-        the_sum = 0L
+        the_sum = 0
         for vdi in self.vdis.values():
             the_sum = the_sum + vdi.size
             
@@ -149,7 +149,7 @@ class udevVDI(VDI.VDI):
             self.description = info["hwinfo"]
             
             # XXX: what other information can we recover?
-            if self.sr.sm_config.has_key('type'):
+            if 'type' in self.sr.sm_config:
                 self.read_only = self.sr.sm_config['type'] == "cd"
 
             usb_path = info.get("usb_path")
@@ -162,7 +162,7 @@ class udevVDI(VDI.VDI):
                             raise xs_errors.XenError('VDIUnavailable')
                         break
                 
-        except OSError, e:
+        except OSError as e:
             self.deleted = True
         
     def introduce(self, sr_uuid, vdi_uuid):

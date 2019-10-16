@@ -18,6 +18,7 @@
 # Miscellaneous utility functions
 #
 
+from __future__ import print_function
 import os, re, sys, subprocess, shutil, tempfile, signal
 import time, datetime
 import errno, socket
@@ -35,6 +36,8 @@ import traceback
 import glob
 import copy
 import tempfile
+
+from functools import reduce
 
 NO_LOGGING_STAMPFILE='/etc/xensource/no_sm_log'
 
@@ -246,7 +249,7 @@ def listdir(path, quiet = False):
         if len(text) == 0:
             return []
         return text.split('\n')
-    except CommandException, inst:
+    except CommandException as inst:
         if inst.code == errno.ENOENT:
             raise CommandException(errno.EIO, inst.cmd, inst.reason)
         else:
@@ -328,12 +331,12 @@ def ioretry(f, errlist=[errno.EIO], maxretry=IORETRY_MAX, period=IORETRY_PERIOD,
     while True:
         try:
             return f()
-        except OSError, inst:
+        except OSError as inst:
              err = int(inst.errno)
              inst = CommandException(err, str(f), "OSError")
              if not err in errlist:
                  raise inst
-        except CommandException, inst:
+        except CommandException as inst:
             if not int(inst.code) in errlist:
                 raise
 
@@ -414,19 +417,19 @@ def SRtoXML(SRlist):
         textnode = dom.createTextNode(key)
         e.appendChild(textnode)
 
-        if dict.has_key('size'):
+        if 'size' in dict:
             e = dom.createElement("Size")
             entry.appendChild(e)
             textnode = dom.createTextNode(str(dict['size']))
             e.appendChild(textnode)
             
-        if dict.has_key('storagepool'):
+        if 'storagepool' in dict:
             e = dom.createElement("StoragePool")
             entry.appendChild(e)
             textnode = dom.createTextNode(str(dict['storagepool']))
             e.appendChild(textnode)
             
-        if dict.has_key('aggregate'):
+        if 'aggregate' in dict:
             e = dom.createElement("Aggregate")
             entry.appendChild(e)
             textnode = dom.createTextNode(str(dict['aggregate']))
@@ -438,7 +441,7 @@ def pathexists(path):
     try:
         os.lstat(path)
         return True
-    except OSError, inst:
+    except OSError as inst:
         if inst.errno == errno.EIO:
             time.sleep(1)
             try:
@@ -453,7 +456,7 @@ def pathexists(path):
 def force_unlink(path):
     try:
         os.unlink(path)
-    except OSError, e:
+    except OSError as e:
         if e.errno != errno.ENOENT:
             raise
 
@@ -506,7 +509,7 @@ def isdir(path):
     try:
         st = os.stat(path)
         return stat.S_ISDIR(st.st_mode)
-    except OSError, inst:
+    except OSError as inst:
         if inst.errno == errno.EIO:
             raise CommandException(errno.EIO, "os.stat(%s)" % path, "failed")
         return False
@@ -531,7 +534,7 @@ def ismount(path):
     try:
         s1 = os.stat(path)
         s2 = os.stat(os.path.join(path, '..'))
-    except OSError, inst:
+    except OSError as inst:
         raise CommandException(inst.errno, "os.stat")
     dev1 = s1.st_dev
     dev2 = s2.st_dev
@@ -543,7 +546,7 @@ def ismount(path):
         return True     # path/.. is the same i-node as path
     return False
 
-def makedirs(name, mode=0777):
+def makedirs(name, mode=0o777):
     head, tail = os.path.split(name)
     if not tail:
         head, tail = os.path.split(head)
@@ -740,13 +743,13 @@ def find_my_pbd_record(session, host_ref, sr_ref):
             if pbds[pbd_ref]['host'] == host_ref and pbds[pbd_ref]['SR'] == sr_ref:
                 return [pbd_ref,pbds[pbd_ref]]
         return None
-    except Exception, e:
+    except Exception as e:
         SMlog("Caught exception while looking up PBD for host %s SR %s: %s" % (str(host_ref), str(sr_ref), str(e)))
         return None    
 
 def find_my_pbd(session, host_ref, sr_ref):
     ret = find_my_pbd_record(session, host_ref, sr_ref)
-    if ret <> None:
+    if ret != None:
         return ret[0]
     else:
         return None
@@ -766,7 +769,7 @@ def test_hostPBD_devs(session, sr_uuid, devs):
                 break
             if record["host"] == host:
                 devconfig = record["device_config"]
-                if devconfig.has_key('device'):
+                if 'device' in devconfig:
                     for device in devconfig['device'].split(','):
                         if os.path.realpath(device) == os.path.realpath(dev):
                             return True;
@@ -782,7 +785,7 @@ def test_hostPBD_lun(session, targetIQN, LUNid):
         record = pbds[pbd]
         if record["host"] == host:
             devconfig = record["device_config"]
-            if devconfig.has_key('targetIQN') and devconfig.has_key('LUNid'):
+            if 'targetIQN' in devconfig and 'LUNid' in devconfig:
                 if devconfig['targetIQN'] == targetIQN and \
                        devconfig['LUNid'] == LUNid:
                     return True;
@@ -804,11 +807,11 @@ def test_SCSIid(session, sr_uuid, SCSIid):
                 break
         devconfig = record["device_config"]
         sm_config = session.xenapi.SR.get_sm_config(record["SR"])
-        if devconfig.has_key('SCSIid') and devconfig['SCSIid'] == SCSIid:
+        if 'SCSIid' in devconfig and devconfig['SCSIid'] == SCSIid:
                     return True;
-        elif sm_config.has_key('SCSIid') and sm_config['SCSIid'] == SCSIid:
+        elif 'SCSIid' in sm_config and sm_config['SCSIid'] == SCSIid:
                     return True;
-        elif sm_config.has_key('scsi-' + SCSIid):
+        elif 'scsi-' + SCSIid in sm_config:
                     return True;
     return False
 
@@ -895,7 +898,7 @@ def test_activePoolPBDs(session, host, uuid):
 def remove_mpathcount_field(session, host_ref, sr_ref, SCSIid):
     try:
         pbdref = find_my_pbd(session, host_ref, sr_ref)
-        if pbdref <> None:
+        if pbdref != None:
             key = "mpath-" + SCSIid
             session.xenapi.PBD.remove_from_other_config(pbdref, key)
     except:
@@ -919,7 +922,7 @@ def _testHost(hostname, port, errstring):
         # Fix for MS storage server bug
         sock.send('\n')
         sock.close()
-    except socket.error, reason:
+    except socket.error as reason:
         SMlog("_testHost: Connect failed after %d seconds (%s) - %s" \
                    % (timeout, hostname, reason))
         raise xs_errors.XenError(errstring)
@@ -962,7 +965,7 @@ def test_scsiserial(session, device):
     for SR in SRs:
         record = SRs[SR]
         conf = record["sm_config"]
-        if conf.has_key('devserial'):
+        if 'devserial' in conf:
             for dev in conf['devserial'].split(','):
                 if _isSCSIid(dev):
                     if match_scsiID(dev, scsiID):
@@ -1084,7 +1087,7 @@ def _containsVDIinuse(srobj):
         if not vdi['managed']:
             continue
         sm_config = vdi['sm_config']
-        if sm_config.has_key('SRRef'):
+        if 'SRRef' in sm_config:
             try:
                 PBDs = srobj.session.xenapi.SR.get_PBDs(sm_config['SRRef'])
                 for pbd in PBDs:
@@ -1109,16 +1112,16 @@ def isVDICommand(cmd):
 def p_id_fork():
     try:
         p_id = os.fork()
-    except OSError, e:
-        print "Fork failed: %s (%d)" % (e.strerror,e.errno)
+    except OSError as e:
+        print("Fork failed: %s (%d)" % (e.strerror,e.errno))
         sys.exit(-1)
   
     if (p_id == 0):
         os.setsid()
         try:
             p_id = os.fork()
-        except OSError, e:
-            print "Fork failed: %s (%d)" % (e.strerror,e.errno)
+        except OSError as e:
+            print("Fork failed: %s (%d)" % (e.strerror,e.errno))
             sys.exit(-1)
         if (p_id == 0):
             os.chdir('/opt/xensource/sm')
@@ -1333,7 +1336,7 @@ def findRunningProcessOrOpenFile(name, process = True):
                         # Just want the process name
                         argv = prog.split('\x00')
                         prog =  argv[0]
-                except IOError, e:
+                except IOError as e:
                     if e.errno in (errno.ENOENT, errno.ESRCH):
                         SMlog("ERROR %s reading %s, ignore" % (e.errno, pid))
                     continue
@@ -1344,7 +1347,7 @@ def findRunningProcessOrOpenFile(name, process = True):
             try:
                 fd_dir = os.path.join('/proc', pid, 'fd')
                 files = os.listdir(fd_dir)
-            except OSError, e:
+            except OSError as e:
                 if e.errno in (errno.ENOENT, errno.ESRCH):
                     SMlog("ERROR %s reading fds for %s, ignore" % (e.errno, pid))
                     # Ignore pid that are no longer valid
@@ -1367,7 +1370,7 @@ def findRunningProcessOrOpenFile(name, process = True):
                         SMlog("File %s has an open handle with process %s "
                               "with pid %s" % (name, prog, pid))
                         processandpids.append((prog, pid))
-    except Exception, e:
+    except Exception as e:
         SMlog("Exception checking running process or open file handles. "\
                    "Error: %s" % str(e))
         retVal = False
@@ -1382,7 +1385,7 @@ def retry(f, maxretry=20, period=3):
     while True:
         try:            
             return f()
-        except Exception, e:
+        except Exception as e:
             SMlog("Got exception: %s. Retry number: %s" % (str(e),retries))
 
         retries += 1
@@ -1462,7 +1465,7 @@ class extractXVA:
                             cmd, shell=True, \
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, \
                             stderr=subprocess.PIPE, close_fds=True)
-        except Exception, e:
+        except Exception as e:
             SMlog("Error: %s. Uncompress failed for %s" % (str(e), filename))
             raise Exception(str(e))
 
@@ -1545,7 +1548,7 @@ class extractXVA:
                     if round_off != 0:
                         zeros = self.spawn_p.stdout.read(
                                 extractXVA.BLOCK_SIZE - round_off)
-        except Exception, e:
+        except Exception as e:
             SMlog("Error: %s. File set extraction failed %s" % (str(e), \
                                                      self.__filename))
 
@@ -1769,7 +1772,7 @@ def read_caching_is_restricted(session):
     return False
 
 def sessions_less_than_targets(other_config, device_config):
-    if device_config.has_key('multihomelist') and other_config.has_key('iscsi_sessions'):
+    if 'multihomelist' in device_config and 'iscsi_sessions' in other_config:
         sessions = int(other_config['iscsi_sessions'])
         targets = len(device_config['multihomelist'].split(','))
         SMlog("Targets %d and iscsi_sessions %d" %(targets, sessions))

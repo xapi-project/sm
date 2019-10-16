@@ -83,7 +83,7 @@ class RAWVDI(VDI.VDI):
         for vdi in VDIs:
             if not vdi['managed'] \
                    and long(vdi['virtual_size']) >= long(size) \
-                   and self.sr.vdis.has_key(vdi['uuid']):
+                   and vdi['uuid'] in self.sr.vdis:
                 if not smallest:
                     smallest = long(vdi['virtual_size'])
                     v = vdi
@@ -108,11 +108,11 @@ class RAWVDI(VDI.VDI):
         
     def attach(self, sr_uuid, vdi_uuid):
         self.sr._loadvdis()
-        if not self.sr.vdis.has_key(vdi_uuid):
+        if vdi_uuid not in self.sr.vdis:
             raise xs_errors.XenError('VDIUnavailable')
         if not util.pathexists(self.path):
             self.sr.refresh()
-            if self.sm_config.has_key('SCSIid'):
+            if 'SCSIid' in self.sm_config:
                 if self.sr.mpath == 'true':
                     self.sr.mpathmodule.refresh(self.sm_config['SCSIid'], 0)
                 devs = os.listdir("/dev/disk/by-scsid/%s" % self.sm_config['SCSIid'])
@@ -126,9 +126,9 @@ class RAWVDI(VDI.VDI):
 
     def detach(self, sr_uuid, vdi_uuid):
         self.sr._loadvdis()
-        if self.sm_config.has_key('SCSIid'):
+        if 'SCSIid' in self.sm_config:
             self.sr.mpathmodule.reset(self.sm_config['SCSIid'], True) # explicitly unmap
-        if not self.sr.vdis.has_key(vdi_uuid):
+        if vdi_uuid not in self.sr.vdis:
             raise xs_errors.XenError('VDIUnavailable')
 
     def _set_managed(self, vdi_uuid, managed):

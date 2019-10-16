@@ -42,7 +42,7 @@ def _rescan_hostID(host):
             f.close()
             # allow some time for undiscovered LUNs/channels to appear
             time.sleep(2)
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Failed to perform full rescan of host: %s. "\
                    "Error: %s" % (host, str(e)))
             raise Exception(str(e))
@@ -116,7 +116,7 @@ def rescan(hostid):
                 if not tryRescan:
                     break
                 
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Failed to perform rescan of host: %s. "\
                        "Error: %s" % (hostid, str(e)))
     finally:

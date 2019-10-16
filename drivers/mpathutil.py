@@ -15,6 +15,7 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+from __future__ import print_function
 import sys
 import mpath_cli
 import time
@@ -23,24 +24,24 @@ import time
 def list():
     maps = mpath_cli.list_maps()
     for m in maps:
-        print m
+        print(m)
 
 def wait_for_multipathd():
     for i in range(0,120):
         if mpath_cli.is_working():
             return
         time.sleep(1)
-    print "Unable to contact Multipathd daemon"
+    print("Unable to contact Multipathd daemon")
     sys.exit(-1)
 
 def status():
     for line in (mpath_cli.get_all_topologies()):
-        print line
+        print(line)
 
 def usage():
-    print "Usage:";
-    print "%s list" % sys.argv[0]
-    print "%s status" % sys.argv[0]
+    print("Usage:");
+    print("%s list" % sys.argv[0])
+    print("%s status" % sys.argv[0])
 
 
 def main():

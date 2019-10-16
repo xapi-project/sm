@@ -119,7 +119,7 @@ class Lock(object):
             return
         try:
             os.makedirs(path)
-        except OSError, e:
+        except OSError as e:
             if e.errno != errno.EEXIST:
                 raise LockException("Failed to makedirs(%s)" % path)
     _mkdirs = staticmethod(_mkdirs)
@@ -129,7 +129,7 @@ class Lock(object):
         util.SMlog("lock: unlinking lock file %s" % path)
         try:
             os.unlink(path)
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Failed to unlink(%s): %s" % (path, e))
     _unlink = staticmethod(_unlink)
 
@@ -138,7 +138,7 @@ class Lock(object):
         util.SMlog("lock: removing lock dir %s" % path)
         try:
             os.rmdir(path)
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Failed to rmdir(%s): %s" % (path, e))
     _rmdir = staticmethod(_rmdir)
 
@@ -175,7 +175,7 @@ class LockImplementation(object):
 
             try:
                 self._open_lockfile()
-            except IOError, e:
+            except IOError as e:
                 # If another lock within the namespace has already
                 # cleaned up the namespace by removing the directory,
                 # _open_lockfile raises an ENOENT, in this case we retry.

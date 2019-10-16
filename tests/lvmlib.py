@@ -74,7 +74,7 @@ class LVSubsystem(object):
         parser.add_option("-W", dest='wipe_sig')
         try:
             options, args = parser.parse_args(args[1:])
-        except SystemExit, e:
+        except SystemExit as e:
             self.logger("LVCREATE OPTION PARSING FAILED")
             return (1, '', str(e))
 
@@ -105,7 +105,7 @@ class LVSubsystem(object):
         self.logger(args, stdin)
         try:
             options, args = parser.parse_args(args[1:])
-        except SystemExit, e:
+        except SystemExit as e:
             self.logger("LVREMOVE OPTION PARSING FAILED")
             return (1, '', str(e))
 

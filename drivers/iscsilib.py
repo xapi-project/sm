@@ -55,7 +55,7 @@ def doexec_locked(cmd):
         _lock.acquire()
     #util.SMlog("%s" % (cmd))
     (rc,stdout,stderr) = util.doexec(cmd)
-    if _lock <> None and _lock.held():
+    if _lock != None and _lock.held():
         _lock.release()
     return (rc, stdout, stderr)
 
@@ -289,7 +289,7 @@ def get_current_initiator_name():
                     f.close()
                     return currentIQN
             f.close()
-        except IOError, e:
+        except IOError as e:
             return None
     return None
 
@@ -307,7 +307,7 @@ def set_current_initiator_name(localIQN):
         f.write('InitiatorName=%s\n' % localIQN)
         f.write('InitiatorAlias=%s\n' % alias)
         f.close()
-    except IOError, e:
+    except IOError as e:
         raise xs_errors.XenError('ISCSIInitiator', \
                    opterr='Could not set initator name')
 
@@ -355,7 +355,7 @@ def get_luns(targetIQN, portal):
                 lun=file.replace("LUN","")
                 luns.append(lun)
         return luns
-    except util.CommandException, inst:
+    except util.CommandException as inst:
         raise xs_errors.XenError('ISCSIDevice', opterr='Failed to find any LUNs')
 
 def is_iscsi_daemon_running():
@@ -466,7 +466,7 @@ def _checkTGT(tgtIQN, tgt=''):
         (stdout,stderr) = exn_on_failure(cmd, failuremessage)
     # Recent versions of iscsiadm return error it this list is empty.
     # Quick and dirty handling
-    except Exception, e:
+    except Exception as e:
         util.SMlog("%s failed with %s" %(cmd, e.args))
         stdout = ""
     for line in stdout.split('\n'):
@@ -495,7 +495,7 @@ def _checkAnyTGT():
         (stdout,stderr) = exn_on_failure(cmd, failuremessage)
     # Recent versions of iscsiadm return error it this list is empty.
     # Quick and dirty handling
-    except Exception, e:
+    except Exception as e:
         util.SMlog("%s failed with %s" %(cmd, e.args))
         stdout = ""
     for e in filter(match_session, stdout.split('\n')): 

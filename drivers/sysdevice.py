@@ -78,7 +78,7 @@ def stat(device):
     device = os.path.join(sys, "device")
     
     try:
-        results["size"] = long(read_whole_file(os.path.join(sys, "size"))[0]) * 512L
+        results["size"] = long(read_whole_file(os.path.join(sys, "size"))[0]) * 512
     except:
         pass
 
@@ -86,10 +86,10 @@ def stat(device):
     results["bus_path"] = ""
     try:
         device_path = os.readlink(device)
-        if device_path.find("/usb") <> -1:
+        if device_path.find("/usb") != -1:
             results["bus"] = "USB"
             results["bus_path"] = os.path.basename(device_path)
-        elif device_path.find("/ide") <> -1:
+        elif device_path.find("/ide") != -1:
             results["bus"] = "IDE"
             results["bus_path"] = os.path.basename(device_path)
         elif os.readlink(os.path.join(device, "subsystem")).endswith("scsi"):

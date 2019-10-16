@@ -144,7 +144,7 @@ def adapters(filterstr="any"):
             if path.startswith(SYSFS_PATH2):
                 os.path.join(path,"device","block:*")
                 dev = _extract_dev_name(os.path.join(path, 'device'))
-                if devs.has_key(dev):
+                if dev in devs:
                     continue
                 hbtl = os.path.basename(path)
                 (h,b,t,l) = hbtl.split(':')
@@ -354,7 +354,7 @@ def scan(srobj):
         elif util.test_SCSIid(srobj.session, None, obj.SCSIid):
             util.SMlog("SCSIid in use, ignoring (%s)" % obj.SCSIid)
             continue
-        elif not devs.has_key(realpath):
+        elif realpath not in devs:
             continue
         
         ids = devs[realpath]
@@ -363,15 +363,15 @@ def scan(srobj):
         obj.id = ids[3]
         obj.lun = ids[4]
         obj.hba = hba['procname']
-        if hba.has_key('eth') and hba['eth']:
+        if 'eth' in hba and hba['eth']:
             obj.eth = hba['eth']
         obj.numpaths = 1
-        if vdis.has_key(obj.SCSIid):
+        if obj.SCSIid in vdis:
             vdis[obj.SCSIid].numpaths += 1
             vdis[obj.SCSIid].path += " [%s]" % key
         elif obj.hba == 'mpp':
             mppdict = _genMPPHBA(obj.adapter)
-            if mppdict.has_key(key):
+            if key in mppdict:
                 item = mppdict[key]
                 adapters = ''
                 for i in item:

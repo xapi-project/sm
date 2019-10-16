@@ -17,6 +17,7 @@
 
 """Helper functions for LVHD SR. This module knows about RAW and VHD VDI's 
 that live in LV's."""
+from __future__ import print_function
 
 
 import os
@@ -353,4 +354,4 @@ if __name__ == "__main__":
             util.logException("setInnerNodeRefcounts")
     else:
         util.SMlog("Invalid usage")
-        print "Usage: %s fixrefcounts <sr_uuid>" % sys.argv[0]
+        print("Usage: %s fixrefcounts <sr_uuid>" % sys.argv[0])

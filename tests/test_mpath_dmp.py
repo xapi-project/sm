@@ -1,6 +1,7 @@
 """
 Unit tests for mpath dmp
 """
+from __future__ import print_function
 import errno
 import os
 import unittest
@@ -419,7 +420,7 @@ class TestMpathDmp(unittest.TestCase):
         context.setup_error_codes()
 
         def exists(path):
-            print 'Exists %s' % path
+            print('Exists %s' % path)
             if path.startswith('/dev/'):
                 return False
 

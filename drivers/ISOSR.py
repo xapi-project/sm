@@ -58,7 +58,7 @@ def is_image_utf8_compatible(s):
     if type(s) == str:
         try:
             s.decode('utf-8')
-        except UnicodeDecodeError, e:
+        except UnicodeDecodeError as e:
             util.SMlog("WARNING: This string is not UTF-8 compatible.")
             return False
     return True 
@@ -81,12 +81,12 @@ class ISOSR(SR.SR):
             return False
         try:
             ismount = util.ismount(self.mountpoint)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             return False
         return ismount
 
     def _checkTargetStr(self, location):
-        if not self.dconf.has_key('type'):
+        if 'type' not in self.dconf:
             return
         if self.dconf['type'] == 'cifs':
             tgt = ''
@@ -149,7 +149,7 @@ class ISOSR(SR.SR):
             if vdi.location in __xenapi_locations:
                 v = __xenapi_records[__xenapi_locations[vdi.location]]
                 sm_config = v['sm_config']
-                if sm_config.has_key('created'):
+                if 'created' in sm_config:
                     vdi.sm_config['created'] = sm_config['created']
                     vdi.read_only = False
 
@@ -179,7 +179,7 @@ class ISOSR(SR.SR):
                 _VDI = self.session.xenapi.VDI
                 try:
                     vdi_ref  = _VDI.get_by_uuid(uuid)
-                except XenAPI.Failure, e:
+                except XenAPI.Failure as e:
                     if e.details[0] != 'UUID_INVALID': raise
                 else:
                     filename = _VDI.get_location(vdi_ref)
@@ -187,7 +187,7 @@ class ISOSR(SR.SR):
         if filename is None:
             # Get the filename from sm-config['path'], or use the UUID
             # if the path param doesn't exist.
-            if smconfig and smconfig.has_key('path'):
+            if smconfig and 'path' in smconfig:
                 filename = smconfig['path']
                 if not self.vdi_path_regex.match(filename):
                     raise xs_errors.XenError('VDICreate', \
@@ -200,11 +200,11 @@ class ISOSR(SR.SR):
     def load(self, sr_uuid):
         """Initialises the SR"""
         # First of all, check we've got the correct keys in dconf
-        if not self.dconf.has_key('location'):
+        if 'location' not in self.dconf:
             raise xs_errors.XenError('ConfigLocationMissing')
 
         # Construct the path we're going to mount under:
-        if self.dconf.has_key("legacy_mode"):
+        if "legacy_mode" in self.dconf:
             self.mountpoint = util.to_plain_string(self.dconf['location'])
         else:
             # Verify the target address
@@ -212,7 +212,7 @@ class ISOSR(SR.SR):
             self.mountpoint = os.path.join(SR.MOUNT_BASE, sr_uuid)
             
         # Add on the iso_path value if there is one
-        if self.dconf.has_key("iso_path"):
+        if "iso_path" in self.dconf:
             iso_path = util.to_plain_string(self.dconf['iso_path'])
             if iso_path.startswith("/"):
                 iso_path=iso_path[1:]
@@ -238,7 +238,7 @@ class ISOSR(SR.SR):
     def attach(self, sr_uuid):
         """Std. attach"""
         # Very-Legacy mode means the ISOs are in the local fs - so no need to attach.
-        if self.dconf.has_key('legacy_mode'):
+        if 'legacy_mode' in self.dconf:
             # Verify path exists
             if not os.path.exists(self.mountpoint):
                 raise xs_errors.XenError('ISOLocalPath')
@@ -258,7 +258,7 @@ class ISOSR(SR.SR):
         protocol = 'nfs_iso'
         options = ''
 
-        if self.dconf.has_key('type'):
+        if 'type' in self.dconf:
             protocol = self.dconf['type']
         elif ":/" not in location:
             protocol = 'cifs'
@@ -275,7 +275,7 @@ class ISOSR(SR.SR):
         # In both cases check if SMB version is passed are not.
         # If not use self.smbversion.
         if protocol == 'cifs':
-            if self.dconf.has_key('type'):
+            if 'type' in self.dconf:
                 # Create via XC or sr-create
                 # Check for username and password
                 mountcmd=["mount.cifs", location, self.mountpoint]
@@ -323,7 +323,7 @@ class ISOSR(SR.SR):
                     util.SMlog('ISOSR mount over smb 3.0')
                     try:
                         self.mountOverSMB(mountcmd)
-                    except util.CommandException, inst:
+                    except util.CommandException as inst:
                         if not self.is_smbversion_specified:
                             util.SMlog('Retrying ISOSR mount over smb 1.0')
                             smb3_fail_reason = inst.reason
@@ -347,7 +347,7 @@ class ISOSR(SR.SR):
                 else:
                     util.SMlog('ISOSR mount over smb 1.0')
                     self.mountOverSMB(mountcmd)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             if not self.is_smbversion_specified:
                 raise xs_errors.XenError(
                     'ISOMountFailure', opterr=smb3_fail_reason)
@@ -461,7 +461,7 @@ class ISOSR(SR.SR):
  
         try:
             util.pread(["umount", self.mountpoint]);
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             raise xs_errors.XenError('NFSUnMount', \
                                          opterr = 'error is %d' % inst.code)
 
@@ -471,7 +471,7 @@ class ISOSR(SR.SR):
             raise xs_errors.XenError('SRUnavailable', \
                     opterr = 'no such directory %s' % self.path)            
 
-        if (not self.dconf.has_key('legacy_mode')) and (not self._checkmount()):
+        if ('legacy_mode' not in self.dconf) and (not self._checkmount()):
             raise xs_errors.XenError('SRUnavailable', \
                     opterr = 'directory not mounted: %s' % self.path) 
 
@@ -484,7 +484,7 @@ class ISOSR(SR.SR):
 
         other_config = self.session.xenapi.SR.get_other_config(self.sr_ref)
 
-        if other_config.has_key('xenserver_tools_sr') and \
+        if 'xenserver_tools_sr' in other_config and \
                 other_config['xenserver_tools_sr'] == "true":
             # Out of all the xs-tools ISOs which exist in this dom0, we mark
             # only one as the official one.
@@ -499,7 +499,7 @@ class ISOSR(SR.SR):
                     latest_build_vdi = vdi.location
                     latest_build_number = "0"
 
-                if vdi.sm_config.has_key('xs-tools-build'):
+                if 'xs-tools-build' in vdi.sm_config:
                     bld = vdi.sm_config['xs-tools-build']
                     if bld >= latest_build_number:
                         latest_build_vdi = vdi.location
@@ -511,7 +511,7 @@ class ISOSR(SR.SR):
                 if vdi.location == latest_build_vdi:
                     vdi.sm_config['xs-tools'] = "true"
                 else:
-                    if vdi.sm_config.has_key("xs-tools"):
+                    if "xs-tools" in vdi.sm_config:
                         del vdi.sm_config['xs-tools']
 
 
@@ -526,9 +526,9 @@ class ISOSR(SR.SR):
             all_vdis = self.session.xenapi.VDI.get_all_records_where("field \"SR\" = \"%s\"" % sr)
             for vdi_ref in all_vdis.keys():
                 vdi = all_vdis[vdi_ref]
-                if vdi['sm_config'].has_key('xs-tools-version'):
+                if 'xs-tools-version' in vdi['sm_config']:
                     name = tools_iso_name(vdi['location'])
-                    if vdi['sm_config'].has_key('xs-tools'):
+                    if 'xs-tools' in vdi['sm_config']:
                         self.session.xenapi.VDI.set_name_label(vdi_ref, name)
                     else:
                         self.session.xenapi.VDI.set_name_label(vdi_ref, "Old version of " + name)
@@ -551,7 +551,7 @@ class ISOSR(SR.SR):
 
     def create(self, sr_uuid, size):
         self.attach(sr_uuid)
-        if self.dconf.has_key('type'):
+        if 'type' in self.dconf:
             smconfig = self.session.xenapi.SR.get_sm_config(self.sr_ref)
             smconfig['iso_type'] = self.dconf['type']
             self.session.xenapi.SR.set_sm_config(self.sr_ref, smconfig)
@@ -590,7 +590,7 @@ class ISOVDI(VDI.VDI):
         self.read_only = True                
         self.label = filename
         self.sm_config = {}
-        if mysr.dconf.has_key("legacy_mode"):
+        if "legacy_mode" in mysr.dconf:
             if filename.startswith("xs-tools") or filename.startswith("guest-tools"):
                 self.label = tools_iso_name(filename)
                 # Mark this as a Tools CD
@@ -626,7 +626,7 @@ class ISOVDI(VDI.VDI):
         self.uuid = vdi_uuid
         self.path = os.path.join(self.sr.path, self.filename)
         self.size = size
-        self.utilisation = 0L
+        self.utilisation = 0
         self.read_only = False
         self.sm_config = self.sr.srcmd.params['vdi_sm_config']
         self.sm_config['created'] = util._getDateString()
@@ -640,7 +640,7 @@ class ISOVDI(VDI.VDI):
             handle.close()
             self._db_introduce()
             return super(ISOVDI, self).get_params()
-        except Exception, exn:
+        except Exception as exn:
             util.SMlog("Exception when creating VDI: %s" % exn)
             raise xs_errors.XenError('VDICreate', \
                      opterr='could not create file: "%s"' % self.path)

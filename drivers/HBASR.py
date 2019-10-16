@@ -52,7 +52,7 @@ class HBASR(SR.SR):
     def load(self, sr_uuid):
         self.sr_vditype = 'phy'
         self.type = "any"
-        if self.dconf.has_key('type') and self.dconf['type']:
+        if 'type' in self.dconf and self.dconf['type']:
             self.type = self.dconf['type']
         self.attached = False
         self.procname = ""
@@ -181,7 +181,7 @@ class HBASR(SR.SR):
         for sr in SRs:
             record = SRs[sr]
             sm_config = record["sm_config"]
-            if sm_config.has_key('datatype') and \
+            if 'datatype' in sm_config and \
                sm_config['datatype'] == 'HBA' and \
                sm_config['hbatype'] == self.type:
                 raise xs_errors.XenError('SRInUse')
@@ -216,7 +216,7 @@ class HBASR(SR.SR):
         for sr in SRs:
             record = SRs[sr]
             sm_config = record["sm_config"]
-            if sm_config.has_key('datatype') and \
+            if 'datatype' in sm_config and \
                sm_config['datatype'] == 'HBA':
                 Recs[record["uuid"]] = sm_config
         return self.srlist_toxml(Recs)
@@ -251,7 +251,7 @@ class HBASR(SR.SR):
         count = 0
         for key in self.hbadict.iterkeys():
             vdi_path = os.path.join("/dev",key)
-	    if not self.devs.has_key(vdi_path):
+	    if vdi_path not in self.devs:
 		continue
             uuid = scsiutil.gen_uuid_from_string(scsiutil.getuniqueserial(vdi_path))
             obj = self.vdi(uuid)

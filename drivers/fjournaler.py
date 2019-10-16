@@ -17,6 +17,7 @@
 #
 # File-based journaling
 
+from __future__ import print_function
 import os
 import errno
 
@@ -61,7 +62,7 @@ class Journaler:
             return None
         try:
             f = open(path, "r")
-        except IOError, e:
+        except IOError as e:
             if e.errno == errno.ENOENT:
                 # the file can disappear any time, since there is no locking
                 return None 
@@ -100,51 +101,51 @@ class Journaler:
 def _runTests():
     """Unit testing"""
     dir = "/tmp"
-    print "Running unit tests..."
+    print("Running unit tests...")
 
     j = Journaler(dir)
     if j.get("clone", "1"):
-        print "get non-existing failed"
+        print("get non-existing failed")
         return 1
     j.create("clone", "1", "a")
     val = j.get("clone", "1")
     if val != "a":
-        print "create-get failed"
+        print("create-get failed")
         return 1
     j.remove("clone", "1")
     if j.get("clone", "1"):
-        print "remove failed"
+        print("remove failed")
         return 1
     j.create("modify", "X", "831_3")
     j.create("modify", "Z", "831_4")
     j.create("modify", "Y", "53_0")
     val = j.get("modify", "X")
     if val != "831_3":
-        print "create underscore_val failed"
+        print("create underscore_val failed")
         return 1
     val = j.get("modify", "Y")
     if val != "53_0":
-        print "create multiple id's failed"
+        print("create multiple id's failed")
         return 1
     entries = j.getAll("modify")
     if not entries.get("X") or not entries.get("Y") or \
             entries["X"] != "831_3"  or entries["Y"] != "53_0":
-        print "getAll failed: %s" % entries
+        print("getAll failed: %s" % entries)
         return 1
     j.remove("modify", "X")
     val = j.getAll("modify")
     if val.get("X") or not val.get("Y") or val["Y"] != "53_0":
-        print "remove(X) failed"
+        print("remove(X) failed")
         return 1
     j.remove("modify", "Y")
     j.remove("modify", "Z")
     if j.get("modify", "Y"):
-        print "remove(Y) failed"
+        print("remove(Y) failed")
         return 1
     if j.get("modify", "Z"):
-        print "remove(Z) failed"
+        print("remove(Z) failed")
         return 1
-    print "All tests passed"
+    print("All tests passed")
     return 0
 
 if __name__ == '__main__':

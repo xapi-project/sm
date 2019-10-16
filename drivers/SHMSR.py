@@ -63,14 +63,14 @@ class SHMSR(SR.SR):
 
     def vdi(self, uuid):
         """Create a VDI class"""
-	if self.srcmd.params.has_key('vdi_location'):
+	if 'vdi_location' in self.srcmd.params:
             return SHMVDI(self, uuid, self.srcmd.params['vdi_location'])
         else:
             return SHMVDI(self, uuid, self.srcmd.params['device_config']['location'])
 
     def load(self, sr_uuid):
         """Initialises the SR"""
-        if not self.dconf.has_key('location'):
+        if 'location' not in self.dconf:
             raise xs_errors.XenError('ConfigLocationMissing')
 
         self.sr_vditype = 'file'

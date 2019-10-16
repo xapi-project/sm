@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 import mock
 import LVHDSR
@@ -7,7 +8,7 @@ import lvhdutil
 
 class SMLog(object):
     def __call__(self, *args):
-        print args
+        print(args)
 
 
 class Stubs(object):

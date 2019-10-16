@@ -97,7 +97,7 @@ class FcntlLockBase:
         if self._held: return False
         try:
             Flock(self.LOCK_TYPE).fcntl(self.fd, fcntl.F_SETLK)
-        except IOError, e:
+        except IOError as e:
             if e.errno in [errno.EACCES, errno.EAGAIN]:
                 return False
             raise

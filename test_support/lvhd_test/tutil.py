@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Various utility functions.
 # TODO why the leading "t" in the filename?
 
@@ -50,7 +51,7 @@ class Logger:
                 (datetime.datetime.now(), indent, msg))
         self._logfile.flush()
         if verbosity == 0:
-            print msg
+            print(msg)
 
     def write(self, msg):
         self._logfile.write("%s\n" % msg)
@@ -182,12 +183,12 @@ def vm_get_ip(vm_uuid):
     (rc, stdout, stderr) = doexec(cmd)
 
     if 0 != rc:
-        print stdout
+        print(stdout)
         assert False # FIXME
     
     mo = re.search(ip_regex, stdout)
     if not mo:
-        print stdout
+        print(stdout)
         return None
 
     return mo.group()

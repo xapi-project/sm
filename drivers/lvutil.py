@@ -235,7 +235,7 @@ def _getVGstats(vgname):
         stats['physical_utilisation'] = utilisation
         stats['freespace'] = freespace
         return stats
-    except util.CommandException, inst:
+    except util.CommandException as inst:
         raise xs_errors.XenError('VDILoad', \
               opterr='rvgstats failed error is %d' % inst.code)
     except ValueError:
@@ -254,7 +254,7 @@ def _getPVstats(dev):
         stats['physical_utilisation'] = utilisation
         stats['freespace'] = freespace
         return stats
-    except util.CommandException, inst:
+    except util.CommandException as inst:
         raise xs_errors.XenError('VDILoad', \
               opterr='pvstats failed error is %d' % inst.code)
     except ValueError:
@@ -302,11 +302,11 @@ def scan_srlist(prefix, root):
         try:
             sr_uuid = _get_sr_uuid(dev, [prefix]).strip(' \n')
             if len(sr_uuid):
-                if VGs.has_key(sr_uuid):
+                if sr_uuid in VGs:
                     VGs[sr_uuid] += ",%s" % dev
                 else:
                     VGs[sr_uuid] = dev
-        except Exception, e:
+        except Exception as e:
             util.logException("exception (ignored): %s" % e)
             continue
     return VGs
@@ -441,14 +441,14 @@ def createVG(root, vgname):
             cmd = [util.CMD_DD, "if=/dev/zero", "of=%s" % dev, "bs=1M",
                     "count=10", "oflag=direct"]
             util.pread2(cmd)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             if inst.code == errno.EPERM:
                 try:
                     # Overwrite the disk header, try normal IO
                     cmd = [util.CMD_DD, "if=/dev/zero", "of=%s" % dev,
                             "bs=1M", "count=10"]
                     util.pread2(cmd)
-                except util.CommandException, inst:
+                except util.CommandException as inst:
                     raise xs_errors.XenError('LVMWrite', \
                           opterr='device %s' % dev)
             else:
@@ -458,7 +458,7 @@ def createVG(root, vgname):
         if not (dev == rootdev):
             try:
                 cmd_lvm([CMD_PVCREATE, "-ff", "-y", "--metadatasize", "10M", dev])
-            except util.CommandException, inst:
+            except util.CommandException as inst:
                 raise xs_errors.XenError('LVMPartCreate',
                                          opterr='error is %d' % inst.code)
 
@@ -472,7 +472,7 @@ def createVG(root, vgname):
     for dev in root.split(',')[1:]:
         try:
             cmd_lvm([CMD_VGEXTEND, vgname, dev])
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             # One of the PV args failed, delete SR
             try:
                 cmd_lvm([CMD_VGREMOVE, vgname])
@@ -482,7 +482,7 @@ def createVG(root, vgname):
 
     try:
         cmd_lvm([CMD_VGCHANGE, "-an", vgname])
-    except util.CommandException, inst:
+    except util.CommandException as inst:
         raise xs_errors.XenError('LVMUnMount', opterr='errno is %d' % inst.code)
 
     # End block
@@ -495,7 +495,7 @@ def removeVG(root, vgname):
             if txt.find(vgname) == -1:
                 raise xs_errors.XenError('LVMNoVolume', \
                       opterr='volume is %s' % vgname)
-    except util.CommandException, inst:
+    except util.CommandException as inst:
         raise xs_errors.XenError('PVSfailed', \
               opterr='error is %d' % inst.code)
 
@@ -504,14 +504,14 @@ def removeVG(root, vgname):
 
         for dev in root.split(','):
             cmd_lvm([CMD_PVREMOVE, dev])
-    except util.CommandException, inst:
+    except util.CommandException as inst:
         raise xs_errors.XenError('LVMDelete', \
               opterr='errno is %d' % inst.code)
 
 def resizePV(dev):
     try:
         cmd_lvm([CMD_PVRESIZE, dev])
-    except util.CommandException, inst:
+    except util.CommandException as inst:
         util.SMlog("Failed to grow the PV, non-fatal")
     
 def setActiveVG(path, active):
@@ -539,7 +539,7 @@ def remove(path, config_param=None):
         try:
             _remove(path, config_param)
             break
-        except util.CommandException, e:
+        except util.CommandException as e:
             if i >= LVM_FAIL_RETRIES - 1:
                 raise
             util.SMlog("*** lvremove failed on attempt #%d" % i)
@@ -643,7 +643,7 @@ def _checkActive(path):
         try:
             util.SMlog("_checkActive: attempt to create the symlink manually.")
             os.symlink(mapperPath, path)
-        except OSError, e:
+        except OSError as e:
             util.SMlog("ERROR: failed to symlink!")
             if e.errno != errno.EEXIST:
                 raise
@@ -666,7 +666,7 @@ def _lvmBugCleanup(path):
 
     try:
         util.pread(cmd_st, expect_rc=1)
-    except util.CommandException, e:
+    except util.CommandException as e:
         if e.code == 0:
             nodeExists = True
 
@@ -682,7 +682,7 @@ def _lvmBugCleanup(path):
             try:
                 util.pread2(cmd_rm)
                 break
-            except util.CommandException, e:
+            except util.CommandException as e:
                 if i < LVM_FAIL_RETRIES - 1:
                     util.SMlog("Failed on try %d, retrying" % i)
                     try:
@@ -724,7 +724,7 @@ def removeDevMapperEntry(path, strict=True):
         cmd = [CMD_DMSETUP, "remove", path]
         cmd_lvm(cmd)
         return True
-    except Exception, e:
+    except Exception as e:
         if not strict:
             cmd = [CMD_DMSETUP, "status", path]
             try:

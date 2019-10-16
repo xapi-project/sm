@@ -15,6 +15,7 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+from __future__ import print_function
 import os
 import blktap2
 import glob
@@ -265,7 +266,7 @@ class CacheFileSR(object):
 
             try:
                 stats = tapdisk.stats()
-            except blktap2.TapCtl.CommandFailure, e:
+            except blktap2.TapCtl.CommandFailure as e:
                 if e.errno != errno.ENOENT: raise
                 continue # shut down
 
@@ -340,11 +341,9 @@ if __name__ == '__main__':
 
     def usage(stream):
         if prog == 'tapdisk-cache-stats':
-            print >>stream, \
-                "usage: tapdisk-cache-stats [<sr-uuid>]"
+            print("usage: tapdisk-cache-stats [<sr-uuid>]", file=stream)
         else:
-            print >>stream, \
-                "usage: %s sr.{stats|topology} [<sr-uuid>]" % prog
+            print("usage: %s sr.{stats|topology} [<sr-uuid>]" % prog, file=stream)
 
     def usage_error():
         usage(sys.stderr)
@@ -376,21 +375,21 @@ if __name__ == '__main__':
 
             d = cache_sr.xapi_stats()
             for item in d.iteritems():
-                print "%s=%s" % item
+                print("%s=%s" % item)
 
         elif method == 'topology':
             parents = cache_sr.fast_scan_topology()
 
             for parent in parents:
-                print parent, "hits/miss=%s total=%s" % \
-                    (parent.vdi_stats(), parent.vdi_stats_total())
+                print(parent, "hits/miss=%s total=%s" % \
+                    (parent.vdi_stats(), parent.vdi_stats_total()))
                 pprint(parent.stats)
 
                 for leaf in parent.leaves:
-                    print leaf, "hits/miss=%s" % str(leaf.vdi_stats())
+                    print(leaf, "hits/miss=%s" % str(leaf.vdi_stats()))
                     pprint(leaf.stats)
 
-            print "sr.total=%s" % str(cache_sr.vdi_stats_total())
+            print("sr.total=%s" % str(cache_sr.vdi_stats_total()))
 
         else:
             usage_error()

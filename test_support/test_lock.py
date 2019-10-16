@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+from __future__ import print_function
 import sys
 
 from lock import Lock
@@ -33,7 +34,7 @@ def test():
     # Second lock shall throw in debug mode.
     try:
         lock.acquire()
-    except AssertionError, e:
+    except AssertionError as e:
         if str(e) != flock.WriteLock.ERROR_ISLOCKED:
             raise
     else:
@@ -44,6 +45,6 @@ def test():
     Lock.cleanup()
 
 if __name__ == '__main__':
-    print >>sys.stderr, "Running self tests..."
+    print("Running self tests...", file=sys.stderr)
     test()
-    print >>sys.stderr, "OK."
+    print("OK.", file=sys.stderr)

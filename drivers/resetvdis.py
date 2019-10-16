@@ -18,6 +18,7 @@
 # Clear the attach status for all VDIs in the given SR on this host.  
 # Additionally, reset the paused state if this host is the master.
 
+from __future__ import print_function
 import cleanup
 import util
 import lock
@@ -73,11 +74,11 @@ def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True):
                 host_rec = session.xenapi.host.get_record(host_ref)
                 host_uuid = host_rec["uuid"]
                 host_str = "%s (%s)" % (host_uuid, host_rec["name_label"])
-            except XenAPI.Failure, e:
+            except XenAPI.Failure as e:
                 msg = "Invalid host: %s (%s)" % (host_ref, e)
                 util.SMlog(msg)
                 if term_output:
-                    print msg
+                    print(msg)
                 host_invalid=True
 
             if host_invalid:
@@ -86,7 +87,7 @@ def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True):
                         (val, vdi_uuid, host_str)
                 util.SMlog(msg)
                 if term_output:
-                    print msg
+                    print(msg)
                 continue
 
             if force:
@@ -95,7 +96,7 @@ def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True):
                         (val, vdi_uuid, host_str)
                 util.SMlog(msg)
                 if term_output:
-                    print msg
+                    print(msg)
                 continue
 
             ret = session.xenapi.host.call_plugin(
@@ -105,8 +106,8 @@ def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True):
                 util.SMlog("VDI %s is still open on host %s, not resetting" % \
                         (vdi_uuid, host_str))
                 if term_output:
-                    print "ERROR: VDI %s is still open on host %s" % \
-                            (vdi_uuid, host_str)
+                    print("ERROR: VDI %s is still open on host %s" % \
+                            (vdi_uuid, host_str))
                 if writable:
                     return False
                 else:
@@ -117,25 +118,25 @@ def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True):
                         (val, vdi_uuid, host_str)
                 util.SMlog(msg)
                 if term_output:
-                    print msg
+                    print(msg)
 
     if not host_ref:
         msg = "VDI %s is not marked as attached anywhere, nothing to do" \
             % vdi_uuid
         util.SMlog(msg)
         if term_output:
-            print msg
+            print(msg)
     return clean
 
 def usage():
-    print "Usage:"
-    print "all <HOST UUID> <SR UUID> [--master]"
-    print "single <VDI UUID> [--force]"
-    print
-    print "*WARNING!* calling with 'all' on an attached SR, or using " + \
+    print("Usage:")
+    print("all <HOST UUID> <SR UUID> [--master]")
+    print("single <VDI UUID> [--force]")
+    print()
+    print("*WARNING!* calling with 'all' on an attached SR, or using " + \
             "--force may cause DATA CORRUPTION if the VDI is still " + \
             "attached somewhere. Always manually double-check that " + \
-            "the VDI is not in use before running this script."
+            "the VDI is not in use before running this script.")
     sys.exit(1)
 
 if __name__ == '__main__':

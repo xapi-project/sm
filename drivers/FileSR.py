@@ -17,6 +17,7 @@
 #
 # FileSR: local-file storage repository
 
+from __future__ import print_function
 import SR, VDI, SRCommand, util, scsiutil, vhdutil
 import os
 import errno
@@ -89,7 +90,7 @@ class FileSR(SR.SR):
         self.ops_exclusive = OPS_EXCLUSIVE
         self.lock = Lock(vhdutil.LOCK_TYPE_SR, self.uuid)
         self.sr_vditype = vhdutil.VDI_TYPE_VHD
-        if not self.dconf.has_key('location') or  not self.dconf['location']:
+        if 'location' not in self.dconf or  not self.dconf['location']:
             raise xs_errors.XenError('ConfigLocationMissing')
         self.remotepath = self.dconf['location']
         self.path = os.path.join(SR.MOUNT_BASE, sr_uuid)
@@ -110,7 +111,7 @@ class FileSR(SR.SR):
             else:
                 try:
                     util.ioretry(lambda: os.mkdir(self.remotepath))
-                except util.CommandException, inst:
+                except util.CommandException as inst:
                     if inst.code == errno.EEXIST:
                         raise xs_errors.XenError('SRExists')
                     else:
@@ -140,14 +141,14 @@ class FileSR(SR.SR):
                     fullpath =  os.path.join(self.path,name)
                     try:
                         util.ioretry(lambda: os.unlink(fullpath))
-                    except util.CommandException, inst:
+                    except util.CommandException as inst:
                         if inst.code != errno.ENOENT and \
                            inst.code != errno.EISDIR:
                             raise xs_errors.XenError('FileSRDelete', \
                                   opterr='failed to remove %s error %d' \
                                   % (fullpath, inst.code))
             self.detach(sr_uuid)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             self.detach(sr_uuid)
             raise xs_errors.XenError('FileSRDelete', \
                   opterr='error %d' % inst.code)
@@ -156,13 +157,13 @@ class FileSR(SR.SR):
         if not self._checkmount():
             try:
                 util.ioretry(lambda: util.makedirs(self.path))
-            except util.CommandException, inst:
+            except util.CommandException as inst:
                 if inst.code != errno.EEXIST:
                     raise xs_errors.XenError("FileSRCreate", \
                                              opterr='fail to create mount point. Errno is %s' % inst.code)
             try:
                 util.pread(["mount", "--bind", self.remotepath, self.path])
-            except util.CommandException, inst:
+            except util.CommandException as inst:
                 raise xs_errors.XenError('FileSRCreate', \
                                          opterr='fail to mount FileSR. Errno is %s' % inst.code)
         self.attached = True
@@ -175,7 +176,7 @@ class FileSR(SR.SR):
                 os.chdir(SR.MOUNT_BASE)
                 util.pread(["umount", self.path])
                 os.rmdir(self.path)
-            except Exception, e:
+            except Exception as e:
                 raise xs_errors.XenError('SRInUse', opterr=str(e))
         self.attached = False
 
@@ -255,7 +256,7 @@ class FileSR(SR.SR):
         pattern = os.path.join(self.path, "*%s" % vhdutil.FILE_EXTN_VHD)
         try:
             self.vhds = vhdutil.getAllVHDs(pattern, FileVDI.extractUuid)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             raise xs_errors.XenError('SRScan', opterr="error VHD-scanning " \
                     "path %s (%s)" % (self.path, inst))
         try:
@@ -284,7 +285,7 @@ class FileSR(SR.SR):
                 cbt_uuid = fn.split(".")[0] 
                 # If an associated disk exists, update CBT status
                 # else create new VDI of type cbt_metadata
-                if self.vdis.has_key(cbt_uuid):
+                if cbt_uuid in self.vdis:
                     self.vdis[cbt_uuid].cbt_enabled = True
                 else:
                     new_vdi = self.vdi(cbt_uuid)
@@ -296,9 +297,9 @@ class FileSR(SR.SR):
         self.virtual_allocation = 0
         for uuid, vdi in self.vdis.iteritems():
             if vdi.parent:
-                if self.vdis.has_key(vdi.parent):
+                if vdi.parent in self.vdis:
                     self.vdis[vdi.parent].read_only = True
-                if geneology.has_key(vdi.parent):
+                if vdi.parent in geneology:
                     geneology[vdi.parent].append(uuid)
                 else:
                     geneology[vdi.parent] = [uuid]
@@ -311,7 +312,7 @@ class FileSR(SR.SR):
         # SR.scan, so if we don't ignore hidden leaves we would pick up 
         # freshly-deleted VDIs as newly-added VDIs
         for uuid in self.vdis.keys():
-            if not geneology.has_key(uuid) and self.vdis[uuid].hidden:
+            if uuid not in geneology and self.vdis[uuid].hidden:
                 util.SMlog("Scan found hidden leaf (%s), ignoring" % uuid)
                 del self.vdis[uuid]
 
@@ -336,7 +337,7 @@ class FileSR(SR.SR):
             args.append(item)
         ret = cmd(*args)
         if ret:
-            print ret
+            print(ret)
 
     def _compare_args(self, a, b):
         try:
@@ -381,7 +382,7 @@ class FileSR(SR.SR):
                     if not cleanup.abort(self.uuid, soft=True):
                         util.SMlog("The GC has already been scheduled to "
                                 "re-start")
-                except util.CommandException, e:
+                except util.CommandException as e:
                     if e.code != errno.ETIMEDOUT:
                         raise
                     util.SMlog('failed to abort the GC')
@@ -460,11 +461,11 @@ class FileVDI(VDI.VDI):
         if self.sr.srcmd.cmd == "vdi_create":
             self.vdi_type = vhdutil.VDI_TYPE_VHD
             self.key_hash = None
-            if self.sr.srcmd.params.has_key("vdi_sm_config"):
-                if self.sr.srcmd.params["vdi_sm_config"].has_key("key_hash"):
+            if "vdi_sm_config" in self.sr.srcmd.params:
+                if "key_hash" in self.sr.srcmd.params["vdi_sm_config"]:
                     self.key_hash = self.sr.srcmd.params["vdi_sm_config"]["key_hash"]
 
-                if self.sr.srcmd.params["vdi_sm_config"].has_key("type"):
+                if "type" in self.sr.srcmd.params["vdi_sm_config"]:
                     vdi_type = self.sr.srcmd.params["vdi_sm_config"]["type"]
                     if not self.VDI_TYPE.get(vdi_type):
                         raise xs_errors.XenError('VDIType',
@@ -518,7 +519,7 @@ class FileVDI(VDI.VDI):
                 st = util.ioretry(lambda: os.stat(self.path),
                                   errlist=[errno.EIO, errno.ENOENT])
                 self.utilisation = long(st.st_size)
-            except util.CommandException, inst:
+            except util.CommandException as inst:
                 if inst.code == errno.EIO:
                     raise xs_errors.XenError('VDILoad', \
                           opterr='Failed load VDI information %s' % self.path)
@@ -546,7 +547,7 @@ class FileVDI(VDI.VDI):
                     lambda: self._query_info(self.path, True),
                     errlist=[errno.EIO, errno.ENOENT])
 
-                if diskinfo.has_key('parent'):
+                if 'parent' in diskinfo:
                     self.parent = diskinfo['parent']
                     self.sm_config_override = {'vhd-parent':self.parent}
                 else:
@@ -557,7 +558,7 @@ class FileVDI(VDI.VDI):
                 if self.hidden:
                     self.managed = False
                 self.exists = True
-            except util.CommandException, inst:
+            except util.CommandException as inst:
                 raise xs_errors.XenError('VDILoad', \
                       opterr='Failed load VDI information %s' % self.path)
 
@@ -586,11 +587,11 @@ class FileVDI(VDI.VDI):
         if self.vdi_type == vhdutil.VDI_TYPE_VHD:
             try:
                 size = vhdutil.validate_and_round_vhd_size(long(size))
-                mb = 1024L * 1024L
+                mb = 1024 * 1024
                 size_mb = long(size) / mb
                 util.ioretry(lambda: self._create(str(size_mb), self.path))
                 self.size = util.ioretry(lambda: self._query_v(self.path))
-            except util.CommandException, inst:
+            except util.CommandException as inst:
                 raise xs_errors.XenError('VDICreate',
                         opterr='error %d' % inst.code)
         else:
@@ -619,7 +620,7 @@ class FileVDI(VDI.VDI):
 
         try:
             util.force_unlink(self.path)
-        except Exception, e:
+        except Exception as e:
             raise xs_errors.XenError(
                 'VDIDelete',
                 opterr='Failed to unlink file during deleting VDI: %s' % str(e))
@@ -654,7 +655,7 @@ class FileVDI(VDI.VDI):
                     # pool database.
                 self.xenstore_data['storage-type']='ext'
             return super(FileVDI, self).attach(sr_uuid, vdi_uuid)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             raise xs_errors.XenError('VDILoad', opterr='error %d' % inst.code)
 
     def detach(self, sr_uuid, vdi_uuid):
@@ -896,13 +897,13 @@ class FileVDI(VDI.VDI):
                 sm_config = self.session.xenapi.VDI.get_sm_config(vdi_ref)
                 sm_config['vhd-parent'] = srcparent
                 self.session.xenapi.VDI.set_sm_config(vdi_ref, sm_config)
-            except Exception, e:
+            except Exception as e:
                 util.SMlog("vdi_clone: caught error during VDI.db_introduce: %s" % (str(e)))
                 # Note it's too late to actually clean stuff up here: the base disk has
                 # been marked as deleted already.
                 util.end_log_entry(self.sr.path, self.path, ["error"])                
                 raise
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             # XXX: it might be too late if the base disk has been marked as deleted!
             self._clonecleanup(src,dst,newsrc)
             util.end_log_entry(self.sr.path, self.path, ["error"])
@@ -943,12 +944,12 @@ class FileVDI(VDI.VDI):
         try:
             if dst:
                 util.ioretry(lambda: os.unlink(dst))
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             pass
         try:
             if util.ioretry(lambda: util.pathexists(newsrc)):
                 util.ioretry(lambda: os.rename(newsrc,src))
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             pass
       
     def _checkpath(self, path):
@@ -956,7 +957,7 @@ class FileVDI(VDI.VDI):
             if not util.ioretry(lambda: util.pathexists(path)):
                 return False
             return True
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             raise xs_errors.XenError('EIO', \
                   opterr='IO error checking path %s' % path)
 
@@ -1057,7 +1058,7 @@ class FileVDI(VDI.VDI):
     def _rename(self, oldName, newName):
         try:
             util.ioretry(lambda: os.rename(oldName, newName))
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             pass
 
     def _cbt_log_exists(self, logpath):

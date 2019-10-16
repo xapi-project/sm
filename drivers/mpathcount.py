@@ -15,6 +15,7 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+from __future__ import print_function
 import util
 import time, os, sys, re
 import xs_errors
@@ -145,11 +146,11 @@ def update_config(key, SCSIid, entry, remove, add, mpp_path_update = False):
 
 def get_SCSIidlist(devconfig, sm_config):
     SCSIidlist = []
-    if sm_config.has_key('SCSIid'):
+    if 'SCSIid' in sm_config:
         SCSIidlist = sm_config['SCSIid'].split(',')
-    elif devconfig.has_key('SCSIid'):
+    elif 'SCSIid' in devconfig:
         SCSIidlist.append(devconfig['SCSIid'])
-    elif devconfig.has_key('provider'):
+    elif 'provider' in devconfig:
         SCSIidlist.append(devconfig['ScsiId'])
     else:
         for key in sm_config:
@@ -169,7 +170,7 @@ def check_root_disk(config, maps, remove, add):
             util.SMlog("Matched SCSIid %s, updating " \
                     " Host.other-config:mpath-boot " % i)
             key="mpath-boot"
-            if not config.has_key(key):
+            if key not in config:
                 update_config(key, i, "", remove, add)
             else:
                 update_config(key, i, config[key], remove, add)
@@ -190,7 +191,7 @@ def check_devconfig(devconfig, sm_config, config, remove, add):
             util.SMlog("Matched SCSIid, updating entry %s" % str(mpp_entry))
             update_config(key, i, mpp_entry, remove, add, mpp_path_update)
         else:
-            if not config.has_key(key):
+            if key not in config:
                 update_config(key, i, "", remove, add)
             else:
                 update_config(key, i, config[key], remove, add)
@@ -207,7 +208,7 @@ if __name__ == '__main__':
     try:
         session = util.get_localAPI_session()
     except:
-        print "Unable to open local XAPI session"
+        print("Unable to open local XAPI session")
         sys.exit(-1)
 
     localhost = session.xenapi.host.get_by_uuid(get_localhost_uuid())

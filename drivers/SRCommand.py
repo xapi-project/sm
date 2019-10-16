@@ -18,6 +18,7 @@
 # SRCommand: parse SR command-line objects
 #
 
+from __future__ import print_function
 import XenAPI
 import sys
 import xs_errors
@@ -69,7 +70,7 @@ class SRCommand:
         self.driver_info = driver_info
 
     def parse(self):
-        if len(sys.argv) <> 2:
+        if len(sys.argv) != 2:
             util.SMlog("Failed to parse commandline; wrong number of arguments; argv = %s" % (repr(sys.argv)))
             raise xs_errors.XenError('BadRequest') 
 
@@ -89,26 +90,26 @@ class SRCommand:
 
             # params is a dictionary
             self.dconf = params['device_config']
-            if params.has_key('sr_uuid'):
+            if 'sr_uuid' in params:
                 self.sr_uuid = params['sr_uuid']
-            if params.has_key('vdi_uuid'):
+            if 'vdi_uuid' in params:
                 self.vdi_uuid = params['vdi_uuid']
             elif self.cmd == "vdi_create":
                 self.vdi_uuid = util.gen_uuid ()
                 
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Failed to parse commandline; exception = %s argv = %s" % (str(e), repr(sys.argv)))
             raise xs_errors.XenError('BadRequest')
 
     def run_statics(self):
         if self.params['command'] == 'sr_get_driver_info':
-            print util.sr_get_driver_info(self.driver_info)
+            print(util.sr_get_driver_info(self.driver_info))
             sys.exit(0)
 
     def run(self, sr):
         try:
             return self._run_locked(sr)
-        except (util.CommandException, util.SMException, XenAPI.Failure), e:
+        except (util.CommandException, util.SMException, XenAPI.Failure) as e:
             util.logException(self.cmd)
             msg = str(e)
             if isinstance(e, util.CommandException):
@@ -119,12 +120,12 @@ class SRCommand:
                 excType = "SMGeneral"
             raise xs_errors.XenError(excType, opterr=msg)
 
-        except blktap2.TapdiskFailed, e:
+        except blktap2.TapdiskFailed as e:
             util.logException('tapdisk failed exception: %s' % e)
             raise xs_errors.XenError('TapdiskFailed',
                 os.strerror(e.get_error().get_error_code()))
 
-        except blktap2.TapdiskExists, e:            
+        except blktap2.TapdiskExists as e:            
             util.logException('tapdisk exists exception: %s' % e)
             raise xs_errors.XenError('TapdiskAlreadyRunning', e.__str__())
 
@@ -157,14 +158,14 @@ class SRCommand:
                     acquired = False
             try:
                 rv = self._run(sr, target)
-            except Exception, e:
+            except Exception as e:
                 raise
         finally:
             if acquired:
                 sr.lock.release()
             try:
                 sr.cleanup()
-            except Exception, e1:
+            except Exception as e1:
                 msg = 'failed to clean up SR: %s' % e1
                 if not e:
                     util.SMlog(msg)
@@ -378,9 +379,9 @@ def run(driver, driver_info):
         ret = cmd.run(sr)
 
         if ret == None:
-            print util.return_nil ()
+            print(util.return_nil ())
         else:
-            print ret
+            print(ret)
 
     except (Exception, SR.SRException) as e:
         try:
@@ -394,8 +395,8 @@ def run(driver, driver_info):
         # If generic python Exception, print a generic xmlrpclib
         # dump and pass to XAPI.
         if isinstance(e, SR.SRException):
-            print e.toxml()
+            print(e.toxml())
         else:
-            print xmlrpclib.dumps(xmlrpclib.Fault(1200, str(e)), "", True) 
+            print(xmlrpclib.dumps(xmlrpclib.Fault(1200, str(e)), "", True)) 
 
     sys.exit(0)

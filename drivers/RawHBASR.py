@@ -96,7 +96,7 @@ class RawHBASR(HBASR.HBASR):
             # The way we create vdi_path and the following check are
             # not clear at all
             vdi_path = os.path.join("/dev",key)
-            if not self.devs.has_key(vdi_path):
+            if vdi_path not in self.devs:
                 continue
 
             scsi_id = scsiutil.getSCSIid(vdi_path)
@@ -107,9 +107,9 @@ class RawHBASR(HBASR.HBASR):
             # Avoid false positives: this SR can already contain this
             # SCSIid during scan.
             scsi_key = "scsi-" + scsi_id
-            if sm_config.has_key(scsi_key):
+            if scsi_key in sm_config:
                 # if we know about this scsid we can skip this specific dev
-                if known_scsid.has_key(scsi_key):
+                if scsi_key in known_scsid:
                     util.SMlog("This SCSI id (%s) is already added" %scsi_id)
                     continue
                 else:
@@ -127,7 +127,7 @@ class RawHBASR(HBASR.HBASR):
             # uuid as key.
             # We have already checked known_scsid, though. This block is
             # supposed to be always False
-            if self.vdis.has_key(uuid):
+            if uuid in self.vdis:
                 util.SMlog("Warning: unexpected code block reached with"
                            " uuid = %s" %scsi_id)
                 continue
@@ -142,7 +142,7 @@ class RawHBASR(HBASR.HBASR):
             count += 1
 
             # If we know about it no need to add to sm_config
-            if known_scsid.has_key(scsi_key):
+            if scsi_key in known_scsid:
                 continue
 
             # Prepare multipathing and make the other SRs know this SCSIid

@@ -73,7 +73,7 @@ def _log_last_triggered(session, sr_uuid):
     try:
         sr_ref = session.xenapi.SR.get_by_uuid(sr_uuid)
         other_config = session.xenapi.SR.get_other_config(sr_ref)
-        if other_config.has_key(TRIM_LAST_TRIGGERED_KEY):
+        if TRIM_LAST_TRIGGERED_KEY in other_config:
             session.xenapi.SR.remove_from_other_config(sr_ref, TRIM_LAST_TRIGGERED_KEY)
         session.xenapi.SR.add_to_other_config(sr_ref, TRIM_LAST_TRIGGERED_KEY, str(time.time()))
     except:
@@ -126,7 +126,7 @@ def do_trim(session, args):
                 util.SMlog("Stdout is %s" % stdout)
                 util.SMlog("Trim on SR: %s complete. " % sr_uuid)
                 result = str(True)
-        except util.CommandException, e:
+        except util.CommandException as e:
             err_msg = {
                 ERROR_CODE_KEY: 'TrimException',
                 ERROR_MSG_KEY: e.reason

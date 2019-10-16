@@ -7,6 +7,7 @@ installed, SM will use it to retrieve keys based on their hashes.
 This key store is backed by a file stored on disk in dom0, and helper
 functions are provided to manipulate it.
 """
+from __future__ import print_function
 
 import base64
 import os
