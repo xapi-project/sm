@@ -167,6 +167,8 @@ install: precheck
 	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
 	install -m 644 systemd/mpathcount.* \
 	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
+	install -m 644 systemd/storage-init.service \
+	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
 	for i in $(UDEV_RULES); do \
 	  install -m 644 udev/$$i.rules \
 	    $(SM_STAGING)$(UDEV_RULES_DIR); done
@@ -212,6 +214,7 @@ install: precheck
 	install -m 755 scripts/xe-getarrayidentifier $(SM_STAGING)$(BIN_DEST)
 	install -m 755 scripts/xe-getlunidentifier $(SM_STAGING)$(BIN_DEST)
 	install -m 755 scripts/make-dummy-sr $(SM_STAGING)$(LIBEXEC)
+	install -m 755 scripts/storage-init $(SM_STAGING)$(LIBEXEC)
 
 .PHONY: clean
 clean:

@@ -1,0 +1,13 @@
+[Unit]
+Description=Initialize host storage during first boot
+Requires=xapi.service xapi-init-complete.target
+After=xapi.service xapi-init-complete.target
+ConditionPathExists=!/var/lib/misc/ran-storage-init
+
+[Service]
+Type=oneshot
+ExecStart=/opt/xensource/libexec/storage-init
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

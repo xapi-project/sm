@@ -1,0 +1,306 @@
+#!/bin/bash
+
+set -eu
+
+export FIRSTBOOT_DATA_DIR=/etc/firstboot.d/data
+export XENSOURCE_INVENTORY=/etc/xensource-inventory
+CONFIGURATION="${FIRSTBOOT_DATA_DIR}/default-storage.conf"
+[ -e ${FIRSTBOOT_DATA_DIR}/sr-multipathing.conf ] && . ${FIRSTBOOT_DATA_DIR}/sr-multipathing.conf
+. ${XENSOURCE_INVENTORY}
+
+UPGRADE="false"
+[ -r ${FIRSTBOOT_DATA_DIR}/host.conf ] && . ${FIRSTBOOT_DATA_DIR}/host.conf
+
+TAG="storage-creation-utils"
+
+###
+# Check a disk and prepare it for sr-create - basically, remove any
+# physical volumes, etc.
+diskprep() {
+    local disk="$1"
+
+    # Were we passed a symlink?
+    if [ -L "${disk}" ]; then
+        echo >&2 "${disk} is a symlink, de-referencing to $(readlink -f ${disk})"
+        disk="$(readlink -f ${disk})"
+    fi
+
+    # is it a device node?
+    if [ ! -b "${disk}"  ]; then
+        echo "${disk} is not a block device - aborting."
+        exit 2
+    fi
+
+    echo "Initialising disk $disk..."
+
+    # is there a PV here?
+    local dev=$(basename ${disk})
+    local disk_and_parts="${disk} $(ls -d /sys/block/${dev}/${dev}[0-9]* 2>/dev/null | awk -F/ '{print "/dev/"$5}')"
+    local vgs=$(pvs --noheadings -o vg_name ${disk_and_parts} 2>/dev/null)
+
+    for vg in ${vgs} ; do
+        echo "* LVM physical volume label found - de-activating VG and removing"
+        if ! vgchange -a n "${vg}" ; then
+            echo "  Error deactivating volume group ${vg}, attempting to continue."
+        fi
+        pvremove -ff -y ${disk_and_parts} 2>/dev/null || :
+
+        echo "* Attempting to reduce broken volume group"
+        vgreduce --removemissing "${vg}" || :
+    done
+
+    # erase the start of the volume to get rid of other metadata:
+    echo "* Erasing start of volume"
+    dd if=/dev/zero of=${disk} count=10 bs=1024k &>/dev/null
+
+    echo "Complete."
+}
+
+##
+# wait_for_sm_plugin type
+#
+# Waits for the given plugin to be registered, so we can create SRs with it.
+wait_for_sm_plugin() {
+    local type="$1"
+    shift 1
+    MAX_RETRIES=300
+    RETRY=0
+    logger -t "${TAG}" "Waiting for SM plugin ${type} to be registered"
+    while [ ${RETRY} -lt ${MAX_RETRIES} ]; do
+        # NB 10-prepare-storage runs with 'set -e'
+        uuid=$(xe sm-list type=${type} params=uuid --minimal 2>/dev/null || true)
+        if [ ! -z "${uuid}" ]; then
+            logger -t "${TAG}" "detected SM plugin ${type} complete after ${RETRY} / ${MAX_RETRIES} s"
+            return 0
+        fi
+        sleep 1
+        echo -n "."
+        RETRY=$(( ${RETRY} + 1 ))
+    done
+    logger -t "${TAG}" "failed to detect SM plugin ${type} after ${MAX_RETRIES}s"
+    echo "failed to detect SM plugin ${type} after ${MAX_RETRIES}s"
+    return 1
+}
+
+
+##
+# sr_create name-label name-description type content-type i18n-key i18n-index
+#           <all device configuration>
+#
+# Creates an SR, using the given values, on the current host (using
+# INSTALLATION_UUID from xensource-inventory).
+#
+# i18n-key may be one of "local-storage", "removable-storage",
+# "local-hotplug-disk", "local-hotplug-cd", or other keys as recognized by
+# XenCenter in the future.
+#
+# i18n-index should be an integer, if the i18n-key will be used more than
+# once, or the empty string if only one SR of that kind will be created.
+#
+sr_create()
+{
+    local name_label="$1"
+    local name_description="$2"
+    local type="$3"
+    local content_type="$4"
+    local i18n_key="$5"
+    local i18n_index="$6"
+
+    shift 6
+
+    wait_for_sm_plugin ${type}
+
+    local sr_uuid=$(xe sr-create name-label="$name_label" \
+                                  type="$type" content-type="$content_type" \
+                                  host-uuid="$INSTALLATION_UUID" "$@")
+    if [ ! "$sr_uuid" ]
+    then
+        echo "SR creation failed." >&2
+        exit 1
+    fi
+    xe sr-param-set uuid="$sr_uuid" other-config:i18n-key="$i18n_key"
+    xe sr-param-set uuid="$sr_uuid" other-config:i18n-original-value-name_label="$name_label"
+
+    if [ "$name_description" ]
+    then
+        xe sr-param-set uuid="$sr_uuid" name-description="$name_description"
+        xe sr-param-set uuid="$sr_uuid" other-config:i18n-original-value-name_description="$name_description"
+    fi
+
+    if [ "$i18n_index" ]
+    then
+        xe sr-param-set uuid="$sr_uuid" other-config:i18n-index="$i18n_index"
+    fi
+}
+
+
+##
+# mk_non_spanning_local_srs partitions type
+#
+# Create a number of SRs, one for each of the given partitions, using the
+# given type.  If just one partition is supplied, then the SR will be called
+# "Local storage", otherwise the SRs will be called "Local storage N" where
+# N is an integer.  The internationalisation keys will be set accordingly.
+#
+# partitions should be an IFS-separated string of partition names.
+#
+mk_non_spanning_local_srs()
+{
+    local partitions="$1"
+    local type="$2"
+
+    local tmp_arr=($partitions)
+    local use_suffix=$(expr ${#tmp_arr[*]} != "1" || true)
+    local i=1
+    for p in $partitions
+    do
+        local name="Local storage"
+        local index=""
+        if [ "$use_suffix" == "1" ]
+        then
+            name="$name $i"
+            index="$i"
+            i=$(( $i + 1 ))
+        fi
+        sr_create "$name" "" "$type" "user" "local-storage" "$index" \
+            "device-config:device=$p"
+    done
+}
+
+
+mk_ext_sr()
+{
+    local partitions="$1"
+
+    for p in $partitions
+    do
+        diskprep "$p"
+    done
+
+    local partitions_cs=$(echo "$partitions" | sed "s/ /,/g")
+    sr_create "Local storage" "" "ext" "user" "local-storage" "" \
+        "device-config:device=$partitions_cs"
+}
+
+
+##
+# mk_lvm_sr partitions
+#
+# Create a single "Local storage" SR, with a single LVM volume spanning
+# the given partitions.
+#
+# partitions should be an IFS-separated string of partition names.
+#
+mk_lvm_sr()
+{
+    local partitions="$1"
+
+    for p in $partitions
+    do
+        diskprep "$p"
+    done
+
+    local partitions_cs=$(echo "$partitions" | sed "s/ /,/g")
+    sr_create "Local storage" "" "lvm" "user" "local-storage" "" \
+        "device-config:device=$partitions_cs"
+}
+
+create_local_sr() {
+    [ "$UPGRADE" = true ] && return 0
+
+    vgchange -a n || true
+
+    if [ -e "$CONFIGURATION" ]; then
+        # the configuration file exists - load it and create storage
+        # as required:
+        source "$CONFIGURATION"
+        case "$TYPE" in
+            ext)    mk_ext_sr "$PARTITIONS" ;;
+            lvm)    mk_lvm_sr "$PARTITIONS" ;;
+        esac
+    else
+        # CA-13146: upgrade Rio local storage
+        uuid=`xe sr-list name-label="Local storage on $(hostname)" | sed -ne 's/^uuid .*: //p'`
+        if [ -n "$uuid" ]; then
+            xe sr-param-set uuid="$uuid" name-label="Local storage"
+            xe sr-param-set uuid="$uuid" other-config:i18n-key="local-storage"
+            xe sr-param-set uuid="$uuid" other-config:i18n-original-value-name_label="Local storage"
+        fi
+    fi
+}
+
+set_default_sr() {
+    [ "$UPGRADE" = true ] && return 0
+
+    if [ -e ${CONFIGURATION} ]; then
+        source ${CONFIGURATION}
+        SR=$(xe sr-list type=$TYPE params=uuid --minimal | cut -f1 -d,)
+        POOL_UUID=$(xe pool-list params=uuid --minimal | cut -f1 -d,)
+
+        xe pool-param-set uuid=${POOL_UUID} default-SR=${SR}
+        xe host-param-set uuid=${INSTALLATION_UUID} crash-dump-sr-uuid=${SR}
+        xe host-param-set uuid=${INSTALLATION_UUID} suspend-image-sr-uuid=${SR}
+
+        if [ "$TYPE" = "ext" ]; then
+            # Wait for the host to enable itself, then configure caching.
+            xe event-wait class=host uuid=${INSTALLATION_UUID} enabled=true
+            xe host-disable uuid=${INSTALLATION_UUID}
+            xe host-enable-local-storage-caching uuid=${INSTALLATION_UUID} sr-uuid=${SR} || true
+            xe host-enable uuid=${INSTALLATION_UUID}
+        fi
+    fi
+}
+
+create_udev_srs() {
+    if [ "${CC_PREPARATIONS:-}" == "true" ]; then
+        echo "Skip creating udev SRs"
+        return
+    fi
+
+    [ "$UPGRADE" = true ] && return 0
+
+    found_cd=0
+    found_block=0
+    # Iterate through local SRs to see if we have the udev SRs already
+    IFS=","
+    for local_sr in $(xe pbd-list host=${INSTALLATION_UUID} params=sr-uuid --minimal); do
+        for SR in $(xe sr-list type=udev sm-config:type=cd uuid=${local_sr} params=uuid --minimal); do
+            found_cd=1
+        done
+        for SR in $(xe sr-list type=udev sm-config:type=block uuid=${local_sr} params=uuid --minimal); do
+            found_block=1
+        done
+    done
+    if [ ${found_block} == 0 ]; then
+        sr_create "Removable storage" "" "udev" "disk" "local-hotplug-disk" "" \
+            "sm-config:type=block" "device-config-location=/dev/xapi/block"
+    fi
+    if [ ${found_cd} == 0 ]; then
+        sr_create "DVD drives" "Physical DVD drives" "udev" "iso" \
+            "local-hotplug-cd" "" \
+            "sm-config:type=cd" "device-config-location=/dev/xapi/cd"
+    fi
+}
+
+##
+# For fresh installs the default is to enable multipathed SRs if the root disk is multipathed,
+# and to disable multipathed SRs otherwise.  This is just a default and can be changed later.
+# On upgrade the setting is left unchanged.
+#
+# The host-installer enables multipathed SRs by writing a config file in the firstboot data dir.
+configure_multipathing() {
+    if [ "$MULTIPATHING_ENABLED" = True ] ; then
+        xe host-param-set uuid=${INSTALLATION_UUID} other-config:multipathing=true
+        xe host-param-set uuid=${INSTALLATION_UUID} other-config:multipathhandle=dmp
+    fi
+}
+
+create_local_sr
+set_default_sr
+create_udev_srs
+configure_multipathing
+
+# Ensure changes are synced to disk
+xe pool-sync-database
+
+touch /var/lib/misc/ran-storage-init
