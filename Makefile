@@ -187,7 +187,7 @@ install: precheck
 	ln -sf $(SM_DEST)mpathutil.py $(SM_STAGING)/sbin/mpathutil
 	install -m 755 drivers/02-vhdcleanup $(SM_STAGING)$(MASTER_SCRIPT_DEST)
 	install -m 755 drivers/lvhd-thin $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
-	install -m 755 drivers/on-slave $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
+	install -m 755 drivers/on_slave.py $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)/on-slave
 	install -m 755 drivers/testing-hooks $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/coalesce-leaf $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/nfs-on-slave $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)

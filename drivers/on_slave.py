@@ -18,7 +18,6 @@
 # A plugin for synchronizing slaves when something changes on the Master
 
 import sys
-import XenAPIPlugin
 sys.path.append("/opt/xensource/sm/")
 import util
 import lock
@@ -126,6 +125,7 @@ def refresh_lun_size_by_SCSIid(session, args):
 
 
 if __name__ == "__main__":
+    import XenAPIPlugin
     XenAPIPlugin.dispatch({
         "multi": multi,
         "is_open": is_open,
