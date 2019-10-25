@@ -91,7 +91,7 @@ class OCFSSR(FileSR.FileSR):
         except util.CommandException, inst:
              raise xs_errors.XenError('OCFSMount', 
                                       opterr='Failed to mount FS. Errno is %d' \
-                                             % os.strerror(inst.code))
+                                             % inst.code)
 
     def attach(self, sr_uuid):
         if not self._checkmount():
@@ -120,7 +120,7 @@ class OCFSSR(FileSR.FileSR):
         except util.CommandException, inst:
                 raise xs_errors.XenError('OCFSUnMount', \
                       opterr='Failed to umount FS. Errno is %d' % \
-                      os.strerror(inst.code))
+                      inst.code)
 
         self.attached = False
         
@@ -133,7 +133,7 @@ class OCFSSR(FileSR.FileSR):
             ret = util.pread(cmd)
         except util.CommandException, inst:
             raise xs_errors.XenError('OCFSFilesystem', \
-                  opterr='mkfs failed error %d' % os.strerror(inst.code))
+                  opterr='mkfs failed error %d' % inst.code)
 
     def delete(self, sr_uuid):
         # Do a mount and remove any non-VDI files
