@@ -117,3 +117,36 @@ class Test_on_slave_is_open(unittest.TestCase):
 
         self.assertTrue(mock_log_exception.called)
         mock_log_exception.assert_called_once_with('is_open')
+
+
+class Test_on_slave_refresh_lun(unittest.TestCase):
+    """
+    Tests for refresh_lun_size_by_SCSIid
+    """
+
+    def setUp(self):
+        self.mock_session = mock.MagicMock()
+
+    @mock.patch('on_slave.scsiutil')
+    def test_refresh_success(self, mock_scsiutil):
+        """
+        Successfully refresh scsi lun size
+        """
+        mock_scsiutil.refresh_lun_size_by_SCSIid.return_value = True
+
+        refreshed = on_slave.refresh_lun_size_by_SCSIid(self.mock_session, {'SCSIid': 'fake_id'})
+
+        self.assertEqual('True', refreshed)
+        mock_scsiutil.refresh_lun_size_by_SCSIid.assert_called_once_with('fake_id')
+
+    @mock.patch('on_slave.scsiutil')
+    def test_refresh_failed(self, mock_scsiutil):
+        """
+        Refresh scsi lun size fails
+        """
+        mock_scsiutil.refresh_lun_size_by_SCSIid.return_value = False
+
+        refreshed = on_slave.refresh_lun_size_by_SCSIid(self.mock_session, {'SCSIid': 'fake_id'})
+
+        self.assertEqual('False', refreshed)
+        mock_scsiutil.refresh_lun_size_by_SCSIid.assert_called_once_with('fake_id')
