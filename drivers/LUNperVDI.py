@@ -18,6 +18,7 @@
 # LUNperVDI: Generic Raw LUN handler, used by HBASR and ISCSISR
 #
 
+import os
 import VDI, util
 import scsiutil
 import xs_errors
@@ -111,6 +112,13 @@ class RAWVDI(VDI.VDI):
             raise xs_errors.XenError('VDIUnavailable')
         if not util.pathexists(self.path):
             self.sr.refresh()
+            if self.sm_config.has_key('SCSIid'):
+                if self.sr.mpath == 'true':
+                    self.sr.mpathmodule.refresh(self.sm_config['SCSIid'], 0)
+                devs = os.listdir("/dev/disk/by-scsid/%s" % self.sm_config['SCSIid'])
+                for dev in devs:
+                    realdev = os.path.realpath("/dev/disk/by-scsid/%s/%s" % (self.sm_config['SCSIid'], dev))
+                    util.set_scheduler(realdev.split("/")[-1], "noop")
             if not util.wait_for_path(self.path, MAX_TIMEOUT):
                 util.SMlog("Unable to detect LUN attached to host [%s]" % self.sr.path)
                 raise xs_errors.XenError('VDIUnavailable')
@@ -118,6 +126,8 @@ class RAWVDI(VDI.VDI):
 
     def detach(self, sr_uuid, vdi_uuid):
         self.sr._loadvdis()
+        if self.sm_config.has_key('SCSIid'):
+            self.sr.mpathmodule.reset(self.sm_config['SCSIid'], True) # explicitly unmap
         if not self.sr.vdis.has_key(vdi_uuid):
             raise xs_errors.XenError('VDIUnavailable')
 
