@@ -49,12 +49,6 @@ def multi(session, args):
             except util.SMException:
                 util.SMlog("on-slave.deactivate failed")
                 raise
-        elif action == "activateNoRefcount":
-            try:
-                lvmCache.activateNoRefcount(args["lvName%d" % i])
-            except util.CommandException:
-                util.SMlog("on-slave.activateNoRefcount failed")
-                raise
         elif action == "deactivateNoRefcount":
             try:
                 lvmCache.deactivateNoRefcount(args["lvName%d" % i])
