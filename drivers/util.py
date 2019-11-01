@@ -1555,20 +1555,26 @@ def hideValuesInPropMap( propmap, propnames ):
     """
     Worker function: input simple map of prop name/value pairs, and
     a list of specific propnames whose values we want to hide.
-    Loop through the "hide" list, and if one is found, hide the
+    Loop through the "hide" list, and if any are found, hide the
     value and return the altered map.
     If none found, return the original map
     """
+    matches = []
     for propname in propnames:
         if propname in propmap:
-            deepCopyRec = copy.deepcopy(propmap)
-            deepCopyRec[propname] = '******'
-            return deepCopyRec
+            matches.append(propname)
+
+    if matches:
+        deepCopyRec = copy.deepcopy(propmap)
+        for match in matches:
+            deepCopyRec[match] = '******'
+        return deepCopyRec
+
     return propmap
 
 # define the list of propnames whose value we want to hide
 
-PASSWD_PROP_KEYS = ['password', 'cifspassword', 'chappassword']
+PASSWD_PROP_KEYS = ['password', 'cifspassword', 'chappassword', 'incoming_chappassword']
 DEFAULT_SEGMENT_LEN = 950
 
 def hidePasswdInConfig( config ):
