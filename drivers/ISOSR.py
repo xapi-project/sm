@@ -21,6 +21,7 @@ import SR, VDI, SRCommand, util
 import nfs
 import os, re
 import xs_errors
+import cifutils
 
 CAPABILITIES = ["VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH", 
                 "SR_SCAN", "SR_ATTACH", "SR_DETACH"]
@@ -230,7 +231,6 @@ class ISOSR(SR.SR):
 
         # Some info we need:
         self.sr_vditype = 'phy'
-        self.credentials = None
 
     def delete(self, sr_uuid):
         pass
@@ -254,7 +254,6 @@ class ISOSR(SR.SR):
 
         mountcmd=[]
         location = util.to_plain_string(self.dconf['location'])
-        self.credentials = os.path.join("/tmp", util.gen_uuid())
         # TODO: Have XC standardise iso type string
         protocol = 'nfs_iso'
         options = ''
@@ -305,7 +304,6 @@ class ISOSR(SR.SR):
             # Check the validity of 'smbversion'.
             # Raise an exception for any invalid version.
             if self.smbversion not in [SMB_VERSION_1, SMB_VERSION_3]:
-                self._cleanupcredentials()
                 raise xs_errors.XenError('ISOInvalidSMBversion')
 
         # Attempt mounting
@@ -344,21 +342,18 @@ class ISOSR(SR.SR):
                                 mountcmd.extend(options)
                             self.mountOverSMB(mountcmd)
                         else:
-                            self._cleanupcredentials()
                             raise xs_errors.XenError(
                                 'ISOMountFailure', opterr=inst.reason)
                 else:
                     util.SMlog('ISOSR mount over smb 1.0')
                     self.mountOverSMB(mountcmd)
         except util.CommandException, inst:
-            self._cleanupcredentials()
             if not self.is_smbversion_specified:
                 raise xs_errors.XenError(
                     'ISOMountFailure', opterr=smb3_fail_reason)
             else:
                 raise xs_errors.XenError(
                     'ISOMountFailure', opterr=inst.reason)
-        self._cleanupcredentials()
 
         # Check the iso_path is accessible
         if not self._checkmount():
@@ -384,7 +379,10 @@ class ISOSR(SR.SR):
 
     def mountOverSMB(self, mountcmd):
         """This function raises util.CommandException"""
-        util.pread(mountcmd, True)
+        new_env, domain = cifutils.getCIFCredentials(self.dconf, self.session,
+                                                     prefix="cifs")
+
+        util.pread(mountcmd, True, new_env=new_env)
         try:
             if not self.is_smbversion_specified:
                 # Store the successful smb version in PBD config
@@ -421,10 +419,19 @@ class ISOSR(SR.SR):
         """Append options to mount.cifs"""
         options = []
         try:
-            options.append(self.getCIFSPasswordOptions())
             options.append(self.getCacheOptions())
-            options.append('guest')
+
+            if not cifutils.containsCredentials(self.dconf, prefix="cifs"):
+                options.append('guest')
+
             options.append(self.getSMBVersion())
+
+            username, domain = (
+                cifutils.splitDomainAndUsername(self.dconf['username'])
+            )
+
+            if domain:
+                options.append('domain=' + domain)
         except:
             util.SMlog("Exception while attempting to append mount options")
             raise
@@ -437,48 +444,6 @@ class ISOSR(SR.SR):
     def getCacheOptions(self):
         """Pass cache options to mount.cifs"""
         return "cache=none"
-
-    def getCIFSPasswordOptions(self):
-        if self.dconf.has_key('username') \
-                and (self.dconf.has_key('cifspassword') or self.dconf.has_key('cifspassword_secret')):
-            dom_username = self.dconf['username'].split('\\')
-            if len(dom_username) == 1:
-                domain = None
-                username = dom_username[0]
-            elif len(dom_username) == 2:
-                domain = dom_username[0]
-                username = dom_username[1]
-            else:
-                err_str = ("A maximum of 2 tokens are expected "
-                           "(<domain>\<username>). {} were given."
-                           .format(len(dom_username)))
-                util.SMlog('CIFS ISO SR mount error: ' + err_str)
-                raise xs_errors.XenError('ISOMountFailure', opterr=err_str)
-
-            if self.dconf.has_key('cifspassword_secret'):
-                password = util.get_secret(self.session, self.dconf['cifspassword_secret'])
-            else:
-                password = self.dconf['cifspassword']
-
-            domain = util.to_plain_string(domain)
-            username = util.to_plain_string(username)
-            password = util.to_plain_string(password)
-
-            cred_str = 'username={}\npassword={}\n'.format(username, password)
-
-            if domain:
-                cred_str += 'domain={}\n'.format(domain)
-
-            # Open credentials file and truncate
-            f = open(self.credentials, 'w')
-            f.write(cred_str)
-            f.close()            
-            credentials = "credentials=%s" % self.credentials            
-            return credentials
-
-    def _cleanupcredentials(self):
-        if self.credentials and os.path.exists(self.credentials):
-            os.unlink(self.credentials)
 
     def detach(self, sr_uuid):
         """Std. detach"""

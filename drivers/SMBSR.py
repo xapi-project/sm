@@ -25,6 +25,7 @@ import xs_errors
 import vhdutil
 from lock import Lock
 import cleanup
+import cifutils
 
 CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_CACHING",
                 "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH",
@@ -80,7 +81,6 @@ class SMBSR(FileSR.FileSR):
             self.sm_config = self.session.xenapi.SR.get_sm_config(self.sr_ref)
         else:
             self.sm_config = self.srcmd.params.get('sr_sm_config') or {}
-        self.credentials = None
         self.mountpoint = os.path.join(SR.MOUNT_BASE, 'SMB', self.__extract_server(), sr_uuid)
         self.linkpath = os.path.join(self.mountpoint,
                                            sr_uuid or "")
@@ -95,7 +95,7 @@ class SMBSR(FileSR.FileSR):
 				util.ismount(self.mountpoint)) and \
                                 util.pathexists(self.linkpath)))
 
-    def mount(self, mountpoint=None):
+    def makeMountPoint(self, mountpoint):
         """Mount the remote SMB export at 'mountpoint'"""
         if mountpoint == None:
             mountpoint = self.mountpoint
@@ -108,27 +108,27 @@ class SMBSR(FileSR.FileSR):
         except util.CommandException, inst:
             raise SMBException("Failed to make directory: code is %d" %
                                 inst.code)
+        return mountpoint
 
-        self.credentials = os.path.join("/tmp", util.gen_uuid())
+    def mount(self, mountpoint=None):
 
-        options = self.getMountOptions()
+        mountpoint = self.makeMountPoint(mountpoint)
+
+        new_env, domain = cifutils.getCIFCredentials(self.dconf, self.session)
+
+        options = self.getMountOptions(domain)
         if options:
             options = ",".join(str(x) for x in options if x)
 
         try:
+
             util.ioretry(lambda:
                 util.pread(["mount.cifs", self.remoteserver,
-                mountpoint, "-o", options]),
+                mountpoint, "-o", options], new_env=new_env),
                 errlist=[errno.EPIPE, errno.EIO],
                 maxretry=2, nofail=True)
         except util.CommandException, inst:
             raise SMBException("mount failed with return code %d" % inst.code)
-        finally:
-            try:
-                os.unlink(self.credentials)
-            except OSError:
-                util.SMlog("Error when trying to delete "
-                           "credentials files /tmp/<uuid>")
 
         # Sanity check to ensure that the user has at least RO access to the
         # mounted share. Windows sharing and security settings can be tricky.
@@ -142,57 +142,18 @@ class SMBSR(FileSR.FileSR):
             raise SMBException("Permission denied. "
                                 "Please check user privileges.")
 
-    def getMountOptions(self):
+    def getMountOptions(self, domain):
         """Creates option string based on parameters provided"""
         options = ['cache=loose',
                 'vers=3.0',
                 'actimeo=0'
         ]
 
-        if self.dconf.has_key('username') and \
-                (self.dconf.has_key('password') or
-                self.dconf.has_key('password_secret')):
+        if domain:
+            options.append('domain='+domain)
 
-            dom_username = self.dconf['username'].split('\\')
-
-            if len(dom_username) == 1:
-                domain = None
-                username = dom_username[0]
-            elif len(dom_username) == 2:
-                domain = dom_username[0]
-                username = dom_username[1]
-            else:
-                raise SMBException("A maximum of 2 tokens are expected "
-                                   "(<domain>\<username>). {} were given."
-                                   .format(len(dom_username)))
-
-            domain = util.to_plain_string(domain)
-            username = util.to_plain_string(username)
-
-            if self.dconf.has_key('password_secret'):
-                password = util.get_secret(
-                           self.session,
-                           self.dconf['password_secret']
-            )
-            else:
-                password = self.dconf['password']
-
-            password = util.to_plain_string(password)
-
-            cred_str = 'username={}\npassword={}\n'.format(username, password)
-
-            if domain:
-                cred_str += 'domain={}\n'.format(domain)
-
-            # Open credentials file and truncate
-            try:
-                with open(self.credentials, 'w') as f:
-                    f.write(cred_str)
-            except IOError, e:
-                raise SMBException("Failed to create credentials file")
-
-	    options.append('credentials=%s' % self.credentials)
-	else:
+        if not cifutils.containsCredentials(self.dconf):
+            # No login details provided.
 	    options.append('guest')
 
         return options

@@ -262,6 +262,9 @@ tests/run_python_unittests.sh
 /opt/xensource/sm/mpathutil.py
 /opt/xensource/sm/mpathutil.pyc
 /opt/xensource/sm/mpathutil.pyo
+/opt/xensource/sm/cifutils.py
+/opt/xensource/sm/cifutils.pyc
+/opt/xensource/sm/cifutils.pyo
 /opt/xensource/sm/mpp_mpathutil.py
 /opt/xensource/sm/mpp_mpathutil.pyc
 /opt/xensource/sm/mpp_mpathutil.pyo
