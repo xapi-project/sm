@@ -173,7 +173,7 @@ class TestContext(object):
         assert args[1] == '-d'
         return (0, args[2] + '-description', '')
 
-    def fake_popen(self, args, stdin, stdout, stderr, close_fds):
+    def fake_popen(self, args, stdin, stdout, stderr, close_fds, env=None):
         import subprocess
         assert stdin == subprocess.PIPE
         assert stdout == subprocess.PIPE

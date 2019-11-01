@@ -30,7 +30,7 @@ class FakeSMBSR(SMBSR.SMBSR):
 
 class Test_SMBSR(unittest.TestCase):
 
-    def create_smbsr(self, sr_uuid='asr_uuid', server='\\aServer', serverpath = '/aServerpath', username = 'aUsername', password = 'aPassword'):
+    def create_smbsr(self, sr_uuid='asr_uuid', server='\\aServer', serverpath = '/aServerpath', username = 'aUsername', password = 'aPassword', dconf_update={}):
         srcmd = mock.Mock()
         srcmd.dconf = {
             'server': server,
@@ -42,6 +42,7 @@ class Test_SMBSR(unittest.TestCase):
             'command': 'some_command',
             'device_config': {}
         }
+        srcmd.dconf.update(dconf_update)
         smbsr = FakeSMBSR(srcmd, None)
         smbsr.load(sr_uuid)
         return smbsr
@@ -69,6 +70,50 @@ class Test_SMBSR(unittest.TestCase):
         mock_checkmount.return_value=True
         smbsr.attach('asr_uuid')
         self.assertTrue(smbsr.attached)
+
+    @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
+    @mock.patch('SMBSR.SMBSR.makeMountPoint', autospec=True)
+    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('util.pread', autospec=True)
+    @mock.patch('os.symlink', autospec=True)
+    @mock.patch('util.listdir', autospec=True)
+    def test_attach_vanilla(self, listdir, symlink, pread, mock_lock, makeMountPoint, mock_checkmount):
+        mock_checkmount.return_value=False
+        smbsr = self.create_smbsr()
+        makeMountPoint.return_value = "/var/mount"
+        smbsr.attach('asr_uuid')
+        self.assertTrue(smbsr.attached)
+        pread.assert_called_with(['mount.cifs', '\\aServer', "/var/mount", '-o', 'cache=loose,vers=3.0,actimeo=0'],
+                                 new_env={'PASSWD': 'aPassword', 'USER': 'aUsername'})
+
+    @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
+    @mock.patch('SMBSR.SMBSR.makeMountPoint', autospec=True)
+    @mock.patch('SMBSR.Lock', autospecd=True)
+    @mock.patch('util.pread', autospec=True)
+    @mock.patch('os.symlink', autospec=True)
+    @mock.patch('util.listdir', autospec=True)
+    def test_attach_with_cifs_password(self, listdir, symlink, pread, mock_lock, makeMountPoint, mock_checkmount):
+        smbsr = self.create_smbsr(dconf_update={"password":"winter2019"})
+        mock_checkmount.return_value=False
+        makeMountPoint.return_value = "/var/mount"
+        smbsr.attach('asr_uuid')
+        self.assertTrue(smbsr.attached)
+        pread.assert_called_with(['mount.cifs', '\\aServer', "/var/mount", '-o', 'cache=loose,vers=3.0,actimeo=0'], new_env={'PASSWD': 'winter2019', 'USER': 'aUsername'})
+
+    @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
+    @mock.patch('SMBSR.SMBSR.makeMountPoint', autospec=True)
+    @mock.patch('SMBSR.Lock', autospecd=True)
+    @mock.patch('util.pread', autospec=True)
+    @mock.patch('os.symlink', autospec=True)
+    @mock.patch('util.listdir', autospec=True)
+    def test_attach_with_cifs_password_and_domain(self, listdir,  symlink, pread, mock_lock, makeMountPoint, mock_checkmount):
+        smbsr = self.create_smbsr(username="citrix\jsmith", dconf_update={"password":"winter2019"})
+        mock_checkmount.return_value=False
+        makeMountPoint.return_value = "/var/mount"
+        smbsr.attach('asr_uuid')
+        self.assertTrue(smbsr.attached)
+        # We mocked listdir as this calls pread and assert_called_with only records the last call.
+        pread.assert_called_with(['mount.cifs', '\\aServer', "/var/mount", '-o', 'cache=loose,vers=3.0,actimeo=0,domain=citrix'], new_env={'PASSWD': 'winter2019', 'USER': 'jsmith'})
 
     #Detach
     @testlib.with_context
