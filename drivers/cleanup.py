@@ -19,6 +19,7 @@
 #
 
 import os
+import os.path
 import sys
 import time
 import signal
@@ -30,6 +31,7 @@ import traceback
 import base64
 import zlib
 import errno
+import stat
 
 import XenAPI
 import util
@@ -73,6 +75,8 @@ DEFAULT_COALESCE_ERR_RATE = 1.0/60
 
 COALESCE_LAST_ERR_TAG = 'last-coalesce-error'
 COALESCE_ERR_RATE_TAG = 'coalesce-error-rate'
+SPEED_LOG_ROOT = "/var/run/{uuid}.speed_log"
+N_RUNNING_AVERAGE = 10
 
 class AbortException(util.SMException):
     pass
@@ -459,6 +463,8 @@ class VDI:
 
     LIVE_LEAF_COALESCE_MAX_SIZE = 20 * 1024 * 1024 # bytes
     LIVE_LEAF_COALESCE_TIMEOUT = 10 # seconds
+    TIMEOUT_SAFETY_MARGIN = 0.5 # extra margin when calculating
+                                # feasibility of leaf coalesce
 
     JRN_RELINK = "relink" # journal entry type for relinking children
     JRN_COALESCE = "coalesce" # to communicate which VDI is being coalesced
@@ -585,11 +591,21 @@ class VDI:
                 not self.hidden and \
                 len(self.children) == 0
 
-    def canLiveCoalesce(self):
+    def canLiveCoalesce(self, speed):
         """Can we stop-and-leaf-coalesce this VDI? The VDI must be
         isLeafCoalesceable() already"""
-        return self.getSizeVHD() <= self.LIVE_LEAF_COALESCE_MAX_SIZE or \
-                self.getConfig(self.DB_LEAFCLSC) == self.LEAFCLSC_FORCE
+        feasibleSize = False
+        allowedDownTime =\
+                self.TIMEOUT_SAFETY_MARGIN * self.LIVE_LEAF_COALESCE_TIMEOUT
+        if speed:
+            feasibleSize =\
+                self.getSizeVHD()/speed < allowedDownTime
+        else:
+            feasibleSize =\
+                self.getSizeVHD() < self.LIVE_LEAF_COALESCE_MAX_SIZE
+
+        return (feasibleSize or
+                self.getConfig(self.DB_LEAFCLSC) == self.LEAFCLSC_FORCE)
 
     def getAllPrunable(self):
         if len(self.children) == 0: # base case
@@ -786,7 +802,12 @@ class VDI:
 
     def _doCoalesceVHD(vdi):
         try:
+
+            startTime = time.time()
+            vhdSize = vdi.getSizeVHD()
             vhdutil.coalesce(vdi.path)
+            endTime = time.time()
+            vdi.sr.recordStorageSpeed(startTime, endTime, vhdSize)
         except util.CommandException, ce:
             # We use try/except for the following piece of code because it runs
             # in a separate process context and errors will not be caught and
@@ -1501,18 +1522,62 @@ class SR:
                             (c, freeSpace))
         return None
 
+    def getSwitch(self, key):
+        return self.xapi.srRecord["other_config"].get(key)
+
+    def forbiddenBySwitch(self, switch, condition, fail_msg):
+        srSwitch = self.getSwitch(switch)
+        ret = False
+        if srSwitch:
+            ret = srSwitch == condition
+
+        if ret:
+            Util.log(fail_msg)
+
+        return ret
+
+    def leafCoalesceForbidden(self):
+        return (self.forbiddenBySwitch(VDI.DB_COALESCE,
+                                       "false",
+                                       "Coalesce disabled for this SR") or
+                self.forbiddenBySwitch(VDI.DB_LEAFCLSC,
+                                       VDI.LEAFCLSC_DISABLED,
+                                       "Leaf-coalesce disabled for this SR"))
+
     def findLeafCoalesceable(self):
         """Find leaf-coalesceable VDIs in each VHD tree"""
-        candidates = []
-        srSwitch = self.xapi.srRecord["other_config"].get(VDI.DB_COALESCE)
-        if srSwitch == "false":
-            Util.log("Coalesce disabled for this SR")
-            return candidates
-        srSwitch = self.xapi.srRecord["other_config"].get(VDI.DB_LEAFCLSC)
-        if srSwitch == VDI.LEAFCLSC_DISABLED:
-            Util.log("Leaf-coalesce disabled for this SR")
-            return candidates
 
+        candidates = []
+        if self.leafCoalesceForbidden():
+          return candidates
+
+        self.gatherLeafCoalesceable(candidates)
+
+        freeSpace = self.getFreeSpace()
+        for candidate in candidates:
+            # check the space constraints to see if leaf-coalesce is actually 
+            # feasible for this candidate
+            spaceNeeded = candidate._calcExtraSpaceForSnapshotCoalescing()
+            spaceNeededLive = spaceNeeded
+            if spaceNeeded > freeSpace:
+                spaceNeededLive = candidate._calcExtraSpaceForLeafCoalescing()
+                if candidate.canLiveCoalesce(self.getStorageSpeed()):
+                    spaceNeeded = spaceNeededLive
+
+            if spaceNeeded <= freeSpace:
+                Util.log("Leaf-coalesce candidate: %s" % candidate)
+                return candidate
+            else:
+                Util.log("No space to leaf-coalesce %s (free space: %d)" % \
+                        (candidate, freeSpace))
+                if spaceNeededLive <= freeSpace:
+                    Util.log("...but enough space if skip snap-coalesce")
+                    candidate.setConfig(VDI.DB_LEAFCLSC, 
+                            VDI.LEAFCLSC_OFFLINE)
+
+        return None
+
+    def gatherLeafCoalesceable(self, candidates):
         for vdi in self.vdis.values():
             if not vdi.isLeafCoalesceable():
                 continue
@@ -1527,33 +1592,10 @@ class SR:
             if vdi.getConfig(vdi.DB_LEAFCLSC) == vdi.LEAFCLSC_DISABLED:
                 Util.log("Leaf-coalesce disabled for %s" % vdi)
                 continue
-            if not (AUTO_ONLINE_LEAF_COALESCE_ENABLED or \
+            if not (AUTO_ONLINE_LEAF_COALESCE_ENABLED or
                     vdi.getConfig(vdi.DB_LEAFCLSC) == vdi.LEAFCLSC_FORCE):
                 continue
             candidates.append(vdi)
-
-        freeSpace = self.getFreeSpace()
-        for candidate in candidates:
-            # check the space constraints to see if leaf-coalesce is actually 
-            # feasible for this candidate
-            spaceNeeded = candidate._calcExtraSpaceForSnapshotCoalescing()
-            spaceNeededLive = spaceNeeded
-            if spaceNeeded > freeSpace:
-                spaceNeededLive = candidate._calcExtraSpaceForLeafCoalescing()
-                if candidate.canLiveCoalesce():
-                    spaceNeeded = spaceNeededLive
-            if spaceNeeded <= freeSpace:
-                Util.log("Leaf-coalesce candidate: %s" % candidate)
-                return candidate
-            else:
-                Util.log("No space to leaf-coalesce %s (free space: %d)" % \
-                        (candidate, freeSpace))
-                if spaceNeededLive <= freeSpace:
-                    Util.log("...but enough space if skip snap-coalesce")
-                    candidate.setConfig(VDI.DB_LEAFCLSC, 
-                            VDI.LEAFCLSC_OFFLINE)
-
-        return None
 
     def coalesce(self, vdi, dryRun):
         """Coalesce vdi onto parent"""
@@ -1646,7 +1688,7 @@ class SR:
         if failed:
             self.unpauseVDIs(paused)
             raise util.SMException("Failed to pause VDIs")
-        
+
     def unpauseVDIs(self, vdiList):
         failed = False
         for vdi in vdiList:
@@ -1773,21 +1815,157 @@ class SR:
         self.journaler.remove(vdi.JRN_RELINK, vdi.uuid)
         self.deleteVDI(vdi)
 
+    class CoalesceTracker:
+        MAX_ITERATIONS_NO_PROGRESS = 3
+        MAX_ITERATIONS = 10
+        MAX_INCREASE_FROM_MINIMUM = 1.2
+        HISTORY_STRING = "Iteration: {its} -- Initial size {initSize}" \
+                         " --> Final size {finSize}"
+
+        def __init__(self):
+            self.itsNoProgress = 0
+            self.its = 0
+            self.minSize = float("inf")
+            self.history = []
+            self.reason = ""
+            self.startSize = None
+            self.finishSize = None
+
+        def abortCoalesce(self, prevSize, curSize):
+            res = False
+
+            self.its += 1
+            self.history.append(self.HISTORY_STRING.format(its=self.its,
+                                                           initSize=prevSize,
+                                                           finSize=curSize))
+
+            self.finishSize = curSize
+
+            if self.startSize is None:
+                self.startSize = prevSize
+
+            if curSize < self.minSize:
+                self.minSize = curSize
+
+            if prevSize < self.minSize:
+                self.minSize = prevSize
+
+            if prevSize < curSize:
+                self.itsNoProgress += 1
+                Util.log("No progress, attempt:"
+                         " {attempt}".format(attempt=self.itsNoProgress))
+
+            if (not res) and (self.its > self.MAX_ITERATIONS):
+                max = self.MAX_ITERATIONS
+                self.reason =\
+                    "Max iterations ({max}) exceeded".format(max=max)
+                res = True
+
+            if (not res) and (self.itsNoProgress >
+                              self.MAX_ITERATIONS_NO_PROGRESS):
+                max = self.MAX_ITERATIONS_NO_PROGRESS
+                self.reason =\
+                    "No progress made for {max} iterations".format(max=max)
+                res = True
+
+            maxSizeFromMin = self.MAX_INCREASE_FROM_MINIMUM * self.minSize
+            if (not res) and (curSize > maxSizeFromMin):
+                self.reason = "Unexpected bump in size," \
+                              " compared to minimum acheived"
+                res = True
+
+            return res
+
+        def printReasoning(self):
+            Util.log("Aborted coalesce")
+            for hist in self.history:
+                Util.log(hist)
+            Util.log(self.reason)
+            Util.log("Starting size was         {size}"
+                     .format(size=self.startSize))
+            Util.log("Final size was            {size}"
+                     .format(size=self.finishSize))
+            Util.log("Minimum size acheived was {size}"
+                     .format(size=self.minSize))
+
     def _coalesceLeaf(self, vdi):
         """Leaf-coalesce VDI vdi. Return true if we succeed, false if we cannot
         complete due to external changes, namely vdi_delete and vdi_snapshot 
         that alter leaf-coalescibility of vdi"""
-        while not vdi.canLiveCoalesce():
+        tracker = self.CoalesceTracker()
+        while not vdi.canLiveCoalesce(self.getStorageSpeed()):
             prevSizeVHD = vdi.getSizeVHD()
             if not self._snapshotCoalesce(vdi):
                 return False
-            if vdi.getSizeVHD() >= prevSizeVHD:
-                Util.log("Snapshot-coalesce did not help, previous %s, "
-                         "current %s. Abandoning attempts" %
-                         (prevSizeVHD, vdi.getSizeVHD()))
-                vdi.setConfig(vdi.DB_LEAFCLSC, vdi.LEAFCLSC_OFFLINE)
-                raise xs_errors.XenError('LeafGCSkip', opterr='VDI=%s' % vdi)
+            if tracker.abortCoalesce(prevSizeVHD, vdi.getSizeVHD()):
+                tracker.printReasoning()
+                raise util.SMException("VDI {uuid} could not be coalesced"
+                                       .format(uuid=vdi.uuid))
         return self._liveLeafCoalesce(vdi)
+
+    def calcStorageSpeed(self, startTime, endTime, vhdSize):
+        speed = None
+        total_time = endTime - startTime
+        if total_time > 0:
+            speed = float(vhdSize) / float(total_time)
+        return speed
+
+    def writeSpeedToFile(self, speed):
+        content = []
+        speedFile = None
+        path = SPEED_LOG_ROOT.format(uuid=self.uuid)
+        try:
+            if not os.path.isfile(path):
+                # First time open
+                speedFile = open(path, "w")
+                # Set perms -rwx------
+                os.chmod(path, stat.S_IRWXU)
+                speedFile.write(str(speed)+"\n")
+            else:
+                speedFile = open(path, "r+")
+                content = speedFile.readlines()
+                content.append(str(speed) + "\n")
+                if len(content) > N_RUNNING_AVERAGE:
+                    del content[0]
+                speedFile.seek(0)
+                speedFile.writelines(content)
+        finally:
+            if not (speedFile is None):
+                speedFile.close()
+
+    def recordStorageSpeed(self, startTime, endTime, vhdSize):
+        speed = self.calcStorageSpeed(startTime, endTime, vhdSize)
+        if speed is None:
+            return
+
+        self.writeSpeedToFile(speed)
+
+    def getStorageSpeed(self):
+        speedFile = None
+        path = SPEED_LOG_ROOT.format(uuid=self.uuid)
+        try:
+            speed = None
+            if os.path.isfile(path):
+                speedFile = open(path)
+                content = speedFile.readlines()
+                content = [float(i) for i in content]
+                if len(content):
+                    speed = sum(content)/float(len(content))
+                    if speed <= 0:
+                        # Defensive, should be impossible.
+                        Util.log("Bad speed: {speed} calculated for SR: {uuid}".
+                             format(speed=speed, uuid=self.uuid))
+                        speed = None
+                else:
+                    Util.log("Speed file empty for SR: {uuid}".
+                             format(uuid=self.uuid))
+            else:
+                Util.log("Speed log missing for SR: {uuid}".
+                         format(uuid=self.uuid))
+            return speed
+        finally:
+            if not (speedFile is None):
+                speedFile.close()
 
     def _snapshotCoalesce(self, vdi):
         # Note that because we are not holding any locks here, concurrent SM 
@@ -1811,6 +1989,7 @@ class SR:
             return False
         Util.log("Coalescing parent %s" % tempSnap)
         util.fistpoint.activate("LVHDRT_coaleaf_delay_2", self.uuid)
+        vhdSize = vdi.getSizeVHD()
         self._coalesce(tempSnap)
         if not vdi.isLeafCoalesceable():
             Util.log("The VDI tree appears to have been altered since")
