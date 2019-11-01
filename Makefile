@@ -31,6 +31,7 @@ SM_LIBS += scsiutil
 SM_LIBS += scsi_host_rescan
 SM_LIBS += vhdutil
 SM_LIBS += lvhdutil
+SM_LIBS += cifutils
 SM_LIBS += xs_errors
 SM_LIBS += nfs
 SM_LIBS += devscan

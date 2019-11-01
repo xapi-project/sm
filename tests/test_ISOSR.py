@@ -2,11 +2,11 @@ import mock
 import nfs
 import ISOSR
 import unittest
-import xs_errors 
+import xs_errors
 import util
 import SR
 import errno
-import testlib 
+import testlib
 
 
 class FakeISOSR(ISOSR.ISOSR):
@@ -18,6 +18,7 @@ class FakeISOSR(ISOSR.ISOSR):
     def __init__(self, srcmd, none):
         self.dconf = srcmd.dconf
         self.srcmd = srcmd
+
 
 class TestISOSR_overNFS(unittest.TestCase):
 
@@ -117,7 +118,8 @@ class TestISOSR_overSMB(unittest.TestCase):
     def create_smbisosr(self, location='\\aServer\aLocation', atype=None,
                         sr_uuid='asr_uuid', server='\\aServer',
                         serverpath='/aServerpath', username='aUsername',
-                        password='aPassword', vers=None, options=''):
+                        password='aPassword', vers=None, options='',
+                        dconf_update={}):
         srcmd = mock.Mock()
         srcmd.dconf = {
             'location': location,
@@ -135,6 +137,7 @@ class TestISOSR_overSMB(unittest.TestCase):
             'command': 'some_command',
             'device_config': {}
         }
+        srcmd.dconf.update(dconf_update)
         isosr = FakeISOSR(srcmd, None)
         isosr.load(sr_uuid)
         return isosr
@@ -145,7 +148,7 @@ class TestISOSR_overSMB(unittest.TestCase):
     @testlib.with_context
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('util.pread')
+    @mock.patch('util.pread', autospec=True)
     @mock.patch('ISOSR.ISOSR._checkmount')
     def test_attach_with_smb_version_1(self, context, _checkmount, pread,
                                        _checkTargetStr, makedirs):
@@ -156,11 +159,59 @@ class TestISOSR_overSMB(unittest.TestCase):
         smbsr = self.create_smbisosr(atype='cifs', vers='1.0')
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)
+        pread.return_value="Success"
+        pread.assert_called_with(['mount.cifs', '\\aServer\x07Location',
+                                  '/var/run/sr-mount/asr_uuid', '-o',
+                                  'cache=none,guest,vers=1.0'], True, new_env=None)
 
     @testlib.with_context
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('util.pread')
+    @mock.patch('util.pread', autospec=True)
+    @mock.patch('ISOSR.ISOSR._checkmount')
+    def test_attach_with_smb_credentials(self, context, _checkmount, pread,
+                                         _checkTargetStr, makedirs):
+        """
+        Positive case, over XC/XE CLI with version 1.0.
+        """
+        context.setup_error_codes()
+        update = {'cifspassword': 'winter2019'}
+        smbsr = self.create_smbisosr(atype='cifs', vers='1.0',
+                                     dconf_update=update)
+        _checkmount.side_effect = [False, True]
+        smbsr.attach(None)
+        pread.assert_called_with(['mount.cifs', '\\aServer\x07Location',
+                                  '/var/run/sr-mount/asr_uuid', '-o',
+                                 'cache=none,vers=1.0'], True,
+                                 new_env={'PASSWD': 'winter2019', 'USER': 'aUsername'})
+
+    @testlib.with_context
+    @mock.patch('util.makedirs')
+    @mock.patch('ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('util.pread', autospec=True)
+    @mock.patch('ISOSR.ISOSR._checkmount')
+    def test_attach_with_smb_credentials_domain(self, context,
+                                                _checkmount, pread,
+                                                _checkTargetStr, makedirs):
+        """
+        Positive case, over XC/XE CLI with version 1.0.
+        """
+        context.setup_error_codes()
+        update = {'cifspassword': 'winter2019'}
+        smbsr = self.create_smbisosr(atype='cifs', vers='1.0',
+                                     username='citrix\jsmith',
+                                     dconf_update=update)
+        _checkmount.side_effect = [False, True]
+        smbsr.attach(None)
+        pread.assert_called_with(['mount.cifs', '\\aServer\x07Location',
+                                  '/var/run/sr-mount/asr_uuid', '-o',
+                                  'cache=none,vers=1.0,domain=citrix'], True,
+                                 new_env={'PASSWD': 'winter2019', 'USER': 'jsmith'})
+
+    @testlib.with_context
+    @mock.patch('util.makedirs')
+    @mock.patch('ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('util.pread', autospec=True)
     @mock.patch('ISOSR.ISOSR._checkmount')
     def test_attach_with_smb_version_3(self, context, _checkmount, pread,
                                        _checkTargetStr, makedirs):
@@ -171,15 +222,20 @@ class TestISOSR_overSMB(unittest.TestCase):
         smbsr = self.create_smbisosr(atype='cifs', vers='3.0')
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)
+        pread.assert_called_with(['mount.cifs', '\\aServer\x07Location',
+                                  '/var/run/sr-mount/asr_uuid', '-o',
+                                  'cache=none,guest,vers=3.0'], True, new_env=None)
 
     @testlib.with_context
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('util.pread')
+    @mock.patch('util.pread', autospec=True)
     @mock.patch('ISOSR.ISOSR._checkmount')
     @mock.patch('ISOSR.ISOSR.updateSMBVersInPBDConfig')
-    def test_attach_with_smb_no_version(self, context, updateSMBVersInPBDConfig,
-                                        _checkmount, pread, _checkTargetStr, makedirs):
+    def test_attach_with_smb_no_version(self, context,
+                                        updateSMBVersInPBDConfig,
+                                        _checkmount, pread,
+                                        _checkTargetStr, makedirs):
         """
         Positive case, over XC/XE CLI without version.
         """
@@ -187,13 +243,17 @@ class TestISOSR_overSMB(unittest.TestCase):
         smbsr = self.create_smbisosr(atype='cifs')
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)
+        pread.assert_called_with(['mount.cifs', '\\aServer\x07Location',
+                                  '/var/run/sr-mount/asr_uuid', '-o',
+                                  'cache=none,guest,vers=3.0'], True, new_env=None)
 
     @testlib.with_context
     @mock.patch('util.gen_uuid')
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
     @mock.patch('ISOSR.ISOSR._checkmount')
-    def test_attach_smb_via_xemount_version_1(self, context, _checkmount,
+    @mock.patch('util.pread', autospec=True)
+    def test_attach_smb_via_xemount_version_1(self, context, pread, _checkmount,
                                               _checkTargetStr, makedirs, gen_uuid):
         """
         Positive case, over xe-sr-mount CLI with version 1.0.
@@ -201,20 +261,24 @@ class TestISOSR_overSMB(unittest.TestCase):
         context.setup_error_codes()
         smbsr = self.create_smbisosr(options='-o username=administrator,password=password,vers=1.0')
         smbsr.attach(None)
+        self.assertEqual(0, pread.call_count)
 
     @testlib.with_context
     @mock.patch('util.gen_uuid')
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
     @mock.patch('ISOSR.ISOSR._checkmount')
-    def test_attach_smb_via_xemount_version_3(self, context, _checkmount,
-                                              _checkTargetStr, makedirs, gen_uuid):
+    @mock.patch('util.pread', autospec=True)
+    def test_attach_smb_via_xemount_version_3(self, context, pread,
+                                              _checkmount, _checkTargetStr,
+                                              makedirs, gen_uuid):
         """
         Positive case, over xe-sr-mount CLI with version 3.0.
         """
         context.setup_error_codes()
         smbsr = self.create_smbisosr(options='-o username=administrator,password=password,vers=3.0')
         smbsr.attach(None)
+        self.assertEqual(0, pread.call_count)
 
     @testlib.with_context
     @mock.patch('util.gen_uuid')
@@ -222,7 +286,8 @@ class TestISOSR_overSMB(unittest.TestCase):
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
     @mock.patch('ISOSR.ISOSR._checkmount')
     @mock.patch('ISOSR.ISOSR.updateSMBVersInPBDConfig')
-    def test_attach_smb_via_xemount_no_version(self, context,
+    @mock.patch('util.pread', autospec=True)
+    def test_attach_smb_via_xemount_no_version(self, context, pread,
                                                updateSMBVersInPBDConfig,
                                                _checkmount,
                                                _checkTargetStr, makedirs,
@@ -233,12 +298,13 @@ class TestISOSR_overSMB(unittest.TestCase):
         context.setup_error_codes()
         smbsr = self.create_smbisosr(options='-o username=administrator,password=password')
         smbsr.attach(None)
+        self.assertEqual(0, pread.call_count)
 
     @testlib.with_context
     @mock.patch('util.gen_uuid')
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('util.pread')
+    @mock.patch('util.pread', autospec=True)
     def test_attach_smb_wrongversion(self, context, pread, _checkTargetStr,
                                      makedirs, gen_uuid):
         """
@@ -279,7 +345,7 @@ class TestISOSR_overSMB(unittest.TestCase):
     @mock.patch('util.gen_uuid')
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('util.pread')
+    @mock.patch('util.pread', autospec=True)
     @mock.patch('ISOSR.ISOSR._checkmount')
     @mock.patch('ISOSR.ISOSR.updateSMBVersInPBDConfig')
     def test_attach_smb_version_fallback_with_smb_3_disabled(self, context,
@@ -289,15 +355,18 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         context.setup_error_codes()
         smbsr = self.create_smbisosr(atype='cifs')
-        pread.side_effect = [util.CommandException(errno.EHOSTDOWN), " "]
+        pread.side_effect = iter([util.CommandException(errno.EHOSTDOWN), " "])
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)
+        pread.assert_called_with(['mount.cifs', '\\aServer\x07Location',
+                                  '/var/run/sr-mount/asr_uuid', '-o',
+                                  'cache=none,guest,vers=1.0'], True, new_env=None)
 
     @testlib.with_context
     @mock.patch('util.gen_uuid')
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('util.pread')
+    @mock.patch('util.pread', autospec=True)
     @mock.patch('ISOSR.ISOSR._checkmount')
     def test_attach_smb_version_fallback_with_smb_1_3_disabled(self, context,
                                                                _checkmount,
@@ -310,8 +379,8 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         context.setup_error_codes()
         smbsr = self.create_smbisosr(atype='cifs')
-        pread.side_effect = [util.CommandException(errno.EHOSTDOWN), \
-                util.CommandException(errno.EHOSTDOWN), util.CommandException(errno.EHOSTDOWN)]
+        pread.side_effect = iter([util.CommandException(errno.EHOSTDOWN), \
+                util.CommandException(errno.EHOSTDOWN), util.CommandException(errno.EHOSTDOWN)])
         _checkmount.side_effect = [False, True]
         with self.assertRaises(SR.SROSError) as context:
             smbsr.attach(None)
@@ -325,7 +394,7 @@ class TestISOSR_overSMB(unittest.TestCase):
     @mock.patch('util.gen_uuid')
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('util.pread')
+    @mock.patch('util.pread', autospec=True)
     @mock.patch('ISOSR.ISOSR._checkmount')
     def test_attach_smb_via_xemount_no_version_fallback(self, context,
                                                         _checkmount, pread,
@@ -336,13 +405,12 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         context.setup_error_codes()
         smbsr = self.create_smbisosr(options='-o username=administrator,password=password')
-        pread.side_effect = [util.CommandException(errno.EHOSTDOWN), " "]
-        smbsr.attach(None)
+        pread.side_effect = iter([util.CommandException(errno.EHOSTDOWN), " "])
 
     @testlib.with_context
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('util.pread')
+    @mock.patch('util.pread', autospec=True)
     @mock.patch('ISOSR.ISOSR._checkmount')
     def test_attach_smb_version_fallback_error(self, context, _checkmount,
                                                pread, _checkTargetStr,
@@ -352,8 +420,8 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         context.setup_error_codes()
         smbsr = self.create_smbisosr(atype='cifs')
-        pread.side_effect = [util.CommandException(errno.EHOSTDOWN), \
-                             util.CommandException(errno.EHOSTDOWN)]
+        pread.side_effect = iter([util.CommandException(errno.EHOSTDOWN),
+                             util.CommandException(errno.EHOSTDOWN)])
         _checkmount.side_effect = [False, True]
-        with self.assertRaises(util.CommandException):
+        with self.assertRaises(Exception):
             smbsr.attach(None)

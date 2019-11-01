@@ -130,9 +130,16 @@ def _getDateString():
     return "%s-%s-%s:%s:%s:%s" % \
           (t[0],t[1],t[2],t[3],t[4],t[5])
 
-def doexec(args, inputtext=None):
+def doexec(args, inputtext=None, new_env=None):
     """Execute a subprocess, then return its return code, stdout and stderr"""
-    proc = subprocess.Popen(args,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,close_fds=True)
+    env = None
+    if new_env:
+        env = dict(os.environ)
+        env.update(new_env)
+    proc = subprocess.Popen(args, stdin=subprocess.PIPE,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            close_fds=True, env=env)
     (stdout,stderr) = proc.communicate(inputtext)
     # Workaround for a pylint bug, can be removed after upgrade to
     # python 3.x or maybe a newer version of pylint in the future
@@ -151,8 +158,8 @@ def is_string(value):
 # cmdlist is a list of either single strings or pairs of strings. For
 # each pair, the first component is passed to exec while the second is
 # written to the logs.
-def pread(cmdlist, close_stdin = False, scramble = None, expect_rc = 0,
-        quiet = False):
+def pread(cmdlist, close_stdin=False, scramble=None, expect_rc=0,
+          quiet=False, new_env=None):
     cmdlist_for_exec = []
     cmdlist_for_log = []
     for item in cmdlist:
@@ -171,7 +178,7 @@ def pread(cmdlist, close_stdin = False, scramble = None, expect_rc = 0,
 
     if not quiet:
         SMlog(cmdlist_for_log)
-    (rc,stdout,stderr) = doexec(cmdlist_for_exec)
+    (rc,stdout,stderr) = doexec(cmdlist_for_exec, new_env=new_env)
     if rc != expect_rc:
         SMlog("FAILED in util.pread: (rc %d) stdout: '%s', stderr: '%s'" % \
                 (rc, stdout, stderr))
