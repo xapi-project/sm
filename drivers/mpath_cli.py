@@ -59,10 +59,8 @@ regex3 = re.compile("switchgroup")
 
 def is_working():
     cmd="help"
-    util.SMlog("mpath cmd: %s" % cmd)
     try:
         (rc,stdout,stderr) = util.doexec(mpathcmd,cmd)
-	util.SMlog("mpath output: %s" % stdout)
 	m=regex3.search(stdout)
 	if m:
 	    return True
