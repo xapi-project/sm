@@ -4,6 +4,7 @@ Description=USB device scanner kick socket
 [Socket]
 ListenFIFO=/var/run/usb-scan.sock
 PipeSize=4096
+ExecStartPost=/opt/xensource/libexec/kickpipe usb-scan
 
 [Install]
 WantedBy=multi-user.target
