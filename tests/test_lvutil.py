@@ -21,6 +21,11 @@ def with_lvm_subsystem(func):
 
 
 class TestCreate(unittest.TestCase):
+    def setUp(self):
+        lock_patcher = mock.patch('lvutil.lock', autospec=True)
+        self.addCleanup(lock_patcher.stop)
+        self.mock_lock = lock_patcher.start()
+
     @with_lvm_subsystem
     def test_create_volume_size(self, lvsystem):
         lvsystem.add_volume_group('VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7')
@@ -88,6 +93,11 @@ class TestCreate(unittest.TestCase):
         self.assertIn("10%F", mock_pread.call_args[0][0])
 
 class TestRemove(unittest.TestCase):
+    def setUp(self):
+        lock_patcher = mock.patch('lvutil.lock', autospec=True)
+        self.addCleanup(lock_patcher.stop)
+        self.mock_lock = lock_patcher.start()
+
     @with_lvm_subsystem
     def test_remove_removes_volume(self, lvsystem):
         lvsystem.add_volume_group('VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7')
