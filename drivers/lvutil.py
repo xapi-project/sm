@@ -24,6 +24,7 @@ import os
 import errno
 import time
 
+import lock
 import util
 import xs_errors
 import xml.dom.minidom
@@ -69,8 +70,9 @@ PV_COMMANDS = frozenset({CMD_PVS, CMD_PVCREATE, CMD_PVREMOVE, CMD_PVRESIZE})
 LV_COMMANDS = frozenset({CMD_LVS, CMD_LVDISPLAY, CMD_LVCREATE, CMD_LVREMOVE,
                          CMD_LVCHANGE, CMD_LVRENAME, CMD_LVRESIZE,
                          CMD_LVEXTEND})
+DM_COMMANDS = frozenset({CMD_DMSETUP})
 
-LVM_COMMANDS = VG_COMMANDS.union(PV_COMMANDS, LV_COMMANDS)
+LVM_COMMANDS = VG_COMMANDS.union(PV_COMMANDS, LV_COMMANDS, DM_COMMANDS)
 
 def extract_vgname(str_in):
     """Search for and return a VG name
@@ -107,6 +109,16 @@ def extract_vgname(str_in):
         return prefix + re_obj.group(0) # vgname
 
     return None
+
+
+def get_lvm_lock():
+    """
+    Open and acquire a system wide lock to wrap LVM calls
+    :return: the created lock
+    """
+    new_lock = lock.Lock('lvm')
+    new_lock.acquire()
+    return new_lock
 
 def cmd_lvm(cmd, pread_func=util.pread2, *args):
     """ Construct and run the appropriate lvm command.
@@ -150,9 +162,14 @@ def cmd_lvm(cmd, pread_func=util.pread2, *args):
             util.SMlog("CMD_LVM: Not all lvm arguments are of type 'str'")
             return None
 
-    start_time = time.time()
-    stdout = pread_func([os.path.join(LVM_BIN, lvm_cmd)] + lvm_args, *args)
-    end_time = time.time()
+    lvm_lock = get_lvm_lock()
+
+    try:
+        start_time = time.time()
+        stdout = pread_func([os.path.join(LVM_BIN, lvm_cmd)] + lvm_args, *args)
+        end_time = time.time()
+    finally:
+        lvm_lock.release()
 
     if (end_time - start_time > MAX_OPERATION_DURATION):
         util.SMlog("***** Long LVM call of '%s' took %s" % (lvm_cmd, (end_time - start_time)))
@@ -705,7 +722,7 @@ def removeDevMapperEntry(path, strict=True):
     try:
         # remove devmapper entry using dmsetup
         cmd = [CMD_DMSETUP, "remove", path]
-        util.pread2(cmd)
+        cmd_lvm(cmd)
         return True
     except Exception, e:
         if not strict:
