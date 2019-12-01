@@ -208,8 +208,8 @@ def pread3(cmdlist, text):
     SMlog("  pread3 SUCCESS")
     return stdout
 
-def listdir(path, quiet = False):
-    cmd = ["ls", path, "-1", "--color=never"]
+def listdir(path, quiet = False, depth = 1):
+    cmd = ["find", path, "-maxdepth", str(depth)]
     try:
         text = pread2(cmd, quiet = quiet)[:-1]
         if len(text) == 0:
