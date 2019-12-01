@@ -119,8 +119,8 @@ class ISOSR(SR.SR):
             return
 
         for name in filter(is_image_utf8_compatible,
-                util.listdir(self.path, quiet = True)):
-	    fileName = self.path + "/" + name
+                util.listdir(self.path, quiet = True, depth=10)):
+            fileName = self.path + "/" + name
             if os.path.isdir(fileName):
                 util.SMlog("_loadvdis : %s is a directory. Ignore" % fileName)
                 continue
@@ -657,6 +657,16 @@ class ISOVDI(VDI.VDI):
     # exceptions 
 
 if __name__ == '__main__':
-    SRCommand.run(ISOSR, DRIVER_INFO)
-else:
-    SR.registerSR(ISOSR)
+    from pathlib import Path, PureWindowsPath
+    # Convert path to the right format for the current operating system
+    correct_path = Path('C:/Users/kuzko')
+
+    for name in filter(is_image_utf8_compatible, util.listdir(".", quiet=True)):
+        fileName = correct_path + "/" + name
+        if os.path.isdir(fileName):
+            print("_loadvdis : %s is a directory. Ignore" % fileName)
+            continue
+
+#     SRCommand.run(ISOSR, DRIVER_INFO)
+# else:
+#     SR.registerSR(ISOSR)
