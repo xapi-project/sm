@@ -657,6 +657,6 @@ class ISOVDI(VDI.VDI):
     # exceptions 
 
 if __name__ == '__main__':
-        SRCommand.run(ISOSR, DRIVER_INFO)
-    else:
-        SR.registerSR(ISOSR)
+    SRCommand.run(ISOSR, DRIVER_INFO)
+else:
+    SR.registerSR(ISOSR)
