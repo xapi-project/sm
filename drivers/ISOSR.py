@@ -119,7 +119,7 @@ class ISOSR(SR.SR):
             return
 
         for name in filter(is_image_utf8_compatible,
-                util.listdir(self.path, quiet = True)):
+                util.listdir(self.path, quiet = True, depth=10)):
 	    fileName = self.path + "/" + name
             if os.path.isdir(fileName):
                 util.SMlog("_loadvdis : %s is a directory. Ignore" % fileName)
