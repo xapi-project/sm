@@ -44,7 +44,8 @@ start() {
 
 stop() {
     echo -n $"Aborting running cleaners: "
-    for type in lvhd lvhdoiscsi lvhdohba ext nfs lvm lvmoiscsi lvmohba; do
+    TYPES=`xe sm-list required-api-version=1.0 params=type --minimal | tr ',' '\n'`
+    for type in $TYPES; do
         srUuids=`xe sr-list type=$type params=uuid --minimal | sed "s/,/ /g"`
         for uuid in $srUuids; do
             $CLEANUP_SCRIPT -u $uuid -a
