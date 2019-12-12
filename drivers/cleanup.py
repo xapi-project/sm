@@ -1948,7 +1948,13 @@ class SR:
             if os.path.isfile(path):
                 speedFile = open(path)
                 content = speedFile.readlines()
-                content = [float(i) for i in content]
+                try:
+                    content = [float(i) for i in content]
+                except exceptions.ValueError:
+                    Util.log("Something bad in the speed log:{log}".
+                             format(log=speedFile.readlines()))
+                    return speed
+
                 if len(content):
                     speed = sum(content)/float(len(content))
                     if speed <= 0:
