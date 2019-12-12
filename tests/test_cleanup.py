@@ -932,9 +932,12 @@ class TestSR(unittest.TestCase):
         FakeFile.seek = mock.MagicMock()
         return FakeFile
 
-    def getStorageSpeed(self, mock_isFile, sr, fakeFile, isFile, expectedRes,
-                        closeCount, lines=None):
+    def getStorageSpeed(self, mock_lock, mock_unlock,  mock_isFile, sr,
+                        fakeFile, isFile, expectedRes, closeCount,
+                        lines=None):
         fakeFile.close.call_count = 0
+        mock_lock.reset_mock()
+        mock_unlock.reset_mock()
         mock_isFile.return_value = isFile
         if lines:
             FakeFile.readlines.return_value = lines
@@ -942,34 +945,44 @@ class TestSR(unittest.TestCase):
         self.assertEqual(res, expectedRes)
 
         self.assertEqual(fakeFile.close.call_count, closeCount)
+        self.assertEqual(mock_lock.call_count, 1)
+        self.assertEqual(mock_unlock.call_count, 1)
 
     @mock.patch("__builtin__.open", autospec=True)
     @mock.patch("os.path.isfile", autospec=True)
     @mock.patch("os.chmod", autospec=True)
-    def test_getStorageSpeed(self, mock_chmod, mock_isFile, mock_open):
+    @mock.patch("cleanup.SR.lock", autospec=True)
+    @mock.patch("cleanup.SR.unlock", autospec=True)
+    def test_getStorageSpeed(self, mock_unlock, mock_lock, mock_chmod,
+                             mock_isFile, mock_open):
         sr_uuid = uuid4()
         sr = create_cleanup_sr(uuid=str(sr_uuid))
         fakeFile = self.makeFakeFile()
         mock_open.return_value = FakeFile
 
         # File does not exist
-        self.getStorageSpeed(mock_isFile, sr, fakeFile, False, None, 0)
+        self.getStorageSpeed(mock_lock, mock_unlock, mock_isFile, sr, fakeFile,
+                             False, None, 0)
 
         # File exists but empty (should be impossible)
-        self.getStorageSpeed(mock_isFile, sr, fakeFile, True, None, 1,
-                             lines=[])
+        self.getStorageSpeed(mock_lock, mock_unlock, mock_isFile, sr, fakeFile,
+                             True, None, 1, lines=[])
 
         # File exists one value
-        self.getStorageSpeed(mock_isFile, sr, fakeFile, True, 2.0, 1,
-                             lines=[2.0])
+        self.getStorageSpeed(mock_lock, mock_unlock, mock_isFile, sr, fakeFile,
+                             True, 2.0, 1, lines=["2.0"])
 
         # File exists 3 values
-        self.getStorageSpeed(mock_isFile, sr, fakeFile, True, 3.0, 1,
-                             lines=[1.0, 2.0, 6.0])
+        self.getStorageSpeed(mock_lock, mock_unlock, mock_isFile, sr, fakeFile,
+                             True, 3.0, 1, lines=["1.0", "2.0", "6.0"])
 
         # File exists contains, a string
-        self.getStorageSpeed(mock_isFile, sr, fakeFile, True, None, 1,
-                             lines=[1.0, 2.0, "Hello"])
+        self.getStorageSpeed(mock_lock, mock_unlock, mock_isFile, sr, fakeFile,
+                             True, None, 1, lines=["1.0", "2.0", "Hello"])
+
+        # File exists contains, a string
+        self.getStorageSpeed(mock_lock, mock_unlock, mock_isFile, sr, fakeFile,
+                             True, None, 1, lines=[1.0, 2.0, "Hello"])
 
     def speedFileSetup(self, sr, FakeFile, mock_isFile, isFile):
         expectedPath = cleanup.SPEED_LOG_ROOT.format(uuid=sr.uuid)
@@ -981,58 +994,71 @@ class TestSR(unittest.TestCase):
         FakeFile.seek.reset_mock()
         return expectedPath
 
-    def writeSpeedFile(self, sr, speed, mock_isFile, isFile, mock_open,
-                       mock_chmod, write=None, writeLines=None, readLines=None,
-                       openOp="r+"):
+    def writeSpeedFile(self, mock_lock, mock_unlock, sr, speed, mock_isFile,
+                       isFile, mock_open, mock_atomicWrite, write=None,
+                       readLines=None, openOp="r+"):
         mock_open.reset_mock()
-        mock_chmod.reset_mock()
+        mock_atomicWrite.reset_mock()
+        mock_lock.reset_mock()
+        mock_unlock.reset_mock()
         expectedPath = self.speedFileSetup(sr, FakeFile, mock_isFile, isFile)
         FakeFile.readlines.return_value = readLines
         sr.writeSpeedToFile(speed)
-        mock_open.assert_called_with(expectedPath, openOp)
-        if openOp == "w":
-            mock_chmod.assert_called_with(expectedPath, stat.S_IRWXU)
-        if write:
-            FakeFile.write.assert_called_with(write)
-        if writeLines:
-            FakeFile.seek.assert_called_with(0)
-            FakeFile.writelines.assert_called_with(writeLines)
-        self.assertEqual(FakeFile.close.call_count, 1)
+
+        if isFile:
+            mock_open.assert_called_with(expectedPath, openOp)
+            self.assertEqual(FakeFile.close.call_count, 1)
+
+        mock_atomicWrite.assert_called_with(expectedPath, cleanup.VAR_RUN,
+                                            write)
+
+        self.assertEqual(mock_lock.call_count, 1)
+        self.assertEqual(mock_unlock.call_count, 1)
 
     @mock.patch("__builtin__.open",
                 autospec=True)
     @mock.patch("os.path.isfile", autospec=True)
-    @mock.patch("os.chmod", autospec=True)
-    def test_writeSpeedToFile(self, mock_chmod, mock_isFile, mock_open):
+    @mock.patch("util.atomicFileWrite", autospec=True)
+    @mock.patch("cleanup.SR.lock", autospec=True)
+    @mock.patch("cleanup.SR.unlock", autospec=True)
+    def test_writeSpeedToFile(self, mock_lock, mock_unlock, mock_atomicWrite,
+                              mock_isFile, mock_open):
         sr_uuid = uuid4()
         sr = create_cleanup_sr(uuid=str(sr_uuid))
         FakeFile = self.makeFakeFile()
         mock_open.return_value = FakeFile
 
         # File does not exist
-        self.writeSpeedFile(sr, 1.8, mock_isFile, False, mock_open, mock_chmod,
+        self.writeSpeedFile(mock_lock, mock_unlock, sr, 1.8, mock_isFile,
+                            False, mock_open, mock_atomicWrite,
                             write="1.8\n", openOp="w")
 
         # File does exist but empty (Should not happen)
         readLines = []
-        writeLines = ["1.8\n"]
-        self.writeSpeedFile(sr, 1.8, mock_isFile, True, mock_open, mock_chmod,
-                            readLines=readLines, writeLines=writeLines)
+        write = "1.8\n"
+        self.writeSpeedFile(mock_lock, mock_unlock, sr, 1.8, mock_isFile, True,
+                            mock_open, mock_atomicWrite, readLines=readLines,
+                            write=write)
 
         # File does exist, exception fired, make sure close fd.
+        mock_lock.reset_mock()
+        mock_unlock.reset_mock()
         expectedPath = self.speedFileSetup(sr, FakeFile, mock_isFile, True)
         FakeFile.readlines.side_effect = Exception
         with self.assertRaises(Exception):
             sr.writeSpeedToFile(1.8)
         mock_open.assert_called_with(expectedPath, 'r+')
         self.assertEqual(FakeFile.close.call_count, 1)
+        self.assertEqual(mock_lock.call_count, 1)
+        self.assertEqual(mock_unlock.call_count, 1)
         FakeFile.readlines.side_effect = None
 
         # File does exist
         readLines = ["1.9\n", "2.1\n", "3\n"]
-        writeLines = ["1.9\n", "2.1\n", "3\n", "1.8\n"]
-        self.writeSpeedFile(sr, 1.8, mock_isFile, True, mock_open, mock_chmod,
-                            readLines=readLines, writeLines=writeLines)
+        write = "1.9\n2.1\n3\n1.8\n"
+        self.writeSpeedFile(mock_lock, mock_unlock, sr, 1.8, mock_isFile, True,
+                            mock_open, mock_atomicWrite, readLines=readLines,
+                            write=write)
 
         # File does exist and almost full
         readLines = ["2.0\n",
@@ -1045,19 +1071,11 @@ class TestSR(unittest.TestCase):
                      "2.7\n",
                      "2.8\n"]
 
-        writeLines = ["2.0\n",
-                      "2.1\n",
-                      "2.2\n",
-                      "2.3\n",
-                      "2.4\n",
-                      "2.5\n",
-                      "2.6\n",
-                      "2.7\n",
-                      "2.8\n",
-                      "1.8\n"]
+        write = "2.0\n2.1\n2.2\n2.3\n2.4\n2.5\n2.6\n2.7\n2.8\n1.8\n"
 
-        self.writeSpeedFile(sr, 1.8, mock_isFile, True, mock_open, mock_chmod,
-                            readLines=readLines, writeLines=writeLines)
+        self.writeSpeedFile(mock_lock, mock_unlock, sr, 1.8, mock_isFile, True,
+                            mock_open, mock_atomicWrite, readLines=readLines,
+                            write=write)
 
         # File does exist and full
         readLines = ["2.0\n",
@@ -1072,20 +1090,11 @@ class TestSR(unittest.TestCase):
                      "1.9\n",
                      "1.9\n"]
 
-        writeLines = ["1.9\n",
-                      "1.9\n",
-                      "1.9\n",
-                      "1.9\n",
-                      "1.9\n",
-                      "1.9\n",
-                      "1.9\n",
-                      "1.9\n",
-                      "1.9\n",
-                      "1.9\n",
-                      "1.8\n"]
+        write = "1.9\n1.9\n1.9\n1.9\n1.9\n1.9\n1.9\n1.9\n1.9\n1.9\n1.8\n"
 
-        self.writeSpeedFile(sr, 1.8, mock_isFile, True, mock_open, mock_chmod,
-                            readLines=readLines, writeLines=writeLines)
+        self.writeSpeedFile(mock_lock, mock_unlock, sr, 1.8, mock_isFile, True,
+                            mock_open, mock_atomicWrite, readLines=readLines,
+                            write=write)
 
     def canLiveCoalesce(self, vdi, size, config, speed, expectedRes):
         vdi.getSizeVHD = mock.MagicMock(return_value=size)
