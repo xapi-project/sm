@@ -967,6 +967,10 @@ class TestSR(unittest.TestCase):
         self.getStorageSpeed(mock_isFile, sr, fakeFile, True, 3.0, 1,
                              lines=[1.0, 2.0, 6.0])
 
+        # File exists contains, a string
+        self.getStorageSpeed(mock_isFile, sr, fakeFile, True, None, 1,
+                             lines=[1.0, 2.0, "Hello"])
+
     def speedFileSetup(self, sr, FakeFile, mock_isFile, isFile):
         expectedPath = cleanup.SPEED_LOG_ROOT.format(uuid=sr.uuid)
         mock_isFile.return_value = isFile
