@@ -75,7 +75,9 @@ DEFAULT_COALESCE_ERR_RATE = 1.0/60
 
 COALESCE_LAST_ERR_TAG = 'last-coalesce-error'
 COALESCE_ERR_RATE_TAG = 'coalesce-error-rate'
-SPEED_LOG_ROOT = "/var/run/{uuid}.speed_log"
+VAR_RUN = "/var/run/"
+SPEED_LOG_ROOT = VAR_RUN + "{uuid}.speed_log"
+
 N_RUNNING_AVERAGE = 10
 
 class AbortException(util.SMException):
@@ -189,8 +191,9 @@ class Util:
                 else:
                     resultFlag.set("failure")
             except Exception, e:
-                resultFlag.set("failure")
                 Util.log("Child process failed with : (%s)" % e)
+                resultFlag.set("failure")
+                Util.logException("This exception has occured")
             os._exit(0)
     runAbortable = staticmethod(runAbortable)
 
@@ -1914,24 +1917,26 @@ class SR:
         content = []
         speedFile = None
         path = SPEED_LOG_ROOT.format(uuid=self.uuid)
+        self.lock()
         try:
+            Util.log("Writing to file: {myfile}".format(myfile=path))
+            lines = ""
             if not os.path.isfile(path):
-                # First time open
-                speedFile = open(path, "w")
-                # Set perms -rwx------
-                os.chmod(path, stat.S_IRWXU)
-                speedFile.write(str(speed)+"\n")
+                lines = str(speed)+"\n"
             else:
                 speedFile = open(path, "r+")
                 content = speedFile.readlines()
                 content.append(str(speed) + "\n")
                 if len(content) > N_RUNNING_AVERAGE:
                     del content[0]
-                speedFile.seek(0)
-                speedFile.writelines(content)
+                lines = "".join(content)
+
+            util.atomicFileWrite(path, VAR_RUN, lines)
         finally:
-            if not (speedFile is None):
+            if speedFile is not None:
                 speedFile.close()
+            Util.log("Closing file: {myfile}".format(myfile=path))
+            self.unlock()
 
     def recordStorageSpeed(self, startTime, endTime, vhdSize):
         speed = self.calcStorageSpeed(startTime, endTime, vhdSize)
@@ -1943,6 +1948,7 @@ class SR:
     def getStorageSpeed(self):
         speedFile = None
         path = SPEED_LOG_ROOT.format(uuid=self.uuid)
+        self.lock()
         try:
             speed = None
             if os.path.isfile(path):
@@ -1972,6 +1978,7 @@ class SR:
         finally:
             if not (speedFile is None):
                 speedFile.close()
+            self.unlock()
 
     def _snapshotCoalesce(self, vdi):
         # Note that because we are not holding any locks here, concurrent SM 

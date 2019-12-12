@@ -34,6 +34,7 @@ import exceptions
 import traceback
 import glob
 import copy
+import tempfile
 
 NO_LOGGING_STAMPFILE='/etc/xensource/no_sm_log'
 
@@ -190,6 +191,36 @@ def pread(cmdlist, close_stdin=False, scramble=None, expect_rc=0,
     if not quiet:
         SMlog("  pread SUCCESS")
     return stdout
+
+
+# POSIX guaranteed atomic within the same file system.
+# Supply directory to ensure tempfile is created
+# in the same directory.
+def atomicFileWrite(targetFile, directory, text):
+
+    file = None
+    try:
+        # Create file only current pid can write/read to
+        # our responsibility to clean it up.
+        _, tempPath = tempfile.mkstemp(dir=directory)
+        file = open(tempPath, 'w')
+        file.write(text)
+
+        # Ensure flushed to disk.
+        file.flush()
+        os.fsync(file.fileno())
+        file.close()
+
+        os.rename(tempPath, targetFile)
+    except OSError:
+        SMlog("FAILED to atomic write to %s" % (targetFile))
+
+    finally:
+        if (file is not None) and (not file.closed):
+            file.close()
+
+        if os.path.isfile(tempPath):
+            os.remove(tempPath)
 
 #Read STDOUT from cmdlist and discard STDERR output
 def pread2(cmdlist, quiet = False):

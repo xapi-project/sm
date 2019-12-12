@@ -5,6 +5,8 @@ import mock
 import os
 import util
 import subprocess
+import tempfile
+import errno
 
 
 class fake_proc:
@@ -35,3 +37,58 @@ class TestCreate(unittest.TestCase):
                                      close_fds=True, stdin=-1, stderr=-1,
                                      env={'hello': 'world', 'NewVar2': 'blah',
                                           'NewVar1': 'yadayada'}, stdout=-1)
+
+    @mock.patch("os.fsync", autospec=True)
+    @mock.patch("os.rename", autospec=True)
+    @mock.patch("os.path.isfile", autospec=True)
+    @mock.patch("os.remove", autospec=True)
+    @mock.patch("tempfile.mkstemp", autospec=True)
+    @mock.patch("util.SMlog", autospec=True)
+    def test_atomicFileWrite_normal(self, mock_log, mock_mtemp, mock_remove,
+                                    mock_isfile, mock_rename, mock_fsync):
+        opener_mock = mock.mock_open()
+
+        mock_isfile.return_value = False
+        mock_mtemp.return_value = ("im_ignored",
+                                   "/var/run/random_temp.txt")
+        with mock.patch('__builtin__.open', opener_mock, create=True) as m:
+
+            m.return_value.fileno.return_value = 123
+            util.atomicFileWrite("/var/run/test.txt", "var/run", "blah blah")
+
+            self.assertEqual(mock_mtemp.call_count, 1)
+            m.assert_called_with("/var/run/random_temp.txt", 'w')
+            m.return_value.write.assert_called_with("blah blah")
+            self.assertEqual(m.return_value.flush.call_count, 1)
+            mock_fsync.assert_called_with(123)
+            self.assertEqual(m.return_value.close.call_count, 1)
+            mock_rename.assert_called_with("/var/run/random_temp.txt",
+                                           "/var/run/test.txt")
+            mock_isfile.assert_called_with("/var/run/random_temp.txt")
+            self.assertEqual(mock_remove.call_count, 0)
+
+    @mock.patch("os.fsync", autospec=True)
+    @mock.patch("os.rename", autospec=True)
+    @mock.patch("os.path.isfile", autospec=True)
+    @mock.patch("os.remove", autospec=True)
+    @mock.patch("tempfile.mkstemp", autospec=True)
+    @mock.patch("util.SMlog", autospec=True)
+    def test_atomicFileWrite_exception(self, mock_log, mock_mtemp, mock_remove,
+                                       mock_isfile, mock_rename, mock_fsync):
+
+        opener_mock = mock.mock_open()
+
+        mock_isfile.return_value = True
+        mock_mtemp.return_value = ("im_ignored",
+                                   "/var/run/random_temp.txt")
+        with mock.patch('__builtin__.open', opener_mock, create=True) as m:
+            m.return_value.write.side_effect = OSError((errno.EPERM),
+                                                       'Not Allowed')
+            m.return_value.closed = False
+            # Assert is swallowed
+            util.atomicFileWrite("/var/run/test.txt", "var/run",
+                                 "blah blah")
+            expectedMsg = "FAILED to atomic write to /var/run/test.txt"
+            mock_log.assert_called_with(expectedMsg)
+            mock_remove.assert_called_with("/var/run/random_temp.txt")
+            self.assertEqual(opener_mock.return_value.close.call_count, 1)
