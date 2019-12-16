@@ -143,6 +143,10 @@ def update_config(key, SCSIid, entry, remove, add, mpp_path_update = False):
             add('multipathed','true')
             add(key,str(newentry))
             util.SMlog("MPATH: Set val: %s" % str(newentry))
+    else:
+        util.SMlog('MPATH: device %s gone' % (SCSIid))
+        remove('multipathed')
+        remove(key)
 
 def get_SCSIidlist(devconfig, sm_config):
     SCSIidlist = []
