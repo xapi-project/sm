@@ -28,7 +28,7 @@ SYSFS_PATH1='/sys/class/scsi_host'
 SYSFS_PATH2='/sys/class/scsi_disk'
 SYSFS_PATH3='/sys/class/fc_transport'
 
-DRIVER_BLACKLIST = ['^(s|p|)ata_.*', '^ahci$', '^pdc_adma$', '^iscsi_tcp$']
+DRIVER_BLACKLIST = ['^(s|p|)ata_.*', '^ahci$', '^pdc_adma$', '^iscsi_tcp$', '^usb-storage$']
 
 INVALID_DEVICE_NAME = ''
 
