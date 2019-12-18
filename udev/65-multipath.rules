@@ -8,9 +8,17 @@ ACTION=="remove", ENV{DM_MULTIPATH_DEVICE_PATH}=="1",  GOTO="count_mpath"
 IMPORT{db}="DM_ACTION"
 ACTION=="change", ENV{DM_ACTION}=="PATH_REINSTATED", GOTO="count_mpath"
 ACTION=="change", ENV{DM_ACTION}=="PATH_FAILED", GOTO="count_mpath"
+
 IMPORT{db}="CH_MULTIPATH"
-ACTION=="add", PROGRAM=="/bin/bash -c '/sbin/dmsetup table -j %M -m %m | /bin/grep multipath'", ENV{CH_MULTIPATH}="1"
-ACTION=="add|remove", ENV{CH_MULTIPATH}=="1", GOTO="count_mpath"
+# MP device removed, count
+ACTION=="remove", ENV{CH_MULTIPATH}=="1", GOTO="count_mpath"
+
+# Already counted so skip
+ENV{CH_MULTIPATH}=="1", GOTO="end_mpath"
+
+# Check added or changed for being multipath
+ACTION=="add|change", PROGRAM=="/bin/bash -c '/sbin/dmsetup table -j %M -m %m | /bin/grep multipath'", ENV{CH_MULTIPATH}="1"
+ENV{CH_MULTIPATH}=="1", GOTO="count_mpath"
 GOTO="end_mpath"
 
 LABEL="count_mpath"
