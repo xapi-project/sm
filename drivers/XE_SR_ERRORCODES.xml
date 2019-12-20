@@ -101,7 +101,7 @@
         </code>
         <code>
                 <name>ISOInvalidXeMountOptions</name>
-                <description>Require "-o" along with xe-mount-isosr</description>
+                <description>Require "-o" along with xe-mount-iso-sr</description>
                 <value>228</value>
         </code>
 
