@@ -34,10 +34,17 @@ def getDconfPasswordKey(prefix=""):
 
 def containsPassword(dconf, prefix=""):
     key_password, key_secret = getDconfPasswordKey(prefix)
+    if(key_password in dconf):
+        util.SMlog("dconf contains password")
+    if(key_secret in dconf):
+        util.SMlog("dconf contains secret")
+
     return ((key_password in dconf) or (key_secret in dconf))
 
 
 def containsCredentials(dconf, prefix=""):
+    if('username' in dconf):
+        util.SMlog("dconf contains username")
     return ((('username' in dconf)) and (containsPassword(dconf, prefix)))
 
 
@@ -68,15 +75,24 @@ def getCIFCredentials(dconf, session, prefix=""):
         username, domain = splitDomainAndUsername(dconf['username'])
         credentials = {}
         credentials["USER"] = util.to_plain_string(username)
+        util.SMlog("CIFS user = {user}".format(user=credentials["USER"]))
 
         key_password, key_secret = getDconfPasswordKey(prefix)
         if key_secret in dconf:
             password = util.get_secret(session, dconf[key_secret])
+            if password is not None:
+                util.SMlog("Obtained CIFS password via secret")
         else:
             password = dconf[key_password]
+            if password is not None:
+                util.SMlog("Obtained CIFS password")
 
         credentials["PASSWD"] = util.to_plain_string(password)
+        if credentials["PASSWD"] is not None:
+            util.SMlog("Obtained CIFS plain text password")
 
         domain = util.to_plain_string(domain)
+    else:
+        util.SMlog("NOTE: No CIFS credentials found in dconf")
 
     return credentials, domain
