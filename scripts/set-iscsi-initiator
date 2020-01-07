@@ -1,0 +1,66 @@
+#!/bin/sh
+#
+# Copyright (C) Citrix Systems Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
+# by the Free Software Foundation; version 2.1 only.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+SCRIPT=$(basename $0)
+TMPDIR=$(mktemp --tmpdir -d $SCRIPT.XXXXXXXXX)
+cleanup() {
+    if [ -n "$TMPDIR" ]; then
+        rm -rf "$TMPDIR"
+    fi
+}
+ecleanup() {
+    cleanup
+    exit 1
+}
+trap cleanup EXIT
+trap ecleanup INT
+trap ecleanup TERM
+
+INITIATORFILE=/etc/iscsi/initiatorname.iscsi
+TMPFILE=$TMPDIR/initiatorname.iscsi
+
+(
+        flock -s 200
+
+        iscsiadm -m session > /dev/null 2>&1
+        if [ $? -eq 0 ]
+        then
+                logger -p local2.err "set-iscsi-initiator active sessions so not updating"
+                exit 1
+        fi
+
+        echo "InitiatorName=$1" > $TMPFILE
+        echo "InitiatorAlias=$2" >> $TMPFILE
+
+        diff $INITIATORFILE $TMPFILE > /dev/null 2>&1 
+        if [ $? -eq 0 ]
+        then
+            # unchanged so remove the tmp file
+            rm $TMPFILE
+            exit 0
+        fi
+
+        mv $TMPFILE $INITIATORFILE
+
+        systemctl is-active -q iscsid
+        if [ $? -eq 0 ]
+        then
+            # iscsid is running so restart
+            systemctl restart iscsid
+        fi
+
+) 200>/var/lock/sm/iscsiadm/running
