@@ -205,6 +205,7 @@ install: precheck
 	install -m 755 scripts/check-device-sharing $(SM_STAGING)$(LIBEXEC)
 	install -m 755 scripts/usb_change $(SM_STAGING)$(LIBEXEC)
 	install -m 755 scripts/kickpipe $(SM_STAGING)$(LIBEXEC)
+	install -m 755 scripts/set-iscsi-initiator $(SM_STAGING)$(LIBEXEC)
 	$(MAKE) -C dcopy install DESTDIR=$(SM_STAGING)
 	ln -sf $(SM_DEST)blktap2.py $(SM_STAGING)$(BIN_DEST)/blktap2
 	ln -sf $(SM_DEST)lcache.py $(SM_STAGING)$(BIN_DEST)tapdisk-cache-stats
