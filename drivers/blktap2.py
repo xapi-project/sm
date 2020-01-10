@@ -526,6 +526,17 @@ def mkdirs(path, mode=0777):
             if e.errno != errno.EEXIST:
                 raise
 
+def rmdirs(path):
+    # lexist returns true even if link is broken
+    if os.path.lexists(path):
+        parent, subdir = os.path.split(path)
+        assert parent != path
+        if subdir:
+            os.unlink(path)
+        if parent and len(os.listdir(parent)) == 0:
+            os.rmdir(parent)
+
+
 class KObject(object):
 
     SYSFS_CLASSTYPE = None
@@ -1208,6 +1219,9 @@ class VDI(object):
                 if e.errno != errno.EEXIST: raise
                 assert self._equals(target), "'%s' not equal to '%s'" % (path, target)
 
+        def rmdirs(self):
+            rmdirs(self.path())
+
         def unlink(self):
             try:
                 os.unlink(self.path())
@@ -1298,7 +1312,12 @@ class VDI(object):
     class PhyLink(SymLink): BASEDIR = "/dev/sm/phy"
     # NB. Cannot use DeviceNodes, e.g. FileVDIs aren't bdevs.
 
+    class NBDLink(SymLink):
+
+        BASEDIR = "/run/blktap-control/nbd"
+
     class BackendLink(Hybrid): BASEDIR = "/dev/sm/backend"
+
     # NB. Could be SymLinks as well, but saving major,minor pairs in
     # Links enables neat state capturing when managing Tapdisks.  Note
     # that we essentially have a tap-ctl list replacement here. For
@@ -1329,7 +1348,7 @@ class VDI(object):
         else:
             util.SMlog("tap.activate: Found %s" % tapdisk)
 
-        return tapdisk.get_devpath()
+        return tapdisk.get_devpath(), tapdisk
 
     @staticmethod
     def _tap_deactivate(minor):
@@ -1518,6 +1537,11 @@ class VDI(object):
         session.xenapi.session.logout()
         return pool_info
 
+    def linkNBD(self, sr_uuid, vdi_uuid):
+        nbd_path = '/run/blktap-control/nbd%d.%d' % (int(self.tap.pid),
+                                                     int(self.tap.minor))
+        VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid).mklink(nbd_path)
+
     def attach(self, sr_uuid, vdi_uuid, writable, activate = False, caching_params = {}):
         """Return/dev/sm/backend symlink path"""
         self.xenstore_data.update(self._get_pool_config(sr_uuid))
@@ -1527,16 +1551,20 @@ class VDI(object):
             dev_path = self._activate(sr_uuid, vdi_uuid,
                     {"rdonly": not writable})
             self.BackendLink.from_uuid(sr_uuid, vdi_uuid).mklink(dev_path)
+            self.linkNBD(sr_uuid, vdi_uuid)
 
         # Return backend/ link
         back_path = self.BackendLink.from_uuid(sr_uuid, vdi_uuid).path()
+        nbd_path =\
+            "nbd:unix:" + VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid).path()
         options = {"rdonly": not writable}
         options.update(caching_params)
         o_direct, o_direct_reason = self.get_o_direct_capability(options)
-        struct = { 'params': back_path,
-                   'o_direct': o_direct,
-                   'o_direct_reason': o_direct_reason,
-                   'xenstore_data': self.xenstore_data}
+        struct = {'params': back_path,
+                  'params_nbd': nbd_path,
+                  'o_direct': o_direct,
+                  'o_direct_reason': o_direct_reason,
+                  'xenstore_data': self.xenstore_data}
         util.SMlog('result: %s' % struct)
 
 	try:
@@ -1652,6 +1680,7 @@ class VDI(object):
 
         # Link result to backend/
         self.BackendLink.from_uuid(sr_uuid, vdi_uuid).mklink(dev_path)
+ 	self.linkNBD(sr_uuid, vdi_uuid)
         return True
     
     def _activate(self, sr_uuid, vdi_uuid, options):
@@ -1666,8 +1695,8 @@ class VDI(object):
                 options["o_direct"] = self.get_o_direct_capability(options)[0]
                 if vdi_options:
                     options.update(vdi_options)
-                dev_path = self._tap_activate(phy_path, vdi_type, sr_uuid,
-                        options,
+                dev_path, self.tap = self._tap_activate(phy_path, vdi_type,
+                        sr_uuid, options,
                         self._get_pool_config(sr_uuid).get("mem-pool-size"))
             else:
                 dev_path = phy_path # Just reuse phy
@@ -1726,8 +1755,14 @@ class VDI(object):
 
         # Shutdown tapdisk
         back_link = self.BackendLink.from_uuid(sr_uuid, vdi_uuid)
+
         if not util.pathexists(back_link.path()):
             util.SMlog("Backend path %s does not exist" % back_link.path())
+            return
+
+        nbd_link = VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid)
+        if not util.pathexists(nbd_link.path()):
+            util.SMlog("Backend path %s does not exist" % nbd_link.path())
             return
 
         try:
@@ -1747,6 +1782,8 @@ class VDI(object):
 
         # Remove the backend link
         back_link.unlink()
+        util.SMlog("UNLINKING NBD")
+        nbd_link.rmdirs()
 
         # Deactivate & detach the physical node
         if self.tap_wanted() and self.target.vdi.session is not None:
