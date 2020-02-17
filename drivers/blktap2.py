@@ -1538,9 +1538,10 @@ class VDI(object):
         return pool_info
 
     def linkNBD(self, sr_uuid, vdi_uuid):
-        nbd_path = '/run/blktap-control/nbd%d.%d' % (int(self.tap.pid),
-                                                     int(self.tap.minor))
-        VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid).mklink(nbd_path)
+        if self.tap:
+            nbd_path = '/run/blktap-control/nbd%d.%d' % (int(self.tap.pid),
+                                                         int(self.tap.minor))
+            VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid).mklink(nbd_path)
 
     def attach(self, sr_uuid, vdi_uuid, writable, activate = False, caching_params = {}):
         """Return/dev/sm/backend symlink path"""
@@ -1555,8 +1556,13 @@ class VDI(object):
 
         # Return backend/ link
         back_path = self.BackendLink.from_uuid(sr_uuid, vdi_uuid).path()
-        nbd_path =\
-            "nbd:unix:" + VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid).path()
+        if self.tap:
+            # Only have NBD if we also have a tap
+            nbd_path =\
+                       "nbd:unix:" + VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid).path()
+        else:
+            nbd_path = ""
+
         options = {"rdonly": not writable}
         options.update(caching_params)
         o_direct, o_direct_reason = self.get_o_direct_capability(options)
