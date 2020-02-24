@@ -36,6 +36,12 @@ class TestVDI(unittest.TestCase):
 
     @mock.patch('blktap2.VDI.NBDLink', autospec=NBDLinkForTest)
     @mock.patch('blktap2.VDI.NBDLink', autospec=NBDLinkForTest)
+    def test_linknbd_not_called_for_no_tap(self, nbd_link2, nbd_link):
+        self.vdi.linkNBD("blahblah", "yadayada")
+        self.assertEquals(nbd_link.from_uuid.call_count, 0)
+
+    @mock.patch('blktap2.VDI.NBDLink', autospec=NBDLinkForTest)
+    @mock.patch('blktap2.VDI.NBDLink', autospec=NBDLinkForTest)
     def test_linknbd(self, nbd_link2, nbd_link):
         self.vdi.tap = blktap2.Tapdisk(123, 456, "blah", "blah", "blah")
         nbd_link.from_uuid.return_value = nbd_link2
