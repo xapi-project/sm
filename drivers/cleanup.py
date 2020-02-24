@@ -405,20 +405,28 @@ class XAPI:
         Util.log("Starting asynch srUpdate for SR %s" % self.srRecord["uuid"])
         abortFlag = IPCFlag(self.srRecord["uuid"])
         task = self.session.xenapi.Async.SR.update(self._srRef)
-        for i in range(60):
-            status = self.session.xenapi.task.get_status(task)
-            if not status == "pending":
-                Util.log("SR.update_asynch status changed to [%s]" % status)
-                return
-            if abortFlag.test(FLAG_TYPE_ABORT):
-                Util.log("Abort signalled during srUpdate, cancelling task...")
-                try:
-                    self.session.xenapi.task.cancel(task)
-                    Util.log("Task cancelled")
-                except:
-                    pass
-                return
-            time.sleep(1)
+        cancelTask = True
+        try:
+            for i in range(60):
+                status = self.session.xenapi.task.get_status(task)
+                if not status == "pending":
+                    Util.log("SR.update_asynch status changed to [%s]" % status)
+                    cancelTask = False
+                    return
+                if abortFlag.test(FLAG_TYPE_ABORT):
+                    Util.log("Abort signalled during srUpdate, cancelling task...")
+                    try:
+                        self.session.xenapi.task.cancel(task)
+                        cancelTask = False
+                        Util.log("Task cancelled")
+                    except:
+                        pass
+                    return
+                time.sleep(1)
+        finally:
+            if cancelTask:
+                self.session.xenapi.task.cancel(task)
+            self.session.xenapi.task.destroy(task)
         Util.log("Asynch srUpdate still running, but timeout exceeded.")
 
 
