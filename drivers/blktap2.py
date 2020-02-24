@@ -1020,6 +1020,7 @@ class VDI(object):
         self.__o_direct  = None
         self.__o_direct_reason = None
         self.lock        = Lock("vdi", uuid)
+        self.tap         = None
 
     def get_o_direct_capability(self, options):
         """Returns True/False based on licensing and caching_params"""
