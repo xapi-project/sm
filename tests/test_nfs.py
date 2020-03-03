@@ -76,7 +76,7 @@ class Test_nfs(unittest.TestCase):
 
     def get_soft_mount_pread(self, binary, vers):
         return ([binary, 'remoteserver:remotepath', 'mountpoint', '-o',
-                 'soft,proto=transport,vers=%s,acdirmin=0,acdirmax=0' % vers])
+                 'hard,proto=transport,vers=%s,acdirmin=0,acdirmax=0' % vers])
 
     @mock.patch('util.makedirs', autospec=True)
     @mock.patch('nfs.check_server_service', autospec=True)
