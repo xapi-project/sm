@@ -47,7 +47,7 @@ SHOWMOUNT_BIN = "/usr/sbin/showmount"
 
 DEFAULT_NFSVERSION = '3'
 
-DEFUAULT_RECOVERY_MODE = 'hard'
+DEFAULT_RECOVERY_MODE = 'hard'
 
 NFS_VERSION = [
     'nfsversion', 'for type=nfs, NFS protocol version - 3, 4, 4.1']
