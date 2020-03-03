@@ -1557,7 +1557,7 @@ class VDI(object):
 
         # Return backend/ link
         back_path = self.BackendLink.from_uuid(sr_uuid, vdi_uuid).path()
-        if self.tap:
+        if self.tap_wanted():
             # Only have NBD if we also have a tap
             nbd_path =\
                        "nbd:unix:" + VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid).path()
@@ -1768,7 +1768,7 @@ class VDI(object):
             return
 
         nbd_link = VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid)
-        if not util.pathexists(nbd_link.path()):
+        if (not util.pathexists(nbd_link.path())) and self.tap_wanted():
             util.SMlog("Backend path %s does not exist" % nbd_link.path())
             return
 
@@ -2004,6 +2004,7 @@ class VDI(object):
         util.SMlog("Local read cache: %s, local leaf: %s" % \
                 (read_cache_path, local_leaf_path))
 
+        self.tap = leaf_tapdisk
         return leaf_tapdisk.get_devpath()
 
     def remove_cache(self, sr_uuid, vdi_uuid, params):
