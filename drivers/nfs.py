@@ -121,7 +121,7 @@ def validate_nfsversion(nfsversion):
 
 
 def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
-               timeout=None, nfsversion=DEFAULT_NFSVERSION, recovery_mode='soft', retrans=None):
+               timeout=None, nfsversion=DEFAULT_NFSVERSION, retrans=None):
     """Backward compatibility for ISOSR.py and other NFS mount calls.
     calls the 'real' mount function 'mount'
     """
