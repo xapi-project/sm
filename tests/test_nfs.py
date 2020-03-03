@@ -82,7 +82,7 @@ class Test_nfs(unittest.TestCase):
     @mock.patch('nfs.check_server_service', autospec=True)
     @mock.patch('util.pread', autospec=True)
     def test_soft_mount(self, pread, check_server_service, makedirs):
-        nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
+        nfs.mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
                        timeout=None)
 
         check_server_service.assert_called_once_with('remoteserver')
@@ -94,7 +94,7 @@ class Test_nfs(unittest.TestCase):
     @mock.patch('util.pread', autospec=True)
     def test_soft_mount_nfsversion_3(self, pread, 
                                      check_server_service, makedirs):
-        nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
+        nfs.mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
                        timeout=None, nfsversion='3')
 
         check_server_service.assert_called_once_with('remoteserver')
@@ -106,7 +106,7 @@ class Test_nfs(unittest.TestCase):
     @mock.patch('util.pread', autospec=True)
     def test_soft_mount_nfsversion_4(self, pread, 
                                      check_server_service, makedirs):
-        nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
+        nfs.mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
                        timeout=None, nfsversion='4')
 
         check_server_service.assert_called_once_with('remoteserver')

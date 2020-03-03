@@ -47,6 +47,8 @@ SHOWMOUNT_BIN = "/usr/sbin/showmount"
 
 DEFAULT_NFSVERSION = '3'
 
+DEFUAULT_RECOVERY_MODE = 'hard'
+
 NFS_VERSION = [
     'nfsversion', 'for type=nfs, NFS protocol version - 3, 4, 4.1']
 
@@ -54,6 +56,7 @@ NFS_SERVICE_WAIT = 30
 NFS_SERVICE_RETRY = 6
 
 class NfsException(Exception):
+
 
     def __init__(self, errstr):
         self.errstr = errstr
@@ -71,6 +74,7 @@ def check_server_tcp(server, nfsversion=DEFAULT_NFSVERSION):
     except util.CommandException, inst:
         raise NfsException("rpcinfo failed or timed out: return code %d" %
                            inst.code)
+
 
 def check_server_service(server):
     """Ensure NFS service is up and available on the remote server.
@@ -117,11 +121,21 @@ def validate_nfsversion(nfsversion):
 
 
 def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
-               timeout=None, nfsversion=DEFAULT_NFSVERSION, retrans=None):
+               timeout=None, nfsversion=DEFAULT_NFSVERSION, recovery_mode='soft', retrans=None):
+    """Backward compatibility for ISOSR.py and other NFS mount calls.
+    calls the 'real' mount function 'mount'
+    """
+    mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
+               timeout=None, nfsversion=DEFAULT_NFSVERSION, recovery_mode='soft', retrans=None)
+
+
+def mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
+               timeout=None, nfsversion=DEFAULT_NFSVERSION, recovery_mode=DEFAULT_RECOVERY_MODE, retrans=None):
     """Mount the remote NFS export at 'mountpoint'.
 
     The 'timeout' param here is in deciseconds (tenths of a second). See
     nfs(5) for details.
+    Default mount options are 'hard' except for explicit call to 'soft_mount' function
     """
     try:
         if not util.ioretry(lambda: util.isdir(mountpoint)):
@@ -132,7 +146,7 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
 
 
     # Wait for NFS service to be available
-    try: 
+    try:
         if not check_server_service(remoteserver):
             raise util.CommandException(code=errno.EOPNOTSUPP,
                     reason="No NFS service on host")
@@ -143,11 +157,12 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
     mountcommand = 'mount.nfs'
     if nfsversion == '4':
         mountcommand = 'mount.nfs4'
-        
+
     if nfsversion == '4.1':
         mountcommand = 'mount.nfs4'
 
-    options = "soft,proto=%s,vers=%s" % (
+    options = "%s,proto=%s,vers=%s" % (
+        recovery_mode,
         transport,
         nfsversion)
     options += ',acdirmin=0,acdirmax=0'
