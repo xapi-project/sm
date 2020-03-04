@@ -67,12 +67,12 @@ class TestNFSSR(unittest.TestCase):
 
     @mock.patch('util.makedirs', autospec=True)
     @mock.patch('NFSSR.Lock', autospec=True)
-    @mock.patch('nfs.soft_mount', autospec=True)
+    @mock.patch('nfs.mount', autospec=True)
     @mock.patch('util._testHost', autospec=True)
     @mock.patch('nfs.check_server_tcp', autospec=True)
     @mock.patch('nfs.validate_nfsversion', autospec=True)
     def test_attach(self, validate_nfsversion, check_server_tcp, _testhost,
-                    soft_mount, Lock, makedirs):
+                    mount, Lock, makedirs):
         validate_nfsversion.return_value = "aNfsversionChanged"
         nfssr = self.create_nfssr(server='aServer', serverpath='/aServerpath',
                                   sr_uuid='UUID', useroptions='options')
@@ -81,7 +81,7 @@ class TestNFSSR(unittest.TestCase):
 
         check_server_tcp.assert_called_once_with('aServer',
                                                  'aNfsversionChanged')
-        soft_mount.assert_called_once_with('/var/run/sr-mount/UUID',
+        mount.assert_called_once_with('/var/run/sr-mount/UUID',
                                            'aServer',
                                            '/aServerpath/UUID',
                                            'tcp',
