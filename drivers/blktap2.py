@@ -1767,11 +1767,6 @@ class VDI(object):
             util.SMlog("Backend path %s does not exist" % back_link.path())
             return
 
-        nbd_link = VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid)
-        if (not util.pathexists(nbd_link.path())) and self.tap_wanted():
-            util.SMlog("Backend path %s does not exist" % nbd_link.path())
-            return
-
         try:
             attach_info_path = "%s.attach_info" % (back_link.path())
             os.unlink(attach_info_path)
@@ -1789,8 +1784,10 @@ class VDI(object):
 
         # Remove the backend link
         back_link.unlink()
-        util.SMlog("UNLINKING NBD")
-        nbd_link.rmdirs()
+        nbd_link = VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid)
+        if os.path.lexists(nbd_link.path()):
+            util.SMlog("UNLINKING NBD")
+            nbd_link.rmdirs()
 
         # Deactivate & detach the physical node
         if self.tap_wanted() and self.target.vdi.session is not None:
