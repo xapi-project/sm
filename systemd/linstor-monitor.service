@@ -1,0 +1,13 @@
+[Unit]
+Description=LINSTOR Monitor
+Before=xs-sm.service
+ConditionPathExists=/usr/share/linstor-server/bin/Controller
+
+[Service]
+StandardOutput=null
+StandardError=journal
+ExecStart=/opt/xensource/libexec/linstor-monitord
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

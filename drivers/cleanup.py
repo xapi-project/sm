@@ -47,7 +47,17 @@ import xs_errors
 from refcounter import RefCounter
 from ipc import IPCFlag
 from lvmanager import LVActivator
-from srmetadata import LVMMetadataHandler
+from srmetadata import LVMMetadataHandler, VDI_TYPE_TAG
+
+try:
+    from linstorjournaler import LinstorJournaler
+    from linstorvhdutil import LinstorVhdUtil
+    from linstorvolumemanager \
+        import LinstorVolumeManager, LinstorVolumeManagerError
+    LINSTOR_AVAILABLE = True
+except ImportError:
+    LINSTOR_AVAILABLE = False
+
 
 # Disable automatic leaf-coalescing. Online leaf-coalesce is currently not 
 # possible due to lvhd_stop_using_() not working correctly. However, we leave 
@@ -643,7 +653,19 @@ class VDI:
             if child not in childList:
                 thisPrunable = False
 
-        if not self.scanError and thisPrunable:
+        # We can destroy the current VDI if all childs are hidden BUT the
+        # current VDI must be hidden too to do that!
+        # Example in this case (after a failed live leaf coalesce):
+        #
+        # SMGC: [32436] SR 07ed ('linstor-nvme-sr') (2 VDIs in 1 VHD trees):
+        # SMGC: [32436]         b5458d61(1.000G/4.127M)
+        # SMGC: [32436]             *OLD_b545(1.000G/4.129M)
+        #
+        # OLD_b545 is hidden and must be removed, but b5458d61 not.
+        # Normally we are not in this function when the delete action is
+        # executed but in `_liveLeafCoalesce`.
+
+        if not self.scanError and not self.hidden and thisPrunable:
             vdiList.append(self)
         return vdiList
 
@@ -1347,6 +1369,111 @@ class LVHDVDI(VDI):
                 lvhdutil.calcSizeLV(self.getSizeVHD())
 
 
+class LinstorVDI(VDI):
+    """Object representing a VDI in a LINSTOR SR"""
+
+    MAX_SIZE = 2 * 1024 * 1024 * 1024 * 1024  # Max VHD size.
+
+    VOLUME_LOCK_TIMEOUT = 30
+
+    def load(self, info=None):
+        self.parentUuid = info.parentUuid
+        self.scanError = True
+        self.parent = None
+        self.children = []
+
+        self.fileName = self.sr._linstor.get_volume_name(self.uuid)
+        self.path = self.sr._linstor.build_device_path(self.fileName)
+        if not util.pathexists(self.path):
+            raise util.SMException(
+                '{} of {} not found'
+                .format(self.fileName, self.uuid)
+            )
+
+        if not info:
+            try:
+                info = self.sr._vhdutil.get_vhd_info(self.uuid)
+            except util.SMException:
+                Util.log(
+                    ' [VDI {}: failed to read VHD metadata]'.format(self.uuid)
+                )
+                return
+
+        self.parentUuid = info.parentUuid
+        self.sizeVirt = info.sizeVirt
+        self._sizeVHD = info.sizePhys
+        self.hidden = info.hidden
+        self.scanError = False
+
+    def rename(self, uuid):
+        Util.log('Renaming {} -> {} (path={})'.format(
+            self.uuid, uuid, self.path
+        ))
+        self.sr._linstor.update_volume_uuid(self.uuid, uuid)
+        VDI.rename(self, uuid)
+
+    def delete(self):
+        if len(self.children) > 0:
+            raise util.SMException(
+                'VDI {} has children, can\'t delete'.format(self.uuid)
+            )
+        self.sr.lock()
+        try:
+            self.sr._linstor.destroy_volume(self.uuid)
+            self.sr.forgetVDI(self.uuid)
+        finally:
+            self.sr.unlock()
+        VDI.delete(self)
+
+    def pauseVDIs(self, vdiList):
+        self.sr._linstor.ensure_volume_list_is_not_locked(
+            vdiList, timeout=self.VOLUME_LOCK_TIMEOUT
+        )
+        return super(VDI).pauseVDIs(vdiList)
+
+    def _liveLeafCoalesce(self, vdi):
+        self.sr._linstor.ensure_volume_is_not_locked(
+            vdi.uuid, timeout=self.VOLUME_LOCK_TIMEOUT
+        )
+        return super(VDI)._liveLeafCoalesce(vdi)
+
+    def _relinkSkip(self):
+        abortFlag = IPCFlag(self.sr.uuid)
+        for child in self.children:
+            if abortFlag.test(FLAG_TYPE_ABORT):
+                raise AbortException('Aborting due to signal')
+            Util.log(
+                '  Relinking {} from {} to {}'.format(
+                    child, self, self.parent
+                )
+            )
+
+            session = child.sr.xapi.session
+            sr_uuid = child.sr.uuid
+            vdi_uuid = child.uuid
+            try:
+                self.sr._linstor.ensure_volume_is_not_locked(
+                    vdi_uuid, timeout=self.VOLUME_LOCK_TIMEOUT
+                )
+                blktap2.VDI.tap_pause(session, sr_uuid, vdi_uuid)
+                child._setParent(self.parent)
+            finally:
+                blktap2.VDI.tap_unpause(session, sr_uuid, vdi_uuid)
+        self.children = []
+
+    def _setHidden(self, hidden=True):
+        HIDDEN_TAG = 'hidden'
+
+        if self.raw:
+            self.sr._linstor.update_volume_metadata(self.uuid, {
+                HIDDEN_TAG: hidden
+            })
+            self.hidden = hidden
+        else:
+            VDI._setHidden(self, hidden)
+
+    def _queryVHDBlocks(self):
+        return self.sr._vhdutil.get_block_bitmap(self.uuid)
 
 ################################################################################
 #
@@ -1403,7 +1530,8 @@ class SR:
 
     TYPE_FILE = "file"
     TYPE_LVHD = "lvhd"
-    TYPES = [TYPE_LVHD, TYPE_FILE]
+    TYPE_LINSTOR = "linstor"
+    TYPES = [TYPE_LVHD, TYPE_FILE, TYPE_LINSTOR]
 
     LOCK_RETRY_INTERVAL = 3
     LOCK_RETRY_ATTEMPTS = 20
@@ -1424,6 +1552,8 @@ class SR:
             return FileSR(uuid, xapi, createLock, force)
         elif type == SR.TYPE_LVHD:
             return LVHDSR(uuid, xapi, createLock, force)
+        elif type == SR.TYPE_LINSTOR:
+            return LinstorSR(uuid, xapi, createLock, force)
         raise util.SMException("SR type %s not recognized" % type)
     getInstance = staticmethod(getInstance)
 
@@ -2726,6 +2856,232 @@ class LVHDSR(SR):
                 vdi.fileName, vdi.uuid, slaves)
 
 
+class LinstorSR(SR):
+    TYPE = SR.TYPE_LINSTOR
+
+    def __init__(self, uuid, xapi, createLock, force):
+        if not LINSTOR_AVAILABLE:
+            raise util.SMException(
+                'Can\'t load cleanup LinstorSR: LINSTOR libraries are missing'
+            )
+
+        SR.__init__(self, uuid, xapi, createLock, force)
+        self._master_uri = 'linstor://localhost'
+        self.path = LinstorVolumeManager.DEV_ROOT_PATH
+        self._reloadLinstor()
+
+    def deleteVDI(self, vdi):
+        self._checkSlaves(vdi)
+        SR.deleteVDI(self, vdi)
+
+    def getFreeSpace(self):
+        return self._linstor.max_volume_size_allowed
+
+    def scan(self, force=False):
+        all_vdi_info = self._scan(force)
+        for uuid, vdiInfo in all_vdi_info.iteritems():
+            # When vdiInfo is None, the VDI is RAW.
+            vdi = self.getVDI(uuid)
+            if not vdi:
+                self.logFilter.logNewVDI(uuid)
+                vdi = LinstorVDI(self, uuid, not vdiInfo)
+                self.vdis[uuid] = vdi
+            if vdiInfo:
+                vdi.load(vdiInfo)
+        self._removeStaleVDIs(all_vdi_info.keys())
+        self._buildTree(force)
+        self.logFilter.logState()
+        self._handleInterruptedCoalesceLeaf()
+
+    def _reloadLinstor(self):
+        session = self.xapi.session
+        host_ref = util.get_this_host_ref(session)
+        sr_ref = session.xenapi.SR.get_by_uuid(self.uuid)
+
+        pbd = util.find_my_pbd(session, host_ref, sr_ref)
+        if pbd is None:
+            raise util.SMException('Failed to find PBD')
+
+        dconf = session.xenapi.PBD.get_device_config(pbd)
+        group_name = dconf['group-name']
+
+        self.journaler = LinstorJournaler(
+            self._master_uri, group_name, logger=util.SMlog
+        )
+
+        self._linstor = LinstorVolumeManager(
+            self._master_uri,
+            group_name,
+            repair=True,
+            logger=util.SMlog
+        )
+        self._vhdutil = LinstorVhdUtil(session, self._linstor)
+
+    def _scan(self, force):
+        for i in range(SR.SCAN_RETRY_ATTEMPTS):
+            self._reloadLinstor()
+            error = False
+            try:
+                all_vdi_info = self._load_vdi_info()
+                for uuid, vdiInfo in all_vdi_info.iteritems():
+                    if vdiInfo and vdiInfo.error:
+                        error = True
+                        break
+                if not error:
+                    return all_vdi_info
+                Util.log('Scan error, retrying ({})'.format(i))
+            except Exception as e:
+                Util.log('Scan exception, retrying ({}): {}'.format(i, e))
+                Util.log(traceback.format_exc())
+
+        if force:
+            return all_vdi_info
+        raise util.SMException('Scan error')
+
+    def _load_vdi_info(self):
+        all_vdi_info = {}
+
+        # TODO: Ensure metadata contains the right info.
+
+        all_volume_info = self._linstor.volumes_with_info
+        volumes_metadata = self._linstor.volumes_with_metadata
+        for vdi_uuid, volume_info in all_volume_info.items():
+            try:
+                if not volume_info.name and \
+                        not list(volumes_metadata[vdi_uuid].items()):
+                    continue  # Ignore it, probably deleted.
+
+                vdi_type = volumes_metadata[vdi_uuid][VDI_TYPE_TAG]
+                if vdi_type == vhdutil.VDI_TYPE_VHD:
+                    info = self._vhdutil.get_vhd_info(vdi_uuid)
+                else:
+                    info = None
+            except Exception as e:
+                Util.log(
+                    ' [VDI {}: failed to load VDI info]: {}'
+                    .format(self.uuid, e)
+                )
+                info = vhdutil.VHDInfo(vdi_uuid)
+                info.error = 1
+            all_vdi_info[vdi_uuid] = info
+        return all_vdi_info
+
+    # TODO: Maybe implement _liveLeafCoalesce/_prepareCoalesceLeaf/
+    # _finishCoalesceLeaf/_updateSlavesOnResize like LVM plugin.
+
+    def _calcExtraSpaceNeeded(self, child, parent):
+        meta_overhead = vhdutil.calcOverheadEmpty(LinstorVDI.MAX_SIZE)
+        bitmap_overhead = vhdutil.calcOverheadBitmap(parent.sizeVirt)
+        virtual_size = LinstorVolumeManager.round_up_volume_size(
+            parent.sizeVirt + meta_overhead + bitmap_overhead
+        )
+        # TODO: Check result.
+        return virtual_size - self._linstor.get_volume_size(parent.uuid)
+
+    def _hasValidDevicePath(self, uuid):
+        try:
+            self._linstor.get_device_path(uuid)
+        except Exception:
+            # TODO: Maybe log exception.
+            return False
+        return True
+
+    def _handleInterruptedCoalesceLeaf(self):
+        entries = self.journaler.get_all(VDI.JRN_LEAF)
+        for uuid, parentUuid in entries.iteritems():
+            if self._hasValidDevicePath(parentUuid) or \
+                    self._hasValidDevicePath(self.TMP_RENAME_PREFIX + uuid):
+                self._undoInterruptedCoalesceLeaf(uuid, parentUuid)
+            else:
+                self._finishInterruptedCoalesceLeaf(uuid, parentUuid)
+            self.journaler.remove(VDI.JRN_LEAF, uuid)
+            vdi = self.getVDI(uuid)
+            if vdi:
+                vdi.ensureUnpaused()
+
+    def _undoInterruptedCoalesceLeaf(self, childUuid, parentUuid):
+        Util.log('*** UNDO LEAF-COALESCE')
+        parent = self.getVDI(parentUuid)
+        if not parent:
+            parent = self.getVDI(childUuid)
+            if not parent:
+                raise util.SMException(
+                    'Neither {} nor {} found'.format(parentUuid, childUuid)
+                )
+            Util.log(
+                'Renaming parent back: {} -> {}'.format(childUuid, parentUuid)
+            )
+            parent.rename(parentUuid)
+        util.fistpoint.activate('LVHDRT_coaleaf_undo_after_rename', self.uuid)
+
+        child = self.getVDI(childUuid)
+        if not child:
+            child = self.getVDI(self.TMP_RENAME_PREFIX + childUuid)
+            if not child:
+                raise util.SMException(
+                    'Neither {} nor {} found'.format(
+                        childUuid, self.TMP_RENAME_PREFIX + childUuid
+                    )
+                )
+            Util.log('Renaming child back to {}'.format(childUuid))
+            child.rename(childUuid)
+            Util.log('Updating the VDI record')
+            child.setConfig(VDI.DB_VHD_PARENT, parentUuid)
+            child.setConfig(VDI.DB_VDI_TYPE, vhdutil.VDI_TYPE_VHD)
+            util.fistpoint.activate(
+                'LVHDRT_coaleaf_undo_after_rename2', self.uuid
+            )
+
+        # TODO: Maybe deflate here.
+
+        if child.hidden:
+            child._setHidden(False)
+        if not parent.hidden:
+            parent._setHidden(True)
+        self._updateSlavesOnUndoLeafCoalesce(parent, child)
+        util.fistpoint.activate('LVHDRT_coaleaf_undo_end', self.uuid)
+        Util.log('*** leaf-coalesce undo successful')
+        if util.fistpoint.is_active('LVHDRT_coaleaf_stop_after_recovery'):
+            child.setConfig(VDI.DB_LEAFCLSC, VDI.LEAFCLSC_DISABLED)
+
+    def _finishInterruptedCoalesceLeaf(self, childUuid, parentUuid):
+        Util.log('*** FINISH LEAF-COALESCE')
+        vdi = self.getVDI(childUuid)
+        if not vdi:
+            raise util.SMException('VDI {} not found'.format(childUuid))
+        # TODO: Maybe inflate.
+        try:
+            self.forgetVDI(parentUuid)
+        except XenAPI.Failure:
+            pass
+        self._updateSlavesOnResize(vdi)
+        util.fistpoint.activate('LVHDRT_coaleaf_finish_end', self.uuid)
+        Util.log('*** finished leaf-coalesce successfully')
+
+    def _checkSlaves(self, vdi):
+        try:
+            states = self._linstor.get_usage_states(vdi.uuid)
+            for node_name, state in states.items():
+                self._checkSlave(node_name, vdi, state)
+        except LinstorVolumeManagerError as e:
+            if e.code != LinstorVolumeManagerError.ERR_VOLUME_NOT_EXISTS:
+                raise
+
+    @staticmethod
+    def _checkSlave(node_name, vdi, state):
+        # If state is None, LINSTOR doesn't know the host state
+        # (bad connection?).
+        if state is None:
+            raise util.SMException(
+                'Unknown state for VDI {} on {}'.format(vdi.uuid, node_name)
+            )
+
+        if state:
+            raise util.SMException(
+                'VDI {} is in use on {}'.format(vdi.uuid, node_name)
+            )
+
+
 ################################################################################
 #
 #  Helpers
@@ -2766,7 +3122,9 @@ def normalizeType(type):
         "xfs", "zfs", "ext4"
     ]:
         type = SR.TYPE_FILE
-    if not type in SR.TYPES:
+    if type in ["linstor"]:
+        type = SR.TYPE_LINSTOR
+    if type not in SR.TYPES:
         raise util.SMException("Unsupported SR type: %s" % type)
     return type
 

@@ -8,6 +8,7 @@ SM_DRIVERS += udev
 SM_DRIVERS += ISO
 SM_DRIVERS += HBA
 SM_DRIVERS += RawHBA
+SM_DRIVERS += Linstor
 SM_DRIVERS += LVHD
 SM_DRIVERS += LVHDoISCSI
 SM_DRIVERS += LVHDoHBA
@@ -35,6 +36,9 @@ SM_LIBS += verifyVHDsOnSR
 SM_LIBS += scsiutil
 SM_LIBS += scsi_host_rescan
 SM_LIBS += vhdutil
+SM_LIBS += linstorjournaler
+SM_LIBS += linstorvhdutil
+SM_LIBS += linstorvolumemanager
 SM_LIBS += lvhdutil
 SM_LIBS += cifutils
 SM_LIBS += xs_errors
@@ -99,6 +103,7 @@ SM_PY_FILES = $(foreach LIB, $(SM_LIBS), drivers/$(LIB).py) $(foreach DRIVER, $(
 .PHONY: build
 build:
 	make -C dcopy 
+	make -C linstor
 
 .PHONY: precommit
 precommit: build
@@ -174,6 +179,8 @@ install: precheck
 	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
 	install -m 644 systemd/storage-init.service \
 	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
+	install -m 644 systemd/linstor-monitor.service \
+	  $(SM_STAGING)/$(SYSTEMD_SERVICE_DIR)
 	for i in $(UDEV_RULES); do \
 	  install -m 644 udev/$$i.rules \
 	    $(SM_STAGING)$(UDEV_RULES_DIR); done
@@ -194,6 +201,7 @@ install: precheck
 	cd $(SM_STAGING)$(SM_DEST) && rm -f OCFSoHBASR
 	ln -sf $(SM_DEST)mpathutil.py $(SM_STAGING)/sbin/mpathutil
 	install -m 755 drivers/02-vhdcleanup $(SM_STAGING)$(MASTER_SCRIPT_DEST)
+	install -m 755 drivers/linstor-manager $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/lvhd-thin $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/on_slave.py $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)/on-slave
 	install -m 755 drivers/testing-hooks $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
@@ -212,6 +220,7 @@ install: precheck
 	install -m 755 scripts/kickpipe $(SM_STAGING)$(LIBEXEC)
 	install -m 755 scripts/set-iscsi-initiator $(SM_STAGING)$(LIBEXEC)
 	$(MAKE) -C dcopy install DESTDIR=$(SM_STAGING)
+	$(MAKE) -C linstor install DESTDIR=$(SM_STAGING)
 	ln -sf $(SM_DEST)blktap2.py $(SM_STAGING)$(BIN_DEST)/blktap2
 	ln -sf $(SM_DEST)lcache.py $(SM_STAGING)$(BIN_DEST)tapdisk-cache-stats
 	ln -sf /dev/null $(SM_STAGING)$(UDEV_RULES_DIR)/69-dm-lvm-metad.rules

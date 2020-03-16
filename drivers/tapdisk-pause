@@ -29,6 +29,12 @@ import lvhdutil
 import vhdutil
 import lvmcache
 
+try:
+    from linstorvolumemanager import LinstorVolumeManager
+    LINSTOR_AVAILABLE = True
+except ImportError:
+    LINSTOR_AVAILABLE = False
+
 TAPDEV_BACKPATH_PFX = "/dev/sm/backend"
 TAPDEV_PHYPATH_PFX = "/dev/sm/phy"
 
@@ -72,24 +78,6 @@ def _mkphylink(sr_uuid, vdi_uuid, path):
     cmd = ['ln', '-sf', path, sympath]
     util.pread2(cmd)
     return path
-
-def _pathRefresh():
-    # LVM rename check
-    realpath = os.path.realpath(self.phypath)
-    phypath = vdi_type = None
-    util.SMlog("Realpath: %s" % realpath)
-    if realpath.startswith("/dev/VG_XenStorage-") and \
-            not os.path.exists(realpath):
-        util.SMlog("Path inconsistent")
-        pfx = "/dev/VG_XenStorage-%s/" % self.sr_uuid
-        for ty in ["LV","VHD"]:
-            p = pfx + ty + "-" + self.vdi_uuid
-            util.SMlog("Testing path: %s" % p)
-            if os.path.exists(p):
-                _mkphylink(self.sr_uuid, self.vdi_uuid, p)
-                phypath = p
-                if ty == "LV": vdi_type = "aio"
-                else: vdi_type = "vhd"
 
 def tapPause(session, args):
     tap = Tapdisk(session, args)
@@ -148,7 +136,51 @@ class Tapdisk:
                     self.realpath = p
                     if ty == "LV": self.vdi_type = "aio"
                     else: self.vdi_type = "vhd"
-        
+        elif realpath.startswith('/dev/drbd/by-res/xcp-volume-'):
+            if not LINSTOR_AVAILABLE:
+                raise util.SMException(
+                    'Can\'t refresh tapdisk: LINSTOR libraries are missing'
+                )
+
+            # We must always recreate the symlink to ensure we have
+            # the right info. Why? Because if the volume UUID is changed in
+            # LINSTOR the symlink is not directly updated. When live leaf
+            # coalesce is executed we have these steps:
+            # "A" -> "OLD_A"
+            # "B" -> "A"
+            # Without symlink update the previous "A" path is reused instead of
+            # "B" path. Note: "A", "B" and "OLD_A" are UUIDs.
+            session = self.session
+
+            linstor_uri = 'linstor://{}'.format(
+                util.get_master_rec(session)['address']
+            )
+
+            host_ref = util.get_this_host_ref(session)
+            sr_ref = session.xenapi.SR.get_by_uuid(self.sr_uuid)
+
+            pbd = util.find_my_pbd(session, host_ref, sr_ref)
+            if pbd is None:
+                raise util.SMException('Failed to find PBD')
+
+            dconf = session.xenapi.PBD.get_device_config(pbd)
+            group_name = dconf['group-name']
+
+            device_path = LinstorVolumeManager(
+                linstor_uri,
+                group_name,
+                logger=util.SMlog
+            ).get_device_path(self.vdi_uuid)
+
+            if realpath != device_path:
+                util.SMlog(
+                    'Update LINSTOR PhyLink (previous={}, current={})'
+                    .format(realpath, device_path)
+                )
+                os.unlink(self.phypath)
+                _mkphylink(self.sr_uuid, self.vdi_uuid, device_path)
+            self.realpath = device_path
+
     @locking("VDIUnavailable")
     def Pause(self):
         util.SMlog("Pause for %s" % self.vdi_uuid)
