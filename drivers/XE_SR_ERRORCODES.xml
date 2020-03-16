@@ -887,4 +887,40 @@
             <description>ZFS SR deletion error</description>
             <value>5001</value>
         </code>
+
+        <code>
+            <name>LinstorMaster</name>
+            <description>Linstor request must come from master</description>
+            <value>5002</value>
+        </code>
+
+        <code>
+            <name>LinstorConfigHostsMissing</name>
+            <description>The request is missing the LINSTOR hosts parameter</description>
+            <value>5003</value>
+        </code>
+
+        <code>
+            <name>LinstorConfigGroupNameMissing</name>
+            <description>The request is missing the LINSTOR group name parameter</description>
+            <value>5004</value>
+        </code>
+
+        <code>
+            <name>LinstorConfigRedundancyMissing</name>
+            <description>The request is missing the LINSTOR redundancy parameter</description>
+            <value>5005</value>
+        </code>
+
+        <code>
+            <name>LinstorSRCreate</name>
+            <description>LINSTOR SR creation error</description>
+            <value>5006</value>
+        </code>
+        
+        <code>
+            <name>LinstorSRDelete</name>
+            <description>LINSTOR SR delete error</description>
+            <value>5007</value>
+        </code>
 </SM-errorcodes>

@@ -1,0 +1,272 @@
+#!/usr/bin/env python
+#
+# Copyright (C) 2020  Vates SAS - ronan.abhamon@vates.fr
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+import base64
+import distutils.util
+import subprocess
+import sys
+import XenAPIPlugin
+
+sys.path.append('/opt/xensource/sm/')
+from linstorjournaler import LinstorJournaler
+from linstorvolumemanager import LinstorVolumeManager
+from lock import Lock
+import json
+import LinstorSR
+import util
+import vhdutil
+
+
+FIREWALL_PORT_SCRIPT = '/etc/xapi.d/plugins/firewall-port'
+LINSTOR_PORTS = [3366, 3370, 3376, 3377, '7000:8000']
+
+
+def get_linstor_uri(session):
+    return 'linstor://{}'.format(util.get_master_rec(session)['address'])
+
+
+def update_port(port, open):
+    fn = 'open' if open else 'close'
+    args = (
+        FIREWALL_PORT_SCRIPT, fn, str(port), 'tcp'
+    )
+
+    (ret, out, err) = util.doexec(args)
+    if ret == 0:
+        return
+    raise Exception('Failed to {} port: {} {}'.format(fn, out, err))
+
+
+def update_all_ports(open):
+    for port in LINSTOR_PORTS:
+        update_port(port, open)
+
+
+def update_service(start):
+    fn = 'enable' if start else 'disable'
+    args = ('systemctl', fn, '--now', 'linstor-satellite')
+    (ret, out, err) = util.doexec(args)
+    if ret == 0:
+        return
+    raise Exception('Failed to {} satellite: {} {}'.format(fn, out, err))
+
+
+def enable(session, args):
+    try:
+        enabled = distutils.util.strtobool(args['enabled'])
+        update_all_ports(open=enabled)
+        update_service(start=enabled)
+        return str(True)
+    except Exception as e:
+        util.SMlog('linstor-manager:disable error: {}'.format(e))
+    return str(False)
+
+
+def attach(session, args):
+    try:
+        sr_uuid = args['srUuid']
+        vdi_uuid = args['vdiUuid']
+        group_name = args['groupName']
+
+        linstor_uri = get_linstor_uri(session)
+        journaler = LinstorJournaler(
+            linstor_uri, group_name, logger=util.SMlog
+        )
+        linstor = LinstorVolumeManager(
+            linstor_uri,
+            group_name,
+            logger=util.SMlog
+        )
+        LinstorSR.attach_thin(session, journaler, linstor, sr_uuid, vdi_uuid)
+        return str(True)
+    except Exception as e:
+        util.SMlog('linstor-manager:attach error: {}'.format(e))
+    return str(False)
+
+
+def detach(session, args):
+    try:
+        sr_uuid = args['srUuid']
+        vdi_uuid = args['vdiUuid']
+        group_name = args['groupName']
+
+        linstor = LinstorVolumeManager(
+            get_linstor_uri(session),
+            group_name,
+            logger=util.SMlog
+        )
+        LinstorSR.detach_thin(session, linstor, sr_uuid, vdi_uuid)
+        return str(True)
+    except Exception as e:
+        util.SMlog('linstor-manager:detach error: {}'.format(e))
+    return str(False)
+
+
+def check(session, args):
+    try:
+        device_path = args['devicePath']
+        return str(vhdutil.check(device_path))
+    except Exception as e:
+        util.SMlog('linstor-manager:check error: {}'.format(e))
+        raise
+
+
+def get_vhd_info(session, args):
+    try:
+        device_path = args['devicePath']
+        group_name = args['groupName']
+        include_parent = distutils.util.strtobool(args['includeParent'])
+
+        linstor = LinstorVolumeManager(
+            get_linstor_uri(session),
+            group_name,
+            logger=util.SMlog
+        )
+
+        def extract_uuid(device_path):
+            # TODO: Remove new line in the vhdutil module. Not here.
+            return linstor.get_volume_uuid_from_device_path(
+                device_path.rstrip('\n')
+            )
+
+        vhd_info = vhdutil.getVHDInfo(
+            device_path, extract_uuid, include_parent
+        )
+        return json.dumps(vhd_info.__dict__)
+    except Exception as e:
+        util.SMlog('linstor-manager:get_vhd_info error: {}'.format(e))
+        raise
+
+
+def has_parent(session, args):
+    try:
+        device_path = args['devicePath']
+        return str(vhdutil.hasParent(device_path))
+    except Exception as e:
+        util.SMlog('linstor-manager:has_parent error: {}'.format(e))
+        raise
+
+
+def get_parent(session, args):
+    try:
+        device_path = args['devicePath']
+        group_name = args['groupName']
+
+        linstor = LinstorVolumeManager(
+            get_linstor_uri(session),
+            group_name,
+            logger=util.SMlog
+        )
+
+        def extract_uuid(device_path):
+            # TODO: Remove new line in the vhdutil module. Not here.
+            return linstor.get_volume_uuid_from_device_path(
+                device_path.rstrip('\n')
+            )
+
+        return vhdutil.getParent(device_path, extract_uuid)
+    except Exception as e:
+        util.SMlog('linstor-manager:get_parent error: {}'.format(e))
+        raise
+
+
+def get_size_virt(session, args):
+    try:
+        device_path = args['devicePath']
+        return str(vhdutil.getSizeVirt(device_path))
+    except Exception as e:
+        util.SMlog('linstor-manager:get_size_virt error: {}'.format(e))
+        raise
+
+
+def get_size_phys(session, args):
+    try:
+        device_path = args['devicePath']
+        return str(vhdutil.getSizePhys(device_path))
+    except Exception as e:
+        util.SMlog('linstor-manager:get_size_phys error: {}'.format(e))
+        raise
+
+
+def get_depth(session, args):
+    try:
+        device_path = args['devicePath']
+        return str(vhdutil.getDepth(device_path))
+    except Exception as e:
+        util.SMlog('linstor-manager:get_depth error: {}'.format(e))
+        raise
+
+
+def get_key_hash(session, args):
+    try:
+        device_path = args['devicePath']
+        return vhdutil.getKeyHash(device_path) or ''
+    except Exception as e:
+        util.SMlog('linstor-manager:get_key_hash error: {}'.format(e))
+        raise
+
+
+def get_block_bitmap(session, args):
+    try:
+        device_path = args['devicePath']
+        return base64.b64encode(vhdutil.getBlockBitmap(device_path)) or ''
+    except Exception as e:
+        util.SMlog('linstor-manager:get_block_bitmap error: {}'.format(e))
+        raise
+
+
+def lock_vdi(session, args):
+    lock = None
+    try:
+        sr_uuid = args['srUuid']
+        vdi_uuid = args['vdiUuid']
+        group_name = args['groupName']
+        locked = distutils.util.strtobool(args['locked'])
+
+        lock = Lock(vhdutil.LOCK_TYPE_SR, sr_uuid)
+
+        linstor = LinstorVolumeManager(
+            get_linstor_uri(session),
+            group_name,
+            logger=util.SMlog
+        )
+        linstor.lock_volume(vdi_uuid, locked)
+
+        return str(True)
+    except Exception as e:
+        util.SMlog('linstor-manager:lock_vdi error: {}'.format(e))
+    finally:
+        if lock:
+            lock.release()
+    return str(False)
+
+
+if __name__ == '__main__':
+    XenAPIPlugin.dispatch({
+        'enable': enable,
+        'attach': attach,
+        'detach': detach,
+        'check': check,
+        'getVHDInfo': get_vhd_info,
+        'hasParent': has_parent,
+        'getParent': get_parent,
+        'getSizeVirt': get_size_virt,
+        'getSizePhys': get_size_phys,
+        'getDepth': get_depth,
+        'getKeyHash': get_key_hash,
+        'getBlockBitmap': get_block_bitmap,
+        'lockVdi': lock_vdi
+    })

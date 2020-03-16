@@ -651,10 +651,36 @@ def get_this_host():
     f.close()
     return uuid
 
-def is_master(session):
+
+def get_master_ref(session):
     pools = session.xenapi.pool.get_all()
-    master = session.xenapi.pool.get_master(pools[0])
-    return get_this_host_ref(session) == master
+    return session.xenapi.pool.get_master(pools[0])
+
+
+def get_master_rec(session):
+    return session.xenapi.host.get_record(get_master_ref(session))
+
+
+def is_master(session):
+    return get_this_host_ref(session) == get_master_ref(session)
+
+
+def get_master_address():
+    address = None
+    try:
+        fd = open('/etc/xensource/pool.conf', 'r')
+        try:
+            items = fd.readline().split(':')
+            if items[0].strip() == 'master':
+                address = 'localhost'
+            else:
+                address = items[1].strip()
+        finally:
+            fd.close()
+    except Exception:
+        pass
+    return address
+
 
 # XXX: this function doesn't do what it claims to do
 def get_localhost_uuid(session):
@@ -1378,13 +1404,21 @@ def findRunningProcessOrOpenFile(name, process = True):
     else:
         return (retVal, processandpids)
 
-def retry(f, maxretry=20, period=3):
+def retry(f, maxretry=20, period=3, exceptions=[Exception]):
     retries = 0
     while True:
         try:            
             return f()
-        except Exception, e:
-            SMlog("Got exception: %s. Retry number: %s" % (str(e),retries))
+        except Exception as e:
+            for exception in exceptions:
+                if isinstance(e, exception):
+                    SMlog('Got exception: {}. Retry number: {}'.format(
+                        str(e), retries
+                    ))
+                    break
+            else:
+                SMlog('Got bad exception: {}. Raising...'.format(e))
+                raise e
 
         retries += 1
         if retries >= maxretry:
