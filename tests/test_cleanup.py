@@ -220,8 +220,10 @@ class TestSR(unittest.TestCase):
     @mock.patch('util.fistpoint', autospec=True)
     @mock.patch('cleanup.SR', autospec=True)
     @mock.patch('cleanup.Util.runAbortable')
+    @mock.patch('os.path.exists', autospec=True)
     def test_gcPause_calls_abortable_sleep(
             self,
+            mock_exists,
             mock_abortable,
             mock_sr,
             mock_fist_point):
@@ -232,6 +234,8 @@ class TestSR(unittest.TestCase):
 
         # Fake that the fist point is not active.
         mock_fist_point.is_active.return_value = False
+        # The GC init file does exist
+        mock_exists.return_value = True
 
         cleanup._gcLoopPause(mock_sr, False)
 
@@ -242,6 +246,34 @@ class TestSR(unittest.TestCase):
         mock_abortable.assert_called_with(mock.ANY, None, mock_sr.uuid,
                                           mock.ANY, cleanup.VDI.POLL_INTERVAL,
                                           cleanup.GCPAUSE_DEFAULT_SLEEP * 1.1)
+
+    @mock.patch('util.fistpoint', autospec=True)
+    @mock.patch('cleanup.SR', autospec=True)
+    @mock.patch('cleanup.Util.runAbortable')
+    @mock.patch('os.path.exists', autospec=True)
+    def test_gcPause_skipped_on_first_run(
+            self,
+            mock_exists,
+            mock_abortable,
+            mock_sr,
+            mock_fist_point):
+        """
+        Don't sleep the GC on the first run after host boot.
+        """
+        self.setup_mock_sr(mock_sr)
+
+        # Fake that the fist point is not active.
+        mock_fist_point.is_active.return_value = False
+        # The GC init file doesn't exist
+        mock_exists.return_value = False
+
+        cleanup._gcLoopPause(mock_sr, False)
+
+        # Make sure we check for the active fist point.
+        mock_fist_point.is_active.assert_called_with(util.GCPAUSE_FISTPOINT)
+
+        # Fist point is not active so call abortable sleep.
+        self.assertEqual(0, mock_abortable.call_count)
 
     @mock.patch('cleanup.SR', autospec=True)
     @mock.patch('cleanup._abort')

@@ -277,6 +277,13 @@ class SR(object):
         """
         raise xs_errors.XenError('Unimplemented')
 
+    def after_master_attach(self, uuid):
+        """Perform actions required after attaching on the pool master
+        Return:
+          None
+        """
+        self.scan(uuid)
+
     def detach(self, uuid):
         """Remove local access to the SR. Destroys any device 
         state initiated by the sr_attach() operation.

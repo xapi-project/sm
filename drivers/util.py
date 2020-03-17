@@ -551,7 +551,15 @@ def makedirs(name, mode=0777):
         makedirs(head, mode)
         if tail == os.curdir:
             return
-    os.mkdir(name, mode)
+    try:
+        os.mkdir(name, mode)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST and os.path.isdir(name):
+            if mode:
+                os.chmod(name, mode)
+            pass
+        else:
+            raise
 
 def zeroOut(path, fromByte, bytes):
     """write 'bytes' zeros to 'path' starting from fromByte (inclusive)"""
