@@ -80,6 +80,8 @@ SPEED_LOG_ROOT = VAR_RUN + "{uuid}.speed_log"
 
 N_RUNNING_AVERAGE = 10
 
+NON_PERSISTENT_DIR = '/run/nonpersistent/sm'
+
 class AbortException(util.SMException):
     pass
 
@@ -2761,6 +2763,17 @@ def normalizeType(type):
 GCPAUSE_DEFAULT_SLEEP = 5 * 60
 
 
+def _gc_init_file(sr_uuid):
+    return os.path.join(NON_PERSISTENT_DIR, str(sr_uuid), 'gc_init')
+
+
+def _create_init_file(sr_uuid):
+    util.makedirs(os.path.join(NON_PERSISTENT_DIR, str(sr_uuid)))
+    with open(os.path.join(
+            NON_PERSISTENT_DIR, str(sr_uuid), 'gc_init'), 'w+') as f:
+        f.write('1')
+
+
 def _gcLoopPause(sr, dryRun):
 
     # Check to see if the GCPAUSE_FISTPOINT is present. If so the fist
@@ -2770,7 +2783,7 @@ def _gcLoopPause(sr, dryRun):
 
         util.fistpoint.activate_custom_fn(util.GCPAUSE_FISTPOINT,
                                           lambda *args: None)
-    else:
+    elif os.path.exists(_gc_init_file(sr.uuid)):
         def abortTest():
             return IPCFlag(sr.uuid).test(FLAG_TYPE_ABORT)
 
@@ -2810,6 +2823,8 @@ def _gcLoop(sr, dryRun):
                 if not sr.gcEnabled():
                     break
                 sr.cleanupCoalesceJournals()
+                # Create the init file here in case startup is waiting on it
+                _create_init_file(sr.uuid)
                 sr.scanLocked()
                 sr.updateBlockInfo()
 
@@ -2841,6 +2856,7 @@ def _gcLoop(sr, dryRun):
                 lockRunning.release()
     finally:
         Util.log("GC process exiting, no work left")
+        _create_init_file(sr.uuid)
         lockActive.release()
 
 def _gc(session, srUuid, dryRun):

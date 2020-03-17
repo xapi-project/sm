@@ -339,14 +339,20 @@ class SRCommand:
             if sr.dconf.get("SRmaster") == "true":
                 is_master = True
 
+            sr_uuid = self.params['sr_uuid']
+
             resetvdis.reset_sr(sr.session, util.get_this_host(),
-                    self.params['sr_uuid'], is_master)
+                    sr_uuid, is_master)
 
             if is_master:
                 # Schedule a scan only when attaching on the SRmaster
                 util.set_dirty(sr.session, self.params["sr_ref"])
 
-            return sr.attach(self.params['sr_uuid'])
+            try:
+                return sr.attach(sr_uuid)
+            finally:
+                if is_master:
+                    sr.after_master_attach(sr_uuid)
 
         elif self.cmd == 'sr_detach':
             return sr.detach(self.params['sr_uuid'])
