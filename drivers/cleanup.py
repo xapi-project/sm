@@ -2112,12 +2112,14 @@ class SR:
             util.fistpoint.activate("LVHDRT_coaleaf_before_delete", self.uuid)
             self.deleteVDI(vdi)
             util.fistpoint.activate("LVHDRT_coaleaf_after_delete", self.uuid)
+
+        util.fistpoint.activate("LVHDRT_coaleaf_before_remove_j", self.uuid)
+        self.journaler.remove(VDI.JRN_LEAF, vdiUuid)
+
         self.forgetVDI(origParentUuid)
         self._finishCoalesceLeaf(parent)
         self._updateSlavesOnResize(parent)
 
-        util.fistpoint.activate("LVHDRT_coaleaf_before_remove_j", self.uuid)
-        self.journaler.remove(VDI.JRN_LEAF, vdiUuid)
     
     def _calcExtraSpaceNeeded(self, child, parent):
         assert(not parent.raw) # raw parents not supported
