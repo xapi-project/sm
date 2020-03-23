@@ -360,6 +360,14 @@ class ISOSR(SR.SR):
             self.detach(sr_uuid)
             raise xs_errors.XenError('ISOSharenameFailure')                        
 
+    def after_master_attach(self, uuid):
+        """Perform actions required after attaching on the pool master
+        Return:
+          None
+        """
+        # Nothing required here for ISOs and tools ISOs will fail if scanned
+        pass
+
     def getSMBVersionFromOptions(self, options):
         """Extract SMB version from options """
         smb_ver = None
