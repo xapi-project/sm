@@ -57,6 +57,12 @@ def reset_sr(session, host_uuid, sr_uuid, is_sr_master):
     sr_lock.release()
     gc_lock.release()
 
+def clean_vdi(session, vdi_uuid):
+    vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
+    session.xenapi.VDI.remove_from_sm_config(vdi_ref, "paused")
+    session.xenapi.VDI.remove_from_sm_config(vdi_ref, "readcache")
+
+
 def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True):
     vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
     vdi_rec = session.xenapi.VDI.get_record(vdi_ref)
@@ -168,6 +174,9 @@ if __name__ == '__main__':
         if len(sys.argv) == 4 and sys.argv[3] == "--force":
             force = True
         reset_vdi(session, vdi_uuid, force)
+    elif mode == "clean":
+        vdi_uuid = sys.argv[2]
+        clean_vdi(session, vdi_uuid)
     elif len(sys.argv) in [3, 4]:
         # backwards compatibility: the arguments for the "all" case used to be 
         # just host_uuid, sr_uuid, [is_master] (i.e., no "all" string, since it 
