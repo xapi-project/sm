@@ -526,16 +526,6 @@ def mkdirs(path, mode=0777):
             if e.errno != errno.EEXIST:
                 raise
 
-def rmdirs(path):
-    # lexist returns true even if link is broken
-    if os.path.lexists(path):
-        parent, subdir = os.path.split(path)
-        assert parent != path
-        if subdir:
-            os.unlink(path)
-        if parent and len(os.listdir(parent)) == 0:
-            os.rmdir(parent)
-
 
 class KObject(object):
 
@@ -1220,9 +1210,6 @@ class VDI(object):
                 if e.errno != errno.EEXIST: raise
                 assert self._equals(target), "'%s' not equal to '%s'" % (path, target)
 
-        def rmdirs(self):
-            rmdirs(self.path())
-
         def unlink(self):
             try:
                 os.unlink(self.path())
@@ -1784,10 +1771,7 @@ class VDI(object):
 
         # Remove the backend link
         back_link.unlink()
-        nbd_link = VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid)
-        if os.path.lexists(nbd_link.path()):
-            util.SMlog("UNLINKING NBD")
-            nbd_link.rmdirs()
+        VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid).unlink()
 
         # Deactivate & detach the physical node
         if self.tap_wanted() and self.target.vdi.session is not None:
