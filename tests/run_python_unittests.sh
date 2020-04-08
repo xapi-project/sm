@@ -45,7 +45,9 @@ fi
 
     echo "Code coverage"
     OMITS="$SMROOT/tests/*,$SMROOT/.env/*,$SMROOT/tests/mocks/*"
-    for format in xml html report; do
+    for format in html report; do
         coverage $format --include="$SMROOT/*" --omit=$OMITS
     done
+
+    coverage xml --include="$SMROOT/*"
 )
