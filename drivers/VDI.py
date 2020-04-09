@@ -54,17 +54,7 @@ def VDIMetadataSize(type, virtualsize):
 
         # Segment bitmaps + Page align offsets
         size += (size_mb / 2) * 4096
-    elif type == 'qcow':
-        # Header + extended header
-        size = 46 + 17
-        size = util.roundup(512, size)
 
-        # L1 table
-        size += (size_mb / 2) * 8
-        size = util.roundup(4096, size)
-
-        # L2 tables
-        size += (size_mb / 2) * 4096
     return size
 
 class VDI(object):
