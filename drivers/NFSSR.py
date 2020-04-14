@@ -32,7 +32,7 @@ CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_CACHING",
                 "VDI_UPDATE", "VDI_CLONE","VDI_SNAPSHOT","VDI_RESIZE",
                 "VDI_GENERATE_CONFIG","VDI_MIRROR",
                 "VDI_RESET_ON_BOOT/2", "ATOMIC_PAUSE", "VDI_CONFIG_CBT",
-                "VDI_ACTIVATE", "VDI_DEACTIVATE", "THIN_PROVISIONING"]
+                "VDI_ACTIVATE", "VDI_DEACTIVATE", "THIN_PROVISIONING", "VDI_READ_CACHING"]
 
 CONFIGURATION = [['server', 'hostname or IP address of NFS server (required)'],
                  ['serverpath', 'path on remote server (required)'],
