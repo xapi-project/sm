@@ -334,6 +334,9 @@ class XAPI:
                 hostRef, self.PLUGIN_ON_SLAVE, "multi", args)
         Util.log("call-plugin returned: '%s'" % text)
 
+    def getRecordHost(self, hostRef):
+        return self.session.xenapi.host.get_record(hostRef)
+
     def _getRefVDI(self, uuid):
         return self.session.xenapi.VDI.get_by_uuid(uuid)
 
@@ -2657,7 +2660,8 @@ class LVHDSR(SR):
                 continue
             if abortFlag.test(FLAG_TYPE_ABORT):
                 raise AbortException("Aborting due to signal")
-            Util.log("Checking with slave %s (path %s)" % (hostRef, vdi.path))
+            Util.log("Checking with slave %s (path %s)" % (
+                self.xapi.getRecordHost(hostRef)['hostname'], vdi.path))
             try:
                 self.xapi.ensureInactive(hostRef, args)
             except XenAPI.Failure:
@@ -2684,7 +2688,8 @@ class LVHDSR(SR):
                 "lvName4": parent.fileName}
         for slave in slaves:
             Util.log("Updating %s, %s, %s on slave %s" % \
-                    (tmpName, child.fileName, parent.fileName, slave))
+                    (tmpName, child.fileName, parent.fileName,
+                     self.xapi.getRecordHost(slave)['hostname']))
             text = self.xapi.session.xenapi.host.call_plugin( \
                     slave, self.xapi.PLUGIN_ON_SLAVE, "multi", args)
             Util.log("call-plugin returned: '%s'" % text)
@@ -2705,7 +2710,8 @@ class LVHDSR(SR):
                 "ns3"    : lvhdutil.NS_PREFIX_LVM + self.uuid}
         for slave in slaves:
             Util.log("Updating %s to %s on slave %s" % \
-                    (oldNameLV, vdi.fileName, slave))
+                    (oldNameLV, vdi.fileName,
+                     self.xapi.getRecordHost(slave)['hostname']))
             text = self.xapi.session.xenapi.host.call_plugin( \
                     slave, self.xapi.PLUGIN_ON_SLAVE, "multi", args)
             Util.log("call-plugin returned: '%s'" % text)
