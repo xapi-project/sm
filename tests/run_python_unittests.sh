@@ -4,6 +4,13 @@ set -eu
 
 SMROOT=$(cd $(dirname $0) && cd .. && pwd)
 
+TESTS=tests
+
+if [ $# -ge 1 ] && [ -n "$1" ]; then
+    echo "Only testing $1"
+    TESTS=$*
+fi
+
 if  [ ! -v RPM_BUILD_ROOT ]; then
     echo "Activating virtual env"
 
@@ -27,7 +34,7 @@ fi
             -c .noserc \
             --with-xunit \
             --xunit-file=nosetests.xml \
-            tests
+            $TESTS
 
     # Handle coverage errors explicitly
     set +e
@@ -35,7 +42,7 @@ fi
     echo "Test coverage"
     coverage report -m --fail-under=100 --include=$SMROOT/tests/*
 
-    if [ $? -ne 0 ]
+    if [ $# -eq 0 ] && [ $? -ne 0 ]
     then
         echo "Test code not fully covered"
         exit 1
