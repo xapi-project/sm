@@ -24,6 +24,19 @@ import mpp_mpathutil
 import glob
 import json
 
+supported = ['iscsi','lvmoiscsi','rawhba','lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp', 'lvmofcoe', 'gfs2']
+
+LOCK_TYPE_HOST = "host"
+LOCK_NS1 = "mpathcount1"
+LOCK_NS2 = "mpathcount2"
+
+MAPPER_DIR = "/dev/mapper"
+mpp_path_update = False
+match_bySCSIid = False
+mpath_enabled = True
+SCSIid = 'NOTSUPPLIED'
+mpp_entry = 'NOTSUPPLIED'
+
 def get_dm_major():
     global cached_DM_maj
     if not cached_DM_maj:
@@ -144,18 +157,45 @@ def get_SCSIidlist(devconfig, sm_config):
                 SCSIidlist.append(re.sub("^scsi-","",key))
     return SCSIidlist
 
+def check_root_disk(config, maps, remove, add):
+    if get_root_dev_major() == get_dm_major():
+        # Ensure output headers are not in the list
+        if 'name' in maps:
+            maps.remove('name')
+        # first map will always correspond to the root dev, dm-0
+        assert(len(maps) > 0)
+        i = maps[0]
+        if (not match_bySCSIid) or i == SCSIid:
+            util.SMlog("Matched SCSIid %s, updating " \
+                    " Host.other-config:mpath-boot " % i)
+            key="mpath-boot"
+            if not config.has_key(key):
+                update_config(key, i, "", remove, add)
+            else:
+                update_config(key, i, config[key], remove, add)
+
+def check_devconfig(devconfig, sm_config, config, remove, add):
+    SCSIidlist = get_SCSIidlist(devconfig, sm_config)
+    if not len(SCSIidlist):
+        return
+    for i in SCSIidlist:
+        if match_bySCSIid and i != SCSIid:
+            continue
+        util.SMlog("Matched SCSIid, updating %s" % i)
+        key = "mpath-" + i
+        if not mpath_enabled:
+            remove(key)
+            remove('multipathed')
+        elif mpp_path_update:
+            util.SMlog("Matched SCSIid, updating entry %s" % str(mpp_entry))
+            update_config(key, i, mpp_entry, remove, add, mpp_path_update)
+        else:
+            if not config.has_key(key):
+                update_config(key, i, "", remove, add)
+            else:
+                update_config(key, i, config[key], remove, add)
+
 if __name__ == '__main__':
-    supported = ['iscsi','lvmoiscsi','rawhba','lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp','lvmofcoe', 'gfs2']
-
-    LOCK_TYPE_HOST = "host"
-    LOCK_NS1 = "mpathcount1"
-    LOCK_NS2 = "mpathcount2"
-
-    MAPPER_DIR = "/dev/mapper"
-    mpp_path_update = False
-    match_bySCSIid = False
-    mpath_enabled = True
-
     if len(sys.argv) == 3:
         match_bySCSIid = True
         SCSIid = sys.argv[1]
@@ -182,27 +222,14 @@ if __name__ == '__main__':
 
     # Check root disk if multipathed
     try:
-        if get_root_dev_major() == get_dm_major():
-            def _remove(key):
-                session.xenapi.host.remove_from_other_config(localhost,key)
-            def _add(key, val):
-                session.xenapi.host.add_to_other_config(localhost,key,val)
-            config = session.xenapi.host.get_other_config(localhost)
-            maps = mpath_cli.list_maps()
-            # Ensure output headers are not in the list
-            if 'name' in maps:
-                maps.remove('name')
-            # first map will always correspond to the root dev, dm-0
-            assert(len(maps) > 0)
-            i = maps[0]
-            if (not match_bySCSIid) or i == SCSIid:
-                util.SMlog("Matched SCSIid %s, updating " \
-                        " Host.other-config:mpath-boot " % i)
-                key="mpath-boot"
-                if not config.has_key(key):
-                    update_config(key, i, "", _remove, _add)
-                else:
-                    update_config(key, i, config[key], _remove, _add)
+        def _remove(key):
+            session.xenapi.host.remove_from_other_config(localhost,key)
+        def _add(key, val):
+            session.xenapi.host.add_to_other_config(localhost,key,val)
+        config = session.xenapi.host.get_other_config(localhost)
+        maps = mpath_cli.list_maps()
+        check_root_disk(config, maps, _add, _remove)
+
     except:
         util.SMlog("MPATH: Failure updating Host.other-config:mpath-boot db")
         mpc_exit(session, -1)
@@ -225,25 +252,7 @@ if __name__ == '__main__':
             if srtype in supported:
                 devconfig = record["device_config"]
                 sm_config = session.xenapi.SR.get_sm_config(SR)
-                SCSIidlist = get_SCSIidlist(devconfig, sm_config)
-                if not len(SCSIidlist):
-                    continue
-                for i in SCSIidlist:
-                    if match_bySCSIid and i != SCSIid:
-                        continue
-                    util.SMlog("Matched SCSIid, updating %s" % i)
-                    key = "mpath-" + i
-                    if not mpath_enabled:
-                        remove(key)
-                        remove('multipathed')
-                    elif mpp_path_update:
-                        util.SMlog("Matched SCSIid, updating entry %s" % str(mpp_entry))
-                        update_config(key, i, mpp_entry, remove, add, mpp_path_update)
-                    else:
-                        if not config.has_key(key):
-                            update_config(key, i, "", remove, add)
-                        else:
-                            update_config(key, i, config[key], remove, add)
+                check_devconfig(devconfig, sm_config, config, remove, add)
     except:
         util.SMlog("MPATH: Failure updating db. %s" % sys.exc_info())
         mpc_exit(session, -1)
