@@ -24,24 +24,6 @@ import mpp_mpathutil
 import glob
 import json
 
-supported = ['iscsi','lvmoiscsi','rawhba','lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp','lvmofcoe', 'gfs2']
-
-LOCK_TYPE_HOST = "host"
-LOCK_NS1 = "mpathcount1"
-LOCK_NS2 = "mpathcount2"
-
-MAPPER_DIR = "/dev/mapper"
-mpp_path_update = False
-match_bySCSIid = False
-mpath_enabled = True
-
-if len(sys.argv) == 3:
-    match_bySCSIid = True
-    SCSIid = sys.argv[1]
-    mpp_path_update = True
-    mpp_entry = sys.argv[2]
-
-cached_DM_maj = None
 def get_dm_major():
     global cached_DM_maj
     if not cached_DM_maj:
@@ -162,90 +144,110 @@ def get_SCSIidlist(devconfig, sm_config):
                 SCSIidlist.append(re.sub("^scsi-","",key))
     return SCSIidlist
 
-try:
-    session = util.get_localAPI_session()
-except:
-    print "Unable to open local XAPI session"
-    sys.exit(-1)
+if __name__ == '__main__':
+    supported = ['iscsi','lvmoiscsi','rawhba','lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp','lvmofcoe', 'gfs2']
 
-localhost = session.xenapi.host.get_by_uuid(get_localhost_uuid())
-# Check whether multipathing is enabled (either for root dev or SRs)
-try:
-    if get_root_dev_major() != get_dm_major():
-        hconf = session.xenapi.host.get_other_config(localhost)
-        assert(hconf['multipathing'] == 'true')
-        mpath_enabled = True
-except:
-    mpath_enabled = False
+    LOCK_TYPE_HOST = "host"
+    LOCK_NS1 = "mpathcount1"
+    LOCK_NS2 = "mpathcount2"
 
-# Check root disk if multipathed
-try:
-    if get_root_dev_major() == get_dm_major():
-        def _remove(key):
-            session.xenapi.host.remove_from_other_config(localhost,key)
-        def _add(key, val):
-            session.xenapi.host.add_to_other_config(localhost,key,val)
-        config = session.xenapi.host.get_other_config(localhost)
-        maps = mpath_cli.list_maps()
-        # Ensure output headers are not in the list
-        if 'name' in maps:
-            maps.remove('name')
-        # first map will always correspond to the root dev, dm-0
-        assert(len(maps) > 0)
-        i = maps[0]
-        if (not match_bySCSIid) or i == SCSIid:
-            util.SMlog("Matched SCSIid %s, updating " \
-                       " Host.other-config:mpath-boot " % i)
-            key="mpath-boot"
-            if not config.has_key(key):
-                update_config(key, i, "", _remove, _add)
-            else:
-                update_config(key, i, config[key], _remove, _add)
-except:
-    util.SMlog("MPATH: Failure updating Host.other-config:mpath-boot db")
-    mpc_exit(session, -1)
+    MAPPER_DIR = "/dev/mapper"
+    mpp_path_update = False
+    match_bySCSIid = False
+    mpath_enabled = True
 
-try:
-    pbds = session.xenapi.PBD.get_all_records_where("field \"host\" = \"%s\"" % localhost)
-except:
-    mpc_exit(session,-1)
+    if len(sys.argv) == 3:
+        match_bySCSIid = True
+        SCSIid = sys.argv[1]
+        mpp_path_update = True
+        mpp_entry = sys.argv[2]
 
-try:
-    for pbd in pbds:
-        def remove(key):
-            session.xenapi.PBD.remove_from_other_config(pbd,key)
-        def add(key, val):
-            session.xenapi.PBD.add_to_other_config(pbd,key,val)
-        record = pbds[pbd]
-        config = record['other_config']
-        SR = record['SR']
-        srtype = session.xenapi.SR.get_type(SR)
-        if srtype in supported:
-            devconfig = record["device_config"]
-            sm_config = session.xenapi.SR.get_sm_config(SR)
-            SCSIidlist = get_SCSIidlist(devconfig, sm_config)
-            if not len(SCSIidlist):
-                continue
-            for i in SCSIidlist:
-                if match_bySCSIid and i != SCSIid:
-                    continue
-                util.SMlog("Matched SCSIid, updating %s" % i)
-                key = "mpath-" + i
-                if not mpath_enabled:
-                    remove(key)
-                    remove('multipathed')
-                elif mpp_path_update:
-                    util.SMlog("Matched SCSIid, updating entry %s" % str(mpp_entry))
-                    update_config(key, i, mpp_entry, remove, add, mpp_path_update)
+    cached_DM_maj = None
+
+    try:
+        session = util.get_localAPI_session()
+    except:
+        print "Unable to open local XAPI session"
+        sys.exit(-1)
+
+    localhost = session.xenapi.host.get_by_uuid(get_localhost_uuid())
+    # Check whether multipathing is enabled (either for root dev or SRs)
+    try:
+        if get_root_dev_major() != get_dm_major():
+            hconf = session.xenapi.host.get_other_config(localhost)
+            assert(hconf['multipathing'] == 'true')
+            mpath_enabled = True
+    except:
+        mpath_enabled = False
+
+    # Check root disk if multipathed
+    try:
+        if get_root_dev_major() == get_dm_major():
+            def _remove(key):
+                session.xenapi.host.remove_from_other_config(localhost,key)
+            def _add(key, val):
+                session.xenapi.host.add_to_other_config(localhost,key,val)
+            config = session.xenapi.host.get_other_config(localhost)
+            maps = mpath_cli.list_maps()
+            # Ensure output headers are not in the list
+            if 'name' in maps:
+                maps.remove('name')
+            # first map will always correspond to the root dev, dm-0
+            assert(len(maps) > 0)
+            i = maps[0]
+            if (not match_bySCSIid) or i == SCSIid:
+                util.SMlog("Matched SCSIid %s, updating " \
+                        " Host.other-config:mpath-boot " % i)
+                key="mpath-boot"
+                if not config.has_key(key):
+                    update_config(key, i, "", _remove, _add)
                 else:
-                    if not config.has_key(key):
-                        update_config(key, i, "", remove, add)
-                    else:
-                        update_config(key, i, config[key], remove, add)
-except:
-    util.SMlog("MPATH: Failure updating db. %s" % sys.exc_info())
-    mpc_exit(session, -1)
-    
-util.SMlog("MPATH: Update done")
+                    update_config(key, i, config[key], _remove, _add)
+    except:
+        util.SMlog("MPATH: Failure updating Host.other-config:mpath-boot db")
+        mpc_exit(session, -1)
 
-mpc_exit(session,0)
+    try:
+        pbds = session.xenapi.PBD.get_all_records_where("field \"host\" = \"%s\"" % localhost)
+    except:
+        mpc_exit(session,-1)
+
+    try:
+        for pbd in pbds:
+            def remove(key):
+                session.xenapi.PBD.remove_from_other_config(pbd,key)
+            def add(key, val):
+                session.xenapi.PBD.add_to_other_config(pbd,key,val)
+            record = pbds[pbd]
+            config = record['other_config']
+            SR = record['SR']
+            srtype = session.xenapi.SR.get_type(SR)
+            if srtype in supported:
+                devconfig = record["device_config"]
+                sm_config = session.xenapi.SR.get_sm_config(SR)
+                SCSIidlist = get_SCSIidlist(devconfig, sm_config)
+                if not len(SCSIidlist):
+                    continue
+                for i in SCSIidlist:
+                    if match_bySCSIid and i != SCSIid:
+                        continue
+                    util.SMlog("Matched SCSIid, updating %s" % i)
+                    key = "mpath-" + i
+                    if not mpath_enabled:
+                        remove(key)
+                        remove('multipathed')
+                    elif mpp_path_update:
+                        util.SMlog("Matched SCSIid, updating entry %s" % str(mpp_entry))
+                        update_config(key, i, mpp_entry, remove, add, mpp_path_update)
+                    else:
+                        if not config.has_key(key):
+                            update_config(key, i, "", remove, add)
+                        else:
+                            update_config(key, i, config[key], remove, add)
+    except:
+        util.SMlog("MPATH: Failure updating db. %s" % sys.exc_info())
+        mpc_exit(session, -1)
+
+    util.SMlog("MPATH: Update done")
+
+    mpc_exit(session,0)
