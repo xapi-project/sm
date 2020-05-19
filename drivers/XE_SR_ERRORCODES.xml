@@ -774,6 +774,11 @@
                 <value>431</value>
         </code>
         <code>
+                <name>MultipathMapperPathMissing</name>
+                <description>Device Mapper path missing</description>
+                <value>432</value>
+        </code>
+        <code>
             <name>TapdiskAlreadyRunning</name>
             <description>The tapdisk is already running</description>
             <value>445</value>
