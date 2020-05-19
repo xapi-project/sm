@@ -234,12 +234,18 @@ def _is_valid_multipath_device(sid):
 def _refresh_DMP(sid, npaths):
     if not _is_valid_multipath_device(sid):
         return
-    util.retry(lambda: util.pread2(['/usr/sbin/multipath', '-r', sid]), maxretry = 3,
-                           period = 4)
     path = os.path.join(DEVMAPPERPATH, sid)
-    util.wait_for_path(path, 10)
+    # If the mapper path doesn't exist force a reload in multipath
     if not os.path.exists(path):
-        raise xs_errors.XenError('DMP failed to activate mapper path')
+        util.retry(lambda: util.pread2(
+            ['/usr/sbin/multipath', '-r', sid]),
+                   maxretry = 3,
+                   period = 4)
+        util.wait_for_path(path, 10)
+    if not os.path.exists(path):
+        raise xs_errors.XenError('MultipathMapperPathMissing',
+                                 'Device mapper path {} not found'.format(
+                                     path))
     lvm_path = "/dev/disk/by-scsid/"+sid+"/mapper"
     util.wait_for_path(lvm_path, 10)
     activate_MPdev(sid, path)
