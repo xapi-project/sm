@@ -110,57 +110,6 @@ def __map_explicit(devices):
         except:
             util.SMlog("WARNING: exception raised while attempting to add path %s" % base)
 
-def map_by_scsibus(sid,npaths=0):
-    # Synchronously creates/refreshs the MP map for a single SCSIid.
-    # Gathers the device vector from /dev/disk/by-scsibus - we expect
-    # there to be 'npaths' paths
-
-    util.SMlog("map_by_scsibus: sid=%s" % sid)
-
-    devices = []
-
-    # Wait for up to 60 seconds for n devices to appear
-    for attempt in range(0,60):
-        devices = scsiutil._genReverseSCSIidmap(sid)
-
-        # If we've got the right number of paths, or we don't know
-        # how many devices there ought to be, tell multipathd about
-        # the paths, and return.
-        if(len(devices)>=npaths or npaths==0):
-            # Enable this device's sid: it could be blacklisted
-            # We expect devices to be blacklisted according to their
-            # wwid only. We go through the list of paths until we have
-            # a definite answer about the device's blacklist status.
-            # If the path we are checking is down, we cannot tell.
-            for dev in devices:
-                try:
-                    if wwid_conf.is_blacklisted(dev):
-                        try:
-                            wwid_conf.edit_wwid(sid)
-                        except:
-                            util.SMlog("WARNING: exception raised while "
-                                       "attempting to modify multipath.conf")
-                        try:
-                            mpath_cli.reconfigure()
-                        except:
-                            util.SMlog("WARNING: exception raised while "
-                                       "attempting to reconfigure")
-                        time.sleep(5)
-
-                    break
-                except wwid_conf.WWIDException as e:
-                    util.SMlog(e.errstr)
-            else:
-                util.SMlog("Device 'SCSI_id: {}' is inaccessible; "
-                           "All paths are down.".format(sid))
-
-            __map_explicit(devices)
-            return
-
-        time.sleep(1)
-
-    __map_explicit(devices)
-    
 def refresh(sid,npaths):
     # Refresh the multipath status
     util.SMlog("Refreshing LUN %s" % sid)
