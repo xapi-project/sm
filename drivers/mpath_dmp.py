@@ -26,10 +26,6 @@ import scsiutil
 import wwid_conf
 import errno
 
-iscsi_mpath_file = "/etc/iscsi/iscsid-mpath.conf"
-iscsi_default_file = "/etc/iscsi/iscsid-default.conf"
-iscsi_file = "/etc/iscsi/iscsid.conf"
-
 DMPBIN = "/sbin/multipath"
 DEVMAPPERPATH = "/dev/mapper"
 DEVBYIDPATH = "/dev/disk/by-id"
@@ -252,14 +248,6 @@ def _refresh_DMP(sid, npaths):
 
 def activate():
     util.SMlog("MPATH: multipath activate called")
-    cmd = ['ln', '-sf', iscsi_mpath_file, iscsi_file]
-    try:
-        if os.path.exists(iscsi_mpath_file):
-            # Only do this if using our customized open-iscsi package
-            util.pread2(cmd)
-    except util.CommandException, ce:
-        if not ce.reason.endswith(': File exists'):
-            raise
 
     # If we've got no active sessions, and the deamon is already running,
     # we're ok to restart the daemon
@@ -283,10 +271,6 @@ def activate():
 
 def deactivate():
     util.SMlog("MPATH: multipath deactivate called")
-    cmd = ['ln', '-sf', iscsi_default_file, iscsi_file]
-    if os.path.exists(iscsi_default_file):
-        # Only do this if using our customized open-iscsi package
-        util.pread2(cmd)
 
     if _is_mpath_daemon_running():
         # Flush the multipath nodes
