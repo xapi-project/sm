@@ -101,7 +101,7 @@ def list_maps():
     util.SMlog("mpath cmd: %s" % cmd)
     (rc,stdout,stderr) = util.doexec(mpathcmd,cmd)
     util.SMlog("mpath output: %s" % stdout)
-    return map(lambda x: x.split(' ')[0], stdout.split('\n')[1:-1])
+    return map(lambda x: x.split(' ')[0], stdout.split('\n')[2:-1])
 
 def ensure_map_gone(scsi_id):
     while True:
