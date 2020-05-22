@@ -399,8 +399,7 @@ class RawHBAVDI(LUNperVDI.RAWVDI):
 
         # Multipath disable
         if self.sr.mpath == "true":
-            #devices = scsiutil._genReverseSCSIidmap(scsi_id)
-            self.sr.mpathmodule.reset(scsi_id, True)
+            self.sr.mpathmodule.reset(scsi_id, explicit_unmap=True)
             util.remove_mpathcount_field(self.sr.session, self.sr.host_ref,
                                          self.sr.sr_ref, scsi_id)
 

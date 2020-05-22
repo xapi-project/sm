@@ -112,7 +112,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             LVHDSR.LVHDSR.create(self, sr_uuid, size)
         finally:
             if self.mpath == "true":
-                self.mpathmodule.reset(self.SCSIid, True) # explicit unmap
+                self.mpathmodule.reset(self.SCSIid, explicit_unmap=True)
                 util.remove_mpathcount_field(self.session, self.host_ref, \
                                              self.sr_ref, self.SCSIid)
 
@@ -167,16 +167,16 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             self._pathrefresh(LVHDoHBASR)
             result = LVHDSR.LVHDSR.probe(self)
             if self.mpath == "true":
-                self.mpathmodule.reset(self.SCSIid,True)
+                self.mpathmodule.reset(self.SCSIid, explicit_unmap=True)
             return result
         except:
            if self.mpath == "true":
-                self.mpathmodule.reset(self.SCSIid,True)
+                self.mpathmodule.reset(self.SCSIid, explicit_unmap=True)
            raise
 
     def detach(self, sr_uuid):
         LVHDSR.LVHDSR.detach(self, sr_uuid)
-        self.mpathmodule.reset(self.SCSIid,True,True) # explicit_unmap
+        self.mpathmodule.reset(self.SCSIid, explicit_unmap=True)
         try:
             pbdref = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
         except:
@@ -192,7 +192,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             LVHDSR.LVHDSR.delete(self, sr_uuid)
         finally:
             if self.mpath == "true":
-                self.mpathmodule.reset(self.SCSIid, True) # explicit unmap
+                self.mpathmodule.reset(self.SCSIid, explicit_unmap=True)
                 
     def vdi(self, uuid):
         return LVHDoHBAVDI(self, uuid)

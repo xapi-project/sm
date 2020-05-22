@@ -58,9 +58,9 @@ def deactivate_MPdev(sid):
     if os.path.exists(path):
         os.unlink(path)
         
-def reset(sid,explicit_unmap=False,delete_nodes=False):
+def reset(sid,explicit_unmap=False):
     util.SMlog("Resetting LUN %s" % sid)
-    _resetDMP(sid,explicit_unmap,delete_nodes)
+    _resetDMP(sid,explicit_unmap)
 
 def _delete_node(dev):
     try:
@@ -70,8 +70,8 @@ def _delete_node(dev):
         os.close(f)
     except:
         util.SMlog("Failed to delete %s" % dev)
-    
-def _resetDMP(sid,explicit_unmap=False,delete_nodes=False):
+
+def _resetDMP(sid, explicit_unmap=False):
 # If mpath has been turned on since the sr/vdi was attached, we
 # might be trying to unmap it before the daemon has been started
 # This is unnecessary (and will fail) so just return.

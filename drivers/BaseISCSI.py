@@ -422,7 +422,7 @@ class BaseISCSISR(SR.SR):
         except:
             pass
         if self.dconf.has_key('SCSIid'):
-            self.mpathmodule.reset(self.dconf['SCSIid'], True) # explicitly unmap
+            self.mpathmodule.reset(self.dconf['SCSIid'], explicit_unmap=True)
             keys.append("mpath-" + self.dconf['SCSIid'])
 
         # Remove iscsi_sessions and multipathed keys
@@ -598,7 +598,7 @@ class BaseISCSISR(SR.SR):
         if not self.attached:
             raise xs_errors.XenError('SRUnavailable')
         if self.mpath == 'true' and len(SCSIid):
-            self.mpathmodule.reset(SCSIid, True)
+            self.mpathmodule.reset(SCSIid, explicit_unmap=True)
             util.remove_mpathcount_field(self.session, self.host_ref, self.sr_ref, SCSIid)
         for val in self.adapter:
             if not self.pathdict.has_key(val):
