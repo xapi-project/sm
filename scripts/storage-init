@@ -206,8 +206,6 @@ mk_lvm_sr()
 }
 
 create_local_sr() {
-    [ "$UPGRADE" = true ] && return 0
-
     vgchange -a n || true
 
     if [ -e "$CONFIGURATION" ]; then
@@ -230,8 +228,6 @@ create_local_sr() {
 }
 
 set_default_sr() {
-    [ "$UPGRADE" = true ] && return 0
-
     if [ -e ${CONFIGURATION} ]; then
         source ${CONFIGURATION}
         SR=$(xe sr-list type=$TYPE params=uuid --minimal | cut -f1 -d,)
@@ -256,8 +252,6 @@ create_udev_srs() {
         echo "Skip creating udev SRs"
         return
     fi
-
-    [ "$UPGRADE" = true ] && return 0
 
     found_cd=0
     found_block=0
@@ -295,12 +289,15 @@ configure_multipathing() {
     fi
 }
 
-create_local_sr
-set_default_sr
-create_udev_srs
-configure_multipathing
-
-# Ensure changes are synced to disk
-xe pool-sync-database
+if [ ! "$UPGRADE" = "true" ]; then
+  create_local_sr
+  set_default_sr
+  create_udev_srs
+  configure_multipathing
+  # Ensure changes are synced to disk
+  xe pool-sync-database
+else
+  configure_multipathing
+fi
 
 touch /var/lib/misc/ran-storage-init
