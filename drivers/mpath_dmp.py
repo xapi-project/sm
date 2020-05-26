@@ -62,15 +62,6 @@ def reset(sid,explicit_unmap=False):
     util.SMlog("Resetting LUN %s" % sid)
     _resetDMP(sid,explicit_unmap)
 
-def _delete_node(dev):
-    try:
-        path = '/sys/block/' + dev + '/device/delete'
-        f = os.open(path, os.O_WRONLY)
-        os.write(f,'1')
-        os.close(f)
-    except:
-        util.SMlog("Failed to delete %s" % dev)
-
 def _resetDMP(sid, explicit_unmap=False):
 # If mpath has been turned on since the sr/vdi was attached, we
 # might be trying to unmap it before the daemon has been started
@@ -98,17 +89,6 @@ def _resetDMP(sid, explicit_unmap=False):
         util.SMlog("MPATH: WARNING - path did not disappear [%s]" % path)
     else:
         util.SMlog("MPATH: path disappeared [%s]" % path)
-
-# expecting e.g. ["/dev/sda","/dev/sdb"] or ["/dev/disk/by-scsibus/...whatever" (links to the real devices)]
-def __map_explicit(devices):
-    for device in devices:
-        realpath = os.path.realpath(device)
-        base = os.path.basename(realpath)
-        util.SMlog("Adding mpath path '%s'" % base)
-        try:
-            mpath_cli.add_path(base)
-        except:
-            util.SMlog("WARNING: exception raised while attempting to add path %s" % base)
 
 def refresh(sid,npaths):
     # Refresh the multipath status
@@ -248,11 +228,3 @@ def path(SCSIid):
         return path
     else:
         return DEVBYIDPATH + "/scsi-" + SCSIid
-
-def status(SCSIid):
-    pass
-
-def get_TargetID_LunNUM(SCSIid):
-    devices = scsiutil._genReverseSCSIidmap(SCSIid)
-    cmd = [MPPGETAIDLNOBIN, devices[0]]
-    return util.pread2(cmd).split('\n')[0]

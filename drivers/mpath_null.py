@@ -31,6 +31,3 @@ def deactivate():
 
 def path(SCSIid):
     return DEVBYIDPATH + "/scsi-" + SCSIid
-
-def status(SCSIid):
-    pass
