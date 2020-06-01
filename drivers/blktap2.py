@@ -194,55 +194,6 @@ class TapCtl(object):
         return __next_mkcmd(args)
 
     @classmethod
-    def failwith(cls, status, prev=False):
-        """
-        Fail next invocation with @status. If @prev is true, execute
-        the original command
-        """
-
-        __prev_mkcmd = cls.__next_mkcmd
-
-        @classmethod
-        def __mkcmd(cls, args):
-            if prev:
-                cmd = __prev_mkcmd(args)
-                cmd = "'%s' && exit %d" % ("' '".join(cmd), status)
-            else:
-                cmd = "exit %d" % status
-
-            return [ '/bin/sh', '-c', cmd  ]
-
-        cls.__next_mkcmd = __mkcmd
-
-    __strace_n = 0
-
-    @classmethod
-    def strace(cls):
-        """
-        Run next invocation through strace.
-        Output goes to /tmp/tap-ctl.<sm-pid>.<n>; <n> counts invocations.
-        """
-
-        __prev_mkcmd = cls.__next_mkcmd
-
-        @classmethod
-        def __next_mkcmd(cls, args):
-
-            # pylint: disable = E1101
-
-            cmd = __prev_mkcmd(args)
-
-            tracefile = "/tmp/%s.%d.%d" % (os.path.basename(cls.PATH),
-                                           os.getpid(),
-                                           cls.__strace_n)
-            cls.__strace_n += 1
-
-            return \
-                [ '/usr/bin/strace', '-o', tracefile, '--'] + cmd
-
-        cls.__next_mkcmd = __next_mkcmd
-
-    @classmethod
     def _call(cls, args, quiet = False, input = None):
         """
         Spawn a tap-ctl process. Return a TapCtl invocation.
