@@ -162,6 +162,14 @@ class TapCtl(object):
             if self.info.has_key(key): return self.info[key]
             return object.__getattribute__(self, key)
 
+        @property
+        def has_status(self):
+            return 'status' in self.info
+
+        @property
+        def has_signal(self):
+            return 'signal' in self.info
+
         # Retrieves the error code returned by the command. If the error code
         # was not supplied at object-construction time, zero is returned.
         def get_error_code(self):
@@ -351,7 +359,7 @@ class TapCtl(object):
 
         except cls.CommandFailure, e:
             transient = [ errno.EPROTO, errno.ENOENT ]
-            if e.status in transient:
+            if e.has_status and e.status in transient:
                 raise RetryLoop.TransientFailure(e)
             raise
 
@@ -390,6 +398,12 @@ class TapCtl(object):
         cls._pread(args)
 
     @classmethod
+    def _load_key(cls, key_hash, vdi_uuid):
+        import plugins
+
+        return plugins.load_key(key_hash, vdi_uuid)
+
+    @classmethod
     def open(cls, pid, minor, _type, _file, options):
         params = Tapdisk.Arg(_type, _file)
         args = [ "open", "-p", pid, "-m", minor, '-a', str(params) ]
@@ -414,11 +428,10 @@ class TapCtl(object):
         if options.get('cbtlog'):
             args.extend(['-C', options['cbtlog']])
         if options.get('key_hash'):
-            import plugins
-
             key_hash = options['key_hash']
             vdi_uuid = options['vdi_uuid']
-            key = plugins.load_key(key_hash, vdi_uuid)
+            key = cls._load_key(key_hash, vdi_uuid)
+
             if not key:
                 raise util.SMException("No key found with key hash {}".format(key_hash))
             input = key
