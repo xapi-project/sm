@@ -26,10 +26,6 @@ import scsiutil
 import wwid_conf
 import errno
 
-iscsi_mpath_file = "/etc/iscsi/iscsid-mpath.conf"
-iscsi_default_file = "/etc/iscsi/iscsid-default.conf"
-iscsi_file = "/etc/iscsi/iscsid.conf"
-
 DMPBIN = "/sbin/multipath"
 DEVMAPPERPATH = "/dev/mapper"
 DEVBYIDPATH = "/dev/disk/by-id"
@@ -62,20 +58,11 @@ def deactivate_MPdev(sid):
     if os.path.exists(path):
         os.unlink(path)
         
-def reset(sid,explicit_unmap=False,delete_nodes=False):
+def reset(sid,explicit_unmap=False):
     util.SMlog("Resetting LUN %s" % sid)
-    _resetDMP(sid,explicit_unmap,delete_nodes)
+    _resetDMP(sid,explicit_unmap)
 
-def _delete_node(dev):
-    try:
-        path = '/sys/block/' + dev + '/device/delete'
-        f = os.open(path, os.O_WRONLY)
-        os.write(f,'1')
-        os.close(f)
-    except:
-        util.SMlog("Failed to delete %s" % dev)
-    
-def _resetDMP(sid,explicit_unmap=False,delete_nodes=False):
+def _resetDMP(sid, explicit_unmap=False):
 # If mpath has been turned on since the sr/vdi was attached, we
 # might be trying to unmap it before the daemon has been started
 # This is unnecessary (and will fail) so just return.
@@ -103,68 +90,6 @@ def _resetDMP(sid,explicit_unmap=False,delete_nodes=False):
     else:
         util.SMlog("MPATH: path disappeared [%s]" % path)
 
-# expecting e.g. ["/dev/sda","/dev/sdb"] or ["/dev/disk/by-scsibus/...whatever" (links to the real devices)]
-def __map_explicit(devices):
-    for device in devices:
-        realpath = os.path.realpath(device)
-        base = os.path.basename(realpath)
-        util.SMlog("Adding mpath path '%s'" % base)
-        try:
-            mpath_cli.add_path(base)
-        except:
-            util.SMlog("WARNING: exception raised while attempting to add path %s" % base)
-
-def map_by_scsibus(sid,npaths=0):
-    # Synchronously creates/refreshs the MP map for a single SCSIid.
-    # Gathers the device vector from /dev/disk/by-scsibus - we expect
-    # there to be 'npaths' paths
-
-    util.SMlog("map_by_scsibus: sid=%s" % sid)
-
-    devices = []
-
-    # Wait for up to 60 seconds for n devices to appear
-    for attempt in range(0,60):
-        devices = scsiutil._genReverseSCSIidmap(sid)
-
-        # If we've got the right number of paths, or we don't know
-        # how many devices there ought to be, tell multipathd about
-        # the paths, and return.
-        if(len(devices)>=npaths or npaths==0):
-            # Enable this device's sid: it could be blacklisted
-            # We expect devices to be blacklisted according to their
-            # wwid only. We go through the list of paths until we have
-            # a definite answer about the device's blacklist status.
-            # If the path we are checking is down, we cannot tell.
-            for dev in devices:
-                try:
-                    if wwid_conf.is_blacklisted(dev):
-                        try:
-                            wwid_conf.edit_wwid(sid)
-                        except:
-                            util.SMlog("WARNING: exception raised while "
-                                       "attempting to modify multipath.conf")
-                        try:
-                            mpath_cli.reconfigure()
-                        except:
-                            util.SMlog("WARNING: exception raised while "
-                                       "attempting to reconfigure")
-                        time.sleep(5)
-
-                    break
-                except wwid_conf.WWIDException as e:
-                    util.SMlog(e.errstr)
-            else:
-                util.SMlog("Device 'SCSI_id: {}' is inaccessible; "
-                           "All paths are down.".format(sid))
-
-            __map_explicit(devices)
-            return
-
-        time.sleep(1)
-
-    __map_explicit(devices)
-    
 def refresh(sid,npaths):
     # Refresh the multipath status
     util.SMlog("Refreshing LUN %s" % sid)
@@ -252,14 +177,6 @@ def _refresh_DMP(sid, npaths):
 
 def activate():
     util.SMlog("MPATH: multipath activate called")
-    cmd = ['ln', '-sf', iscsi_mpath_file, iscsi_file]
-    try:
-        if os.path.exists(iscsi_mpath_file):
-            # Only do this if using our customized open-iscsi package
-            util.pread2(cmd)
-    except util.CommandException, ce:
-        if not ce.reason.endswith(': File exists'):
-            raise
 
     # If we've got no active sessions, and the deamon is already running,
     # we're ok to restart the daemon
@@ -283,10 +200,6 @@ def activate():
 
 def deactivate():
     util.SMlog("MPATH: multipath deactivate called")
-    cmd = ['ln', '-sf', iscsi_default_file, iscsi_file]
-    if os.path.exists(iscsi_default_file):
-        # Only do this if using our customized open-iscsi package
-        util.pread2(cmd)
 
     if _is_mpath_daemon_running():
         # Flush the multipath nodes
@@ -315,11 +228,3 @@ def path(SCSIid):
         return path
     else:
         return DEVBYIDPATH + "/scsi-" + SCSIid
-
-def status(SCSIid):
-    pass
-
-def get_TargetID_LunNUM(SCSIid):
-    devices = scsiutil._genReverseSCSIidmap(SCSIid)
-    cmd = [MPPGETAIDLNOBIN, devices[0]]
-    return util.pread2(cmd).split('\n')[0]

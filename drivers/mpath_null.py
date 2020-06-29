@@ -20,7 +20,7 @@ DEVBYIDPATH = "/dev/disk/by-id"
 def refresh(sid,npaths):
     return
 
-def reset(sid,explicit_unmap=False,delete_nodes=False):
+def reset(sid,explicit_unmap=False):
     return
 
 def activate():
@@ -31,6 +31,3 @@ def deactivate():
 
 def path(SCSIid):
     return DEVBYIDPATH + "/scsi-" + SCSIid
-
-def status(SCSIid):
-    pass
