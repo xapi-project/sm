@@ -228,7 +228,7 @@ if __name__ == '__main__':
             session.xenapi.host.add_to_other_config(localhost,key,val)
         config = session.xenapi.host.get_other_config(localhost)
         maps = mpath_cli.list_maps()
-        check_root_disk(config, maps, _add, _remove)
+        check_root_disk(config, maps, _remove, _add)
 
     except:
         util.SMlog("MPATH: Failure updating Host.other-config:mpath-boot db")
