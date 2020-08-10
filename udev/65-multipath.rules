@@ -13,8 +13,8 @@ IMPORT{db}="CH_MULTIPATH"
 # MP device removed, count
 ACTION=="remove", ENV{CH_MULTIPATH}=="1", GOTO="count_mpath"
 
-# Already counted so skip
-ENV{CH_MULTIPATH}=="1", GOTO="end_mpath"
+# Already counted so just ensure the symlinks are present
+ENV{CH_MULTIPATH}=="1", GOTO="symlinks"
 
 # Check added or changed for being multipath
 ACTION=="add|change", PROGRAM=="/bin/bash -c '/sbin/dmsetup table -j %M -m %m | /bin/grep multipath'", ENV{CH_MULTIPATH}="1"
@@ -22,6 +22,9 @@ ENV{CH_MULTIPATH}=="1", GOTO="count_mpath"
 GOTO="end_mpath"
 
 LABEL="count_mpath"
-ACTION=="add|change", PROGRAM=="/sbin/dmsetup info -c -o name --noheadings -j %M -m %m", RESULT=="?*", SYMLINK+="disk/by-scsid/%c/mapper"
 ACTION=="*", RUN+="/opt/xensource/libexec/kickpipe mpathcount"
+
+LABEL="symlinks"
+ACTION=="add|change", PROGRAM="/sbin/dmsetup info -c -o name --noheadings -j %M -m %m", SYMLINK+="disk/by-scsid/%c/mapper"
+
 LABEL="end_mpath"
