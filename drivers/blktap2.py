@@ -766,6 +766,22 @@ class Tapdisk(object):
         return cls.launch(arg.path, arg.type, False)
 
     @classmethod
+    def cgclassify(cls, pid):
+
+        # We dont provide any <controllers>:<path>
+        # so cgclassify uses /etc/cgrules.conf which
+        # we have configured in the spec file.
+        cmd = ["cgclassify", str(pid)]
+        try:
+            util.pread2(cmd)
+        except util.CommandException as e:
+            util.logException(e)
+
+    @classmethod
+    def spawn(cls):
+        return TapCtl.spawn()
+
+    @classmethod
     def launch_on_tap(cls, blktap, path, _type, options):
 
         tapdisk = cls.find_by_path(path)
@@ -775,8 +791,8 @@ class Tapdisk(object):
         minor = blktap.minor
 
         try:
-            pid = TapCtl.spawn()
-
+            pid = cls.spawn()
+            cls.cgclassify(pid)
             try:
                 TapCtl.attach(pid, minor)
 

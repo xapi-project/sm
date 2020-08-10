@@ -10,6 +10,65 @@ import blktap2
 import testlib
 import util
 
+class BogusException(Exception):
+    pass
+
+class TestTapdisk(unittest.TestCase):
+
+    #
+    # There is a bug in python mocking that prevents @Classmethods being mocked
+    # hence no usual decorator mocks and the monkey patching.
+    # https://bugs.python.org/issue23078
+    #
+
+    @mock.patch('blktap2.util.pread2', autospec=True)
+    def test_cgclassify_normal_call(self, mock_pread2):
+        blktap2.Tapdisk.cgclassify(123)
+        mock_pread2.assert_called_with(['cgclassify', '123'])
+
+    @mock.patch('blktap2.util.pread2', autospec=True)
+    @mock.patch('blktap2.util.logException', autospec=True)
+    def test_cgclassify_exception_swallow(self, mock_log, mock_pread2):
+        mock_pread2.side_effect = util.CommandException(999)
+        blktap2.Tapdisk.cgclassify(123)
+        mock_pread2.assert_called_with(['cgclassify', '123'])
+        self.assertEquals(mock_log.call_count, 1)
+
+    def test_cgclassify_called_by_launch_on_tap(self):
+        blktap = mock.MagicMock()
+        blktap.minor = 2
+
+        # Record old functions
+        spawn_old = blktap2.Tapdisk.spawn
+        cgclassify_old = blktap2.Tapdisk.cgclassify
+        find_by_path_old = blktap2.Tapdisk.find_by_path
+
+        # Begin monkey patching.
+        blktap2.Tapdisk.spawn = mock.MagicMock()
+        blktap2.Tapdisk.spawn.return_value = 123
+
+        # Raise an exception just so we dont have to bother mocking out the
+        # rest of the function.
+        blktap2.Tapdisk.cgclassify = mock.MagicMock()
+        blktap2.Tapdisk.cgclassify.side_effect = BogusException
+
+        blktap2.Tapdisk.find_by_path = mock.MagicMock()
+        blktap2.Tapdisk.find_by_path.return_value = None
+
+        with self.assertRaises(BogusException) as cf:
+            tap = blktap2.Tapdisk.launch_on_tap(blktap,
+                                                "not used",
+                                                "not used",
+                                                "not used")
+
+        blktap2.Tapdisk.cgclassify.assert_called_with(123)
+
+        # Restor old functions.
+        blktap2.Tapdisk.spawn = spawn_old
+        blktap2.Tapdisk.cgclassify = cgclassify_old
+        blktap2.Tapdisk.find_by_path = find_by_path_old
+
+
 class TestVDI(unittest.TestCase):
     # This can't use autospec as vdi is created in __init__
     # See https://docs.python.org/3/library/unittest.mock.html#autospeccing
