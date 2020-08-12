@@ -876,5 +876,15 @@
             <value>1200</value>
         </code>
 
+        <code>
+            <name>ZFSSRCreate</name>
+            <description>ZFS SR creation error</description>
+            <value>5000</value>
+        </code>
 
+        <code>
+            <name>ZFSSRDelete</name>
+            <description>ZFS SR deletion error</description>
+            <value>5001</value>
+        </code>
 </SM-errorcodes>
