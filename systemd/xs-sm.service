@@ -1,5 +1,5 @@
 [Unit]
-Description=XenServer Storage Manager (SM)
+Description=XCP-ng Storage Manager (SM)
 Before=xapi.service
 Conflicts=shutdown.target
 RefuseManualStop=yes
