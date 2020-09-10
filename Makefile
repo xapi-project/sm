@@ -10,9 +10,6 @@ SM_DRIVERS += HBA
 SM_DRIVERS += LVHD
 SM_DRIVERS += LVHDoISCSI
 SM_DRIVERS += LVHDoHBA
-SM_DRIVERS += OCFS
-SM_DRIVERS += OCFSoISCSI
-SM_DRIVERS += OCFSoHBA
 SM_DRIVERS += SHM
 SM_DRIVERS += SMB
 SM_DRIVERS += LVHDoFCoE
@@ -182,9 +179,6 @@ install: precheck
 	cd $(SM_STAGING)$(SM_DEST) && rm -f LVHDoISCSISR && ln -sf LVHDoISCSISR.py LVMoISCSISR
 	cd $(SM_STAGING)$(SM_DEST) && rm -f LVHDoHBASR && ln -sf LVHDoHBASR.py LVMoHBASR
 	cd $(SM_STAGING)$(SM_DEST) && rm -f LVHDoFCoESR && ln -sf LVHDoFCoESR.py LVMoFCoESR
-	cd $(SM_STAGING)$(SM_DEST) && rm -f OCFSSR
-	cd $(SM_STAGING)$(SM_DEST) && rm -f OCFSoISCSISR
-	cd $(SM_STAGING)$(SM_DEST) && rm -f OCFSoHBASR
 	ln -sf $(SM_DEST)mpathutil.py $(SM_STAGING)/sbin/mpathutil
 	install -m 755 drivers/02-vhdcleanup $(SM_STAGING)$(MASTER_SCRIPT_DEST)
 	install -m 755 drivers/lvhd-thin $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
