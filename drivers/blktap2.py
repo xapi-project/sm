@@ -1475,11 +1475,10 @@ class VDI(object):
             # attach_from_config context: HA disks don't need to be in any 
             # special pool
             return pool_info
-        session = XenAPI.xapi_local()
-        session.xenapi.login_with_password('root', '', '', 'SM')
+
         sr_ref = self.target.vdi.sr.srcmd.params.get('sr_ref')
-        sr_config = session.xenapi.SR.get_other_config(sr_ref)
-        vdi_config = session.xenapi.VDI.get_other_config(vdi_ref)
+        sr_config = self._session.xenapi.SR.get_other_config(sr_ref)
+        vdi_config = self._session.xenapi.VDI.get_other_config(vdi_ref)
         pool_size_str = sr_config.get(POOL_SIZE_KEY)
         pool_name_override = vdi_config.get(POOL_NAME_KEY)
         if pool_name_override:
@@ -1502,7 +1501,6 @@ class VDI(object):
         if pool_size:
             pool_info["mem-pool-size"] = str(pool_size)
 
-        session.xenapi.session.logout()
         return pool_info
 
     def linkNBD(self, sr_uuid, vdi_uuid):
