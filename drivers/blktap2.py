@@ -44,6 +44,7 @@ import resetvdis
 import vhdutil
 import lvhdutil
 
+import VDI as sm
 
 # For RRDD Plugin Registration
 from xmlrpclib import ServerProxy, Transport
@@ -1572,7 +1573,6 @@ class VDI(object):
     @locking("VDIUnavailable")
     def _activate_locked(self, sr_uuid, vdi_uuid, options):
         """Wraps target.activate and adds a tapdisk"""
-        import VDI as sm
 
         #util.SMlog("VDI.activate %s" % vdi_uuid)
         if self.tap_wanted():
