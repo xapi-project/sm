@@ -13,6 +13,7 @@ import xs_errors
 import os
 import stat
 
+import ipc
 
 class FakeFile(object):
     pass
@@ -35,6 +36,7 @@ class FakeXapi(object):
         self.srRecord = {
             'name_label': 'dummy'
         }
+        self.session = mock.MagicMock()
 
     def isPluggedHere(self):
         return True
@@ -71,8 +73,16 @@ class TestSR(unittest.TestCase):
         self.sleep_patcher = mock.patch('cleanup.time.sleep')
         self.sleep_patcher.start()
 
-    def tearDown(self):
-        self.sleep_patcher.stop()
+        updateBlockInfo_patcher = mock.patch('cleanup.VDI.updateBlockInfo')
+        self.mock_updateBlockInfo = updateBlockInfo_patcher.start()
+
+        IPCflag_patcher = mock.patch('cleanup.IPCFlag')
+        self.mock_IPCFlag = IPCflag_patcher.start()
+
+        blktap2_patcher = mock.patch('cleanup.blktap2', autospec=True)
+        self.mock_blktap2 = blktap2_patcher.start()
+
+        self.addCleanup(mock.patch.stopall)
 
     def setup_abort_flag(self, ipc_mock, should_abort=False):
         flag = mock.Mock()
@@ -1354,3 +1364,56 @@ class TestSR(unittest.TestCase):
         res = tracker.abortCoalesce(100, 121)
         self.autopsyTracker(tracker, res, expectedHistory,
                             expectedReason, 100, 121, 100)
+
+    def runAbortable(self, func, ret, ns, abortTest, pollInterval, timeOut):
+        return func()
+
+    @mock.patch('cleanup.util', autospec=True)
+    @mock.patch('cleanup.vhdutil', autospec=True)
+    @mock.patch('cleanup.journaler.Journaler', autospec=True)
+    @mock.patch('cleanup.Util.runAbortable')
+    def test_coalesce_success(
+            self, mock_abortable, mock_journaler, mock_vhdutil, mock_util):
+        """
+        Non-leaf coalesce
+        """
+        mock_abortable.side_effect = self.runAbortable
+
+        sr_uuid = uuid4()
+        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr.journaler = mock_journaler
+
+        mock_ipc_flag = mock.MagicMock(spec=ipc.IPCFlag)
+        print('IPC = %s' % (mock_ipc_flag))
+        self.mock_IPCFlag.return_value = mock_ipc_flag
+        mock_ipc_flag.test.return_value = None
+
+        parent_uuid = str(uuid4())
+        parent = cleanup.VDI(sr, parent_uuid, False)
+        parent.path = 'dummy-path'
+        sr.vdis[parent_uuid] = parent
+
+        vdi_uuid = str(uuid4())
+        vdi = cleanup.VDI(sr, vdi_uuid, False)
+        vdi.path = 'dummy-path'
+        vdi.parent = parent
+        parent.children.append(vdi)
+
+        sr.vdis[vdi_uuid] = vdi
+
+        child_vdi_uuid = str(uuid4())
+        child_vdi = cleanup.VDI(sr, child_vdi_uuid, False)
+        child_vdi.path = 'dummy-child'
+        vdi.children.append(child_vdi)
+        sr.vdis[child_vdi_uuid] = child_vdi
+
+        mock_journaler.get.return_value = None
+
+        res = sr.coalesce(vdi, False)
+
+        mock_journaler.create.assert_has_calls(
+            [mock.call('coalesce', vdi_uuid, '1'),
+             mock.call('relink', vdi_uuid, '1')])
+        mock_journaler.remove.assert_has_calls(
+            [mock.call('coalesce', vdi_uuid),
+             mock.call('relink', vdi_uuid)])
