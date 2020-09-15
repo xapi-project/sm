@@ -5,10 +5,14 @@ import subprocess
 import unittest
 import mock
 import os
+import sys
+import syslog
+import uuid
 
 import blktap2
 import testlib
 import util
+import XenAPI
 
 class BogusException(Exception):
     pass
@@ -70,20 +74,44 @@ class TestTapdisk(unittest.TestCase):
 
 
 class TestVDI(unittest.TestCase):
-    # This can't use autospec as vdi is created in __init__
-    # See https://docs.python.org/3/library/unittest.mock.html#autospeccing
-    @mock.patch('blktap2.VDI.TargetDriver')
-    @mock.patch('blktap2.Lock', autospec=True)
-    def setUp(self, mock_lock, mock_target):
-        mock_target.get_vdi_type.return_value = 'phy'
+    def setUp(self):
+        lock_patcher = mock.patch('blktap2.Lock', autospec=True)
+        self.mock_lock = lock_patcher.start()
+
+        target_driver_patcher = mock.patch(
+            'blktap2.VDI.TargetDriver', name='MockTDClass')
+        mock_target = target_driver_patcher.start()
+
+        self.mock_session = mock.MagicMock(name='TestSessionMock')
+        self.mock_target = mock.MagicMock(
+            name='TestTargetDriver',
+            autospec='blktap2.VDI.TargetDriver')
+        mock_target.return_value = self.mock_target
+
+        self.mock_target.get_vdi_type.return_value = 'phy'
 
         def mock_handles(type_str):
             return type_str == 'udev'
 
-        mock_target.vdi.sr.handles.side_effect = mock_handles
+        self.mock_target.vdi.sr.handles.side_effect = mock_handles
+        self.mock_target.session = self.mock_session
+        mock_target.session = self.mock_session
 
-        self.vdi = blktap2.VDI('uuid', mock_target, None)
-        self.vdi.target = mock_target
+        self.vdi_uuid = str(uuid.uuid4())
+        self.sr_uuid = str(uuid.uuid4())
+
+        self.vdi = blktap2.VDI(self.vdi_uuid, mock_target, None)
+
+        log_patcher = mock.patch('blktap2.util.SMlog', autospec=True)
+        self.mock_log = log_patcher.start()
+        def log_stderr(message, ident="SM", priority=syslog.LOG_INFO):
+            print >> sys.stderr, message
+        self.mock_log.side_effect = log_stderr
+
+        sm_vdi_patcher = mock.patch('blktap2.sm')
+        self.mock_sm_vdi = sm_vdi_patcher.start()
+
+        self.addCleanup(mock.patch.stopall)
 
     def test_tap_wanted_returns_true_for_udev_device(self):
         result = self.vdi.tap_wanted()
@@ -114,6 +142,72 @@ class TestVDI(unittest.TestCase):
         nbd_link.from_uuid.assert_called_with("blahblah", "yadayada")
         nbd_link2.mklink.assert_called_with(expected_path)
 
+    @mock.patch('blktap2.time.sleep', autospec=True)
+    @mock.patch('blktap2.util.get_this_host', autospec=True)
+    @mock.patch('blktap2.VDI._attach', autospec=True)
+    @mock.patch('blktap2.VDI.PhyLink', autospec=True)
+    @mock.patch('blktap2.VDI.BackendLink', autospec=True)
+    @mock.patch('blktap2.VDI.NBDLink', autospec=True)
+    @mock.patch('blktap2.Tapdisk')
+    def test_activate(self, mock_tapdisk, mock_nbd_link, mock_backend,
+                      mock_phy, mock_attach,
+                      mock_this_host, mock_sleep):
+        """
+        Test blktap2.VDI.activate, no cache, RW, success
+        """
+        mock_this_host.return_value = str(uuid.uuid4())
+
+        self.mock_session.xenapi.VDI.get_sm_config.return_value = {}
+
+        self.vdi.activate(self.sr_uuid, self.vdi_uuid, True, {})
+
+    @mock.patch('blktap2.time.sleep', autospec=True)
+    @mock.patch('blktap2.util.get_this_host', autospec=True)
+    @mock.patch('blktap2.VDI._attach', autospec=True)
+    @mock.patch('blktap2.VDI.PhyLink', autospec=True)
+    @mock.patch('blktap2.VDI.BackendLink', autospec=True)
+    @mock.patch('blktap2.VDI.NBDLink', autospec=True)
+    @mock.patch('blktap2.Tapdisk')
+    def test_activate_pause_retry(
+            self, mock_tapdisk, mock_nbd_link, mock_backend,
+            mock_phy, mock_attach,
+            mock_this_host, mock_sleep):
+        """
+        Test blktap2.VDI.activate, paused, retry 1, success
+        """
+        mock_this_host.return_value = str(uuid.uuid4())
+
+        self.mock_session.xenapi.VDI.get_sm_config.side_effect = [
+            {'paused': 'true'}, {}, {}]
+
+        self.vdi.activate(self.sr_uuid, self.vdi_uuid, True, {})
+
+    @mock.patch('blktap2.time.sleep', autospec=True)
+    @mock.patch('blktap2.util.get_this_host', autospec=True)
+    @mock.patch('blktap2.VDI._attach', autospec=True)
+    @mock.patch('blktap2.VDI.PhyLink', autospec=True)
+    @mock.patch('blktap2.VDI.BackendLink', autospec=True)
+    @mock.patch('blktap2.VDI.NBDLink', autospec=True)
+    @mock.patch('blktap2.Tapdisk')
+    def test_activate_paused_while_tagging(
+            self, mock_tapdisk, mock_nbd_link, mock_backend,
+            mock_phy, mock_attach,
+            mock_this_host, mock_sleep):
+        """
+        Test blktap2.VDI.activate, paused, while tagging, success
+        """
+        host_uuid = str(uuid.uuid4())
+        mock_this_host.return_value = host_uuid
+
+        self.mock_session.xenapi.host.get_by_uuid.return_value = 'href1'
+        self.mock_session.xenapi.VDI.get_by_uuid.return_value = 'vref1'
+        self.mock_session.xenapi.VDI.get_sm_config.side_effect = [
+            {}, {'paused': 'true'}, {}, {}]
+
+        self.vdi.activate(self.sr_uuid, self.vdi_uuid, True, {})
+
+        self.mock_session.xenapi.VDI.remove_from_sm_config.assert_called_with(
+            'vref1', 'host_href1')
 
 class TestTapCtl(unittest.TestCase):
 
