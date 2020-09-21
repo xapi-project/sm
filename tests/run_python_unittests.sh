@@ -41,8 +41,7 @@ fi
 
     echo "Test coverage"
     coverage report -m --fail-under=100 --include=$SMROOT/tests/*
-
-    if [ $# -eq 0 ] && [ $? -ne 0 ]
+    if [ $? -gt 0 -a $# -eq 0 ]
     then
         echo "Test code not fully covered"
         exit 1
