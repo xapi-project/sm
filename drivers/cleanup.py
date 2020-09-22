@@ -452,6 +452,8 @@ class VDI:
     DB_VDI_TYPE = "vdi_type"
     DB_VHD_BLOCKS = "vhd-blocks"
     DB_VDI_PAUSED = "paused"
+    DB_VDI_RELINKING = "relinking"
+    DB_VDI_ACTIVATING = "activating"
     DB_GC = "gc"
     DB_COALESCE = "coalesce"
     DB_LEAFCLSC = "leaf-coalesce" # config key
@@ -470,6 +472,8 @@ class VDI:
             DB_VDI_TYPE:     XAPI.CONFIG_SM,
             DB_VHD_BLOCKS:   XAPI.CONFIG_SM,
             DB_VDI_PAUSED:   XAPI.CONFIG_SM,
+            DB_VDI_RELINKING: XAPI.CONFIG_SM,
+            DB_VDI_ACTIVATING: XAPI.CONFIG_SM,
             DB_GC:           XAPI.CONFIG_OTHER,
             DB_COALESCE:     XAPI.CONFIG_OTHER,
             DB_LEAFCLSC:     XAPI.CONFIG_OTHER,
@@ -894,7 +898,40 @@ class VDI:
 
         # only leaves can be attached
         if len(self.children) == 0:
+            try:
+                self.delConfig(VDI.DB_VDI_RELINKING)
+            except XenAPI.Failure, e:
+                if not util.isInvalidVDI(e):
+                    raise
             self.refresh()
+
+    def _tagChildrenForRelink(self):
+        if len(self.children) == 0:
+            retries = 0
+            try:
+                while retries < 10:
+                    retries += 1
+                    if self.getConfig(VDI.DB_VDI_ACTIVATING) is not None:
+                        Util.log("VDI %s is activating, wait to relink" %
+                                 self.uuid)
+                    else:
+                        self.setConfig(VDI.DB_VDI_RELINKING, "True")
+
+                        if self.getConfig(VDI.DB_VDI_ACTIVATING):
+                            self.delConfig(VDI.DB_VDI_RELINKING)
+                            Util.log("VDI %s started activating while tagging" %
+                                     self.uuid)
+                        else:
+                            return
+                    time.sleep(1)
+
+                raise util.SMException("Failed to tag vdi %s for relink" % self)
+            except XenAPI.Failure, e:
+                if not util.isInvalidVDI(e):
+                    raise
+
+        for child in self.children:
+            child._tagChildrenForRelink()
 
     def _loadInfoParent(self):
         ret = vhdutil.getParent(self.path, lvhdutil.extractUuid)
@@ -1822,6 +1859,7 @@ class SR:
 
         self.lock()
         try:
+            vdi.parent._tagChildrenForRelink()
             self.scan()
             vdi._relinkSkip()
         finally:
