@@ -158,8 +158,46 @@ class TestVDI(unittest.TestCase):
         mock_this_host.return_value = str(uuid.uuid4())
 
         self.mock_session.xenapi.VDI.get_sm_config.return_value = {}
+        self.mock_session.xenapi.host.get_by_uuid.return_value = 'href1'
+        self.mock_session.xenapi.VDI.get_by_uuid.return_value = 'vref1'
 
         self.vdi.activate(self.sr_uuid, self.vdi_uuid, True, {})
+
+        self.mock_session.xenapi.VDI.add_to_sm_config.assert_has_calls(
+            [mock.call('vref1', 'activating', 'True'),
+             mock.call('vref1', 'host_href1', "RW")],
+             any_order=True)
+        self.mock_session.xenapi.VDI.remove_from_sm_config.assert_has_calls(
+            [mock.call('vref1', 'activating')],
+            any_order=True)
+
+    @mock.patch('blktap2.time.sleep', autospec=True)
+    @mock.patch('blktap2.util.get_this_host', autospec=True)
+    @mock.patch('blktap2.VDI._attach', autospec=True)
+    @mock.patch('blktap2.VDI.PhyLink', autospec=True)
+    @mock.patch('blktap2.VDI.BackendLink', autospec=True)
+    @mock.patch('blktap2.VDI.NBDLink', autospec=True)
+    @mock.patch('blktap2.Tapdisk')
+    def test_activate_relink_retry(
+            self, mock_tapdisk, mock_nbd_link, mock_backend,
+            mock_phy, mock_attach,
+            mock_this_host, mock_sleep):
+        """
+        Test blktap2.VDI.activate, relinking, retry 1, success
+        """
+        mock_this_host.return_value = str(uuid.uuid4())
+
+        self.mock_session.xenapi.host.get_by_uuid.return_value = 'href1'
+        self.mock_session.xenapi.VDI.get_by_uuid.return_value = 'vref1'
+        self.mock_session.xenapi.VDI.get_sm_config.side_effect = [
+            {'relinking': 'true'}, {}, {}]
+
+        self.vdi.activate(self.sr_uuid, self.vdi_uuid, True, {})
+
+        self.mock_session.xenapi.VDI.add_to_sm_config.assert_has_calls(
+            [mock.call('vref1', 'activating', 'True'),
+             mock.call('vref1', 'host_href1', "RW")],
+             any_order=True)
 
     @mock.patch('blktap2.time.sleep', autospec=True)
     @mock.patch('blktap2.util.get_this_host', autospec=True)
@@ -177,10 +215,16 @@ class TestVDI(unittest.TestCase):
         """
         mock_this_host.return_value = str(uuid.uuid4())
 
+        self.mock_session.xenapi.host.get_by_uuid.return_value = 'href1'
+        self.mock_session.xenapi.VDI.get_by_uuid.return_value = 'vref1'
         self.mock_session.xenapi.VDI.get_sm_config.side_effect = [
             {'paused': 'true'}, {}, {}]
 
         self.vdi.activate(self.sr_uuid, self.vdi_uuid, True, {})
+        self.mock_session.xenapi.VDI.add_to_sm_config.assert_has_calls(
+            [mock.call('vref1', 'activating', 'True'),
+             mock.call('vref1', 'host_href1', "RW")],
+             any_order=True)
 
     @mock.patch('blktap2.time.sleep', autospec=True)
     @mock.patch('blktap2.util.get_this_host', autospec=True)
@@ -206,8 +250,48 @@ class TestVDI(unittest.TestCase):
 
         self.vdi.activate(self.sr_uuid, self.vdi_uuid, True, {})
 
-        self.mock_session.xenapi.VDI.remove_from_sm_config.assert_called_with(
-            'vref1', 'host_href1')
+        self.mock_session.xenapi.VDI.add_to_sm_config.assert_has_calls(
+            [mock.call('vref1', 'activating', 'True'),
+             mock.call('vref1', 'host_href1', "RW")],
+             any_order=True)
+        self.mock_session.xenapi.VDI.remove_from_sm_config.assert_has_calls(
+            [mock.call('vref1', 'host_href1'),
+             mock.call('vref1', 'activating')],
+            any_order=True)
+
+    @mock.patch('blktap2.time.sleep', autospec=True)
+    @mock.patch('blktap2.util.get_this_host', autospec=True)
+    @mock.patch('blktap2.VDI._attach', autospec=True)
+    @mock.patch('blktap2.VDI.PhyLink', autospec=True)
+    @mock.patch('blktap2.VDI.BackendLink', autospec=True)
+    @mock.patch('blktap2.VDI.NBDLink', autospec=True)
+    @mock.patch('blktap2.Tapdisk')
+    def test_activate_relink_while_tagging(
+            self, mock_tapdisk, mock_nbd_link, mock_backend,
+            mock_phy, mock_attach,
+            mock_this_host, mock_sleep):
+        """
+        Test blktap2.VDI.activate, relinking, while tagging, retry 1, success
+        """
+        host_uuid = str(uuid.uuid4())
+        mock_this_host.return_value = host_uuid
+
+        self.mock_session.xenapi.host.get_by_uuid.return_value = 'href1'
+        self.mock_session.xenapi.VDI.get_by_uuid.return_value = 'vref1'
+        self.mock_session.xenapi.VDI.get_sm_config.side_effect = [
+            {}, {'relinking': 'true'}, {}, {}]
+
+        self.vdi.activate(self.sr_uuid, self.vdi_uuid, True, {})
+
+        self.mock_session.xenapi.VDI.add_to_sm_config.assert_has_calls(
+            [mock.call('vref1', 'activating', 'True'),
+             mock.call('vref1', 'host_href1', "RW")],
+             any_order=True)
+        self.mock_session.xenapi.VDI.remove_from_sm_config.assert_has_calls(
+            [mock.call('vref1', 'host_href1'),
+             mock.call('vref1', 'activating')],
+            any_order=True)
+
 
 class TestTapCtl(unittest.TestCase):
 
