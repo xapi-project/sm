@@ -30,6 +30,8 @@ trap cleanup EXIT
 trap ecleanup INT
 trap ecleanup TERM
 
+mkdir -p /var/lock/sm/iscsiadm
+
 INITIATORFILE=/etc/iscsi/initiatorname.iscsi
 TMPFILE=$TMPDIR/initiatorname.iscsi
 
@@ -40,6 +42,7 @@ TMPFILE=$TMPDIR/initiatorname.iscsi
         if [ $? -eq 0 ]
         then
                 logger -p local2.err "set-iscsi-initiator active sessions so not updating"
+                echo "set-iscsi-initiator: there are active sessions so not updating" >&2
                 exit 1
         fi
 
