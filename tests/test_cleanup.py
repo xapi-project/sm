@@ -1357,6 +1357,33 @@ class TestSR(unittest.TestCase):
     def runAbortable(self, func, ret, ns, abortTest, pollInterval, timeOut):
         return func()
 
+    def add_vdis_for_coalesce(self, sr):
+        vdis = {}
+
+        parent_uuid = str(uuid4())
+        parent = cleanup.VDI(sr, parent_uuid, False)
+        parent.path = 'dummy-path'
+        sr.vdis[parent_uuid] = parent
+        vdis['parent'] = parent
+
+        vdi_uuid = str(uuid4())
+        vdi = cleanup.VDI(sr, vdi_uuid, False)
+        vdi.path = 'dummy-path'
+        vdi.parent = parent
+        parent.children.append(vdi)
+
+        sr.vdis[vdi_uuid] = vdi
+        vdis['vdi'] = vdi
+
+        child_vdi_uuid = str(uuid4())
+        child_vdi = cleanup.VDI(sr, child_vdi_uuid, False)
+        child_vdi.path = 'dummy-child'
+        vdi.children.append(child_vdi)
+        sr.vdis[child_vdi_uuid] = child_vdi
+        vdis['child'] = child_vdi
+
+        return vdis
+
     @mock.patch('cleanup.util', autospec=True)
     @mock.patch('cleanup.vhdutil', autospec=True)
     @mock.patch('cleanup.journaler.Journaler', autospec=True)
@@ -1366,6 +1393,8 @@ class TestSR(unittest.TestCase):
         """
         Non-leaf coalesce
         """
+        self.xapi_mock.getConfigVDI.return_value = {}
+
         mock_abortable.side_effect = self.runAbortable
 
         sr_uuid = uuid4()
@@ -1377,28 +1406,12 @@ class TestSR(unittest.TestCase):
         self.mock_IPCFlag.return_value = mock_ipc_flag
         mock_ipc_flag.test.return_value = None
 
-        parent_uuid = str(uuid4())
-        parent = cleanup.VDI(sr, parent_uuid, False)
-        parent.path = 'dummy-path'
-        sr.vdis[parent_uuid] = parent
-
-        vdi_uuid = str(uuid4())
-        vdi = cleanup.VDI(sr, vdi_uuid, False)
-        vdi.path = 'dummy-path'
-        vdi.parent = parent
-        parent.children.append(vdi)
-
-        sr.vdis[vdi_uuid] = vdi
-
-        child_vdi_uuid = str(uuid4())
-        child_vdi = cleanup.VDI(sr, child_vdi_uuid, False)
-        child_vdi.path = 'dummy-child'
-        vdi.children.append(child_vdi)
-        sr.vdis[child_vdi_uuid] = child_vdi
-
+        vdis = self.add_vdis_for_coalesce(sr)
         mock_journaler.get.return_value = None
 
-        res = sr.coalesce(vdi, False)
+        vdi_uuid = vdis['vdi'].uuid
+
+        res = sr.coalesce(vdis['vdi'], False)
 
         mock_journaler.create.assert_has_calls(
             [mock.call('coalesce', vdi_uuid, '1'),
@@ -1406,3 +1419,89 @@ class TestSR(unittest.TestCase):
         mock_journaler.remove.assert_has_calls(
             [mock.call('coalesce', vdi_uuid),
              mock.call('relink', vdi_uuid)])
+
+        self.xapi_mock.getConfigVDI.assert_has_calls(
+            [mock.call(vdis['child'], 'activating')])
+
+        self.xapi_mock.addToConfigVDI.assert_has_calls(
+            [mock.call(vdis['child'], 'relinking', 'True')])
+
+        # Remove twice as set does a remove first and then for completion
+        self.xapi_mock.removeFromConfigVDI.assert_has_calls(
+            [mock.call(vdis['child'], 'relinking'),
+             mock.call(vdis['child'], 'vhd-parent'),
+             mock.call(vdis['child'], 'relinking')])
+
+    def test_tag_children_for_relink_activation(self):
+        """
+        Cleanup: tag for relink, activation races
+        """
+        self.xapi_mock.getConfigVDI.side_effect = [
+            {'activating': 'True'},
+            {},
+            {}
+        ]
+
+        sr_uuid = uuid4()
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
+
+        vdis = self.add_vdis_for_coalesce(sr)
+
+        vdis['parent']._tagChildrenForRelink()
+
+        self.xapi_mock.getConfigVDI.assert_has_calls(
+            [mock.call(vdis['child'], 'activating'),
+             mock.call(vdis['child'], 'activating'),
+             mock.call(vdis['child'], 'activating')])
+        self.xapi_mock.addToConfigVDI.assert_has_calls(
+            [mock.call(vdis['child'], 'relinking', 'True')])
+        self.assertEqual(1, self.xapi_mock.removeFromConfigVDI.call_count)
+
+    def test_tag_children_for_relink_activation_second_phase(self):
+        """
+        Cleanup: tag for relink, set and then activation
+        """
+        self.xapi_mock.getConfigVDI.side_effect = [
+            {},
+            {'activating': 'True'},
+            {},
+            {}
+        ]
+
+        sr_uuid = uuid4()
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
+
+        vdis = self.add_vdis_for_coalesce(sr)
+
+        vdis['parent']._tagChildrenForRelink()
+
+        self.xapi_mock.getConfigVDI.assert_has_calls(
+            [mock.call(vdis['child'], 'activating'),
+             mock.call(vdis['child'], 'activating'),
+             mock.call(vdis['child'], 'activating'),
+             mock.call(vdis['child'], 'activating')])
+        self.xapi_mock.addToConfigVDI.assert_has_calls(
+            [mock.call(vdis['child'], 'relinking', 'True'),
+             mock.call(vdis['child'], 'relinking', 'True')])
+        # Remove called 3 times, twice from set, once on failure
+        self.assertEqual(3, self.xapi_mock.removeFromConfigVDI.call_count)
+
+    @mock.patch('cleanup.time.sleep', autospec=True)
+    def test_tag_children_for_relink_blocked(self, mock_sleep):
+        """
+        Cleanup: tag for relink, blocked - exception
+        """
+
+        self.xapi_mock.getConfigVDI.return_value = {'activating': 'True'}
+
+        sr_uuid = uuid4()
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
+
+        vdis = self.add_vdis_for_coalesce(sr)
+
+        with self.assertRaises(util.SMException) as sme:
+            vdis['parent']._tagChildrenForRelink()
+
+        self.assertIn('Failed to tag vdi', sme.exception.message)
+
+        self.assertGreater(mock_sleep.call_count, 5)

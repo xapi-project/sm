@@ -1435,17 +1435,25 @@ class VDI(object):
                     term_output=False, writable=writable):
                 raise util.SMException("VDI %s not detached cleanly" % vdi_uuid)
             sm_config = self._session.xenapi.VDI.get_sm_config(vdi_ref)
+        if 'relinking' in sm_config:
+            util.SMlog("Relinking key found, back-off and retry" % sm_config)
+            return False
         if sm_config.has_key('paused'):
             util.SMlog("Paused or host_ref key found [%s]" % sm_config)
             return False
+        self._session.xenapi.VDI.add_to_sm_config(
+            vdi_ref, 'activating', 'True')
         host_key = "host_%s" % host_ref
         assert not sm_config.has_key(host_key)
         self._session.xenapi.VDI.add_to_sm_config(vdi_ref, host_key,
                                                   attach_mode)
         sm_config = self._session.xenapi.VDI.get_sm_config(vdi_ref)
-        if sm_config.has_key('paused'):
-            util.SMlog("Found paused key, aborting")
+        if sm_config.has_key('paused') or sm_config.has_key('relinking'):
+            util.SMlog("Found %s key, aborting" % (
+                'paused' if sm_config.has_key('paused') else 'relinking'))
             self._session.xenapi.VDI.remove_from_sm_config(vdi_ref, host_key)
+            self._session.xenapi.VDI.remove_from_sm_config(
+                vdi_ref, 'activating')
             return False
         util.SMlog("Activate lock succeeded")
         return True
@@ -1649,6 +1657,10 @@ class VDI(object):
                         util.SMlog('failed to remove tag: %s' % e)
                         break
             raise
+        finally:
+            vdi_ref = self._session.xenapi.VDI.get_by_uuid(vdi_uuid)
+            self._session.xenapi.VDI.remove_from_sm_config(
+                vdi_ref, 'activating')
 
         # Link result to backend/
         self.BackendLink.from_uuid(sr_uuid, vdi_uuid).mklink(dev_path)
