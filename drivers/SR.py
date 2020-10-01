@@ -92,7 +92,7 @@ class SR(object):
         try:
             self.srcmd = srcmd
             self.dconf = srcmd.dconf
-            if srcmd.params.has_key('session_ref'):
+            if 'session_ref' in srcmd.params:
                 self.session_ref = srcmd.params['session_ref']
                 self.session = XenAPI.xapi_local()
                 self.session._session = self.session_ref
@@ -113,14 +113,14 @@ class SR(object):
                     os.environ['LVM_SYSTEM_DIR'] = MASTER_LVM_CONF
 
             if 'device_config' in self.srcmd.params:
-                if self.srcmd.params['device_config'].has_key('SCSIid'):
+                if 'SCSIid' in self.srcmd.params['device_config']:
                     dev_path = '/dev/disk/by-scsid/'+self.srcmd.params['device_config']['SCSIid']
                     os.environ['LVM_DEVICE'] = dev_path
                     util.SMlog('Setting LVM_DEVICE to %s' % dev_path)
 
         except TypeError:
             raise Exception(traceback.format_exc())
-        except Exception, e:
+        except Exception as e:
             raise e
             raise xs_errors.XenError('SRBadXML')
 
@@ -214,7 +214,7 @@ class SR(object):
             util.SMlog("Block scheduler: %s (%s) wants %s" % (dev, disk, sched))
             util.set_scheduler(realdev[5:], sched)
 
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Failed to set block scheduler on %s: %s" % (dev, e))
 
     def _addLUNperVDIkey(self):
@@ -348,7 +348,7 @@ class SR(object):
 
     def vdi(self, uuid):
         """Return VDI object owned by this repository"""
-        if not self.vdis.has_key(uuid):
+        if uuid not in self.vdis:
             self.vdis[uuid] = VDI.VDI(self, uuid)
         raise xs_errors.XenError('Unimplemented')
         return self.vdis[uuid]
@@ -453,8 +453,8 @@ class SR(object):
     def _mpathinit(self):
         self.mpath = "false"
         try:
-            if self.dconf.has_key('multipathing') and \
-                   self.dconf.has_key('multipathhandle'):
+            if 'multipathing' in self.dconf and \
+                   'multipathhandle' in self.dconf:
                 self.mpath = self.dconf['multipathing']
                 self.mpathhandle = self.dconf['multipathhandle']
             else:
@@ -510,7 +510,7 @@ class SR(object):
             Raise: xs_errors.XenError('ConfigParamsMissing')
         """
 
-        missing_keys = {key for key in key_list if not self.dconf.has_key(key)}
+        missing_keys = {key for key in key_list if key not in self.dconf}
 
         if missing_keys and raise_flag:
             errstr = 'device-config is missing the following parameters: ' + \
@@ -564,11 +564,11 @@ class ScanRecord:
         # Only consider those whose configuration looks different
         self.existing = filter(lambda x:not(self.get_sm_vdi(x).in_sync_with_xenapi_record(self.get_xenapi_vdi(x))), existing)
 
-        if len(self.new) <> 0:
+        if len(self.new) != 0:
             util.SMlog("new VDIs on disk: " + repr(self.new))
-        if len(self.gone) <> 0:
+        if len(self.gone) != 0:
             util.SMlog("VDIs missing from disk: " + repr(self.gone))
-        if len(self.existing) <> 0:
+        if len(self.existing) != 0:
             util.SMlog("VDIs changed on disk: " + repr(self.existing))
 
     def get_sm_vdi(self, location):
@@ -594,7 +594,7 @@ class ScanRecord:
             util.SMlog("Forgetting VDI with location=%s uuid=%s" % (util.to_plain_string(vdi['location']), vdi['uuid']))
             try:
                 self.sr.forget_vdi(vdi['uuid'])
-            except XenAPI.Failure, e:
+            except XenAPI.Failure as e:
                 if util.isInvalidVDI(e):
                    util.SMlog("VDI %s not found, ignoring exception" \
                            % vdi['uuid'])

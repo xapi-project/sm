@@ -18,6 +18,7 @@
 # Script to coalesce and garbage collect VHD-based SR's in the background
 #
 
+from __future__ import print_function
 import os
 import os.path
 import sys
@@ -48,6 +49,7 @@ from refcounter import RefCounter
 from ipc import IPCFlag
 from lvmanager import LVActivator
 from srmetadata import LVMMetadataHandler
+from functools import reduce
 
 # Disable automatic leaf-coalescing. Online leaf-coalesce is currently not 
 # possible due to lvhd_stop_using_() not working correctly. However, we leave 
@@ -192,7 +194,7 @@ class Util:
                     resultFlag.set("success")
                 else:
                     resultFlag.set("failure")
-            except Exception, e:
+            except Exception as e:
                 Util.log("Child process failed with : (%s)" % e)
                 resultFlag.set("failure")
                 Util.logException("This exception has occured")
@@ -557,7 +559,7 @@ class VDI:
                     "VMs using this tapdisk have lost access " \
                     "to the corresponding disk(s)" % self.uuid
             xapi.message.create(msg_name, "4", "SR", self.sr.uuid, msg_body)
-        except Exception, e:
+        except Exception as e:
             util.SMlog("failed to generate message: %s" % e)
 
     def unpause(self):
@@ -575,7 +577,7 @@ class VDI:
                         self.sr.uuid, self.uuid):
                     self._report_tapdisk_unpause_error()
                     raise util.SMException("Failed to refresh %s" % self)
-            except XenAPI.Failure, e:
+            except XenAPI.Failure as e:
                 if util.isInvalidVDI(e) and ignoreNonexistent:
                     Util.log("VDI %s not found, ignoring" % self)
                     return
@@ -828,14 +830,14 @@ class VDI:
             vhdutil.coalesce(vdi.path)
             endTime = time.time()
             vdi.sr.recordStorageSpeed(startTime, endTime, vhdSize)
-        except util.CommandException, ce:
+        except util.CommandException as ce:
             # We use try/except for the following piece of code because it runs
             # in a separate process context and errors will not be caught and
             # reported by anyone.
             try:
                 # Report coalesce errors back to user via XC
                 VDI._reportCoalesceError(vdi, ce)
-            except Exception, e:
+            except Exception as e:
                 util.SMlog('failed to create XenCenter message: %s' % e)
             raise ce
         except:
@@ -859,7 +861,7 @@ class VDI:
                 util.SMlog('Coalesce failed on %s, attempting repair on ' \
                            'parent %s' % (self.uuid, parent))
                 vhdutil.repair(parent)
-            except Exception, e:
+            except Exception as e:
                 util.SMlog('(error ignored) Failed to repair parent %s ' \
                            'after failed coalesce on %s, err: %s' % 
                            (parent, self.path, e))
@@ -900,7 +902,7 @@ class VDI:
         if len(self.children) == 0:
             try:
                 self.delConfig(VDI.DB_VDI_RELINKING)
-            except XenAPI.Failure, e:
+            except XenAPI.Failure as e:
                 if not util.isInvalidVDI(e):
                     raise
             self.refresh()
@@ -926,7 +928,7 @@ class VDI:
                     time.sleep(1)
 
                 raise util.SMException("Failed to tag vdi %s for relink" % self)
-            except XenAPI.Failure, e:
+            except XenAPI.Failure as e:
                 if not util.isInvalidVDI(e):
                     raise
 
@@ -1658,7 +1660,7 @@ class SR:
 
         try:
             self._coalesce(vdi)
-        except util.SMException, e:
+        except util.SMException as e:
             if isinstance(e, AbortException):
                 self.cleanup()
                 raise
@@ -1686,7 +1688,7 @@ class SR:
         except AbortException:
             self.cleanup()
             raise
-        except (util.SMException, XenAPI.Failure), e:
+        except (util.SMException, XenAPI.Failure) as e:
             self._failedCoalesceTargets.append(vdi)
             Util.logException("leaf-coalesce")
             Util.log("Leaf-coalesce failed on %s, skipping" % vdi)
@@ -2041,7 +2043,7 @@ class SR:
         try:
             ret = self.xapi.singleSnapshotVDI(vdi)
             Util.log("Single-snapshot returned: %s" % ret)
-        except XenAPI.Failure, e:
+        except XenAPI.Failure as e:
             if util.isInvalidVDI(e):
                 Util.log("The VDI appears to have been concurrently deleted")
                 return False
@@ -2986,7 +2988,7 @@ Debug:
     -v --vdi_uuid    VDI UUID
     """
    #-d --dry-run     don't actually perform any SR-modifying operations
-    print output
+    print(output)
     Util.log("(Invalid usage)")
     sys.exit(1)
 
@@ -3114,18 +3116,18 @@ def debug(sr_uuid, cmd, vdi_uuid):
     Util.log("Debug command: %s" % cmd)
     sr = SR.getInstance(sr_uuid, None)
     if not isinstance(sr, LVHDSR):
-        print "Error: not an LVHD SR"
+        print("Error: not an LVHD SR")
         return
     sr.scanLocked()
     vdi = sr.getVDI(vdi_uuid)
     if not vdi:
-        print "Error: VDI %s not found"
+        print("Error: VDI %s not found")
         return
-    print "Running %s on SR %s" % (cmd, sr)
-    print "VDI before: %s" % vdi
+    print("Running %s on SR %s" % (cmd, sr))
+    print("VDI before: %s" % vdi)
     if cmd == "activate":
         vdi._activate()
-        print "VDI file: %s" % vdi.path
+        print("VDI file: %s" % vdi.path)
     if cmd == "deactivate":
         ns = lvhdutil.NS_PREFIX_LVM + sr.uuid
         sr.lvmCache.deactivate(ns, vdi.uuid, vdi.fileName, False)
@@ -3136,14 +3138,14 @@ def debug(sr_uuid, cmd, vdi_uuid):
         vdi.deflate()
         sr.cleanup()
     sr.scanLocked()
-    print "VDI after:  %s" % vdi
+    print("VDI after:  %s" % vdi)
 
 
 def abort_optional_reenable(uuid):
-    print "Disabling GC/coalesce for %s" % uuid
+    print("Disabling GC/coalesce for %s" % uuid)
     ret = _abort(uuid)
     raw_input("Press enter to re-enable...")
-    print "GC/coalesce re-enabled"
+    print("GC/coalesce re-enabled")
     lockRunning.release()
     if ret:
         lockActive.release()
@@ -3204,7 +3206,7 @@ def main():
         usage()
 
     if action != "query" and action != "debug":
-        print "All output goes to log"
+        print("All output goes to log")
 
     if action == "gc":
         gc(None, uuid, background, dryRun)
@@ -3215,7 +3217,7 @@ def main():
     elif action == "abort":
         abort(uuid)
     elif action == "query":
-        print "Currently running: %s" % get_state(uuid)
+        print("Currently running: %s" % get_state(uuid))
     elif action == "disable":
         abort_optional_reenable(uuid)
     elif action == "debug":

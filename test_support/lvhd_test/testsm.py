@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import re
 import os
 import sys
@@ -10,6 +11,7 @@ import random
 
 import tutil
 import storagemanager
+from functools import reduce
 
 sys.path.append("/opt/xensource/sm")
 from ipc import IPCFlag
@@ -1702,7 +1704,7 @@ def _doAttachDetachLoop(sr, vdi, numIters):
             logger.log("Iteration %d" % i)
             _testAttachVDI(vdi, False)
             _testDetachVDI(vdi)
-        except Exception, e:
+        except Exception as e:
             logger.log("Failed: %s" % e)
             open("%s/%s%d" % (WORKER_DIR, WORKER_FAIL_FILE, os.getpid()), 'w').close()
             return
@@ -1718,7 +1720,7 @@ def _doSnapshotDestroyLoop(sr, vdi, numIters):
             logger.log("Iteration %d" % i)
             vdiSnap = _testSnapshotVDI(sr, vdi, False)
             sm.destroyVDI(vdiSnap)
-        except Exception, e:
+        except Exception as e:
             logger.log("Failed: %s" % e)
             open("%s/%s%d" % (WORKER_DIR, WORKER_FAIL_FILE, os.getpid()), 'w').close()
             return
@@ -1748,7 +1750,7 @@ def _killAll(pids):
         try:
             os.killpg(pid, signal.SIGKILL)
             logger.log("Killed PID %d" % pid)
-        except Exception, e:
+        except Exception as e:
             logger.log("Error killing PID %d: %s" % (pid, e))
 
 def _getStatus(pid):
@@ -1788,7 +1790,7 @@ def _testPause(sr, numVDIs, numIters):
             pids.append(pid)
             pid = _createWorker(sr, WORKER_TYPE_SNAPSHOT_DESTROY, vdis[i], numIters, chr(ord('a') + i))
             pids.append(pid)
-    except Exception, e:
+    except Exception as e:
         logger.log("Exception: %s, aborting workers" % e)
         open("%s/%s" % (WORKER_DIR, WORKER_ABORT_FILE), 'w').close()
         success = False
@@ -2027,12 +2029,12 @@ def runJournalTests(sr):
             _testJournalResize(sr, initSize, newSize, fistPoint)
 
 def usage():
-    print "Params: -t lvhd|lvm|ext|nfs -m basic|extended|coalesce|jvhd " \
+    print("Params: -t lvhd|lvm|ext|nfs -m basic|extended|coalesce|jvhd " \
         "[-v 1..4 log verbosity (default 3)] " \
         "[-a NUM skip to test NUM] [-b NUM stop after test NUM] " \
-        "[-h print this help]"
-    print
-    print "The modes are: \n" \
+        "[-h print this help]")
+    print()
+    print("The modes are: \n" \
         " - basic:    tests SR attach,detach,probe; " \
         "VDI create,snapshot,resize (LVHD only)\n"\
         " - pause:    tests concurrent attach/detach and snapshot/delete\n" \
@@ -2040,12 +2042,12 @@ def usage():
         "add more parameter values (LVHD only)\n" \
         " - coalesce: test coalescing\n" \
         " - caching: test local caching\n" \
-        " - jvhd:     test VHD journaling (LVHD only)\n"
-    print
-    print "The script expects an empty SR of the specified type to be " \
+        " - jvhd:     test VHD journaling (LVHD only)\n")
+    print()
+    print("The script expects an empty SR of the specified type to be " \
         "available (if there are multiple SRs of the specified type, the " \
         "default SR is used if it is the right type). " \
-        "No cleanup is performed upon a failure to assist debugging."
+        "No cleanup is performed upon a failure to assist debugging.")
     sys.exit(0)
 
 def main():
@@ -2096,7 +2098,7 @@ def main():
         usage()
 
     logger = tutil.Logger(LOG_FILE, verbosity)
-    print "Log file in %s" % LOG_FILE
+    print("Log file in %s" % LOG_FILE)
     logger.log("Testing: %s" % testMode, 0)
     if skipTo:
         logger.log("Skipping to test %d" % skipTo, 0)
@@ -2172,7 +2174,7 @@ def main():
         logger.log("Description: %s" % info[1], 0)
         logger.log("Stack trace:\n%s" % tb, 0)
         success = False
-    except StopRequest, e:
+    except StopRequest as e:
         logger.log("Stop requested: %s" % e, 0)
         pass
 

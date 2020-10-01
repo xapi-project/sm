@@ -17,6 +17,7 @@
 #
 #   TODO Once this script is tested, it should become a unit test.
 
+from __future__ import print_function
 import random
 import storagemanager
 import string
@@ -82,7 +83,7 @@ def main(argv):
         elif '-v' == fields[0] or '--verbose' == fields[0]:
             verbose = True
         else:
-            print 'invalid key \'' + fields[0] + '\''
+            print('invalid key \'' + fields[0] + '\'')
             return 2
 
     logger.logger = tutil.Logger('/tmp/test_intellicache.log', 2)
@@ -91,12 +92,12 @@ def main(argv):
     if None == vm_uuid:
         # If no VM has been specified, pick any one.
         # TODO not implemented
-        print 'no VM specified'
+        print('no VM specified')
         return os.EX_CONFIG
 
     if None == sr_uuid:
         # If no SR has been specified, pick one that has caching enabled.
-        print 'no SR specified'
+        print('no SR specified')
         # TODO not implemented
         return os.EX_CONFIG
 
@@ -112,7 +113,7 @@ def main(argv):
     # acts as a cache.
     local_cache_sr = sm._host_get_local_cache_sr()
     if not tutil.validateUUID(local_cache_sr):
-        print 'caching not enabled'
+        print('caching not enabled')
         sys.exit(os.EX_CONFIG)
 
     # FIXME other power states not taken into account
@@ -129,7 +130,7 @@ def main(argv):
     vdi_uuid = sm._createVDI(sr_uuid, size_gb * (2**30))
 
     if verbose:
-        print 'test VDI is ' + vdi_uuid
+        print('test VDI is ' + vdi_uuid)
 
     # The original VHD file that backs the VDI on the NFS SR.
     vdi_file = '/var/run/sr-mount/' + sr_uuid + '/' + vdi_uuid + '.vhd'
@@ -187,11 +188,11 @@ def main(argv):
             assert not os.path.exists(cache_file)
 
         if verbose:
-            print 'cache ' + str(cache_on),
+            print('cache ' + str(cache_on), end=' ')
             if cache_on:
-                print ', persistent ' + str(persistent)
+                print(', persistent ' + str(persistent))
             else:
-                print
+                print()
 
         # If the VM was restarted, it's IP address may have changed.
         if True == vm_shutdown:
@@ -249,15 +250,15 @@ def main(argv):
                 if persistent:
                     # Persistent cache mode: ensure the original VDI has grown.
                     if new_size < vdi_file_prev_size:
-                        print 'new VDI file size (' + str(new_size) \
+                        print('new VDI file size (' + str(new_size) \
                                 + ') should be bigger than old one (' \
-                                + str(vdi_file_prev_size) + ')'
+                                + str(vdi_file_prev_size) + ')')
                         assert False
                 else:
                     # Reset cache mode: no writes should reach the VDI on the
                     # NFS SR
                     if not new_size == vdi_file_prev_size:
-                        print 'VDI on the shared SR has been modified whilst in reset mode, old size ' + str(vdi_file_prev_size) + ', new size ' + str(new_size)
+                        print('VDI on the shared SR has been modified whilst in reset mode, old size ' + str(vdi_file_prev_size) + ', new size ' + str(new_size))
 
             sm._unplugVBD(vbd_uuid)
 
@@ -274,9 +275,9 @@ def main(argv):
     sm._destroyVDI(vdi_snapshot_uuid)
     sm._destroyVDI(vdi_uuid)
 
-    print 'total ' + str(stats_total) + ', cached ' + str(stats_cached) \
+    print('total ' + str(stats_total) + ', cached ' + str(stats_cached) \
             + ', plug/unplug loops ' + str(stats_plug_unplug_loops) + \
-            ', persistent ' + str(stats_persistent)
+            ', persistent ' + str(stats_persistent))
     return 0
 
 if __name__ == '__main__':

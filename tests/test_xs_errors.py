@@ -11,7 +11,7 @@ class TestXenError(unittest.TestCase):
         raised_exception = None
         try:
             xs_errors.XenError('blah')
-        except Exception, e:
+        except Exception as e:
             raised_exception = e
 
         self.assertTrue("No XML def file found" in str(e))
@@ -23,7 +23,7 @@ class TestXenError(unittest.TestCase):
         raised_exception = None
         try:
             raise xs_errors.XenError('SRInUse')
-        except Exception, e:
+        except Exception as e:
             raised_exception = e
 
         self.assertTrue("The SR device is currently in use" in str(e))

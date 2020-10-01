@@ -63,9 +63,9 @@ class NFSSR(FileSR.FileSR):
 
     def load(self, sr_uuid):
         self.sr_vditype = SR.DEFAULT_TAP
-        if not self.dconf.has_key('serverpath'):
+        if 'serverpath' not in self.dconf:
             raise xs_errors.XenError('ConfigServerPathMissing')
-        if not self.dconf.has_key('server'):
+        if 'server' not in self.dconf:
             raise xs_errors.XenError('ConfigServerMissing')
         if not self._isvalidpathstring(self.dconf['serverpath']):
             raise xs_errors.XenError('ConfigServerPathBad', \
@@ -83,7 +83,7 @@ class NFSSR(FileSR.FileSR):
                 util.ioretry(lambda: util.pread(["/usr/sbin/rpcinfo","-t", \
                               "%s" % self.remoteserver, "nfs","3"]), \
                               errlist=[errno.EPERM], nofail=1)
-            except util.CommandException, inst:
+            except util.CommandException as inst:
                 raise xs_errors.XenError('NFSVersion', \
                       opterr='or NFS server timed out')
             try:
@@ -98,7 +98,7 @@ class NFSSR(FileSR.FileSR):
                              "udp,soft,timeo=%d,retrans=1,noac" % \
                              timeout]), errlist=[errno.EPIPE, errno.EIO],
                              nofail=1)
-            except util.CommandException, inst:
+            except util.CommandException as inst:
                 raise xs_errors.XenError('NFSMount')
         return super(NFSSR, self).attach(sr_uuid)
         
@@ -108,10 +108,10 @@ class NFSSR(FileSR.FileSR):
         try:
             util.pread(["umount", self.path])
             os.rmdir(self.path)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             raise xs_errors.XenError('NFSUnMount', \
                   opterr='error is %d' % inst.code)
-        except OSError, inst:
+        except OSError as inst:
             raise xs_errors.XenError('NFSUnMount', \
                   opterr='directory removal error is %d' % inst.sterror)
         return super(NFSSR, self).detach(sr_uuid)
@@ -139,7 +139,7 @@ class NFSSR(FileSR.FileSR):
         else:
             try:
                 util.ioretry(lambda: util.makedirs(newpath))
-            except util.CommandException, inst:
+            except util.CommandException as inst:
                 if inst.code != errno.EEXIST:
                     self.detach(sr_uuid)
                     raise xs_errors.XenError('NFSCreate', \
@@ -163,7 +163,7 @@ class NFSSR(FileSR.FileSR):
             if util.ioretry(lambda: util.pathexists(newpath)):
                 util.ioretry(lambda: os.rmdir(newpath))
             self.detach(sr_uuid)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             self.detach(sr_uuid)
             if inst.code != errno.ENOENT:
                 raise xs_errors.XenError('NFSDelete')
@@ -238,7 +238,7 @@ class NFSVDI(FileSR.FileVDI):
         try:
             cmd = [SR.LOCK_UTIL, "unlock", self.path, "w", l_uuid]
             self.status = util.ioretry(lambda: util.pread2(cmd))
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             if inst.code != errno.ENOENT:
                 raise xs_errors.XenError('VDIInUse', \
                           opterr='Unable to release lock')

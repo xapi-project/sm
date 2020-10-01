@@ -1,3 +1,4 @@
+from __future__ import print_function
 import errno
 import unittest
 import mock
@@ -16,7 +17,7 @@ class Test_on_slave_is_open(unittest.TestCase):
     MOCK_IMPORTS = ['SRCommand', 'SR', 'NFSSR', 'EXTSR', 'LVHDSR', 'blktap2']
 
     def fake_import(self, name, *args):
-        print 'Asked to import {}'.format(name)
+        print('Asked to import {}'.format(name))
         if name in Test_on_slave_is_open.MOCK_IMPORTS:
             if name not in self.mocks:
                 self.mocks[name] = mock.MagicMock()

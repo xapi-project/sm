@@ -144,7 +144,7 @@ class LVHDSR(SR.SR):
 
     def load(self, sr_uuid):
         self.ops_exclusive = OPS_EXCLUSIVE
-        if not self.dconf.has_key('device') or not self.dconf['device']:
+        if 'device' not in self.dconf or not self.dconf['device']:
             raise xs_errors.XenError('ConfigDeviceMissing',)
         self.root = self.dconf['device']
         for dev in self.root.split(','):
@@ -153,7 +153,7 @@ class LVHDSR(SR.SR):
                         opterr='path is %s' % dev)
 
         self.isMaster = False
-        if self.dconf.has_key('SRmaster') and self.dconf['SRmaster'] == 'true':
+        if 'SRmaster' in self.dconf and self.dconf['SRmaster'] == 'true':
             self.isMaster = True
 
         self.lock = Lock(vhdutil.LOCK_TYPE_SR, self.uuid)
@@ -173,7 +173,7 @@ class LVHDSR(SR.SR):
         if not self.srcmd.params.get("sr_ref"):
             return # must be a probe call
         # Test for thick vs thin provisioning conf parameter
-        if self.dconf.has_key('allocation'):
+        if 'allocation' in self.dconf:
             if self.dconf['allocation'] in self.PROVISIONING_TYPES:
                 self.provision = self.dconf['allocation']
             else:
@@ -278,7 +278,7 @@ class LVHDSR(SR.SR):
                 }
             LVMMetadataHandler(self.mdpath).writeMetadata(sr_info, vdi_info)
             
-        except Exception, e:
+        except Exception as e:
             raise xs_errors.XenError('MetadataError', \
                          opterr='Error upgrading SR Metadata: %s' % str(e))
 
@@ -310,7 +310,7 @@ class LVHDSR(SR.SR):
                         # This should never happen
                         pass
             
-        except Exception, e:
+        except Exception as e:
             raise xs_errors.XenError('MetadataError', \
                 opterr='Error synching SR Metadata and storage: %s' % str(e))
 
@@ -349,7 +349,7 @@ class LVHDSR(SR.SR):
                     update_map[NAME_DESCRIPTION_TAG] = new_name_description
                     LVMMetadataHandler(self.mdpath)\
                         .updateMetadata(update_map)
-        except Exception, e:
+        except Exception as e:
             raise xs_errors.XenError('MetadataError', \
                 opterr='Error synching SR Metadata and XAPI: %s' % str(e))
                
@@ -374,7 +374,7 @@ class LVHDSR(SR.SR):
                         util.SMlog("Sync SR metadata and the state on the storage.")
                         self.syncMetadataAndStorage()
                         self.syncMetadataAndXapi()
-                except Exception, e:
+                except Exception as e:
                     util.SMlog("Exception in _checkMetadataVolume, " \
                                "Error: %s." % str(e))
             elif not self.mdexists and not self.legacyMode:
@@ -396,7 +396,7 @@ class LVHDSR(SR.SR):
                 # from pre-6.0 pools
                 xml = retrieveXMLfromFile(self.mdpath)
                 sr_info = _parseXML(xml)
-            except Exception, e:
+            except Exception as e:
                 # That dint work, try new format valid 6.0 onwards
                 util.SMlog("Could not read SR info from metadata using old " \
                            "format, trying new format. Error: %s" % str(e))
@@ -405,14 +405,14 @@ class LVHDSR(SR.SR):
             if sr_info == {}:
                 raise Exception("Failed to get SR information from metadata.")
         
-            if sr_info.has_key("allocation"):
+            if "allocation" in sr_info:
                 self.provision = sr_info.get("allocation")
                 map['allocation'] = sr_info.get("allocation")
             else:
                 raise Exception("Allocation key not found in SR metadata. " \
                                 "SR info found: %s" % sr_info)
 
-        except Exception, e:
+        except Exception as e:
             raise xs_errors.XenError('MetadataError', \
                          opterr='Error reading SR params from ' \
                          'metadata Volume: %s' % str(e))
@@ -442,7 +442,7 @@ class LVHDSR(SR.SR):
 
             # Add the SR metadata
             self.updateSRMetadata(self.provision)
-        except Exception, e:
+        except Exception as e:
             raise xs_errors.XenError('MetadataError', \
                         opterr='Error introducing Metadata Volume: %s' % str(e))
 
@@ -552,7 +552,7 @@ class LVHDSR(SR.SR):
                                           replace('//', '-'))
                 lpath = os.path.join(self.path, lvname)
                 os.unlink(lpath)
-            except OSError, e:
+            except OSError as e:
                 if e.errno != errno.ENOENT:
                     util.SMlog("LVHDSR.delete: failed to remove the symlink for " \
                                "file %s. Error: %s" % (fileName, str(e)))
@@ -562,7 +562,7 @@ class LVHDSR(SR.SR):
             try:
                 if util.pathexists(self.path):
                     os.rmdir(self.path)
-            except Exception, e:
+            except Exception as e:
                 util.SMlog("LVHDSR.delete: failed to remove the symlink " \
                            "directory %s. Error: %s" % (self.path, str(e)))
                 success = False
@@ -643,7 +643,7 @@ class LVHDSR(SR.SR):
                                           replace('//', '-'))
                 lvname = os.path.join(self.path, lvname)
                 util.force_unlink(lvname)
-            except Exception, e:
+            except Exception as e:
                 util.SMlog("LVHDSR.detach: failed to remove the symlink for " \
                            "file %s. Error: %s" % (fileName, str(e)))
                 success = False
@@ -654,7 +654,7 @@ class LVHDSR(SR.SR):
             try:
                 if util.pathexists(self.path):
                     os.rmdir(self.path)
-            except Exception, e:
+            except Exception as e:
                 util.SMlog("LVHDSR.detach: failed to remove the symlink " \
                            "directory %s. Error: %s" % (self.path, str(e)))
                 success = False
@@ -707,7 +707,7 @@ class LVHDSR(SR.SR):
                 for vdi in Dict.keys():
                     vdi_uuid = Dict[vdi][UUID_TAG]
                     if bool(int(Dict[vdi][IS_A_SNAPSHOT_TAG])):
-                        if vdiToSnaps.has_key(Dict[vdi][SNAPSHOT_OF_TAG]):
+                        if Dict[vdi][SNAPSHOT_OF_TAG] in vdiToSnaps:
                             vdiToSnaps[Dict[vdi][SNAPSHOT_OF_TAG]].append(vdi_uuid)
                         else:
                             vdiToSnaps[Dict[vdi][SNAPSHOT_OF_TAG]] = [vdi_uuid]
@@ -782,7 +782,7 @@ class LVHDSR(SR.SR):
                         # For existing VDIs, update local state too
                         # Scan in base class SR updates existing VDIs 
                         # again based on local states
-                        if self.vdis.has_key(vdi_uuid):
+                        if vdi_uuid in self.vdis:
                             self.vdis[vdi_uuid].cbt_enabled = True
                         cbt_vdis.remove(cbt_logname)
                         
@@ -800,7 +800,7 @@ class LVHDSR(SR.SR):
                             snapref = \
                                 self.session.xenapi.VDI.get_by_uuid(snapvdi)
                             self.session.xenapi.VDI.set_snapshot_of(snapref, srcref)
-                        except Exception, e:
+                        except Exception as e:
                             util.SMlog("Setting snapshot failed. "\
                                        "Error: %s" % str(e))
             
@@ -856,7 +856,7 @@ class LVHDSR(SR.SR):
         return lvutil.srlist_toxml(
                 lvutil.scan_srlist(lvhdutil.VG_PREFIX, self.root),
                 lvhdutil.VG_PREFIX,
-                (self.srcmd.params['sr_sm_config'].has_key('metadata') and \
+                ('metadata' in self.srcmd.params['sr_sm_config'] and \
                  self.srcmd.params['sr_sm_config']['metadata'] == 'true'))
 
     def vdi(self, uuid):
@@ -879,9 +879,9 @@ class LVHDSR(SR.SR):
 
         for uuid, vdi in self.vdis.iteritems():
             if vdi.parent:
-                if self.vdis.has_key(vdi.parent):
+                if vdi.parent in self.vdis:
                     self.vdis[vdi.parent].read_only = True
-                if geneology.has_key(vdi.parent):
+                if vdi.parent in geneology:
                     geneology[vdi.parent].append(uuid)
                 else:
                     geneology[vdi.parent] = [uuid]
@@ -889,7 +889,7 @@ class LVHDSR(SR.SR):
         # Now remove all hidden leaf nodes to avoid introducing records that
         # will be GC'ed
         for uuid in self.vdis.keys():
-            if not geneology.has_key(uuid) and self.vdis[uuid].hidden:
+            if uuid not in geneology and self.vdis[uuid].hidden:
                 util.SMlog("Scan found hidden leaf (%s), ignoring" % uuid)
                 del self.vdis[uuid]
 
@@ -1320,7 +1320,7 @@ class LVHDSR(SR.SR):
                     if not cleanup.abort(self.uuid, soft=True):
                         util.SMlog("The GC has already been scheduled to "
                                 "re-start")
-                except util.CommandException, e:
+                except util.CommandException as e:
                     if e.code != errno.ETIMEDOUT:
                         raise
                     util.SMlog('failed to abort the GC')
@@ -1367,8 +1367,8 @@ class LVHDVDI(VDI.VDI):
 
         # the VDI must be in the process of being created
         self.exists = False
-        if self.sr.srcmd.params.has_key("vdi_sm_config") and \
-                self.sr.srcmd.params["vdi_sm_config"].has_key("type"):
+        if "vdi_sm_config" in self.sr.srcmd.params and \
+                "type" in self.sr.srcmd.params["vdi_sm_config"]:
             type = self.sr.srcmd.params["vdi_sm_config"]["type"]
             if type == PARAM_RAW:
                 self.vdi_type = vhdutil.VDI_TYPE_RAW
@@ -1414,7 +1414,7 @@ class LVHDVDI(VDI.VDI):
                vhdutil.create(self.path, long(size), False, lvhdutil.MSIZE_MB)
                self.size = vhdutil.getSizeVirt(self.path)
             self.sr.lvmCache.deactivateNoRefcount(self.lvname)
-        except util.CommandException, e:
+        except util.CommandException as e:
             util.SMlog("Unable to create VDI");
             self.sr.lvmCache.remove(self.lvname)
             raise xs_errors.XenError('VDICreate', opterr='error %d' % e.code)
@@ -1450,7 +1450,7 @@ class LVHDVDI(VDI.VDI):
         util.SMlog("LVHDVDI.delete for %s" % self.uuid)
         try:
             self._loadThis()
-        except SR.SRException, e:
+        except SR.SRException as e:
             # Catch 'VDI doesn't exist' exception
             if e.errno == 46:
                 return super(LVHDVDI, self).delete(sr_uuid, vdi_uuid, data_only)
@@ -1482,7 +1482,7 @@ class LVHDVDI(VDI.VDI):
             self.sr.lvmCache.remove(self.lvname)
             self.sr.lock.cleanup(vdi_uuid, lvhdutil.NS_PREFIX_LVM + sr_uuid)
             self.sr.lock.cleanupAll(vdi_uuid)
-        except SR.SRException, e:
+        except SR.SRException as e:
             util.SMlog(
                 "Failed to remove the volume (maybe is leaf coalescing) "
                 "for %s err:%d" % (self.uuid, e.errno))
@@ -1688,11 +1688,11 @@ class LVHDVDI(VDI.VDI):
         snapResult = None
         try:
             snapResult = self._snapshot(snapType, cloneOp, cbtlog, consistency_state)
-        except Exception, e1:
+        except Exception as e1:
             try:
                 blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid,
                                         secondary=None)
-            except Exception, e2:
+            except Exception as e2:
                 util.SMlog('WARNING: failed to clean up failed snapshot: '
                         '%s (error ignored)' % e2)
             raise
@@ -1713,7 +1713,7 @@ class LVHDVDI(VDI.VDI):
 
         self.sm_config = self.session.xenapi.VDI.get_sm_config( \
                 self.sr.srcmd.params['vdi_ref'])
-        if self.sm_config.has_key("type") and self.sm_config['type']=='raw':
+        if "type" in self.sm_config and self.sm_config['type']=='raw':
             if not util.fistpoint.is_active("testsm_clone_allow_raw"):
                 raise xs_errors.XenError('Unimplemented', \
                         opterr='Raw VDI, snapshot or clone not permitted')
@@ -1845,7 +1845,7 @@ class LVHDVDI(VDI.VDI):
                         snapVDI._disable_cbt_on_error(alert_name, alert_str)
                         pass
 
-        except (util.SMException, XenAPI.Failure), e:
+        except (util.SMException, XenAPI.Failure) as e:
             util.logException("LVHDVDI._snapshot")
             self._failClone(origUuid, jval, str(e))
         util.fistpoint.activate("LVHDRT_clone_vdi_before_remove_journal",self.sr.uuid)
@@ -2061,7 +2061,7 @@ class LVHDVDI(VDI.VDI):
 
     def _determineType(self):
         """Determine whether this is a raw or a VHD VDI"""
-        if self.sr.srcmd.params.has_key("vdi_ref"):
+        if "vdi_ref" in self.sr.srcmd.params:
             vdi_ref = self.sr.srcmd.params["vdi_ref"]
             sm_config = self.session.xenapi.VDI.get_sm_config(vdi_ref)
             if sm_config.get("vdi_type"):
@@ -2109,7 +2109,7 @@ class LVHDVDI(VDI.VDI):
             return
         try:
             lvs = lvhdutil.getLVInfo(self.sr.lvmCache, self.lvname)
-        except util.CommandException, e:
+        except util.CommandException as e:
             raise xs_errors.XenError('VDIUnavailable',
                     opterr= '%s (LV scan error)' % os.strerror(abs(e.code)))
         if not lvs.get(self.uuid):
@@ -2152,7 +2152,7 @@ class LVHDVDI(VDI.VDI):
         try:
             self.sr._handleInterruptedCloneOp(uuid, jval, True)
             self.sr.journaler.remove(self.JRN_CLONE, uuid)
-        except Exception, e:
+        except Exception as e:
             util.SMlog('WARNING: failed to clean up failed snapshot: ' \
                     ' %s (error ignored)' % e)
         raise xs_errors.XenError('VDIClone', opterr=msg)
@@ -2245,7 +2245,7 @@ class LVHDVDI(VDI.VDI):
             try:
                 self.sr.lvmCache.activateNoRefcount(lv_name)
                 return True
-            except Exception, e:
+            except Exception as e:
                 util.SMlog("Exception in _activate_cbt_log, "
                            "Error: %s." % str(e))
         else:
@@ -2254,7 +2254,7 @@ class LVHDVDI(VDI.VDI):
     def _deactivate_cbt_log(self, lv_name):
         try:
             self.sr.lvmCache.deactivateNoRefcount(lv_name)
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Exception in _deactivate_cbt_log, Error: %s." % str(e))
 
     def _cbt_log_exists(self, logpath):

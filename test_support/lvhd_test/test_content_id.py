@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import unittest
 import logger
 import tutil
@@ -65,7 +66,7 @@ if __name__ == '__main__':
 
     # FIXME check args
     if len(sys.argv) < 3:
-        print 'usage: ' + sys.argv[0] + ' <sr-uuid> <vm-uuid>'
+        print('usage: ' + sys.argv[0] + ' <sr-uuid> <vm-uuid>')
         sys.exit(os.EX_USAGE)
 
     sr_uuid = sys.argv[1]

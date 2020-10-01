@@ -19,6 +19,7 @@
 #
 
 
+from __future__ import print_function
 import fileinput, shutil, sys, re
 import util, lock
 
@@ -56,12 +57,12 @@ def edit_wwid(wwid, remove=False):
     add_mode = True
     for line in fileinput.input(tmp_file, inplace=1):
         if add_mode:
-            print line,
+            print(line, end=' ')
         else:
             if wwid_regex.match(line):
                 add_mode = True
             else:
-                print line,
+                print(line, end=' ')
             continue
             
         if filt_regex.match(line):
@@ -70,7 +71,7 @@ def edit_wwid(wwid, remove=False):
                 add_mode = False
                 continue
             else:
-	        print "\twwid \"%s\""%wwid
+	        print("\twwid \"%s\""%wwid)
 
     shutil.move(tmp_file, CONF_FILE)
 
@@ -123,13 +124,13 @@ def check_conf_file():
 
 
 def usage():
-    print "Usage: %s [-r] -d <device path> -w <device wwid>" % sys.argv[0]
-    print "Usage: %s -f [-r] -w <device wwid>" % sys.argv[0]
-    print "\tAdd a device wwid to multipath.conf whitelist"
-    print "\t-r: remove"
-    print "\t-f: if provided the operation will be performed anyway"
-    print "\t    otherwise it will be after checking <device> is"
-    print "\t    blacklisted (or not)"
+    print("Usage: %s [-r] -d <device path> -w <device wwid>" % sys.argv[0])
+    print("Usage: %s -f [-r] -w <device wwid>" % sys.argv[0])
+    print("\tAdd a device wwid to multipath.conf whitelist")
+    print("\t-r: remove")
+    print("\t-f: if provided the operation will be performed anyway")
+    print("\t    otherwise it will be after checking <device> is")
+    print("\t    blacklisted (or not)")
 
 
 if __name__ == "__main__":

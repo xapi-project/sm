@@ -57,7 +57,7 @@ class EXTSR(FileSR.FileSR):
         self.ops_exclusive = FileSR.OPS_EXCLUSIVE
         self.lock = Lock(vhdutil.LOCK_TYPE_SR, self.uuid)
         self.sr_vditype = SR.DEFAULT_TAP
-        if not self.dconf.has_key('device') or not self.dconf['device']:
+        if 'device' not in self.dconf or not self.dconf['device']:
             raise xs_errors.XenError('ConfigDeviceMissing')
 
         self.root = self.dconf['device']
@@ -82,7 +82,7 @@ class EXTSR(FileSR.FileSR):
                 if txt.find(self.vgname) == -1:
                     raise xs_errors.XenError('VolNotFound', \
                           opterr='volume is %s' % self.vgname)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             raise xs_errors.XenError('PVSfailed', \
                   opterr='error is %d' % inst.code)
 
@@ -97,7 +97,7 @@ class EXTSR(FileSR.FileSR):
             for dev in self.root.split(','):
                 cmd = ["pvremove", dev]
                 util.pread2(cmd)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             raise xs_errors.XenError('LVMDelete', \
                   opterr='errno is %d' % inst.code)
             
@@ -111,13 +111,13 @@ class EXTSR(FileSR.FileSR):
                 # make a mountpoint:
                 if not os.path.isdir(self.path):
                     os.makedirs(self.path)
-            except util.CommandException, inst:
+            except util.CommandException as inst:
                 raise xs_errors.XenError('LVMMount', \
                       opterr='Unable to activate LV. Errno is %d' % inst.code)
             
             try:
                 util.pread(["fsck", "-a", self.remotepath])
-            except util.CommandException, inst:
+            except util.CommandException as inst:
                 if inst.code == 1:
                     util.SMlog("FSCK detected and corrected FS errors. Not fatal.")
                 else:
@@ -126,7 +126,7 @@ class EXTSR(FileSR.FileSR):
 
             try:
                 util.pread(["mount", self.remotepath, self.path])
-            except util.CommandException, inst:
+            except util.CommandException as inst:
                 raise xs_errors.XenError('LVMMount', \
                       opterr='Failed to mount FS. Errno is %d' % inst.code)
 
@@ -145,7 +145,7 @@ class EXTSR(FileSR.FileSR):
             # deactivate SR
             cmd = ["lvchange", "-an", self.remotepath]
             util.pread2(cmd)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             raise xs_errors.XenError('LVMUnMount', \
                   opterr='lvm -an failed errno is %d' % inst.code)
 
@@ -194,7 +194,7 @@ class EXTSR(FileSR.FileSR):
 
             cmd = ["lvchange", "-ay", self.remotepath]
             text = util.pread(cmd)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             raise xs_errors.XenError('LVMCreate', \
                   opterr='lv operation, error %d' % inst.code)
         except AssertionError:
@@ -203,7 +203,7 @@ class EXTSR(FileSR.FileSR):
 
         try:
             util.pread2(["mkfs.ext4", "-F", self.remotepath])
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             raise xs_errors.XenError('LVMFilesystem', \
                   opterr='mkfs failed error %d' % inst.code)
 

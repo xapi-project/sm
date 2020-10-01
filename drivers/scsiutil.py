@@ -18,6 +18,7 @@
 # Miscellaneous scsi utility functions
 #
 
+from __future__ import print_function
 import util
 import os
 import re
@@ -165,10 +166,10 @@ def scsi_dev_ctrl(ids, cmd):
                   (cmd, ids[1],ids[2],ids[3],ids[4])
             util.SMlog(str)
             f=open('/proc/scsi/scsi', 'w')
-            print >>f, str
+            print(str, file=f)
             f.close()
             return
-        except IOError, e:
+        except IOError as e:
             util.SMlog("SCSI_DEV_CTRL: Failure, %s [%d]" % (e.strerror,e.errno))
             if f is not None:
                 f.close()
@@ -646,10 +647,10 @@ def remove_stale_luns(hostids, lunid, expectedPath, mpath):
                     try:
                         path = os.path.basename(os.path.realpath(lun))
                         mpath_cli.remove_path(path)
-                    except Exception, e:
+                    except Exception as e:
                         util.SMlog("Failed to remove path %s, ignoring "\
                             "exception as path may not be present." % path)
-    except Exception, e:
+    except Exception as e:
         util.SMlog("Exception removing stale LUNs, new devices may not come"\
                    " up properly! Error: %s" % str(e))
 

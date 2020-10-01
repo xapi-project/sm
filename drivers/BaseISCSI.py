@@ -18,6 +18,7 @@
 # ISCSISR: ISCSI software initiator SR driver
 #
 
+from __future__ import print_function
 import SR, util
 import time, LUNperVDI
 import os, sys, re, glob
@@ -101,7 +102,7 @@ class BaseISCSISR(SR.SR):
         if not self.multihomed:
             return
         change = False
-        if not self.dconf.has_key('multihomelist'):
+        if 'multihomelist' not in self.dconf:
             change = True
             self.mlist = []
             mstr = ""
@@ -119,7 +120,7 @@ class BaseISCSISR(SR.SR):
             pbd = None
             try:
                 pbd = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
-                if pbd <> None:
+                if pbd != None:
                     device_config = self.session.xenapi.PBD.get_device_config(pbd)
                     device_config['multihomelist'] = mstr
                     self.session.xenapi.PBD.set_device_config(pbd, device_config)
@@ -136,13 +137,13 @@ class BaseISCSISR(SR.SR):
         self.default_vdi_visibility = False
         
         # Required parameters
-        if not self.dconf.has_key('target') or  not self.dconf['target']:
+        if 'target' not in self.dconf or  not self.dconf['target']:
             raise xs_errors.XenError('ConfigTargetMissing')
 
         # we are no longer putting hconf in the xml.
         # Instead we pass a session and host ref and let the SM backend query XAPI itself
         try:
-            if not self.dconf.has_key('localIQN'):
+            if 'localIQN' not in self.dconf:
                 self.localIQN = self.session.xenapi.host.get_other_config(self.host_ref)['iscsi_iqn']
             else:
                 self.localIQN = self.dconf['localIQN']
@@ -159,16 +160,16 @@ class BaseISCSISR(SR.SR):
             raise xs_errors.XenError('DNSError')
         
         self.targetlist = self.target
-        if self.dconf.has_key('targetlist'):
+        if 'targetlist' in self.dconf:
             self.targetlist = self.dconf['targetlist']
 
         # Optional parameters
         self.chapuser = ""
         self.chappassword = ""
-        if self.dconf.has_key('chapuser') \
-                and (self.dconf.has_key('chappassword') or self.dconf.has_key('chappassword_secret')):
+        if 'chapuser' in self.dconf \
+                and ('chappassword' in self.dconf or 'chappassword_secret' in self.dconf):
             self.chapuser = self.dconf['chapuser'].encode('utf-8')
-            if self.dconf.has_key('chappassword_secret'):
+            if 'chappassword_secret' in self.dconf:
                 self.chappassword = util.get_secret(self.session, self.dconf['chappassword_secret'])
             else:
                 self.chappassword = self.dconf['chappassword']
@@ -177,10 +178,10 @@ class BaseISCSISR(SR.SR):
 
         self.incoming_chapuser = ""
         self.incoming_chappassword = ""
-        if self.dconf.has_key('incoming_chapuser') \
-                and (self.dconf.has_key('incoming_chappassword') or self.dconf.has_key('incoming_chappassword_secret')):
+        if 'incoming_chapuser' in self.dconf \
+                and ('incoming_chappassword' in self.dconf or 'incoming_chappassword_secret' in self.dconf):
             self.incoming_chapuser = self.dconf['incoming_chapuser'].encode('utf-8')
-            if self.dconf.has_key('incoming_chappassword_secret'):
+            if 'incoming_chappassword_secret' in self.dconf:
                 self.incoming_chappassword = util.get_secret(self.session, self.dconf['incoming_chappassword_secret'])
             else:
                 self.incoming_chappassword = self.dconf['incoming_chappassword']
@@ -188,7 +189,7 @@ class BaseISCSISR(SR.SR):
             self.incoming_chappassword = self.incoming_chappassword.encode('utf-8')
 
         self.port = DEFAULT_PORT
-        if self.dconf.has_key('port') and self.dconf['port']:
+        if 'port' in self.dconf and self.dconf['port']:
             try:
                 self.port = long(self.dconf['port'])
             except:
@@ -197,17 +198,17 @@ class BaseISCSISR(SR.SR):
             raise xs_errors.XenError('ISCSIPort')
 
         # For backwards compatibility
-        if self.dconf.has_key('usediscoverynumber'):
+        if 'usediscoverynumber' in self.dconf:
             self.discoverentry = self.dconf['usediscoverynumber']
 
         self.multihomed = False
-        if self.dconf.has_key('multihomed'):
+        if 'multihomed' in self.dconf:
             if self.dconf['multihomed'] == "true":
                 self.multihomed = True
         elif self.mpath == 'true':
             self.multihomed = True
 
-        if not self.dconf.has_key('targetIQN') or  not self.dconf['targetIQN']:
+        if 'targetIQN' not in self.dconf or  not self.dconf['targetIQN']:
             self._scan_IQNs()
             raise xs_errors.XenError('ConfigTargetIQNMissing')
 
@@ -261,7 +262,7 @@ class BaseISCSISR(SR.SR):
         if not os.path.exists(self.path):
             # Try to detect an active path in order of priority
             for key in self.pathdict:
-                if self.adapter.has_key(key):
+                if key in self.adapter:
                     self._tgtidx = key
                     self._path = self.pathdict[self.tgtidx]['path']
                     if os.path.exists(self.path):
@@ -303,7 +304,7 @@ class BaseISCSISR(SR.SR):
 
         if not self.attached or multiTargets:
             # Verify iSCSI target and port
-            if self.dconf.has_key('multihomelist') and not self.dconf.has_key('multiSession'):
+            if 'multihomelist' in self.dconf and 'multiSession' not in self.dconf:
                 targetlist = self.dconf['multihomelist'].split(',')
             else:
                 targetlist = ['%s:%d' % (self.target,self.port)]
@@ -358,7 +359,7 @@ class BaseISCSISR(SR.SR):
                                            self.incoming_chappassword,
                                            self.mpath == "true")
                             npaths = npaths + 1
-                        except Exception, e:
+                        except Exception as e:
                             # Exceptions thrown in login are acknowledged, 
                             # the rest of exceptions are ignored since some of the
                             # paths in multipath may not be reachable
@@ -374,14 +375,14 @@ class BaseISCSISR(SR.SR):
                     # Allow the devices to settle
                     time.sleep(5)
                 
-                except util.CommandException, inst:
+                except util.CommandException as inst:
                     raise xs_errors.XenError('ISCSILogin', \
                                              opterr='code is %d' % inst.code)
             self.attached = True
         self._initPaths()
         util._incr_iscsiSR_refcount(self.targetIQN, sr_uuid)
         IQNs = []
-        if self.dconf.has_key("multiSession"):
+        if "multiSession" in self.dconf:
             IQNs = ""
             for iqn in self.dconf['multiSession'].split("|"):
                 if len(iqn): IQNs += iqn.split(',')[2]
@@ -406,7 +407,7 @@ class BaseISCSISR(SR.SR):
             self.session.xenapi.PBD.add_to_other_config(
                 pbdref, "iscsi_sessions", str(sessions))
 
-        if self.dconf.has_key('SCSIid'):
+        if 'SCSIid' in self.dconf:
             if self.mpath == 'true':
                 self.mpathmodule.refresh(self.dconf['SCSIid'], 0)
             devs = os.listdir("/dev/disk/by-scsid/%s" % self.dconf['SCSIid'])
@@ -421,12 +422,12 @@ class BaseISCSISR(SR.SR):
             pbdref = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
         except:
             pass
-        if self.dconf.has_key('SCSIid'):
+        if 'SCSIid' in self.dconf:
             self.mpathmodule.reset(self.dconf['SCSIid'], explicit_unmap=True)
             keys.append("mpath-" + self.dconf['SCSIid'])
 
         # Remove iscsi_sessions and multipathed keys
-        if pbdref <> None:
+        if pbdref != None:
             if self.cmd == 'sr_detach':
                 keys += ["multipathed", "iscsi_sessions", "MPPEnabled"]
             for key in keys:
@@ -446,7 +447,7 @@ class BaseISCSISR(SR.SR):
                 iscsilib.logout(self.target, self.targetIQN, all=True)
                 if delete:
                     iscsilib.delete(self.targetIQN)
-            except util.CommandException, inst:
+            except util.CommandException as inst:
                     raise xs_errors.XenError('ISCSIQueryDaemon', \
                           opterr='error is %d' % inst.code)
             if iscsilib._checkTGT(self.targetIQN):
@@ -461,7 +462,7 @@ class BaseISCSISR(SR.SR):
         for sr in SRs:
             record = SRs[sr]
             sm_config = record["sm_config"]
-            if sm_config.has_key('targetIQN') and \
+            if 'targetIQN' in sm_config and \
                sm_config['targetIQN'] == self.targetIQN:
                 raise xs_errors.XenError('SRInUse')
         self.attach(sr_uuid)
@@ -494,7 +495,7 @@ class BaseISCSISR(SR.SR):
         for sr in SRs:
             record = SRs[sr]
             sm_config = record["sm_config"]
-            if sm_config.has_key('targetIQN') and \
+            if 'targetIQN' in sm_config and \
                sm_config['targetIQN'] == self.targetIQN:
                 Recs[record["uuid"]] = sm_config
         return self.srlist_toxml(Recs)
@@ -535,7 +536,7 @@ class BaseISCSISR(SR.SR):
             raise xs_errors.XenError('SRUnavailable')
         connected = []
         for val in self.adapter:
-            if not self.pathdict.has_key(val):
+            if val not in self.pathdict:
                 continue
             rec = self.pathdict[val]
             path = os.path.join(rec['path'],"LUN%s" % lunid)
@@ -544,7 +545,7 @@ class BaseISCSISR(SR.SR):
             l = [realpath, host, 0, 0, lunid]
             
             addDevice = True            
-            if self.devs.has_key(realpath):
+            if realpath in self.devs:
                 # if the device is stale remove it before adding again
                 real_SCSIid = None
                 try:
@@ -582,12 +583,12 @@ class BaseISCSISR(SR.SR):
             raise xs_errors.XenError('SRUnavailable')
         connected = []
         for val in self.adapter:
-            if not self.pathdict.has_key(val):
+            if val not in self.pathdict:
                 continue
             rec = self.pathdict[val]
             path = os.path.join(rec['path'],"SERIAL-%s" % serialid)
             realpath = os.path.realpath(path)
-            if not self.devs.has_key(realpath):
+            if realpath not in self.devs:
                 if not util.wait_for_path(path, 5):
                     util.SMlog("Unable to detect LUN attached to host on serial path [%s]" % path)
                     continue
@@ -601,12 +602,12 @@ class BaseISCSISR(SR.SR):
             self.mpathmodule.reset(SCSIid, explicit_unmap=True)
             util.remove_mpathcount_field(self.session, self.host_ref, self.sr_ref, SCSIid)
         for val in self.adapter:
-            if not self.pathdict.has_key(val):
+            if val not in self.pathdict:
                 continue
             rec = self.pathdict[val]
             path = os.path.join(rec['path'],"LUN%s" % lunid)            
             realpath = os.path.realpath(path)
-            if self.devs.has_key(realpath):
+            if realpath in self.devs:
 		util.SMlog("Found key: %s" % realpath)
                 scsiutil.scsi_dev_ctrl(self.devs[realpath], 'remove')
                 # Wait for device to disappear
@@ -653,7 +654,7 @@ class BaseISCSISR(SR.SR):
 
     # Helper function for LUN-per-VDI VDI.introduce
     def _getLUNbySMconfig(self, sm_config):
-        if not sm_config.has_key('LUNid'):
+        if 'LUNid' not in sm_config:
             raise xs_errors.XenError('VDIUnavailable')
         LUNid = long(sm_config['LUNid'])
         if not len(self._attach_LUN_bylunid(LUNid)):
@@ -713,7 +714,7 @@ class BaseISCSISR(SR.SR):
             textnode = dom.createTextNode(str(iqn))
             subentry.appendChild(textnode)
             count += 1
-        print >>sys.stderr,dom.toprettyxml()
+        print(dom.toprettyxml(), file=sys.stderr)
 
     def srlist_toxml(self, SRs):
         dom = xml.dom.minidom.Document()

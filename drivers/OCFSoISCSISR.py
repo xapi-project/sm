@@ -18,6 +18,7 @@
 # OCFSoISCSISR: OCFS over ISCSI software initiator SR driver
 #
 
+from __future__ import print_function
 import SR, VDI, OCFSSR, BaseISCSI, SRCommand, util, scsiutil
 import statvfs
 import os, sys, time
@@ -74,7 +75,7 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
             # This is a probe call, generate a temp sr_uuid
             sr_uuid = util.gen_uuid()
 
-        if self.original_srcmd.dconf.has_key('target'):
+        if 'target' in self.original_srcmd.dconf:
             self.original_srcmd.dconf['targetlist'] = self.original_srcmd.dconf['target']
         iscsi = BaseISCSI.BaseISCSISR(self.original_srcmd, sr_uuid)
         self.iscsiSRs = []
@@ -91,7 +92,7 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
             IQNstring = ""
             IQNs = []
             try:
-                if self.dconf.has_key('multiSession'):
+                if 'multiSession' in self.dconf:
                     IQNs = self.dconf['multiSession'].split("|")
                     for IQN in IQNs:
                         if IQN:
@@ -143,7 +144,7 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
                     util.SMlog("Setting targetlist: %s" % srcmd_copy.dconf['targetlist'])
                     self.iscsiSRs.append(BaseISCSI.BaseISCSISR(srcmd_copy, sr_uuid))
                 pbd = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
-                if pbd <> None and not self.dconf.has_key('multiSession'):
+                if pbd != None and 'multiSession' not in self.dconf:
                     dconf = self.session.xenapi.PBD.get_device_config(pbd)
                     dconf['multiSession'] = IQNstring
                     self.session.xenapi.PBD.set_device_config(pbd, dconf)
@@ -160,7 +161,7 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
             pass
 
         # Apart from the upgrade case, user must specify a SCSIid
-        if not self.dconf.has_key('SCSIid'):
+        if 'SCSIid' not in self.dconf:
             # Dual controller issue
             self.LUNs = {}  # Dict for LUNs from all the iscsi objects
             for ii in range(0, len(self.iscsiSRs)):
@@ -279,7 +280,7 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
                         iqn = self.iscsiSRs[kkk].targetIQN
                         key = "%s,%s,%s" % (ipaddr,port,iqn)
                         # The final string must preserve the order without repetition
-                        if not IQNs.has_key(key):
+                        if key not in IQNs:
                             IQNs[key] = ""
                             IQNstring += "%s|" % key
                     util.SMlog("IQNstring is now %s" %IQNstring)
@@ -288,7 +289,7 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
                     # Updating pbd entry, if any
                     try:
                         pbd = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
-                        if pbd <> None and self.dconf.has_key('multiSession'):
+                        if pbd != None and 'multiSession' in self.dconf:
                             util.SMlog("Updating multiSession in PBD")
                             dconf = self.session.xenapi.PBD.get_device_config(pbd)
                             dconf['multiSession'] = IQNstring
@@ -337,7 +338,7 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
                     textnode = dom.createTextNode(str(aval))
                     subentry.appendChild(textnode)
 
-        print >>sys.stderr,dom.toprettyxml()
+        print(dom.toprettyxml(), file=sys.stderr)
 
     def _getSCSIid_from_LUN(self, sr_uuid):
         was_attached = True
@@ -449,7 +450,7 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
                     raise xs_errors.XenError('InvalidDev')
             self._pathrefresh(OCFSoISCSISR)
             OCFSSR.OCFSSR.create(self, sr_uuid, size)
-        except Exception, inst:
+        except Exception as inst:
             self.iscsi.detach(sr_uuid)
             raise xs_errors.XenError("SRUnavailable", opterr=inst)
         self.iscsi.detach(sr_uuid)
@@ -465,7 +466,7 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
             for i in self.iscsiSRs:
                 try:
                     i.attach(sr_uuid)
-                except SR.SROSError, inst:
+                except SR.SROSError as inst:
                     # Some iscsi objects can fail login but not all. Storing exception
                     if inst.errno == 141:
                         util.SMlog("Connection failed for target %s, continuing.." %i.target)
@@ -481,13 +482,13 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
 
                 if not i._attach_LUN_bySCSIid(self.SCSIid):
                     raise xs_errors.XenError('InvalidDev')
-            if self.dconf.has_key('multiSession'):
+            if 'multiSession' in self.dconf:
                 # Force a manual bus refresh
                 for a in self.iscsi.adapter:
                     scsiutil.rescan([self.iscsi.adapter[a]])
             self._pathrefresh(OCFSoISCSISR)
             OCFSSR.OCFSSR.attach(self, sr_uuid)
-        except Exception, inst:
+        except Exception as inst:
             for i in self.iscsiSRs:
                 i.detach(sr_uuid)
             raise xs_errors.XenError("SRUnavailable", opterr=inst)
@@ -501,7 +502,7 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
     def probe(self):
         self.uuid = util.gen_uuid()
 
-        if self.mpath == 'true' and self.dconf.has_key('SCSIid'):
+        if self.mpath == 'true' and 'SCSIid' in self.dconf:
             # When multipathing is enabled, since we don't refcount the 
             # multipath maps, we should not attempt to do the iscsi.attach/
             # detach when the map is already present, as this will remove it 
@@ -535,7 +536,7 @@ class OCFSoISCSIVDI(OCFSSR.OCFSFileVDI):
         self.sr.dconf['multipathing'] = self.sr.mpath
         self.sr.dconf['multipathhandle'] = self.sr.mpathhandle
         dict['device_config'] = self.sr.dconf
-        if dict['device_config'].has_key('chappassword_secret'):
+        if 'chappassword_secret' in dict['device_config']:
             s = util.get_secret(self.session, dict['device_config']['chappassword_secret'])
             del dict['device_config']['chappassword_secret']
             dict['device_config']['chappassword'] = s

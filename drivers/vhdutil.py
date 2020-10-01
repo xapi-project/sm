@@ -144,7 +144,7 @@ def getAllVHDs(pattern, extractUuidFunction, vgName = None, \
         cmd.append("-a")
     try:
         ret = ioretry(cmd)
-    except Exception, e:
+    except Exception as e:
         util.SMlog("WARN: vhd scan failed: output: %s" % e)
         ret = ioretry(cmd + ["-c"])
         util.SMlog("WARN: vhd scan with NOFAIL flag, output: %s" % ret)

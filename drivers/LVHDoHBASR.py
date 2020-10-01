@@ -19,6 +19,7 @@
 # hardware based iSCSI
 #
 
+from __future__ import print_function
 import SR, LVHDSR, SRCommand, lvutil, HBASR
 import os
 import re
@@ -77,7 +78,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
                 pass
 
             try:
-                if not self.dconf.has_key('SCSIid') and self.dconf.has_key('device'):
+                if 'SCSIid' not in self.dconf and 'device' in self.dconf:
                     # UPGRADE FROM MIAMI: add SCSIid key to device_config
                     util.SMlog("Performing upgrade from Miami")
                     if not os.path.exists(self.dconf['device']):
@@ -86,7 +87,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
                     self.dconf['SCSIid'] = SCSIid
                     del self.dconf['device']
 
-                    if pbd <> None:
+                    if pbd != None:
                         device_config = self.session.xenapi.PBD.get_device_config(pbd)
                         device_config['SCSIid'] = SCSIid
                         device_config['upgraded_from_miami'] = 'true'
@@ -95,8 +96,8 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             except:
                 pass
 
-            if not self.dconf.has_key('SCSIid') or not self.dconf['SCSIid']:
-                print >>sys.stderr,self.hbasr.print_devs()
+            if 'SCSIid' not in self.dconf or not self.dconf['SCSIid']:
+                print(self.hbasr.print_devs(), file=sys.stderr)
                 raise xs_errors.XenError('ConfigSCSIid')
 
         self.SCSIid = self.dconf['SCSIid']
@@ -148,7 +149,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
         LVHDSR.LVHDSR.scan(self, sr_uuid)
 
     def probe(self):
-        if self.mpath == "true" and self.dconf.has_key('SCSIid'):
+        if self.mpath == "true" and 'SCSIid' in self.dconf:
 # When multipathing is enabled, since we don't refcount the multipath maps,
 # we should not attempt to do the iscsi.attach/detach when the map is already present,
 # as this will remove it (which may well be in use).

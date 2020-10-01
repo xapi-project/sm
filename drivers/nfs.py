@@ -68,7 +68,7 @@ def check_server_tcp(server, nfsversion=DEFAULT_NFSVERSION):
     try:
         sv = get_supported_nfs_versions(server)
         return (True if nfsversion in sv else False)
-    except util.CommandException, inst:
+    except util.CommandException as inst:
         raise NfsException("rpcinfo failed or timed out: return code %d" %
                            inst.code)
 
@@ -89,7 +89,7 @@ def check_server_service(server):
             for i in range(len(services)):
                 if services[i].find("nfs") > 0:
                     return True
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             if not int(inst.code) in errlist:
                 raise
 
@@ -126,7 +126,7 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
     try:
         if not util.ioretry(lambda: util.isdir(mountpoint)):
             util.ioretry(lambda: util.makedirs(mountpoint))
-    except util.CommandException, inst:
+    except util.CommandException as inst:
         raise NfsException("Failed to make directory: code is %d" %
                            inst.code)
 
@@ -136,7 +136,7 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
         if not check_server_service(remoteserver):
             raise util.CommandException(code=errno.EOPNOTSUPP,
                     reason="No NFS service on host")
-    except util.CommandException, inst: 
+    except util.CommandException as inst: 
         raise NfsException("Failed to detect NFS service on server %s" 
                            % remoteserver)
 
@@ -166,7 +166,7 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
                                  mountpoint, "-o", options]),
                      errlist=[errno.EPIPE, errno.EIO],
                      maxretry=2, nofail=True)
-    except util.CommandException, inst:
+    except util.CommandException as inst:
         raise NfsException("mount failed with return code %d" % inst.code)
 
 
@@ -174,13 +174,13 @@ def unmount(mountpoint, rmmountpoint):
     """Unmount the mounted mountpoint"""
     try:
         util.pread(["umount", mountpoint])
-    except util.CommandException, inst:
+    except util.CommandException as inst:
         raise NfsException("umount failed with return code %d" % inst.code)
 
     if rmmountpoint:
         try:
             os.rmdir(mountpoint)
-        except OSError, inst:
+        except OSError as inst:
             raise NfsException("rmdir failed with error '%s'" % inst.strerror)
 
 
@@ -236,7 +236,7 @@ def scan_srlist(path, dconf):
         subentry.appendChild(textnode)
 
     from NFSSR import PROBEVERSION
-    if dconf.has_key(PROBEVERSION):
+    if PROBEVERSION in dconf:
         util.SMlog("Add supported nfs versions to sr-probe")
         try:
             supported_versions = get_supported_nfs_versions(dconf.get('server'))
@@ -275,7 +275,7 @@ def get_supported_nfs_versions(server):
 def get_nfs_timeout(other_config):
     nfs_timeout = 100
 
-    if other_config.has_key('nfs-timeout'):
+    if 'nfs-timeout' in other_config:
         val = int(other_config['nfs-timeout'])
         if val < 1:
             util.SMlog("Invalid nfs-timeout value: %d" % val)
@@ -287,7 +287,7 @@ def get_nfs_timeout(other_config):
 def get_nfs_retrans(other_config):
     nfs_retrans = 3
 
-    if other_config.has_key('nfs-retrans'):
+    if 'nfs-retrans' in other_config:
         val = int(other_config['nfs-retrans']) 
         if val < 0:
             util.SMlog("Invalid nfs-retrans value: %d" % val)

@@ -17,6 +17,7 @@
 #
 # FileSR: local-file storage repository
 
+from __future__ import print_function
 import SR, SRCommand, FileSR, util
 import errno
 import os, sys
@@ -72,7 +73,7 @@ class NFSSR(FileSR.FileSR):
         self.lock = Lock(vhdutil.LOCK_TYPE_SR, self.uuid)
         self.sr_vditype = SR.DEFAULT_TAP
         self.driver_config = DRIVER_CONFIG
-        if not self.dconf.has_key('server'):
+        if 'server' not in self.dconf:
             raise xs_errors.XenError('ConfigServerMissing')
         self.remoteserver = self.dconf['server']
         self.nosubdir = False
@@ -83,14 +84,14 @@ class NFSSR(FileSR.FileSR):
             self.sm_config = self.srcmd.params.get('sr_sm_config') or {}
             self.other_config = self.srcmd.params.get('sr_other_config') or {}
         self.nosubdir = self.sm_config.get('nosubdir') == "true"
-        if self.dconf.has_key('serverpath'):
+        if 'serverpath' in self.dconf:
             self.remotepath = os.path.join(self.dconf['serverpath'],
                     not self.nosubdir and sr_uuid or "").encode('utf-8')
         self.path = os.path.join(SR.MOUNT_BASE, sr_uuid)
 
         # Handle optional dconf attributes
         self.transport = DEFAULT_TRANSPORT
-        if self.dconf.has_key('useUDP') and self.dconf['useUDP'] == 'true':
+        if 'useUDP' in self.dconf and self.dconf['useUDP'] == 'true':
             self.transport = "udp"
         self.nfsversion = nfs.validate_nfsversion(self.dconf.get('nfsversion'))
         if 'options' in self.dconf:
@@ -100,7 +101,7 @@ class NFSSR(FileSR.FileSR):
 
 
     def validate_remotepath(self, scan):
-        if not self.dconf.has_key('serverpath'):
+        if 'serverpath' not in self.dconf:
             if scan:
                 try:
                     self.scan_exports(self.dconf['server'])
@@ -113,13 +114,13 @@ class NFSSR(FileSR.FileSR):
 
     def check_server(self):
         try:
-            if self.dconf.has_key(PROBEVERSION):
+            if PROBEVERSION in self.dconf:
                 sv = nfs.get_supported_nfs_versions(self.remoteserver)
                 if len(sv):
                     self.nfsversion = sv[0]
             else:
                 nfs.check_server_tcp(self.remoteserver, self.nfsversion)
-        except nfs.NfsException, exc:
+        except nfs.NfsException as exc:
             raise xs_errors.XenError('NFSVersion',
                                      opterr=exc.errstr)
 
@@ -130,7 +131,7 @@ class NFSSR(FileSR.FileSR):
                     mountpoint, self.remoteserver, remotepath, self.transport,
                     useroptions=self.options, timeout=timeout,
                     nfsversion=self.nfsversion, retrans=retrans)
-        except nfs.NfsException, exc:
+        except nfs.NfsException as exc:
             raise xs_errors.XenError('NFSMount', opterr=exc.errstr)
 
 
@@ -188,7 +189,7 @@ class NFSSR(FileSR.FileSR):
 
         try:
             nfs.unmount(self.path, True)
-        except nfs.NfsException, exc:
+        except nfs.NfsException as exc:
             raise xs_errors.XenError('NFSUnMount', opterr=exc.errstr)
 
         self.attached = False
@@ -205,7 +206,7 @@ class NFSSR(FileSR.FileSR):
         self.remotepath = self.dconf['serverpath'].encode('utf-8')
         try:
             self.mount_remotepath(sr_uuid)
-        except Exception, exn:
+        except Exception as exn:
             try:
                 os.rmdir(self.path)
             except:
@@ -221,7 +222,7 @@ class NFSSR(FileSR.FileSR):
             else:
                 try:
                     util.ioretry(lambda: util.makedirs(newpath))
-                except util.CommandException, inst:
+                except util.CommandException as inst:
                     if inst.code != errno.EEXIST:
                         self.detach(sr_uuid)
                         raise xs_errors.XenError('NFSCreate',
@@ -245,7 +246,7 @@ class NFSSR(FileSR.FileSR):
                 if util.ioretry(lambda: util.pathexists(newpath)):
                     util.ioretry(lambda: os.rmdir(newpath))
             self.detach(sr_uuid)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             self.detach(sr_uuid)
             if inst.code != errno.ENOENT:
                 raise xs_errors.XenError('NFSDelete')
@@ -258,7 +259,7 @@ class NFSSR(FileSR.FileSR):
     def scan_exports(self, target):
         util.SMlog("scanning2 (target=%s)" % target)
         dom = nfs.scan_exports(target)
-        print >>sys.stderr,dom.toprettyxml()
+        print(dom.toprettyxml(), file=sys.stderr)
 
 class NFSFileVDI(FileSR.FileVDI):
     def attach(self, sr_uuid, vdi_uuid):

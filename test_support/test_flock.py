@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 from flock import WriteLock, ReadLock
 
 #
@@ -68,7 +69,7 @@ def test_interface():
     # Attempt to re-lock should throw
     try:
         lock.lock()
-    except AssertionError, e:
+    except AssertionError as e:
         if str(e) != WriteLock.ERROR_ISLOCKED:
             raise
     else:
@@ -89,7 +90,7 @@ def test_interface():
     # Attempt to re-unlock should throw.
     try:
         lock.unlock()
-    except AssertionError, e:
+    except AssertionError as e:
         if str(e) != WriteLock.ERROR_NOTLOCKED:
             raise
     else:
@@ -148,8 +149,8 @@ def test_rwlocking():
 
 
 if __name__ == "__main__":
-    print >>sys.stderr, "Running basic interface tests..."
+    print("Running basic interface tests...", file=sys.stderr)
     test_interface()
-    print >>sys.stderr, "Running RW-locking stuff not clear from the manpages..."
+    print("Running RW-locking stuff not clear from the manpages...", file=sys.stderr)
     test_rwlocking()
-    print >>sys.stderr, "OK."
+    print("OK.", file=sys.stderr)

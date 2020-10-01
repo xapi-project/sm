@@ -1,3 +1,4 @@
+from __future__ import print_function
 import errno
 import json
 from StringIO import StringIO
@@ -105,7 +106,7 @@ class TestVDI(unittest.TestCase):
         log_patcher = mock.patch('blktap2.util.SMlog', autospec=True)
         self.mock_log = log_patcher.start()
         def log_stderr(message, ident="SM", priority=syslog.LOG_INFO):
-            print >> sys.stderr, message
+            print(message, file=sys.stderr)
         self.mock_log.side_effect = log_stderr
 
         sm_vdi_patcher = mock.patch('blktap2.sm')
@@ -306,7 +307,7 @@ class TestTapCtl(unittest.TestCase):
         self.addCleanup(mock.patch.stopall)
 
     def log(self, message):
-        print message
+        print(message)
 
     def test_list_no_args(self):
         """

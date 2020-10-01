@@ -98,14 +98,14 @@ class DummySR(SR.SR):
             x.utilisation = v['physical_utilisation']
             self.vdis[x.uuid] = x
         
-        self.physical_size = 2000000000000L
-        self.physical_utilisation = 0L
-        self.virtual_allocation = 0L
+        self.physical_size = 2000000000000
+        self.physical_utilisation = 0
+        self.virtual_allocation = 0
         return super(DummySR, self).scan(sr_uuid)
 
     def _assertValues(self, vals):
         for attr in vals:
-            assert(self.srcmd.params.has_key(attr))
+            assert(attr in self.srcmd.params)
             util.SMlog("%s param %s: [%s]" % (self.cmd,attr,self.srcmd.params[attr]))
             
         # Iterate through the device_config dictionary

@@ -16,6 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 """Communication for processes"""
+from __future__ import print_function
 
 import os
 import util
@@ -61,13 +62,13 @@ class IPCFlag:
             f.close()
             util.SMlog("IPCFlag: set %s:%s" % (self.ns, name))
             return True
-        except OSError, e:
+        except OSError as e:
             if e.errno == errno.EEXIST and soft:
                 return False
             else:
                 raise IPCFlagException("failed to create %s: %s" \
                         % (flagFile, e))
-        except IOError, e:
+        except IOError as e:
             raise IPCFlagException("failed to create %s: %s" % (flagFile, e))
 
     def test(self, name):
@@ -110,7 +111,7 @@ def _runTests():
     assert not flag.test("X")
     assert not flag.test("Y")
     assert not flag.test("Z")
-    print "All tests passed"
+    print("All tests passed")
 
 if __name__ == '__main__':
     _runTests()

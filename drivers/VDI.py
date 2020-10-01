@@ -79,7 +79,7 @@ class VDI(object):
         self.sr = sr
         # Don't set either the UUID or location to None- no good can
         # ever come of this.
-        if uuid <> None:
+        if uuid != None:
             self.uuid = uuid
             self.location = uuid
             self.path = None
@@ -406,7 +406,7 @@ class VDI(object):
     def activate(self, sr_uuid, vdi_uuid):
         """Activate VDI - called pre tapdisk open"""
         if self._get_blocktracking_status():
-            if self.sr.srcmd.params.has_key('args'):
+            if 'args' in self.sr.srcmd.params:
                 read_write = self.sr.srcmd.params['args'][0]
                 if read_write == "false":
                     # Disk is being attached in RO mode, 
@@ -474,7 +474,7 @@ class VDI(object):
     def _db_introduce(self):
         uuid = util.default(self, "uuid", lambda: util.gen_uuid())
         sm_config = util.default(self, "sm_config", lambda: {})
-        if self.sr.srcmd.params.has_key("vdi_sm_config"):
+        if "vdi_sm_config" in self.sr.srcmd.params:
             for key in SM_CONFIG_PASS_THROUGH_FIELDS:
                 val = self.sr.srcmd.params["vdi_sm_config"].get(key)
                 if val:
@@ -499,7 +499,7 @@ class VDI(object):
                 util.SMlog("_override_sm_config: %s: %s -> %s" % \
                         (key, sm_config.get(key), val))
                 sm_config[key] = val
-            elif sm_config.has_key(key):
+            elif key in sm_config:
                 util.SMlog("_override_sm_config: del %s" % key)
                 del sm_config[key]
 
@@ -539,24 +539,24 @@ class VDI(object):
 
     def in_sync_with_xenapi_record(self, x):
         """Returns true if this VDI is in sync with the supplied XenAPI record"""
-        if self.location <> util.to_plain_string(x['location']):
+        if self.location != util.to_plain_string(x['location']):
             util.SMlog("location %s <> %s" % (self.location, x['location']))
             return False
-        if self.read_only <> x['read_only']:
+        if self.read_only != x['read_only']:
             util.SMlog("read_only %s <> %s" % (self.read_only, x['read_only']))
             return False
-        if str(self.size) <> x['virtual_size']:
+        if str(self.size) != x['virtual_size']:
             util.SMlog("virtual_size %s <> %s" % (self.size, x['virtual_size']))
             return False
-        if str(self.utilisation) <> x['physical_utilisation']:
+        if str(self.utilisation) != x['physical_utilisation']:
             util.SMlog("utilisation %s <> %s" % (self.utilisation, x['physical_utilisation']))
             return False
         sm_config = util.default(self, "sm_config", lambda: {})
-        if set(sm_config.keys()) <> set(x['sm_config'].keys()):
+        if set(sm_config.keys()) != set(x['sm_config'].keys()):
             util.SMlog("sm_config %s <> %s" % (repr(sm_config), repr(x['sm_config'])))
             return False
         for k in sm_config.keys():
-            if sm_config[k] <> x['sm_config'][k]:
+            if sm_config[k] != x['sm_config'][k]:
                 util.SMlog("sm_config %s <> %s" % (repr(sm_config), repr(x['sm_config'])))
                 return False
         if self.cbt_enabled != x['cbt_enabled']:

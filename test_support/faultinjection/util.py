@@ -92,7 +92,7 @@ def listdir(path):
     cmd = ["ls", path, "-1", "--color=never"]
     try:
         text = pread2(cmd).split('\n')
-    except CommandException, inst:
+    except CommandException as inst:
         if inst.code == errno.ENOENT:
             raise CommandException(errno.EIO)
         else:
@@ -182,7 +182,7 @@ def ioretry(f, errlist=[errno.EIO], maxretry=IORETRY_MAX, \
                 syslog.syslog("FITrace: ioretry reset: ALLOW all packets")
                 time.sleep(iosleep)
             return value
-        except OSError, inst:
+        except OSError as inst:
             for etest in errlist:
                 if int(inst.errno) == etest:
                     retries += 1
@@ -204,7 +204,7 @@ def ioretry(f, errlist=[errno.EIO], maxretry=IORETRY_MAX, \
                     syslog.syslog("FITrace: ioretry reset: ALLOW all packets")
                     time.sleep(iosleep)
                 raise CommandException(inst.errno)
-        except CommandException, inst:
+        except CommandException as inst:
             for etest in errlist:
                 if int(inst.code) == etest:
                     retries += 1
@@ -312,7 +312,7 @@ def pathexists(path):
     try:
         os.stat(path)
         return True
-    except OSError, inst:
+    except OSError as inst:
         if inst.errno == errno.EIO:
             raise CommandException(errno.EIO)
         return False
@@ -321,7 +321,7 @@ def isdir(path):
     try:
         st = os.stat(path)
         return stat.S_ISDIR(st.st_mode)
-    except OSError, inst:
+    except OSError as inst:
         if inst.errno == errno.EIO:
             raise CommandException(errno.EIO)
         return False
@@ -331,7 +331,7 @@ def ismount(path):
     try:
         s1 = os.stat(path)
         s2 = os.stat(os.path.join(path, '..'))
-    except OSError, inst:
+    except OSError as inst:
         if inst.errno == errno.EIO:
             raise CommandException(errno.EIO)
     dev1 = s1.st_dev
@@ -344,7 +344,7 @@ def ismount(path):
         return True     # path/.. is the same i-node as path
     return False
 
-def makedirs(name, mode=0777):
+def makedirs(name, mode=0o777):
     head, tail = os.path.split(name)
     if not tail:
         head, tail = os.path.split(head)

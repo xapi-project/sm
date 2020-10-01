@@ -18,6 +18,7 @@
 # LVHDoFCoESR: LVHD over Fibre Channel over Ethernet driver
 #
 
+from __future__ import print_function
 import SR
 import LVHDoHBASR
 import LVHDSR
@@ -78,8 +79,8 @@ class LVHDoFCoESR(LVHDoHBASR.LVHDoHBASR):
         except:
             pass
 
-        if not self.dconf.has_key('SCSIid') or not self.dconf['SCSIid']:
-            print >>sys.stderr, self.hbasr.print_devs()
+        if 'SCSIid' not in self.dconf or not self.dconf['SCSIid']:
+            print(self.hbasr.print_devs(), file=sys.stderr)
             raise xs_errors.XenError('ConfigSCSIid')
 
         self.SCSIid = self.dconf['SCSIid']

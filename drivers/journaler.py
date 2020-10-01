@@ -17,6 +17,7 @@
 #
 # LVM-based journaling
 
+from __future__ import print_function
 import util
 from srmetadata import open_file, close, get_min_blk_size_wrapper, \
     file_read_wrapper, file_write_wrapper
@@ -69,13 +70,13 @@ class Journaler:
                     min_block_size = get_min_blk_size_wrapper(fd)
                     data = "%d %s" % (len(val), val)
                     file_write_wrapper(fd, 0, min_block_size, data, len(data))
-                except Exception, e:
+                except Exception as e:
                     raise
                 finally:
                     try:
                         close(fd)
                         self.lvmCache.deactivateNoRefcount(lvName)
-                    except Exception, e2:
+                    except Exception as e2:
                         msg = 'failed to close/deactivate %s: %s' \
                                 % (lvName, e2)
                         if not e:
@@ -88,7 +89,7 @@ class Journaler:
                 util.logException("journaler.create")
                 try:
                     self.lvmCache.remove(lvName)
-                except Exception, e:
+                except Exception as e:
                     util.SMlog('WARNING: failed to clean up failed journal ' \
                             ' creation: %s (error ignored)' % e)
                 raise JournalerException("Failed to write to journal %s" \
@@ -179,57 +180,57 @@ import lvmcache
 
 def _runTests(vgName):
     """Unit testing"""
-    print "Running unit tests..."
+    print("Running unit tests...")
     if not vgName:
-        print "Error: missing VG name param"
+        print("Error: missing VG name param")
         return 1
     if not lvutil._checkVG(vgName):
-        print "Error: VG %s not found" % vgName
+        print("Error: VG %s not found" % vgName)
         return 1
 
     j = Journaler(lvmcache.LVMCache(vgName))
     if j.get("clone", "1"):
-        print "get non-existing failed"
+        print("get non-existing failed")
         return 1
     j.create("clone", "1", "a")
     val = j.get("clone", "1")
     if val != "a":
-        print "create-get failed"
+        print("create-get failed")
         return 1
     j.remove("clone", "1")
     if j.get("clone", "1"):
-        print "remove failed"
+        print("remove failed")
         return 1
     j.create("modify", "X", "831_3")
     j.create("modify", "Z", "831_4")
     j.create("modify", "Y", "53_0")
     val = j.get("modify", "X")
     if val != "831_3":
-        print "create underscore_val failed"
+        print("create underscore_val failed")
         return 1
     val = j.get("modify", "Y")
     if val != "53_0":
-        print "create multiple id's failed"
+        print("create multiple id's failed")
         return 1
     entries = j.getAll("modify")
     if not entries.get("X") or not entries.get("Y") or \
             entries["X"] != "831_3"  or entries["Y"] != "53_0":
-        print "getAll failed: %s" % entries
+        print("getAll failed: %s" % entries)
         return 1
     j.remove("modify", "X")
     val = j.getAll("modify")
     if val.get("X") or not val.get("Y") or val["Y"] != "53_0":
-        print "remove(X) failed"
+        print("remove(X) failed")
         return 1
     j.remove("modify", "Y")
     j.remove("modify", "Z")
     if j.get("modify", "Y"):
-        print "remove(Y) failed"
+        print("remove(Y) failed")
         return 1
     if j.get("modify", "Z"):
-        print "remove(Z) failed"
+        print("remove(Z) failed")
         return 1
-    print "All tests passed"
+    print("All tests passed")
     return 0
 
 if __name__ == '__main__':

@@ -78,13 +78,13 @@ def open_file(path, write = False):
     if write:
         try:
             file_p = os.open(path, os.O_RDWR )
-        except OSError, e:
+        except OSError as e:
             raise OSError("Failed to open file %s for read-write. Error: %s" % \
                           (path, (e.errno)))
     else:
         try:
             file_p = os.open(path, os.O_RDONLY)
-        except OSError, e:
+        except OSError as e:
             raise OSError("Failed to open file %s for read. Error: %s" % \
                           (path, (e.errno)))
     return file_p
@@ -96,7 +96,7 @@ def file_write_wrapper(fd, offset, blocksize, data, length):
             newlength = length + (blocksize - length % blocksize)
         os.lseek(fd, offset, os.SEEK_SET)
         result = os.write(fd, data + ' ' * (newlength - length))
-    except OSError, e:
+    except OSError as e:
         raise OSError("Failed to write file with params %s. Error: %s" % \
                           ([fd, offset, blocksize, data, length], \
                             (e.errno)))
@@ -106,7 +106,7 @@ def file_read_wrapper(fd, offset, bytesToRead, min_block_size):
     try:
         os.lseek(fd, offset, os.SEEK_SET)
         result = os.read(fd, bytesToRead)
-    except OSError, e:
+    except OSError as e:
         raise OSError("Failed to read file with params %s. Error: %s" % \
                           ([fd, offset, min_block_size, bytesToRead], \
                             (e.errno)))
@@ -181,7 +181,7 @@ def updateLengthInHeader(fd, length, major = metadata.MD_MAJOR, \
         
         # Now write the new length
         file_write_wrapper(fd, 0, min_block_size, updated_md, len(updated_md))
-    except Exception, e:
+    except Exception as e:
         util.SMlog("Exception updating metadata length with length: %d." 
                    "Error: %s" % (length, str(e)))
         raise
@@ -194,7 +194,7 @@ def getMetadataLength(fd):
         hdr = unpackHeader(sector1)
         len = int(hdr[1])
         return len
-    except Exception, e:
+    except Exception as e:
         util.SMlog("Exception getting metadata length: "
                    "Error: %s" % str(e))
         raise
@@ -209,7 +209,7 @@ def requiresUpgrade(path):
     try:
         if metadata.requiresUpgrade(path):
             pre_boston_upgrade = True
-    except Exception, e:
+    except Exception as e:
         util.SMlog("This looks like a 6.0 or later pool, try checking " \
                    "for upgrade using the new metadata header format. " \
                     "Error: %s" % str(e))
@@ -231,7 +231,7 @@ def requiresUpgrade(path):
             elif mdmajor == metadata.MD_MAJOR and mdminor < metadata.MD_MINOR:
                 boston_upgrade = True
            
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Exception checking header version, upgrading metadata."\
                        " Error: %s" % str(e))
             return True
@@ -273,7 +273,7 @@ class MetadataHandler:
                 # Maybe there is no metadata yet
                 pass
             
-        except Exception, e:
+        except Exception as e:
             util.SMlog('Exception getting metadata. Error: %s' % str(e))
             raise xs_errors.XenError('MetadataError', \
                          opterr='%s' % str(e))
@@ -283,7 +283,7 @@ class MetadataHandler:
     def writeMetadata(self, sr_info, vdi_info):
         try:
             self.writeMetadataInternal(sr_info, vdi_info)
-        except Exception, e:
+        except Exception as e:
             util.SMlog('Exception writing metadata. Error: %s' % str(e))
             raise xs_errors.XenError('MetadataError', \
                          opterr='%s' % str(e))
@@ -298,7 +298,7 @@ class MetadataHandler:
                         return vdi_info[offset][UUID_TAG]
             
             return None
-        except Exception, e:
+        except Exception as e:
             util.SMlog('Exception checking if SR metadata a metadata VDI.'\
                        'Error: %s' % str(e))
             raise xs_errors.XenError('MetadataError', \
@@ -333,7 +333,7 @@ class MetadataHandler:
                 self.updateSR(update_map)
             elif objtype == METADATA_OBJECT_TYPE_VDI: 
                 self.updateVdi(update_map)
-        except Exception, e:
+        except Exception as e:
             util.SMlog('Error updating Metadata Volume with update' \
                          'map: %s. Error: %s' % (update_map, str(e)))
             raise xs_errors.XenError('MetadataError', \
@@ -343,7 +343,7 @@ class MetadataHandler:
         util.SMlog("Deleting vdi: %s" % vdi_uuid)
         try:
             self.deleteVdi(vdi_uuid)
-        except Exception, e:
+        except Exception as e:
             util.SMlog('Error deleting vdi %s from the metadata. '\
                 'Error: %s' % (vdi_uuid, str(e)))
             raise xs_errors.XenError('MetadataError', \
@@ -353,7 +353,7 @@ class MetadataHandler:
         util.SMlog("Adding VDI with info: %s" % vdi_info)
         try:
             self.addVdiInternal(vdi_info)
-        except Exception, e:
+        except Exception as e:
             util.SMlog('Error adding VDI to Metadata Volume with '\
                 'update map: %s. Error: %s' % (vdi_info, str(e)))
             raise xs_errors.XenError('MetadataError', \
@@ -364,7 +364,7 @@ class MetadataHandler:
                    count)
         try:
             self.spaceAvailableForVdis(count)
-        except Exception, e:
+        except Exception as e:
             raise xs_errors.XenError('MetadataError', \
                 opterr='%s' % str(e))
         
@@ -373,7 +373,7 @@ class MetadataHandler:
         util.SMlog("Entering deleteVdi")
         try:
             md = self.getMetadataInternal({'vdi_uuid': vdi_uuid})
-            if not md.has_key('offset'):
+            if 'offset' not in md:
                 util.SMlog("Metadata for VDI %s not present, or already removed, " \
                     "no further deletion action required." % vdi_uuid)
                 return
@@ -389,7 +389,7 @@ class MetadataHandler:
                                     self.VDI_INFO_SIZE_IN_SECTORS * SECTOR_SIZE))
             except:
                 raise
-        except Exception, e:
+        except Exception as e:
             raise Exception("VDI delete operation failed for "\
                                 "parameters: %s, %s. Error: %s" % \
                                 (self.path, vdi_uuid, str(e)))
@@ -398,7 +398,7 @@ class MetadataHandler:
     def generateVDIsForRange(self, vdi_info, lower, upper, update_map = {}, \
                              offset = 0):
         value = ''
-        if not len(vdi_info.keys()) or not vdi_info.has_key(offset):
+        if not len(vdi_info.keys()) or offset not in vdi_info:
             return self.getVdiInfo(update_map)
             
         for vdi_offset in vdi_info.keys():
@@ -428,13 +428,13 @@ class MetadataHandler:
             min_block_size = get_min_blk_size_wrapper(self.fd)
             mdlength = getMetadataLength(self.fd)
             md = self.getMetadataInternal({'firstDeleted': 1, 'includeDeletedVdis': 1})
-            if not md.has_key('foundDeleted'):
+            if 'foundDeleted' not in md:
                 md['offset'] = mdlength
                 (md['lower'], md['upper']) = \
                     getBlockAlignedRange(min_block_size, mdlength, \
                                         SECTOR_SIZE * self.VDI_INFO_SIZE_IN_SECTORS)
             # If this has created a new VDI, update metadata length 
-            if md.has_key('foundDeleted'):
+            if 'foundDeleted' in md:
                 value = self.getMetadataToWrite(md['sr_info'], md['vdi_info'], \
                         md['lower'], md['upper'], Dict, md['offset'])
             else:
@@ -444,13 +444,13 @@ class MetadataHandler:
             file_write_wrapper(self.fd, md['lower'], min_block_size, \
                                   value, len(value))
             
-            if md.has_key('foundDeleted'):
+            if 'foundDeleted' in md:
                 updateLengthInHeader(self.fd, mdlength)
             else:
                 updateLengthInHeader(self.fd, mdlength + \
                         SECTOR_SIZE * self.VDI_INFO_SIZE_IN_SECTORS)
             return True
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Exception adding vdi with info: %s. Error: %s" % \
                        (Dict, str(e)))
             raise
@@ -490,7 +490,7 @@ class MetadataHandler:
             retmap['sr_info'] = metadata._parseXML(parsable_metadata)
             
             # At this point we check if an offset has been passed in
-            if params.has_key('offset'):
+            if 'offset' in params:
                 upper = getBlockAlignedRange(min_blk_size, params['offset'], \
                                              0)[1]
             else:
@@ -507,24 +507,24 @@ class MetadataHandler:
                 vdi_info_map = metadata._parseXML(parsable_metadata)[VDI_TAG]
                 vdi_info_map[OFFSET_TAG] = offset
                 
-                if not params.has_key('includeDeletedVdis') and \
+                if 'includeDeletedVdis' not in params and \
                     vdi_info_map[VDI_DELETED_TAG] == '1':
                     offset += SECTOR_SIZE * self.VDI_INFO_SIZE_IN_SECTORS
                     continue
                 
-                if params.has_key('indexByUuid'):
+                if 'indexByUuid' in params:
                     ret_vdi_info[vdi_info_map[UUID_TAG]] = vdi_info_map
                 else:
                     ret_vdi_info[offset] = vdi_info_map
 
-                if params.has_key('vdi_uuid'):
+                if 'vdi_uuid' in params:
                     if vdi_info_map[UUID_TAG] == params['vdi_uuid']:
                         retmap['offset'] = offset
                         (lower, upper) = \
                             getBlockAlignedRange(min_blk_size, offset, \
                                         SECTOR_SIZE * self.VDI_INFO_SIZE_IN_SECTORS)
                     
-                elif params.has_key('firstDeleted'):
+                elif 'firstDeleted' in params:
                     if vdi_info_map[VDI_DELETED_TAG] == '1':
                         retmap['foundDeleted'] = 1
                         retmap['offset'] = offset
@@ -538,7 +538,7 @@ class MetadataHandler:
             retmap['upper'] = upper
             retmap['vdi_info'] = ret_vdi_info
             return retmap
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Exception getting metadata with params" \
                     "%s. Error: %s" % (params, str(e)))
             raise
@@ -600,7 +600,7 @@ class MetadataHandler:
                         md['lower'], md['upper'], Dict, md['offset'])
             file_write_wrapper(self.fd, md['lower'], min_block_size, value, len(value))
             return True
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Exception updating vdi with info: %s. Error: %s" % \
                        (Dict, str(e)))
             raise
@@ -622,7 +622,7 @@ class MetadataHandler:
             file_write_wrapper(self.fd, 0, min_block_size, md, len(md))
             updateLengthInHeader(self.fd, len(md))
            
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Exception writing metadata with info: %s, %s. "\
                        "Error: %s" % (sr_info, vdi_info, str(e)))
             raise
@@ -653,7 +653,7 @@ class MetadataHandler:
                 value += self.generateVDIsForRange(vdi_info, lower, upper, \
                                               update_map, offset)
             return value
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Exception generating metadata to write with info: "\
                        "sr_info: %s, vdi_info: %s, lower: %d, upper: %d, "\
                        "update_map: %s, offset: %d. Error: %s" % \
@@ -696,7 +696,7 @@ class LVMMetadataHandler(MetadataHandler):
                 }
        
                 created = self.addVdiInternal(vdi_info)
-            except IOError, e:
+            except IOError as e:
                 raise      
         finally:
             if created:
@@ -752,7 +752,7 @@ class LVMMetadataHandler(MetadataHandler):
             if generateSector == 2 or generateSector == 0:
                 sector2 = ''
                 
-                if not Dict.has_key(VDI_DELETED_TAG):
+                if VDI_DELETED_TAG not in Dict:
                     Dict.update({VDI_DELETED_TAG:'0'})
                 
                 for tag in Dict.keys():
@@ -764,7 +764,7 @@ class LVMMetadataHandler(MetadataHandler):
                 vdi_info += getSector(sector2)
             return vdi_info
        
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Exception generating vdi info: %s. Error: %s" % \
                        (Dict, str(e)))
             raise
@@ -798,7 +798,7 @@ class LVMMetadataHandler(MetadataHandler):
             
             return srinfo
         
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Exception getting SR info with parameters: sr_info: %s," \
                        "range: %s. Error: %s" % (sr_info, range, str(e)))
             raise
@@ -832,7 +832,7 @@ class SLMetadataHandler(MetadataHandler):
                 }
        
                 created = self.addVdiInternal(vdi_info)
-            except IOError, e:
+            except IOError as e:
                 raise      
         finally:
             if created:
@@ -888,7 +888,7 @@ class SLMetadataHandler(MetadataHandler):
             if generateSector == 2 or generateSector == 0:
                 sector2 = ''
                 
-                if not Dict.has_key(VDI_DELETED_TAG):
+                if VDI_DELETED_TAG not in Dict:
                     Dict.update({VDI_DELETED_TAG:'0'})
                 
                 for tag in Dict.keys():
@@ -900,7 +900,7 @@ class SLMetadataHandler(MetadataHandler):
                 vdi_info += getSector(sector2)
             return vdi_info
        
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Exception generating vdi info: %s. Error: %s" % \
                        (Dict, str(e)))
             raise
@@ -932,7 +932,7 @@ class SLMetadataHandler(MetadataHandler):
             
             return srinfo
         
-        except Exception, e:
+        except Exception as e:
             util.SMlog("Exception getting SR info with parameters: sr_info: %s," \
                        "range: %s. Error: %s" % (sr_info, range, str(e)))
             raise

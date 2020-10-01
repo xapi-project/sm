@@ -57,7 +57,7 @@ class OCFSSR(FileSR.FileSR):
 
 
     def load(self, sr_uuid):
-        if not self.dconf.has_key('device') or not self.dconf['device']:
+        if 'device' not in self.dconf or not self.dconf['device']:
             raise xs_errors.XenError('ConfigDeviceMissing',)
         self.blockdevice = self.dconf['device']
         if not self._isvalidpathstring(self.blockdevice):
@@ -65,7 +65,7 @@ class OCFSSR(FileSR.FileSR):
                     opterr='path is %s' % self.blockdevice)
 
         self.isMaster = False
-        if self.dconf.has_key('SRmaster') and self.dconf['SRmaster'] == 'true':
+        if 'SRmaster' in self.dconf and self.dconf['SRmaster'] == 'true':
             self.isMaster = True
 
         self.uuid = sr_uuid
@@ -88,7 +88,7 @@ class OCFSSR(FileSR.FileSR):
                'noatime,data=writeback,nointr,commit=60,coherency=buffered']
         try:
              ret = util.pread(cmd)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
              raise xs_errors.XenError('OCFSMount', 
                                       opterr='Failed to mount FS. Errno is %d' \
                                              % os.strerror(inst.code))
@@ -117,7 +117,7 @@ class OCFSSR(FileSR.FileSR):
         cmd = ['umount', self.path ]
         try:
              ret = util.pread(cmd)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
                 raise xs_errors.XenError('OCFSUnMount', \
                       opterr='Failed to umount FS. Errno is %d' % \
                       os.strerror(inst.code))
@@ -131,7 +131,7 @@ class OCFSSR(FileSR.FileSR):
         cmd = ['mkfs', '-t', 'ocfs2', '-b', '4K', '-C', '1M', '-N', '16', '-F', self.blockdevice ]
         try:
             ret = util.pread(cmd)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             raise xs_errors.XenError('OCFSFilesystem', \
                   opterr='mkfs failed error %d' % os.strerror(inst.code))
 

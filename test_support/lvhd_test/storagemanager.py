@@ -440,7 +440,7 @@ class StorageManager:
         return self._onMaster(plugin, fn, args)
 
     def _getVBDLetter(self, vbd):
-        if self.usedVBDLetters.has_key(vbd):
+        if vbd in self.usedVBDLetters:
             return self.usedVBDLetters[vbd]
         else:
             return None
@@ -701,7 +701,7 @@ class StorageManagerCLI(StorageManager):
             try:
                 stdout = tutil.execCmd(cmd, 0, self.logger, LOG_LEVEL_CMD)
                 break
-            except tutil.CommandException, inst:
+            except tutil.CommandException as inst:
                 if str(inst).find("VDI_IN_USE") != -1:
                     self.logger.log("Command failed, retrying", LOG_LEVEL_CMD)
                     time.sleep(CMD_RETRY_PERIOD)
@@ -723,7 +723,7 @@ class StorageManagerCLI(StorageManager):
             try:
                 stdout = tutil.execCmd(cmd, 0, self.logger, LOG_LEVEL_CMD)
                 break
-            except tutil.CommandException, inst:
+            except tutil.CommandException as inst:
                 if str(inst).find("VDI_IN_USE") != -1:
                     self.logger.log("Command failed, retrying", LOG_LEVEL_CMD)
                     time.sleep(CMD_RETRY_PERIOD)
@@ -787,7 +787,7 @@ class StorageManagerCLI(StorageManager):
         cmd = "xe vbd-unplug uuid=%s" % vbd
         try:
             tutil.execCmd(cmd, 0, self.logger, LOG_LEVEL_CMD)
-        except tutil.CommandException, inst:
+        except tutil.CommandException as inst:
             if str(inst).find("device is not currently attached") == -1:
                 raise
 

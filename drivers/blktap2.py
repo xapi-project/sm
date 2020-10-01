@@ -19,6 +19,7 @@
 #
 
 
+from __future__ import print_function
 import os
 import sys
 import re
@@ -29,6 +30,7 @@ import util
 import xmlrpclib
 import httplib
 import errno
+import signal
 import subprocess
 import syslog as _syslog
 import glob
@@ -83,7 +85,7 @@ def locking(excType, override=True):
             try:
                 try:
                     ret = op(self, *args)
-                except (util.CommandException, util.SMException, XenAPI.Failure), e:
+                except (util.CommandException, util.SMException, XenAPI.Failure) as e:
                     util.logException("BLKTAP2:%s" % op)
                     msg = str(e)
                     if isinstance(e, util.CommandException):
@@ -119,7 +121,7 @@ class RetryLoop(object):
                 try:
                     return f(*__t, **__d)
 
-                except self.TransientFailure, e:
+                except self.TransientFailure as e:
                     e = e.exception
 
                     if attempt >= self.limit: raise e
@@ -160,7 +162,7 @@ class TapCtl(object):
         # Trying to get a non-existent attribute throws an AttributeError
         # exception
         def __getattr__(self, key):
-            if self.info.has_key(key): return self.info[key]
+            if key in self.info: return self.info[key]
             return object.__getattribute__(self, key)
 
         @property
@@ -175,7 +177,7 @@ class TapCtl(object):
         # was not supplied at object-construction time, zero is returned.
         def get_error_code(self):
             key = 'status'
-            if self.info.has_key(key):
+            if key in self.info:
                 return self.info[key]
             else:                
                 return 0
@@ -213,7 +215,7 @@ class TapCtl(object):
             if input:
                 p.stdin.write(input)
                 p.stdin.close()
-        except OSError, e:
+        except OSError as e:
             raise cls.CommandFailure(cmd, errno=e.errno)
 
         return cls(cmd, p)
@@ -276,7 +278,7 @@ class TapCtl(object):
             if line == "blktap kernel module not installed\n":
                 # This isn't pretty but (a) neither is confusing stdout/stderr
                 # and at least causes the error to describe the fix
-                raise Exception, "blktap kernel module not installed: try 'modprobe blktap'"
+                raise Exception("blktap kernel module not installed: try 'modprobe blktap'")
             row = {}
 
             for field in line.rstrip().split(' ', 3):
@@ -309,7 +311,7 @@ class TapCtl(object):
         try:
             return list(cls.__list(**args))
 
-        except cls.CommandFailure, e:
+        except cls.CommandFailure as e:
             transient = [ errno.EPROTO, errno.ENOENT ]
             if e.has_status and e.status in transient:
                 raise RetryLoop.TransientFailure(e)
@@ -415,6 +417,12 @@ class TapCtl(object):
         cls._pread(args)
 
     @classmethod
+    def shutdown(cls, pid):
+        # TODO: This should be a real tap-ctl command
+        os.kill(pid, signal.SIGTERM)
+        os.waitpid(pid, 0)
+
+    @classmethod
     def stats(cls, pid, minor):
         args = [ "stats", "-p", pid, "-m", minor ]
         return cls._pread(args, quiet = True)
@@ -478,7 +486,7 @@ class TapdiskInvalidState(Exception):
     def __str__(self):
         return str(self.tapdisk)
 
-def mkdirs(path, mode=0777):
+def mkdirs(path, mode=0o777):
     if not os.path.exists(path):
         parent, subdir = os.path.split(path)
         assert parent != path
@@ -487,7 +495,7 @@ def mkdirs(path, mode=0777):
                 mkdirs(parent, mode)
             if subdir:
                 os.mkdir(path, mode)
-        except OSError, e:
+        except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
 
@@ -521,7 +529,7 @@ class Attribute(object):
     def _open(self, mode='r'):
         try:
             return file(self.path, mode)
-        except IOError, e:
+        except IOError as e:
             if e.errno == errno.ENOENT:
                 raise self.NoSuchAttribute(self)
             raise
@@ -813,16 +821,10 @@ class Tapdisk(object):
                     raise
 
             except:
-                exc_info = sys.exc_info()
-                # FIXME: Should be tap-ctl shutdown.
-                try:
-                    import signal
-                    os.kill(pid, signal.SIGTERM)
-                    os.waitpid(pid, 0)
-                finally:
-                    raise exc_info[0], exc_info[1], exc_info[2]
+                TapCtl.shutdown(pid)
+                raise
 
-        except TapCtl.CommandFailure, ctl:
+        except TapCtl.CommandFailure as ctl:
             util.logException(ctl)
             if ('/dev/xapi/cd/' in path and
                     'status' in ctl.info and
@@ -938,8 +940,7 @@ class Tapdisk(object):
         pattern = re.compile(regex)
         groups  = pattern.search(devpath)
         if not groups:
-            raise Exception, \
-                "malformed tap device: '%s' (%s) " % (devpath, regex)
+            raise Exception("malformed tap device: '%s' (%s) " % (devpath, regex))
 
         minor = groups.group(2)
         return int(minor)
@@ -1184,7 +1185,7 @@ class VDI(object):
             mkdirs(os.path.dirname(path))
             try:
                 self._mklink(target)
-            except OSError, e:
+            except OSError as e:
                 # We do unlink during teardown, but have to stay
                 # idempotent. However, a *wrong* target should never
                 # be seen.
@@ -1194,7 +1195,7 @@ class VDI(object):
         def unlink(self):
             try:
                 os.unlink(self.path())
-            except OSError, e:
+            except OSError as e:
                 if e.errno != errno.ENOENT: raise
 
         def __str__(self):
@@ -1324,7 +1325,7 @@ class VDI(object):
 
         try:
             tapdisk = Tapdisk.from_minor(minor)
-        except TapdiskNotRunning, e:
+        except TapdiskNotRunning as e:
             util.SMlog("tap.deactivate: Warning, %s" % e)
             # NB. Should not be here unless the agent refcount
             # broke. Also, a clean shutdown should not have leaked
@@ -1414,7 +1415,7 @@ class VDI(object):
                     host_ref, PLUGIN_TAP_PAUSE, action,
                     args)
             return ret == "True"
-        except Exception, e:
+        except Exception as e:
             util.logException("BLKTAP2:call_pluginhandler %s" % e)
             return False
 
@@ -1438,19 +1439,19 @@ class VDI(object):
         if 'relinking' in sm_config:
             util.SMlog("Relinking key found, back-off and retry" % sm_config)
             return False
-        if sm_config.has_key('paused'):
+        if 'paused' in sm_config:
             util.SMlog("Paused or host_ref key found [%s]" % sm_config)
             return False
         self._session.xenapi.VDI.add_to_sm_config(
             vdi_ref, 'activating', 'True')
         host_key = "host_%s" % host_ref
-        assert not sm_config.has_key(host_key)
+        assert host_key not in sm_config
         self._session.xenapi.VDI.add_to_sm_config(vdi_ref, host_key,
                                                   attach_mode)
         sm_config = self._session.xenapi.VDI.get_sm_config(vdi_ref)
-        if sm_config.has_key('paused') or sm_config.has_key('relinking'):
+        if 'paused' in sm_config or 'relinking' in sm_config:
             util.SMlog("Found %s key, aborting" % (
-                'paused' if sm_config.has_key('paused') else 'relinking'))
+                'paused' if 'paused' in sm_config else 'relinking'))
             self._session.xenapi.VDI.remove_from_sm_config(vdi_ref, host_key)
             self._session.xenapi.VDI.remove_from_sm_config(
                 vdi_ref, 'activating')
@@ -1461,7 +1462,7 @@ class VDI(object):
     def _check_tag(self, vdi_uuid):
         vdi_ref = self._session.xenapi.VDI.get_by_uuid(vdi_uuid)
         sm_config = self._session.xenapi.VDI.get_sm_config(vdi_ref)
-        if sm_config.has_key('paused'):
+        if 'paused' in sm_config:
             util.SMlog("Paused key found [%s]" % sm_config)
             return False
         return True
@@ -1471,7 +1472,7 @@ class VDI(object):
         host_ref = self._session.xenapi.host.get_by_uuid(util.get_this_host())
         sm_config = self._session.xenapi.VDI.get_sm_config(vdi_ref)
         host_key = "host_%s" % host_ref
-        if sm_config.has_key(host_key):
+        if host_key in sm_config:
             self._session.xenapi.VDI.remove_from_sm_config(vdi_ref, host_key)
             util.SMlog("Removed host key %s for %s" % (host_key, vdi_uuid))
         else:
@@ -1646,14 +1647,14 @@ class VDI(object):
                     try:
                         self._remove_tag(vdi_uuid)
                         break
-                    except xmlrpclib.ProtocolError, e:
+                    except xmlrpclib.ProtocolError as e:
                         # If there's a connection error, keep trying forever.
                         if e.errcode == httplib.INTERNAL_SERVER_ERROR:
                             continue
                         else:
                             util.SMlog('failed to remove tag: %s' % e)
                             break
-                    except Exception, e:
+                    except Exception as e:
                         util.SMlog('failed to remove tag: %s' % e)
                         break
             raise
@@ -1702,7 +1703,7 @@ class VDI(object):
             try:
                 if self._deactivate_locked(sr_uuid, vdi_uuid, caching_params):
                     return
-            except util.SRBusyException, e:
+            except util.SRBusyException as e:
                 util.SMlog("SR locked, retrying")
             time.sleep(1)
         raise util.SMException("VDI %s locked" % vdi_uuid)
@@ -1902,7 +1903,7 @@ class VDI(object):
         else:
             try:
                 vhdutil.snapshot(read_cache_path, shared_target.path, False)
-            except util.CommandException, e:
+            except util.CommandException as e:
                 util.SMlog("Error creating parent cache: %s" % e)
                 self.alert_no_cache(session, vdi_uuid, local_sr_uuid, e.code)
                 return None
@@ -1918,7 +1919,7 @@ class VDI(object):
         try:
             vhdutil.snapshot(local_leaf_path, read_cache_path, False,
                     msize = leaf_size / 1024 / 1024, checkEmpty = False)
-        except util.CommandException, e:
+        except util.CommandException as e:
             util.SMlog("Error creating leaf cache: %s" % e)
             self.alert_no_cache(session, vdi_uuid, local_sr_uuid, e.code)
             return None
@@ -2077,7 +2078,7 @@ class UEventHandler(object):
     def getenv(cls, key):
         try:
             return os.environ[key]
-        except KeyError, e:
+        except KeyError as e:
             raise cls.KeyError(e.args[0])
 
     def get_action(self):
@@ -2247,7 +2248,7 @@ class XenbusDevice(BusDevice):
     def read(self, key):
         return self._xs_read_path(self.xs_path(key))
 
-    def has_key(self, key):
+    def has_xs_key(self, key):
         return self.read(key) is not None
 
     def write(self, key, val):
@@ -2257,7 +2258,7 @@ class XenbusDevice(BusDevice):
         self._xs_rm_path(self.xs_path(key))
 
     def exists(self):
-        return self.has_key(None)
+        return self.has_xs_key(None)
 
     def begin(self):
         assert(self._xbt == XenbusDevice.XBT_NIL)
@@ -2276,7 +2277,7 @@ class XenbusDevice(BusDevice):
     def create_physical_device(self):
         """The standard protocol is: toolstack writes 'params', linux hotplug
         script translates this into physical-device=%x:%x"""
-        if self.has_key("physical-device"):
+        if self.has_xs_key("physical-device"):
             return
         try:
             params = self.read("params")
@@ -2377,7 +2378,7 @@ class Blkback(XenBackendDevice):
                 major, minor = phy.split(':')
                 major = int(major, 0x10)
                 minor = int(minor, 0x10)
-            except Exception, e:
+            except Exception as e:
                 raise xbdev.PhysicalDeviceError(xbdev, phy)
 
             return cls(major, minor)
@@ -2430,16 +2431,16 @@ class Blkback(XenBackendDevice):
         return self._vdi_uuid
 
     def pause_requested(self):
-        return self.has_key("pause")
+        return self.has_xs_key("pause")
 
     def shutdown_requested(self):
-        return self.has_key("shutdown-request")
+        return self.has_xs_key("shutdown-request")
 
     def shutdown_done(self):
-        return self.has_key("shutdown-done")
+        return self.has_xs_key("shutdown-done")
 
     def running(self):
-        return self.has_key('queue-0/kthread-pid')
+        return self.has_xs_key('queue-0/kthread-pid')
 
     @classmethod
     def find_by_physical_device(cls, phy):
@@ -2477,7 +2478,7 @@ class Blkback(XenBackendDevice):
         try:
             self.get_physical_device()
 
-        except self.PhysicalDeviceError, e:
+        except self.PhysicalDeviceError as e:
             vdi_type = self.read("type")
 
             self.info("HVM VDI: type=%s" % vdi_type)
@@ -2565,7 +2566,7 @@ class BlkbackEventHandler(UEventHandler):
     def add(self):
         try:
             self.__add()
-        except Attribute.NoSuchAttribute, e:
+        except Attribute.NoSuchAttribute as e:
             #
             # FIXME: KOBJ_ADD is racing backend.probe, which
             # registers device attributes. So poll a little.
@@ -2723,17 +2724,17 @@ class BlkbackEventHandler(UEventHandler):
         handled = 0
 
         if pausing and not running:
-            if not vbd.has_key('pause-done'):
+            if 'pause-done' not in vbd:
                 vbd.write('pause-done', '')
                 handled += 1
 
         if not pausing:
-            if vbd.has_key('pause-done'):
+            if 'pause-done' in vbd:
                 vbd.rm('pause-done')
                 handled += 1
 
         if closing and not running:
-            if not vbd.has_key('shutdown-done'):
+            if 'shutdown-done' not in vbd:
                 vbd.write('shutdown-done', '')
                 handled += 1
 
@@ -2755,13 +2756,10 @@ if __name__ == '__main__':
     #
 
     def usage(stream):
-        print >>stream, \
-            "usage: %s tap.{list|major}" % prog
-        print >>stream, \
-            "       %s tap.{launch|find|get|pause|" % prog + \
-            "unpause|shutdown|stats} {[<tt>:]<path>} | [minor=]<int> | .. }"
-        print >>stream, \
-            "       %s vbd.uevent" % prog
+        print("usage: %s tap.{list|major}" % prog, file=stream)
+        print("       %s tap.{launch|find|get|pause|" % prog + \
+            "unpause|shutdown|stats} {[<tt>:]<path>} | [minor=]<int> | .. }", file=stream)
+        print("       %s vbd.uevent" % prog, file=stream)
 
     try:
         cmd = sys.argv[1]
@@ -2781,12 +2779,12 @@ if __name__ == '__main__':
 
     if cmd == 'tap.major':
 
-        print "%d" % Tapdisk.major()
+        print("%d" % Tapdisk.major())
 
     elif cmd == 'tap.launch':
 
         tapdisk = Tapdisk.launch_from_arg(sys.argv[2])
-        print >> sys.stderr, "Launched %s" % tapdisk
+        print("Launched %s" % tapdisk, file=sys.stderr)
 
     elif _class == 'tap':
 
@@ -2819,20 +2817,20 @@ if __name__ == '__main__':
 
             for tapdisk in Tapdisk.list(**attrs):
                 blktap = tapdisk.get_blktap()
-                print tapdisk,
-                print "%s: task=%s pool=%s" % \
+                print(tapdisk, end=' ')
+                print("%s: task=%s pool=%s" % \
                     (blktap,
                      blktap.get_task_pid(),
-                     blktap.get_pool_name())
+                     blktap.get_pool_name()))
 
         elif cmd == 'tap.vbds':
             # Find all Blkback instances for a given tapdisk
 
             for tapdisk in Tapdisk.list(**attrs):
-                print "%s:" % tapdisk,
+                print("%s:" % tapdisk, end=' ')
                 for vbd in Blkback.find_by_tap(tapdisk): 
-                    print vbd,
-                print
+                    print(vbd, end=' ')
+                print()
 
         else:
 
@@ -2849,23 +2847,23 @@ if __name__ == '__main__':
             if cmd == 'tap.shutdown':
                 # Shutdown a running tapdisk, or raise
                 tapdisk.shutdown()
-                print >> sys.stderr, "Shut down %s" % tapdisk
+                print("Shut down %s" % tapdisk, file=sys.stderr)
 
             elif cmd == 'tap.pause':
                 # Pause an unpaused tapdisk, or raise
                 tapdisk.pause()
-                print >> sys.stderr, "Paused %s" % tapdisk
+                print("Paused %s" % tapdisk, file=sys.stderr)
 
             elif cmd == 'tap.unpause':
                 # Unpause a paused tapdisk, or raise
                 tapdisk.unpause()
-                print >> sys.stderr, "Unpaused %s" % tapdisk
+                print("Unpaused %s" % tapdisk, file=sys.stderr)
 
             elif cmd == 'tap.stats':
                 # Gather tapdisk status
                 stats = tapdisk.stats()
-                print "%s:" % tapdisk
-                print json.dumps(stats, indent=True)
+                print("%s:" % tapdisk)
+                print(json.dumps(stats, indent=True))
 
             else:
                 usage(sys.stderr)
@@ -2878,7 +2876,7 @@ if __name__ == '__main__':
         if not sys.stdin.isatty():
             try:
                 hnd.run()
-            except Exception, e:
+            except Exception as e:
                 hnd.error("Unhandled Exception: %s" % e)
 
                 import traceback
@@ -2893,9 +2891,9 @@ if __name__ == '__main__':
     elif cmd == 'vbd.list':
 
         for vbd in Blkback.find(): 
-            print vbd, \
+            print(vbd, \
                 "physical-device=%s" % vbd.get_physical_device(), \
-                "pause=%s" % vbd.pause_requested()
+                "pause=%s" % vbd.pause_requested())
 
     else:
         usage(sys.stderr)

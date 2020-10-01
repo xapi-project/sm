@@ -17,6 +17,7 @@
 #
 # Talk to the multipathd cli
 
+from __future__ import print_function
 import util
 import re
 import exceptions
@@ -27,7 +28,7 @@ class MPathCLIFail(exceptions.Exception):
 		return
 		
 	def __str__(self):
-		print "","MPath CLI failed"
+		print("","MPath CLI failed")
 
 mpathcmd = ["/usr/sbin/multipathd","-k"]
 

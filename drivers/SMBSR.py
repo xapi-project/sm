@@ -74,7 +74,7 @@ class SMBSR(FileSR.FileSR):
         self.lock = Lock(vhdutil.LOCK_TYPE_SR, self.uuid)
         self.sr_vditype = SR.DEFAULT_TAP
         self.driver_config = DRIVER_CONFIG
-        if not self.dconf.has_key('server'):
+        if 'server' not in self.dconf:
             raise xs_errors.XenError('ConfigServerMissing')
         self.remoteserver = self.dconf['server']
         if self.sr_ref and self.session is not None :
@@ -105,7 +105,7 @@ class SMBSR(FileSR.FileSR):
         try:
             if not util.ioretry(lambda: util.isdir(mountpoint)):
                 util.ioretry(lambda: util.makedirs(mountpoint))
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             raise SMBException("Failed to make directory: code is %d" %
                                 inst.code)
         return mountpoint
@@ -127,7 +127,7 @@ class SMBSR(FileSR.FileSR):
                 mountpoint, "-o", options], new_env=new_env),
                 errlist=[errno.EPIPE, errno.EIO],
                 maxretry=2, nofail=True)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             raise SMBException("mount failed with return code %d" % inst.code)
 
         # Sanity check to ensure that the user has at least RO access to the
@@ -163,13 +163,13 @@ class SMBSR(FileSR.FileSR):
         """Unmount the remote SMB export at 'mountpoint'"""
         try:
             util.pread(["umount", mountpoint])
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             raise SMBException("umount failed with return code %d" % inst.code)
 
         if rmmountpoint:
             try:
                 os.rmdir(mountpoint)
-            except OSError, inst:
+            except OSError as inst:
                 raise SMBException("rmdir failed with error '%s'" % inst.strerror)
 
     def __extract_server(self):
@@ -191,7 +191,7 @@ class SMBSR(FileSR.FileSR):
             try:
                 self.mount()
                 os.symlink(self.linkpath, self.path)
-            except SMBException, exc:
+            except SMBException as exc:
                 raise xs_errors.XenError('SMBMount', opterr=exc.errstr)
         self.attached = True
 
@@ -202,7 +202,7 @@ class SMBSR(FileSR.FileSR):
             sr_list = filter(util.match_uuid, util.listdir(PROBE_MOUNTPOINT))
             err = "SMBUnMount"
             self.unmount(PROBE_MOUNTPOINT, True)
-        except SMBException, inst:
+        except SMBException as inst:
             raise xs_errors.XenError(err, opterr=inst.errstr)
         except (util.CommandException, xs_errors.XenError):
             raise
@@ -225,7 +225,7 @@ class SMBSR(FileSR.FileSR):
         try:
             self.unmount(self.mountpoint, True)
             os.unlink(self.path)
-        except SMBException, exc:
+        except SMBException as exc:
             raise xs_errors.XenError('SMBUnMount', opterr=exc.errstr)
 
         self.attached = False
@@ -238,7 +238,7 @@ class SMBSR(FileSR.FileSR):
 
         try:
             self.mount()
-        except SMBException, exc:
+        except SMBException as exc:
             try:
                 os.rmdir(self.mountpoint)
             except:
@@ -253,7 +253,7 @@ class SMBSR(FileSR.FileSR):
             try:
                 util.ioretry(lambda: util.makedirs(self.linkpath))
                 os.symlink(self.linkpath, self.path)
-            except util.CommandException, inst:
+            except util.CommandException as inst:
                 if inst.code != errno.EEXIST:
                     try:
                         self.unmount(self.mountpoint, True)
@@ -277,7 +277,7 @@ class SMBSR(FileSR.FileSR):
             if util.ioretry(lambda: util.pathexists(self.linkpath)):
                 util.ioretry(lambda: os.rmdir(self.linkpath))
             self.unmount(self.mountpoint, True)
-        except util.CommandException, inst:
+        except util.CommandException as inst:
             self.detach(sr_uuid)
             if inst.code != errno.ENOENT:
                 raise xs_errors.XenError('SMBDelete')

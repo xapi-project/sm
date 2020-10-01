@@ -18,6 +18,7 @@
 # Metadata VDI format
 #
 
+from __future__ import print_function
 from xml.dom import minidom, Node
 import struct
 import sys, string
@@ -146,8 +147,8 @@ def writeXMLtoFile(path, dict):
 def main():
     path = sys.argv[1]
     xml = retrieveXMLfromFile(path)
-    print xml
-    print _parseXML(xml)
+    print(xml)
+    print(_parseXML(xml))
 
 if __name__ == '__main__':
     main()

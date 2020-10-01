@@ -19,6 +19,7 @@
 # based iSCSI
 #
 
+from __future__ import print_function
 import SR, VDI, OCFSSR, SRCommand, devscan, HBASR
 import util
 import os, sys, re
@@ -62,8 +63,8 @@ class OCFSoHBASR(OCFSSR.OCFSSR):
         except:
             pass
 
-        if not self.dconf.has_key('SCSIid') or not self.dconf['SCSIid']:
-            print >>sys.stderr,self.hbasr.print_devs()
+        if 'SCSIid' not in self.dconf or not self.dconf['SCSIid']:
+            print(self.hbasr.print_devs(), file=sys.stderr)
             raise xs_errors.XenError('ConfigSCSIid')
 
         self.SCSIid = self.dconf['SCSIid']
@@ -116,7 +117,7 @@ class OCFSoHBASR(OCFSSR.OCFSSR):
         super(OCFSoHBASR, self).scan(sr_uuid)
 
     def probe(self):
-        if self.mpath == "true" and self.dconf.has_key('SCSIid'):
+        if self.mpath == "true" and 'SCSIid' in self.dconf:
             # When multipathing is enabled, since we don't refcount the 
             # multipath maps, we should not attempt to do the iscsi.attach/
             # detach when the map is already present, as this will remove it 

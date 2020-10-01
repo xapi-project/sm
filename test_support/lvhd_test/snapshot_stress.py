@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import print_function
 import sys
 import random
 import pickle
@@ -203,9 +204,9 @@ class TestingProgram:
     def execute(self, action, context):
 
         # execute action
-        print >> sys.stderr,  context.i, action,
+        print(context.i, action, end=' ', file=sys.stderr)
         action.execute(context)
-        print >> sys.stderr, "# %d" % context.nodeCount()
+        print("# %d" % context.nodeCount(), file=sys.stderr)
 
         # perform self checks, if available
         self.check(action)
@@ -261,9 +262,9 @@ if __name__ == "__main__":
     PATH = "/tmp/snapshot"
 
     def usage():
-        print "Usage:"
-        print "%s gen <num_actions> <vdi_uuid>" % sys.argv[0]
-        print "%s rerun <path> <vdi_uuid>" % sys.argv[0]
+        print("Usage:")
+        print("%s gen <num_actions> <vdi_uuid>" % sys.argv[0])
+        print("%s rerun <path> <vdi_uuid>" % sys.argv[0])
 
     def xe(cmd, *args):
         argv = [ "/opt/xensource/bin/xe", cmd ]
