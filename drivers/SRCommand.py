@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -23,7 +23,8 @@ import XenAPI
 import sys
 import xs_errors
 import xmlrpclib
-import SR, util
+import SR
+import util
 import blktap2
 import resetvdis
 import os
@@ -32,7 +33,7 @@ NEEDS_VDI_OBJECT = [
         "vdi_update", "vdi_create", "vdi_delete", "vdi_snapshot", "vdi_clone",
         "vdi_resize", "vdi_resize_online", "vdi_attach", "vdi_detach",
         "vdi_activate", "vdi_deactivate", "vdi_attach_from_config", "vdi_detach_from_config",
-        "vdi_generate_config", "vdi_compose", "vdi_epoch_begin", 
+        "vdi_generate_config", "vdi_compose", "vdi_epoch_begin",
         "vdi_epoch_end", "vdi_enable_cbt", "vdi_disable_cbt", "vdi_data_destroy",
         "vdi_list_changed_blocks"]
 
@@ -43,18 +44,18 @@ NO_LOGGING = {
 }
 
 EXCEPTION_TYPE = {
-        "sr_scan"           : "SRScan",
-        "vdi_init"          : "VDILoad",
-        "vdi_create"        : "VDICreate",
-        "vdi_delete"        : "VDIDelete",
-        "vdi_attach"        : "VDIUnavailable",
-        "vdi_detach"        : "VDIUnavailable",
-        "vdi_activate"      : "VDIUnavailable",
-        "vdi_deactivate"    : "VDIUnavailable",
-        "vdi_resize"        : "VDIResize",
-        "vdi_resize_online" : "VDIResize",
-        "vdi_snapshot"      : "VDISnapshot",
-        "vdi_clone"         : "VDIClone",
+        "sr_scan":           "SRScan",
+        "vdi_init":          "VDILoad",
+        "vdi_create":        "VDICreate",
+        "vdi_delete":        "VDIDelete",
+        "vdi_attach":        "VDIUnavailable",
+        "vdi_detach":        "VDIUnavailable",
+        "vdi_activate":      "VDIUnavailable",
+        "vdi_deactivate":    "VDIUnavailable",
+        "vdi_resize":        "VDIResize",
+        "vdi_resize_online": "VDIResize",
+        "vdi_snapshot":      "VDISnapshot",
+        "vdi_clone":         "VDIClone"
 }
 
 
@@ -72,7 +73,7 @@ class SRCommand:
     def parse(self):
         if len(sys.argv) != 2:
             util.SMlog("Failed to parse commandline; wrong number of arguments; argv = %s" % (repr(sys.argv)))
-            raise xs_errors.XenError('BadRequest') 
+            raise xs_errors.XenError('BadRequest')
 
         # Debug logging of the actual incoming command from the caller.
         # util.SMlog( "" )
@@ -85,7 +86,7 @@ class SRCommand:
         try:
             params, methodname = xmlrpclib.loads(sys.argv[1])
             self.cmd = methodname
-            params = params[0] # expect a single struct
+            params = params[0]  # expect a single struct
             self.params = params
 
             # params is a dictionary
@@ -95,8 +96,8 @@ class SRCommand:
             if 'vdi_uuid' in params:
                 self.vdi_uuid = params['vdi_uuid']
             elif self.cmd == "vdi_create":
-                self.vdi_uuid = util.gen_uuid ()
-                
+                self.vdi_uuid = util.gen_uuid()
+
         except Exception as e:
             util.SMlog("Failed to parse commandline; exception = %s argv = %s" % (str(e), repr(sys.argv)))
             raise xs_errors.XenError('BadRequest')
@@ -123,9 +124,10 @@ class SRCommand:
         except blktap2.TapdiskFailed as e:
             util.logException('tapdisk failed exception: %s' % e)
             raise xs_errors.XenError('TapdiskFailed',
-                os.strerror(e.get_error().get_error_code()))
+                                     os.strerror(
+                                         e.get_error().get_error_code()))
 
-        except blktap2.TapdiskExists as e:            
+        except blktap2.TapdiskExists as e:
             util.logException('tapdisk exists exception: %s' % e)
             raise xs_errors.XenError('TapdiskAlreadyRunning', e.__str__())
 
@@ -177,17 +179,19 @@ class SRCommand:
     def _run(self, sr, target):
         dconf_type = sr.dconf.get("type")
         if not dconf_type or not NO_LOGGING.get(dconf_type) or \
-                not self.cmd in NO_LOGGING[dconf_type]:
+                self.cmd not in NO_LOGGING[dconf_type]:
             if 'device_config' in self.params:
-                util.SMlog("%s %s" % (self.cmd, util.hidePasswdInParams(self.params,'device_config')))
+                util.SMlog("%s %s" % (
+                    self.cmd, util.hidePasswdInParams(
+                        self.params, 'device_config')))
             else:
                 util.SMlog("%s %s" % (self.cmd, repr(self.params)))
 
-        caching_params = dict((k, self.params.get(k)) for k in \
-                [blktap2.VDI.CONF_KEY_ALLOW_CACHING,
-                 blktap2.VDI.CONF_KEY_MODE_ON_BOOT,
-                 blktap2.VDI.CONF_KEY_CACHE_SR,
-                 blktap2.VDI.CONF_KEY_O_DIRECT])
+        caching_params = dict((k, self.params.get(k)) for k in
+                              [blktap2.VDI.CONF_KEY_ALLOW_CACHING,
+                               blktap2.VDI.CONF_KEY_MODE_ON_BOOT,
+                               blktap2.VDI.CONF_KEY_CACHE_SR,
+                               blktap2.VDI.CONF_KEY_O_DIRECT])
 
         if self.cmd == 'vdi_create':
             # These are the fields owned by the backend, passed on the
@@ -203,8 +207,8 @@ class SRCommand:
 
             if not util.isLegalXMLString(target.label) \
                     or not util.isLegalXMLString(target.description):
-                raise xs_errors.XenError('IllegalXMLChar', \
-                        opterr = 'The name and/or description you supplied contains one or more unsupported characters. The name and/or description must contain valid XML characters. See http://www.w3.org/TR/2004/REC-xml-20040204/#charsets for more information.')
+                raise xs_errors.XenError('IllegalXMLChar',
+                                         opterr='The name and/or description you supplied contains one or more unsupported characters. The name and/or description must contain valid XML characters. See http://www.w3.org/TR/2004/REC-xml-20040204/#charsets for more information.')
 
             target.ty = self.params['vdi_type']
             target.metadata_of_pool = self.params['args'][3]
@@ -225,8 +229,8 @@ class SRCommand:
 
             if not util.isLegalXMLString(name_label) \
                     or not util.isLegalXMLString(description):
-                raise xs_errors.XenError('IllegalXMLChar', \
-                        opterr = 'The name and/or description you supplied contains one or more unsupported characters. The name and/or description must contain valid XML characters. See http://www.w3.org/TR/2004/REC-xml-20040204/#charsets for more information.')
+                raise xs_errors.XenError('IllegalXMLChar',
+                                         opterr='The name and/or description you supplied contains one or more unsupported characters. The name and/or description must contain valid XML characters. See http://www.w3.org/TR/2004/REC-xml-20040204/#charsets for more information.')
 
             return target.update(self.params['sr_uuid'], self.vdi_uuid)
 
@@ -236,16 +240,17 @@ class SRCommand:
 
         elif self.cmd == 'vdi_delete':
             if 'VDI_CONFIG_CBT' in util.sr_get_capability(
-                                        self.params['sr_uuid']): 
+                                        self.params['sr_uuid']):
                 return target.delete(self.params['sr_uuid'],
-                                     self.vdi_uuid, data_only = False)
+                                     self.vdi_uuid, data_only=False)
             else:
                 return target.delete(self.params['sr_uuid'], self.vdi_uuid)
 
         elif self.cmd == 'vdi_attach':
             target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
             writable = self.params['args'][0] == 'true'
-            return target.attach(self.params['sr_uuid'], self.vdi_uuid, writable, caching_params = caching_params)
+            return target.attach(self.params['sr_uuid'], self.vdi_uuid,
+                                 writable, caching_params=caching_params)
 
         elif self.cmd == 'vdi_detach':
             target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
@@ -255,14 +260,14 @@ class SRCommand:
             return target.snapshot(self.params['sr_uuid'], self.vdi_uuid)
 
         elif self.cmd == 'vdi_clone':
-            return target.clone(self.params['sr_uuid'], self.vdi_uuid)            
+            return target.clone(self.params['sr_uuid'], self.vdi_uuid)
 
         elif self.cmd == 'vdi_resize':
             return target.resize(self.params['sr_uuid'], self.vdi_uuid, long(self.params['args'][0]))
 
         elif self.cmd == 'vdi_resize_online':
             return target.resize_online(self.params['sr_uuid'], self.vdi_uuid, long(self.params['args'][0]))
-        
+
         elif self.cmd == 'vdi_activate':
             target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
             writable = self.params['args'][0] == 'true'
@@ -272,12 +277,12 @@ class SRCommand:
         elif self.cmd == 'vdi_deactivate':
             target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
             return target.deactivate(self.params['sr_uuid'], self.vdi_uuid,
-                    caching_params)
+                                     caching_params)
 
         elif self.cmd == 'vdi_epoch_begin':
             if caching_params.get(blktap2.VDI.CONF_KEY_MODE_ON_BOOT) != "reset":
                 return
-            if not "VDI_RESET_ON_BOOT/2" in self.driver_info['capabilities']:
+            if "VDI_RESET_ON_BOOT/2" not in self.driver_info['capabilities']:
                 raise xs_errors.XenError('Unimplemented')
             return target.reset_leaf(self.params['sr_uuid'], self.vdi_uuid)
 
@@ -299,7 +304,7 @@ class SRCommand:
             return target.attach(self.params['sr_uuid'], self.vdi_uuid, True, True)
 
         elif self.cmd == 'vdi_detach_from_config':
-            extras= {}
+            extras = {}
             if target.sr.driver_config.get("ATTACH_FROM_CONFIG_WITH_TAPDISK"):
                 target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
                 extras['deactivate'] = True
@@ -331,7 +336,7 @@ class SRCommand:
 
         elif self.cmd == 'sr_probe':
             txt = sr.probe()
-            util.SMlog( "sr_probe result: %s" % util.splitXmlText( txt, showContd=True ) )
+            util.SMlog("sr_probe result: %s" % util.splitXmlText(txt, showContd=True))
             # return the XML document as a string
             return xmlrpclib.dumps((txt,), "", True)
 
@@ -343,7 +348,7 @@ class SRCommand:
             sr_uuid = self.params['sr_uuid']
 
             resetvdis.reset_sr(sr.session, util.get_this_host(),
-                    sr_uuid, is_master)
+                               sr_uuid, is_master)
 
             if is_master:
                 # Schedule a scan only when attaching on the SRmaster
@@ -359,14 +364,15 @@ class SRCommand:
             return sr.detach(self.params['sr_uuid'])
 
         elif self.cmd == 'sr_content_type':
-            return sr.content_type(self.params['sr_uuid'])        
+            return sr.content_type(self.params['sr_uuid'])
 
         elif self.cmd == 'sr_scan':
             return sr.scan(self.params['sr_uuid'])
 
         else:
             util.SMlog("Unknown command: %s" % self.cmd)
-            raise xs_errors.XenError('BadRequest')             
+            raise xs_errors.XenError('BadRequest')
+
 
 def run(driver, driver_info):
     """Convenience method to run command on the given driver"""
@@ -378,8 +384,8 @@ def run(driver, driver_info):
         sr.direct = True
         ret = cmd.run(sr)
 
-        if ret == None:
-            print(util.return_nil ())
+        if ret is None:
+            print(util.return_nil())
         else:
             print(ret)
 
@@ -397,6 +403,6 @@ def run(driver, driver_info):
         if isinstance(e, SR.SRException):
             print(e.toxml())
         else:
-            print(xmlrpclib.dumps(xmlrpclib.Fault(1200, str(e)), "", True)) 
+            print(xmlrpclib.dumps(xmlrpclib.Fault(1200, str(e)), "", True))
 
     sys.exit(0)
