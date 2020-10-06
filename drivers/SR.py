@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -22,8 +22,11 @@ import VDI
 import xml.dom.minidom
 import errno
 import xs_errors
-import XenAPI, xmlrpclib, util
-import copy, os
+import XenAPI
+import xmlrpclib
+import util
+import copy
+import os
 import traceback
 
 MOUNT_BASE = '/var/run/sr-mount'
@@ -34,14 +37,17 @@ MASTER_LVM_CONF = '/etc/lvm/master'
 # LUN per VDI key for XenCenter
 LUNPERVDI = "LUNperVDI"
 
+
 class SRException(Exception):
     """Exception raised by storage repository operations"""
     errno = errno.EINVAL
+
     def __init__(self, reason):
         Exception.__init__(self, reason)
 
     def toxml(self):
         return xmlrpclib.dumps(xmlrpclib.Fault(int(self.errno), str(self)), "", True)
+
 
 class SROSError(SRException):
     """Wrapper for OSError"""
@@ -49,12 +55,16 @@ class SROSError(SRException):
         self.errno = errno
         Exception.__init__(self, reason)
 
+
 backends = []
+
+
 def registerSR(SRClass):
-    """Register SR with handler. All SR subclasses should call this in 
+    """Register SR with handler. All SR subclasses should call this in
        the module file
     """
     backends.append(SRClass)
+
 
 def driver(type):
     """Find the SR for the given dconf string"""
@@ -62,6 +72,7 @@ def driver(type):
         if d.handles(type):
             return d
     raise xs_errors.XenError('SRUnknownType')
+
 
 class SR(object):
     """Semi-abstract storage repository object.
@@ -82,7 +93,7 @@ class SR(object):
     handles = staticmethod(handles)
 
     def __init__(self, srcmd, sr_uuid):
-        """Base class initializer. All subclasses should call SR.__init__ 
+        """Base class initializer. All subclasses should call SR.__init__
            in their own
         initializers.
 
@@ -108,7 +119,7 @@ class SR(object):
 
             self.sr_ref = self.srcmd.params.get('sr_ref')
 
-	    if 'device_config' in self.srcmd.params:
+            if 'device_config' in self.srcmd.params:
                 if self.dconf.get("SRmaster") == "true":
                     os.environ['LVM_SYSTEM_DIR'] = MASTER_LVM_CONF
 
@@ -185,20 +196,20 @@ class SR(object):
 
         from SRCommand import SRCommand
         cmd = SRCommand(module.DRIVER_INFO)
-        cmd.dconf  = device_config
-        cmd.params = { 'session_ref'    : session._session,
-                       'host_ref'       : host_ref,
-                       'device_config'  : device_config,
-                       'sr_ref'         : sr_ref,
-                       'sr_uuid'        : sr_uuid,
-                       'command'        : 'nop' }
+        cmd.dconf = device_config
+        cmd.params = {'session_ref':   session._session,
+                      'host_ref':      host_ref,
+                      'device_config': device_config,
+                      'sr_ref':        sr_ref,
+                      'sr_uuid':       sr_uuid,
+                      'command':       'nop'}
 
         return target(cmd, sr_uuid)
 
     def block_setscheduler(self, dev):
         try:
             realdev = os.path.realpath(dev)
-            disk    = util.diskFromPartition(realdev)
+            disk = util.diskFromPartition(realdev)
 
             # the normal case: the sr default scheduler (typically noop),
             # potentially overridden by SR.other_config:scheduler
@@ -221,7 +232,7 @@ class SR(object):
         try:
             self.session.xenapi.SR.add_to_sm_config(self.sr_ref, LUNPERVDI, "true")
         except:
-            pass        
+            pass
 
     def create(self, uuid, size):
         """Create this repository.
@@ -243,7 +254,7 @@ class SR(object):
         This operation IS idempotent -- it will succeed if the repository
         exists and can be deleted or if the repository does not exist.
         The caller must ensure that all VDIs are deactivated and detached
-        and that the SR itself has been detached before delete(). 
+        and that the SR itself has been detached before delete().
         The call will FAIL if any VDIs in the SR are in use.
 
         Returns:
@@ -263,9 +274,9 @@ class SR(object):
         """
         # no-op unless individual backends implement it
         return
-    
+
     def attach(self, uuid):
-        """Initiate local access to the SR. Initialises any 
+        """Initiate local access to the SR. Initialises any
         device state required to access the substrate.
 
         Idempotent.
@@ -285,7 +296,7 @@ class SR(object):
         self.scan(uuid)
 
     def detach(self, uuid):
-        """Remove local access to the SR. Destroys any device 
+        """Remove local access to the SR. Destroys any device
         state initiated by the sr_attach() operation.
 
         Idempotent. All VDIs must be detached in order for the operation
@@ -337,11 +348,11 @@ class SR(object):
           SRUnimplementedMethod
         """
         raise xs_errors.XenError('Unimplemented')
-    
+
     def content_type(self, uuid):
         """Returns the 'content_type' of an SR as a string"""
         return xmlrpclib.dumps((str(self.sr_vditype),), "", True)
-    
+
     def load(self, sr_uuid):
         """Post-init hook"""
         pass
@@ -372,22 +383,22 @@ class SR(object):
         element = dom.createElement("sr")
         dom.appendChild(element)
 
-        #Add default uuid, physical_utilisation, physical_size and 
+        # Add default uuid, physical_utilisation, physical_size and
         # virtual_allocation entries
-        for attr in ('uuid', 'physical_utilisation', 'virtual_allocation', \
+        for attr in ('uuid', 'physical_utilisation', 'virtual_allocation',
                      'physical_size'):
             try:
                 aval = getattr(self, attr)
             except AttributeError:
-                raise xs_errors.XenError('InvalidArg', \
-                      opterr='Missing required field [%s]' % attr)
+                raise xs_errors.XenError(
+                    'InvalidArg', opterr='Missing required field [%s]' % attr)
 
             entry = dom.createElement(attr)
-            element.appendChild(entry)           
+            element.appendChild(entry)
             textnode = dom.createTextNode(str(aval))
             entry.appendChild(textnode)
 
-        #Add the default_vdi_visibility entry
+        # Add the default_vdi_visibility entry
         entry = dom.createElement('default_vdi_visibility')
         element.appendChild(entry)
         if not self.default_vdi_visibility:
@@ -395,8 +406,8 @@ class SR(object):
         else:
             textnode = dom.createTextNode('True')
         entry.appendChild(textnode)
-        
-        #Add optional label and description entries
+
+        # Add optional label and description entries
         for attr in ('label', 'description'):
             try:
                 aval = getattr(self, attr)
@@ -404,7 +415,7 @@ class SR(object):
                 continue
             if aval:
                 entry = dom.createElement(attr)
-                element.appendChild(entry)           
+                element.appendChild(entry)
                 textnode = dom.createTextNode(str(aval))
                 entry.appendChild(textnode)
 
@@ -417,7 +428,7 @@ class SR(object):
                     self.vdis[uuid]._toxml(dom, vdinode)
 
         return dom
-    
+
     def _fromxml(self, str, tag):
         dom = xml.dom.minidom.parseString(str)
         objectlist = dom.getElementsByTagName(tag)[0]
@@ -438,7 +449,7 @@ class SR(object):
                 continue
             elif char.isdigit():
                 continue
-            elif char in ['/','-','_','.',':']:
+            elif char in ['/', '-', '_', '.', ':']:
                 continue
             else:
                 return False
@@ -465,7 +476,7 @@ class SR(object):
             if self.mpath != "true":
                 self.mpath = "false"
                 self.mpathhandle = "null"
-                
+
             if not os.path.exists("/opt/xensource/sm/mpath_%s.py" % self.mpathhandle):
                 raise IOError("File does not exist = %s" % self.mpathhandle)
         except:
@@ -480,7 +491,7 @@ class SR(object):
         else:
             self.mpathmodule.deactivate()
 
-    def _pathrefresh(self, obj, load = True):
+    def _pathrefresh(self, obj, load=True):
         SCSIid = getattr(self, 'SCSIid')
         self.dconf['device'] = self.mpathmodule.path(SCSIid)
         if load:
@@ -493,7 +504,7 @@ class SR(object):
             self.session.xenapi.SR.set_sm_config(self.sr_ref, sm_config)
 
             if self.mpath == "true" and len(SCSIid):
-                cmd = ['/opt/xensource/sm/mpathcount.py',SCSIid]
+                cmd = ['/opt/xensource/sm/mpathcount.py', SCSIid]
                 util.pread2(cmd)
         except:
             pass
@@ -531,7 +542,7 @@ class ScanRecord:
         for vdi in sr.vdis.values():
             # We initialise the sm_config field with the values from the database
             # The sm_config_overrides contains any new fields we want to add to
-            # sm_config, and also any field to delete (by virtue of having 
+            # sm_config, and also any field to delete (by virtue of having
             # sm_config_overrides[key]=None)
             try:
                 if not hasattr(vdi, "sm_config"):
@@ -559,10 +570,10 @@ class ScanRecord:
         for location in existing:
             sm_vdi = self.get_sm_vdi(location)
             xenapi_vdi = self.get_xenapi_vdi(location)
-            sm_vdi.uuid = util.default(sm_vdi, "uuid", lambda: xenapi_vdi['uuid']) 
-                
+            sm_vdi.uuid = util.default(sm_vdi, "uuid", lambda: xenapi_vdi['uuid'])
+
         # Only consider those whose configuration looks different
-        self.existing = filter(lambda x:not(self.get_sm_vdi(x).in_sync_with_xenapi_record(self.get_xenapi_vdi(x))), existing)
+        self.existing = filter(lambda x: not(self.get_sm_vdi(x).in_sync_with_xenapi_record(self.get_xenapi_vdi(x))), existing)
 
         if len(self.new) != 0:
             util.SMlog("new VDIs on disk: " + repr(self.new))
@@ -578,7 +589,7 @@ class ScanRecord:
         return self.__xenapi_records[self.__xenapi_locations[location]]
 
     def all_xenapi_locations(self):
-	return set(self.__xenapi_locations.keys())
+        return set(self.__xenapi_locations.keys())
 
     def synchronise_new(self):
         """Add XenAPI records for new disks"""
@@ -586,7 +597,7 @@ class ScanRecord:
             vdi = self.get_sm_vdi(location)
             util.SMlog("Introducing VDI with location=%s" % (vdi.location))
             vdi._db_introduce()
-            
+
     def synchronise_gone(self):
         """Delete XenAPI record for old disks"""
         for location in self.gone:
@@ -596,24 +607,22 @@ class ScanRecord:
                 self.sr.forget_vdi(vdi['uuid'])
             except XenAPI.Failure as e:
                 if util.isInvalidVDI(e):
-                   util.SMlog("VDI %s not found, ignoring exception" \
-                           % vdi['uuid'])
+                    util.SMlog("VDI %s not found, ignoring exception" %
+                               vdi['uuid'])
                 else:
-                   raise
+                    raise
 
     def synchronise_existing(self):
         """Update existing XenAPI records"""
         for location in self.existing:
             vdi = self.get_sm_vdi(location)
-            
+
             util.SMlog("Updating VDI with location=%s uuid=%s" % (vdi.location, vdi.uuid))
             vdi._db_update()
-            
+
     def synchronise(self):
         """Perform the default SM -> xenapi synchronisation; ought to be good enough
         for most plugins."""
         self.synchronise_new()
         self.synchronise_gone()
         self.synchronise_existing()
-
-
