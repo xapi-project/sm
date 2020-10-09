@@ -33,10 +33,20 @@ trap ecleanup TERM
 mkdir -p /var/lock/sm/iscsiadm
 
 INITIATORFILE=/etc/iscsi/initiatorname.iscsi
-TMPFILE=$TMPDIR/initiatorname.iscsi
+
+INITIATORNAME=$1
+INITIATORALIAS=$2
 
 (
         flock -s 200
+
+        CURRENT_INITATOR=$(awk 'BEGIN { FS = "=" } /InitiatorName/ {print $2}' $INITIATORFILE)
+        CURRENT_ALIAS=$(awk 'BEGIN { FS = "=" } /InitiatorAlias/ {print $2}' $INITIATORFILE)
+
+        if [ "$CURRENT_INITATOR" == "$INITIATORNAME" -a "$CURRENT_ALIAS" == "$INITIATORALIAS" ]
+        then
+            exit 0
+        fi
 
         iscsiadm -m session > /dev/null 2>&1
         if [ $? -eq 0 ]
@@ -46,18 +56,8 @@ TMPFILE=$TMPDIR/initiatorname.iscsi
                 exit 1
         fi
 
-        echo "InitiatorName=$1" > $TMPFILE
-        echo "InitiatorAlias=$2" >> $TMPFILE
-
-        diff $INITIATORFILE $TMPFILE > /dev/null 2>&1 
-        if [ $? -eq 0 ]
-        then
-            # unchanged so remove the tmp file
-            rm $TMPFILE
-            exit 0
-        fi
-
-        mv $TMPFILE $INITIATORFILE
+        echo "InitiatorName=$INITIATORNAME" > $INITIATORFILE
+        echo "InitiatorAlias=$INITIATORALIAS" >> $INITIATORFILE
 
         systemctl is-active -q iscsid
         if [ $? -eq 0 ]
