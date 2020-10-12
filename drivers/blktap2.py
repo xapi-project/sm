@@ -1662,6 +1662,8 @@ class VDI(object):
             vdi_ref = self._session.xenapi.VDI.get_by_uuid(vdi_uuid)
             self._session.xenapi.VDI.remove_from_sm_config(
                 vdi_ref, 'activating')
+            util.SMlog("Removed activating flag")
+
 
         # Link result to backend/
         self.BackendLink.from_uuid(sr_uuid, vdi_uuid).mklink(dev_path)
