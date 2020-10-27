@@ -58,6 +58,18 @@ DRIVER_INFO = {
 }
 
 
+def is_zfs_available():
+    import distutils.spawn
+    return distutils.spawn.find_executable('zfs') and \
+        util.pathexists('/sys/module/zfs/initstate')
+
+
+def is_zfs_path(path):
+    cmd = ['findmnt', '-o', 'FSTYPE', '-n', path]
+    fs_type = util.pread2(cmd).split('\n')[0]
+    return fs_type == 'zfs'
+
+
 class ZFSSR(FileSR.FileSR):
     DRIVER_TYPE = 'zfs'
 
@@ -66,7 +78,7 @@ class ZFSSR(FileSR.FileSR):
         return type == ZFSSR.DRIVER_TYPE
 
     def load(self, sr_uuid):
-        if not self._is_zfs_available():
+        if not is_zfs_available():
             raise xs_errors.XenError(
                 'SRUnavailable',
                 opterr='zfs is not installed or module is not loaded'
@@ -74,7 +86,7 @@ class ZFSSR(FileSR.FileSR):
         return super(ZFSSR, self).load(sr_uuid)
 
     def create(self, sr_uuid, size):
-        if not self._is_zfs_path(self.remotepath):
+        if not is_zfs_path(self.remotepath):
             raise xs_errors.XenError(
                 'ZFSSRCreate',
                 opterr='Cannot create SR, path is not a ZFS mountpoint'
@@ -90,7 +102,7 @@ class ZFSSR(FileSR.FileSR):
         return super(ZFSSR, self).delete(sr_uuid)
 
     def attach(self, sr_uuid):
-        if not self._is_zfs_path(self.remotepath):
+        if not is_zfs_path(self.remotepath):
             raise xs_errors.XenError(
                 'SRUnavailable',
                 opterr='Invalid ZFS path'
@@ -106,19 +118,7 @@ class ZFSSR(FileSR.FileSR):
     # Ensure _checkmount is overridden to prevent bad behaviors in FileSR.
     def _checkmount(self):
         return super(ZFSSR, self)._checkmount() and \
-            self._is_zfs_path(self.remotepath)
-
-    @staticmethod
-    def _is_zfs_path(path):
-        cmd = ['findmnt', '-o', 'FSTYPE', '-n', path]
-        fs_type = util.pread2(cmd).split('\n')[0]
-        return fs_type == 'zfs'
-
-    @staticmethod
-    def _is_zfs_available():
-        import distutils.spawn
-        return distutils.spawn.find_executable('zfs') and \
-            util.pathexists('/sys/module/zfs/initstate')
+            is_zfs_path(self.remotepath)
 
 
 class ZFSFileVDI(FileSR.FileVDI):
