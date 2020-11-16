@@ -286,6 +286,8 @@ class XAPI:
         self.srRecord = self.session.xenapi.SR.get_record(self._srRef)
         self.hostUuid = util.get_this_host()
         self._hostRef = self.session.xenapi.host.get_by_uuid(self.hostUuid)
+        self.task = None
+        self.task_progress = {"coalescable": 0, "done": 0}
 
     def __del__(self):
         if self.sessionPrivate:
@@ -435,6 +437,30 @@ class XAPI:
                 self.session.xenapi.task.cancel(task)
             self.session.xenapi.task.destroy(task)
         Util.log("Asynch srUpdate still running, but timeout exceeded.")
+
+    def update_task(self):
+        self.session.xenapi.task.set_other_config(
+            self.task,
+            {
+                "applies_to": self._srRef
+            })
+        total = self.task_progress['coalescable'] + self.task_progress['done']
+        if (total > 0):
+            self.session.xenapi.task.set_progress(
+                self.task, float(self.task_progress['done']) / total)
+
+    def create_task(self, label, description):
+        self.task = self.session.xenapi.task.create(label, description)
+        self.update_task()
+
+    def update_task_progress(self, key, value):
+        self.task_progress[key] = value
+        if self.task:
+            self.update_task()
+
+    def set_task_status(self, status):
+        if self.task:
+            self.session.xenapi.task.set_status(self.task, status)
 
 
 ################################################################################
@@ -1554,6 +1580,8 @@ class SR:
                 candidates.append(vdi)
                 Util.log("%s is coalescable" % vdi.uuid)
 
+        self.xapi.update_task_progress("coalescable", len(candidates))
+
         # pick one in the tallest tree
         treeHeight = dict()
         for c in candidates:
@@ -1607,6 +1635,8 @@ class SR:
           return candidates
 
         self.gatherLeafCoalesceable(candidates)
+
+        self.xapi.update_task_progress("coalescable", len(candidates))
 
         freeSpace = self.getFreeSpace()
         for candidate in candidates:
@@ -2848,12 +2878,18 @@ def _gcLoop(sr, dryRun):
     if not lockActive.acquireNoblock():
         Util.log("Another GC instance already active, exiting")
         return
+    # Track how many we do
+    coalesced = 0
+    task_status = "success"
     try:
         # Check if any work needs to be done
         sr.scanLocked()
         if not sr.hasWork():
             Util.log("No work, exiting")
             return
+        sr.xapi.create_task(
+            "Garbage Collection",
+            "Garbage collection for SR %s" % sr.uuid)
         _gcLoopPause(sr, dryRun)
         while True:
             if not sr.xapi.isPluggedHere():
@@ -2870,6 +2906,9 @@ def _gcLoop(sr, dryRun):
             try:
                 if not sr.gcEnabled():
                     break
+
+                sr.xapi.update_task_progress("done", coalesced)
+
                 sr.cleanupCoalesceJournals()
                 # Create the init file here in case startup is waiting on it
                 _create_init_file(sr.uuid)
@@ -2892,17 +2931,23 @@ def _gcLoop(sr, dryRun):
                         "LVHDRT_finding_a_suitable_pair", sr.uuid)
                     sr.coalesce(candidate, dryRun)
                     sr.xapi.srUpdate()
+                    coalesced += 1
                     continue
 
                 candidate = sr.findLeafCoalesceable()
                 if candidate:
                     sr.coalesceLeaf(candidate, dryRun)
                     sr.xapi.srUpdate()
+                    coalesced += 1
                     continue
 
             finally:
                 lockRunning.release()
+    except:
+        task_status = "failure"
+        raise
     finally:
+        sr.xapi.set_task_status(task_status)
         Util.log("GC process exiting, no work left")
         _create_init_file(sr.uuid)
         lockActive.release()
