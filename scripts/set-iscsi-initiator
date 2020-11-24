@@ -41,9 +41,9 @@ INITIATORALIAS=$2
         flock -s 200
 
         CURRENT_INITATOR=$(awk 'BEGIN { FS = "=" } /InitiatorName/ {print $2}' $INITIATORFILE)
-        CURRENT_ALIAS=$(awk 'BEGIN { FS = "=" } /InitiatorAlias/ {print $2}' $INITIATORFILE)
 
-        if [ "$CURRENT_INITATOR" == "$INITIATORNAME" -a "$CURRENT_ALIAS" == "$INITIATORALIAS" ]
+        # Only care that the initiator name is the name, alias may be missing
+        if [ "$CURRENT_INITATOR" == "$INITIATORNAME" ]
         then
             exit 0
         fi
