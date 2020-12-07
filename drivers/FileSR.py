@@ -765,6 +765,10 @@ class FileVDI(VDI.VDI):
         finally:
             blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
 
+    def _rename(self, src, dst):
+        util.SMlog("FileVDI._rename %s to %s" % (src, dst))
+        util.ioretry(lambda: os.rename(src, dst))
+
     def _snapshot(self, snap_type, cbtlog=None, cbt_consistency=None):
         util.SMlog("FileVDI._snapshot for %s (type %s)" % (self.uuid, snap_type))
 
@@ -816,7 +820,7 @@ class FileVDI(VDI.VDI):
 
         # We assume the filehandle has been released
         try:
-            util.ioretry(lambda: os.rename(src,newsrc))
+            self._rename(src, newsrc)
 
             # Create the snapshot under a temporary name, then rename
             # it afterwards. This avoids a small window where it exists
@@ -825,7 +829,7 @@ class FileVDI(VDI.VDI):
             # before so nobody will try to query it.
             tmpsrc = "%s.%s" % (src, "new")
             util.ioretry(lambda: self._snap(tmpsrc, newsrcname))
-            util.ioretry(lambda: os.rename(tmpsrc, src))
+            self._rename(tmpsrc, src)
             if snap_type == VDI.SNAPSHOT_DOUBLE:
                 util.ioretry(lambda: self._snap(dst, newsrcname))
             # mark the original file (in this case, its newsrc)
@@ -947,8 +951,8 @@ class FileVDI(VDI.VDI):
             pass
         try:
             if util.ioretry(lambda: util.pathexists(newsrc)):
-                util.ioretry(lambda: os.rename(newsrc,src))
-        except util.CommandException, inst:
+                self._rename(newsrc,src)
+        except util.CommandException as inst:
             pass
       
     def _checkpath(self, path):
@@ -1053,12 +1057,6 @@ class FileVDI(VDI.VDI):
         except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
-
-    def _rename(self, oldName, newName):
-        try:
-            util.ioretry(lambda: os.rename(oldName, newName))
-        except util.CommandException, inst:
-            pass
 
     def _cbt_log_exists(self, logpath):
         return util.pathexists(logpath)
