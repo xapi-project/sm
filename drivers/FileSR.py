@@ -770,6 +770,10 @@ class FileVDI(VDI.VDI):
         util.SMlog("FileVDI._rename %s to %s" % (src, dst))
         util.ioretry(lambda: os.rename(src, dst))
 
+    def _link(self, src, dst):
+        util.SMlog("FileVDI._link %s to %s" % (src, dst))
+        os.link(src, dst)
+
     def _snapshot(self, snap_type, cbtlog=None, cbt_consistency=None):
         util.SMlog("FileVDI._snapshot for %s (type %s)" % (self.uuid, snap_type))
 
@@ -821,7 +825,7 @@ class FileVDI(VDI.VDI):
 
         # We assume the filehandle has been released
         try:
-            self._rename(src, newsrc)
+            self._link(src, newsrc)
 
             # Create the snapshot under a temporary name, then rename
             # it afterwards. This avoids a small window where it exists
@@ -952,7 +956,12 @@ class FileVDI(VDI.VDI):
             pass
         try:
             if util.ioretry(lambda: util.pathexists(newsrc)):
-                self._rename(newsrc,src)
+                stats = os.stat(newsrc)
+                # Check if we have more than one link to newsrc
+                if (stats.st_nlink > 1):
+                    util.ioretry(lambda: os.unlink(newsrc))
+                elif not self._is_hidden(newsrc):
+                    self._rename(newsrc, src)
         except util.CommandException as inst:
             pass
       
@@ -999,6 +1008,9 @@ class FileVDI(VDI.VDI):
     def _mark_hidden(self, path):
         vhdutil.setHidden(path, True)
         self.hidden = 1
+
+    def _is_hidden(self, path):
+        return vhdutil.getHidden(path) == 1
 
     def extractUuid(path):
         fileName = os.path.basename(path)
