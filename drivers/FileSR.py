@@ -774,6 +774,10 @@ class FileVDI(VDI.VDI):
         util.SMlog("FileVDI._link %s to %s" % (src, dst))
         os.link(src, dst)
 
+    def _unlink(self, path):
+        util.SMlog("FileVDI._unlink %s" % (path))
+        os.unlink(path)
+
     def _snapshot(self, snap_type, cbtlog=None, cbt_consistency=None):
         util.SMlog("FileVDI._snapshot for %s (type %s)" % (self.uuid, snap_type))
 
@@ -852,7 +856,7 @@ class FileVDI(VDI.VDI):
                         (snap_type == VDI.SNAPSHOT_SINGLE or \
                         snap_type == VDI.SNAPSHOT_INTERNAL or \
                         dstparent != newuuid):
-                    util.ioretry(lambda: os.unlink(newsrc))
+                    util.ioretry(lambda: self._unlink(newsrc))
                     introduce_parent = False
             except:
                 pass
@@ -951,7 +955,7 @@ class FileVDI(VDI.VDI):
     def _clonecleanup(self,src,dst,newsrc):
         try:
             if dst:
-                util.ioretry(lambda: os.unlink(dst))
+                util.ioretry(lambda: self._unlink(dst))
         except util.CommandException as inst:
             pass
         try:
@@ -959,7 +963,7 @@ class FileVDI(VDI.VDI):
                 stats = os.stat(newsrc)
                 # Check if we have more than one link to newsrc
                 if (stats.st_nlink > 1):
-                    util.ioretry(lambda: os.unlink(newsrc))
+                    util.ioretry(lambda: self._unlink(newsrc))
                 elif not self._is_hidden(newsrc):
                     self._rename(newsrc, src)
         except util.CommandException as inst:
