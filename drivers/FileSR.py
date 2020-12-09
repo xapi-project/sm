@@ -766,6 +766,18 @@ class FileVDI(VDI.VDI):
         finally:
             blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
 
+    def _rename(self, src, dst):
+        util.SMlog("FileVDI._rename %s to %s" % (src, dst))
+        util.ioretry(lambda: os.rename(src, dst))
+
+    def _link(self, src, dst):
+        util.SMlog("FileVDI._link %s to %s" % (src, dst))
+        os.link(src, dst)
+
+    def _unlink(self, path):
+        util.SMlog("FileVDI._unlink %s" % (path))
+        os.unlink(path)
+
     def _snapshot(self, snap_type, cbtlog=None, cbt_consistency=None):
         util.SMlog("FileVDI._snapshot for %s (type %s)" % (self.uuid, snap_type))
 
@@ -817,7 +829,7 @@ class FileVDI(VDI.VDI):
 
         # We assume the filehandle has been released
         try:
-            util.ioretry(lambda: os.rename(src,newsrc))
+            self._link(src, newsrc)
 
             # Create the snapshot under a temporary name, then rename
             # it afterwards. This avoids a small window where it exists
@@ -826,7 +838,7 @@ class FileVDI(VDI.VDI):
             # before so nobody will try to query it.
             tmpsrc = "%s.%s" % (src, "new")
             util.ioretry(lambda: self._snap(tmpsrc, newsrcname))
-            util.ioretry(lambda: os.rename(tmpsrc, src))
+            self._rename(tmpsrc, src)
             if snap_type == VDI.SNAPSHOT_DOUBLE:
                 util.ioretry(lambda: self._snap(dst, newsrcname))
             # mark the original file (in this case, its newsrc)
@@ -844,7 +856,7 @@ class FileVDI(VDI.VDI):
                         (snap_type == VDI.SNAPSHOT_SINGLE or \
                         snap_type == VDI.SNAPSHOT_INTERNAL or \
                         dstparent != newuuid):
-                    util.ioretry(lambda: os.unlink(newsrc))
+                    util.ioretry(lambda: self._unlink(newsrc))
                     introduce_parent = False
             except:
                 pass
@@ -943,12 +955,17 @@ class FileVDI(VDI.VDI):
     def _clonecleanup(self,src,dst,newsrc):
         try:
             if dst:
-                util.ioretry(lambda: os.unlink(dst))
+                util.ioretry(lambda: self._unlink(dst))
         except util.CommandException as inst:
             pass
         try:
             if util.ioretry(lambda: util.pathexists(newsrc)):
-                util.ioretry(lambda: os.rename(newsrc,src))
+                stats = os.stat(newsrc)
+                # Check if we have more than one link to newsrc
+                if (stats.st_nlink > 1):
+                    util.ioretry(lambda: self._unlink(newsrc))
+                elif not self._is_hidden(newsrc):
+                    self._rename(newsrc, src)
         except util.CommandException as inst:
             pass
       
@@ -995,6 +1012,9 @@ class FileVDI(VDI.VDI):
     def _mark_hidden(self, path):
         vhdutil.setHidden(path, True)
         self.hidden = 1
+
+    def _is_hidden(self, path):
+        return vhdutil.getHidden(path) == 1
 
     def extractUuid(path):
         fileName = os.path.basename(path)
@@ -1054,12 +1074,6 @@ class FileVDI(VDI.VDI):
         except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
-
-    def _rename(self, oldName, newName):
-        try:
-            util.ioretry(lambda: os.rename(oldName, newName))
-        except util.CommandException as inst:
-            pass
 
     def _cbt_log_exists(self, logpath):
         return util.pathexists(logpath)
