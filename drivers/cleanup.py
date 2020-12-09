@@ -2842,9 +2842,9 @@ def _gcLoop(sr, dryRun):
                     sr.lock()
                     try:
                         sr.garbageCollect(dryRun)
-                        sr.xapi.srUpdate()
                     finally:
                         sr.unlock()
+                    sr.xapi.srUpdate()
 
                 candidate = sr.findCoalesceable()
                 if candidate:
