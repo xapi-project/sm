@@ -23,27 +23,15 @@
 CLEANUP_SCRIPT="/opt/xensource/sm/cleanup.py"
 LVHD_UTIL_SCRIPT="/opt/xensource/sm/lvhdutil.py"
 
-declare -A LVM_TYPES
-
-for f in lvhdoiscsi lvhdohba lvhdofcoe lvmoiscsi lvmohba lvmofcoe; do
-    LVM_TYPES[$f]=y
-done
-
 start() {
     echo -n $"Fixing refcounts on new master: "
     logger -p local2.info "Fixing refcounts on new master: "
 
-    TYPES=`xe sm-list required-api-version=1.0 params=type --minimal | tr ',' '\n'`
-    for type in $TYPES; do
+    for type in lvhdoiscsi lvhdohba lvhdofcoe lvmoiscsi lvmohba lvmofcoe; do
         srUuids=`xe sr-list type=$type params=uuid --minimal | sed "s/,/ /g"`
         for uuid in $srUuids; do
-            if [ -n "${LVM_TYPES[$type]+check}" ]; then
-                echo -n "Fixing $type"
-                python $LVHD_UTIL_SCRIPT fixrefcounts $uuid
-            fi
-            # do a scan to handle any journaled interrupted operations:
-            # VDI inflate, VHD ops, VDI.clone
-            xe sr-scan uuid=$uuid
+            echo -n "Fixing $type"
+            python $LVHD_UTIL_SCRIPT fixrefcounts $uuid
         done
     done
 	echo -n $"OK"
