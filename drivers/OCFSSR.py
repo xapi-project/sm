@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -18,7 +18,11 @@
 # OCFSSR: OCFS implementation over a local disk.
 #
 
-import SR, VDI, SRCommand, FileSR, util
+import SR
+import VDI
+import SRCommand
+import FileSR
+import util
 import errno
 import os
 import xmlrpclib
@@ -28,13 +32,13 @@ from lock import Lock
 import cleanup
 import xml.dom.minidom
 
-CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_CACHING",
-                "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH",
-                "VDI_UPDATE", "VDI_CLONE","VDI_SNAPSHOT","VDI_RESIZE",
+CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_CACHING",
+                "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
+                "VDI_UPDATE", "VDI_CLONE", "VDI_SNAPSHOT", "VDI_RESIZE",
                 "VDI_GENERATE_CONFIG", "VDI_MIRROR",
                 "VDI_RESET_ON_BOOT", "ATOMIC_PAUSE"]
 
-CONFIGURATION = [ ['device', 'local device path (required) (e.g. /dev/sdx)'] ]
+CONFIGURATION = [['device', 'local device path (required) (e.g. /dev/sdx)']]
 
 DRIVER_INFO = {
     'name': 'OCFS VHD',
@@ -49,16 +53,17 @@ DRIVER_INFO = {
 
 DRIVER_CONFIG = {"ATTACH_FROM_CONFIG_WITH_TAPDISK": True}
 
+
 class OCFSSR(FileSR.FileSR):
     """OCFS file-based storage repository"""
+
     def handles(type):
         return type == 'ocfs'
     handles = staticmethod(handles)
 
-
     def load(self, sr_uuid):
         if 'device' not in self.dconf or not self.dconf['device']:
-            raise xs_errors.XenError('ConfigDeviceMissing',)
+            raise xs_errors.XenError('ConfigDeviceMissing', )
         self.blockdevice = self.dconf['device']
         if not self._isvalidpathstring(self.blockdevice):
             raise xs_errors.XenError('ConfigDeviceInvalid', \
@@ -87,9 +92,9 @@ class OCFSSR(FileSR.FileSR):
         cmd = ['mount', '-t', 'ocfs2', blockdevice, mountpoint, '-o', \
                'noatime,data=writeback,nointr,commit=60,coherency=buffered']
         try:
-             ret = util.pread(cmd)
+            ret = util.pread(cmd)
         except util.CommandException as inst:
-             raise xs_errors.XenError('OCFSMount', 
+            raise xs_errors.XenError('OCFSMount',
                                       opterr='Failed to mount FS. Errno is %d' \
                                              % os.strerror(inst.code))
 
@@ -99,7 +104,7 @@ class OCFSSR(FileSR.FileSR):
         self.attached = True
 
     def probe(self):
-        # We are not storing sr-uuid in the remote disk, return NULL during a 
+        # We are not storing sr-uuid in the remote disk, return NULL during a
         # probe
         dom = xml.dom.minidom.Document()
         return dom.toprettyxml()
@@ -114,21 +119,20 @@ class OCFSSR(FileSR.FileSR):
         # Change directory to avoid unmount conflicts
         os.chdir(SR.MOUNT_BASE)
 
-        cmd = ['umount', self.path ]
+        cmd = ['umount', self.path]
         try:
-             ret = util.pread(cmd)
+            ret = util.pread(cmd)
         except util.CommandException as inst:
-                raise xs_errors.XenError('OCFSUnMount', \
+            raise xs_errors.XenError('OCFSUnMount', \
                       opterr='Failed to umount FS. Errno is %d' % \
                       os.strerror(inst.code))
 
         self.attached = False
-        
 
     def create(self, sr_uuid, size):
         if util.pathexists(self.blockdevice):
-            util.zeroOut(self.blockdevice, 0, 1024*1024)
-        cmd = ['mkfs', '-t', 'ocfs2', '-b', '4K', '-C', '1M', '-N', '16', '-F', self.blockdevice ]
+            util.zeroOut(self.blockdevice, 0, 1024 * 1024)
+        cmd = ['mkfs', '-t', 'ocfs2', '-b', '4K', '-C', '1M', '-N', '16', '-F', self.blockdevice]
         try:
             ret = util.pread(cmd)
         except util.CommandException as inst:
@@ -141,25 +145,25 @@ class OCFSSR(FileSR.FileSR):
         super(OCFSSR, self).delete(sr_uuid)
         self.detach(sr_uuid)
 
-    def vdi(self, uuid, loadLocked = False):
+    def vdi(self, uuid, loadLocked=False):
         if not loadLocked:
             return OCFSFileVDI(self, uuid)
         return OCFSFileVDI(self, uuid)
-    
+
 
 class OCFSFileVDI(FileSR.FileVDI):
     def attach(self, sr_uuid, vdi_uuid):
-        if not hasattr(self,'xenstore_data'):
+        if not hasattr(self, 'xenstore_data'):
             self.xenstore_data = {}
 
-        self.xenstore_data["storage-type"]="ocfs"
+        self.xenstore_data["storage-type"] = "ocfs"
 
         return super(OCFSFileVDI, self).attach(sr_uuid, vdi_uuid)
 
     def generate_config(self, sr_uuid, vdi_uuid):
         util.SMlog("OCFSFileVDI.generate_config")
         if not util.pathexists(self.path):
-                raise xs_errors.XenError('VDIUnavailable')
+            raise xs_errors.XenError('VDIUnavailable')
         resp = {}
         resp['device_config'] = self.sr.dconf
         resp['sr_uuid'] = sr_uuid
@@ -168,7 +172,7 @@ class OCFSFileVDI(FileSR.FileVDI):
         # Return the 'config' encoded within a normal XMLRPC response so that
         # we can use the regular response/error parsing code.
         config = xmlrpclib.dumps(tuple([resp]), "vdi_attach_from_config")
-        return xmlrpclib.dumps((config,), "", True)
+        return xmlrpclib.dumps((config, ), "", True)
 
     def attach_from_config(self, sr_uuid, vdi_uuid):
         """Used for HA State-file only. Will not just attach the VDI but

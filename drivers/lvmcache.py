@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -25,6 +25,7 @@ import lvhdutil
 from lock import Lock
 from refcounter import RefCounter
 
+
 class LVInfo:
     def __init__(self, name):
         self.name = name
@@ -39,6 +40,7 @@ class LVInfo:
                 (self.name, self.size, self.active, self.open, self.readonly, \
                 self.tags)
 
+
 def lazyInit(op):
     def wrapper(self, *args):
         if not self.initialized:
@@ -46,7 +48,7 @@ def lazyInit(op):
             self.refresh()
             #util.SMlog("%s(%s): %s" % (op, args, self.toString()))
         try:
-            ret = op(self, *args)
+            ret = op(self, * args)
         except KeyError:
             util.logException("LVMCache")
             util.SMlog("%s(%s): %s" % (op, args, self.toString()))
@@ -87,7 +89,7 @@ class LVMCache:
             fields = line.split()
             lvName = fields[0]
             lvInfo = LVInfo(lvName)
-            lvInfo.size = long(fields[3].replace("B",""))
+            lvInfo.size = long(fields[3].replace("B", ""))
             lvInfo.active = (fields[2][4] == 'a')
             if (fields[2][5] == 'o'):
                 lvInfo.open = 1
@@ -103,7 +105,7 @@ class LVMCache:
     # lvutil functions
     #
     @lazyInit
-    def create(self, lvName, size, tag = None):
+    def create(self, lvName, size, tag=None):
         lvutil.create(lvName, size, self.vgName, tag)
         lvInfo = LVInfo(lvName)
         lvInfo.size = size
@@ -167,10 +169,10 @@ class LVMCache:
                 info = lvInfo[lvName]
                 if info.open:
                     if refreshed:
-                        # should never happen in normal conditions but in some 
-                        # failure cases the recovery code may not be able to 
-                        # determine what the correct refcount should be, so it 
-                        # is not unthinkable that the value might be out of 
+                        # should never happen in normal conditions but in some
+                        # failure cases the recovery code may not be able to
+                        # determine what the correct refcount should be, so it
+                        # is not unthinkable that the value might be out of
                         # sync
                         util.SMlog("WARNING: deactivate: LV %s open" % lvName)
                         return
@@ -195,7 +197,7 @@ class LVMCache:
             lock.release()
 
     @lazyInit
-    def activateNoRefcount(self, lvName, refresh = False):
+    def activateNoRefcount(self, lvName, refresh=False):
         path = self._getPath(lvName)
         lvutil.activateNoRefcount(path, refresh)
         self.lvs[lvName].active = True
@@ -239,7 +241,6 @@ class LVMCache:
         """We don't actually open or close the LV, just mark it in the cache"""
         self.lvs[lvName].open += inc
 
-
     #
     # cached access
     #
@@ -248,7 +249,7 @@ class LVMCache:
         return self.lvs.get(lvName)
 
     @lazyInit
-    def getLVInfo(self, lvName = None):
+    def getLVInfo(self, lvName=None):
         result = dict()
         lvs = []
         if lvName == None:

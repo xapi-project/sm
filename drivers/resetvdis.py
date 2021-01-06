@@ -2,20 +2,20 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
-# Clear the attach status for all VDIs in the given SR on this host.  
+# Clear the attach status for all VDIs in the given SR on this host.
 # Additionally, reset the paused state if this host is the master.
 
 from __future__ import print_function
@@ -23,6 +23,7 @@ import cleanup
 import util
 import lock
 import XenAPI
+
 
 def reset_sr(session, host_uuid, sr_uuid, is_sr_master):
     from vhdutil import LOCK_TYPE_SR
@@ -58,6 +59,7 @@ def reset_sr(session, host_uuid, sr_uuid, is_sr_master):
     sr_lock.release()
     gc_lock.release()
 
+
 def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True):
     vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
     vdi_rec = session.xenapi.VDI.get_record(vdi_ref)
@@ -79,7 +81,7 @@ def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True):
                 util.SMlog(msg)
                 if term_output:
                     print(msg)
-                host_invalid=True
+                host_invalid = True
 
             if host_invalid:
                 session.xenapi.VDI.remove_from_sm_config(vdi_ref, key)
@@ -128,6 +130,7 @@ def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True):
             print(msg)
     return clean
 
+
 def usage():
     print("Usage:")
     print("all <HOST UUID> <SR UUID> [--master]")
@@ -170,9 +173,9 @@ if __name__ == '__main__':
             force = True
         reset_vdi(session, vdi_uuid, force)
     elif len(sys.argv) in [3, 4]:
-        # backwards compatibility: the arguments for the "all" case used to be 
-        # just host_uuid, sr_uuid, [is_master] (i.e., no "all" string, since it 
-        # was the only mode available). To avoid having to change XAPI, accept 
+        # backwards compatibility: the arguments for the "all" case used to be
+        # just host_uuid, sr_uuid, [is_master] (i.e., no "all" string, since it
+        # was the only mode available). To avoid having to change XAPI, accept
         # the old format here as well.
         host_uuid = sys.argv[1]
         sr_uuid = sys.argv[2]

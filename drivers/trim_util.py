@@ -37,11 +37,14 @@ ERROR_MSG_KEY = "errmsg"
 TRIM_LAST_TRIGGERED_KEY = "trim_last_triggered"
 MASTER_LVM_CONF = '/etc/lvm/master'
 
+
 def _vg_by_sr_uuid(sr_uuid):
     return lvhdutil.VG_PREFIX + sr_uuid
 
+
 def _lvpath_by_vg_lv_name(vg_name, lv_name):
     return os.path.join(lvhdutil.VG_LOCATION, vg_name, lv_name)
+
 
 def to_xml(d):
 
@@ -63,8 +66,8 @@ def to_xml(d):
         value_element.appendChild(value_text_mode)
         key_value_element.appendChild(value_element)
 
-
     return dom.toxml()
+
 
 # Note: This function is expected to be called from a context where
 # the SR is locked by the thread calling the function; therefore removing
@@ -78,6 +81,7 @@ def _log_last_triggered(session, sr_uuid):
         session.xenapi.SR.add_to_other_config(sr_ref, TRIM_LAST_TRIGGERED_KEY, str(time.time()))
     except:
         util.logException("Unable to set other-config:%s" % TRIM_LAST_TRIGGERED_KEY)
+
 
 def do_trim(session, args):
     """Attempt to trim the given LVHDSR"""
@@ -108,7 +112,7 @@ def do_trim(session, args):
 
             # Clean trim LV in case the previous trim attemp failed
             if lvutil.exists(lv_path):
-               lvutil.remove(lv_path)
+                lvutil.remove(lv_path)
 
             #Check if VG limits are enough for creating LV.
             stats = lvutil._getVGstats(vg_name)

@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -24,6 +24,7 @@ import lock
 from lvmcache import LVMCache
 import scsiutil
 
+
 def multi(session, args):
     """Perform several actions in one call (to save on round trips)"""
     util.SMlog("on-slave.multi: %s" % args)
@@ -36,7 +37,7 @@ def multi(session, args):
             break
         util.SMlog("on-slave.action %d: %s" % (i, action))
         if action == "activate":
-            try: 
+            try:
                 lvmCache.activate(args["ns%d" % i], args["uuid%d" % i],
                                   args["lvName%d" % i], False)
             except util.CommandException:
@@ -56,7 +57,7 @@ def multi(session, args):
                 util.SMlog("on-slave.deactivateNoRefcount failed")
                 raise
         elif action == "refresh":
-            try: 
+            try:
                 lvmCache.activateNoRefcount(args["lvName%d" % i], True)
             except util.CommandException:
                 util.SMlog("on-slave.refresh failed")
@@ -70,9 +71,15 @@ def multi(session, args):
         i += 1
     return str(True)
 
+
 def _is_open(session, args):
     """Check if VDI <args["vdiUuid"]> is open by a tapdisk on this host"""
-    import SRCommand, SR, NFSSR, EXTSR, LVHDSR, blktap2
+    import SRCommand
+    import SR
+    import NFSSR
+    import EXTSR
+    import LVHDSR
+    import blktap2
 
     util.SMlog("on-slave.is_open: %s" % args)
     vdiUuid = args["vdiUuid"]
@@ -80,7 +87,7 @@ def _is_open(session, args):
     srRec = session.xenapi.SR.get_record(srRef)
     srType = srRec["type"]
 
-    # FIXME: ugly hacks to create a VDI object without a real SRCommand to 
+    # FIXME: ugly hacks to create a VDI object without a real SRCommand to
     # avoid having to refactor the core files
     if srType.startswith("lvm"):
         srType = "lvhd"
@@ -97,6 +104,7 @@ def _is_open(session, args):
     if tapdisk:
         return "True"
     return "False"
+
 
 def is_open(session, args):
     try:

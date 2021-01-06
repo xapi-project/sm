@@ -22,7 +22,6 @@ import errno
 import os
 import xml.dom.minidom
 import time
-
 # The algorithm for tcp and udp (at least in the linux kernel) for
 # NFS timeout on softmounts is as follows:
 #
@@ -53,6 +52,7 @@ NFS_VERSION = [
 NFS_SERVICE_WAIT = 30
 NFS_SERVICE_RETRY = 6
 
+
 class NfsException(Exception):
 
     def __init__(self, errstr):
@@ -71,6 +71,7 @@ def check_server_tcp(server, nfsversion=DEFAULT_NFSVERSION):
     except util.CommandException as inst:
         raise NfsException("rpcinfo failed or timed out: return code %d" %
                            inst.code)
+
 
 def check_server_service(server):
     """Ensure NFS service is up and available on the remote server.
@@ -132,18 +133,18 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
 
 
     # Wait for NFS service to be available
-    try: 
+    try:
         if not check_server_service(remoteserver):
             raise util.CommandException(code=errno.EOPNOTSUPP,
                     reason="No NFS service on host")
-    except util.CommandException as inst: 
-        raise NfsException("Failed to detect NFS service on server %s" 
+    except util.CommandException as inst:
+        raise NfsException("Failed to detect NFS service on server %s"
                            % remoteserver)
 
     mountcommand = 'mount.nfs'
     if nfsversion == '4':
         mountcommand = 'mount.nfs4'
-        
+
     if nfsversion == '4.1':
         mountcommand = 'mount.nfs4'
 
@@ -272,6 +273,7 @@ def get_supported_nfs_versions(server):
         raise NfsException('Failed to read supported NFS version from server' %
                            (server))
 
+
 def get_nfs_timeout(other_config):
     nfs_timeout = 100
 
@@ -284,11 +286,12 @@ def get_nfs_timeout(other_config):
 
     return nfs_timeout
 
+
 def get_nfs_retrans(other_config):
     nfs_retrans = 3
 
     if 'nfs-retrans' in other_config:
-        val = int(other_config['nfs-retrans']) 
+        val = int(other_config['nfs-retrans'])
         if val < 0:
             util.SMlog("Invalid nfs-retrans value: %d" % val)
         else:

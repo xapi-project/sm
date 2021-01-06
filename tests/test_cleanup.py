@@ -15,6 +15,7 @@ import stat
 
 import ipc
 
+
 class FakeFile(object):
     pass
 
@@ -476,7 +477,7 @@ class TestSR(unittest.TestCase):
 
         # +1 to SR.LOCK_RETRY_ATTEMPTS as we attempt to get lock
         # once outside the loop.
-        side_effect = [False]*(cleanup.SR.LOCK_RETRY_ATTEMPTS + 1)
+        side_effect = [False] * (cleanup.SR.LOCK_RETRY_ATTEMPTS + 1)
 
         # Make sure we are not trying once again
         side_effect.append(True)
@@ -492,7 +493,7 @@ class TestSR(unittest.TestCase):
         self.assertIsNotNone(the_exception)
         self.assertEqual(errno.ETIMEDOUT, the_exception.code)
         self.assertEqual(mocked_lock.acquireNoblock.call_count,
-                         cleanup.SR.LOCK_RETRY_ATTEMPTS+1)
+                         cleanup.SR.LOCK_RETRY_ATTEMPTS + 1)
 
     @mock.patch('cleanup.IPCFlag', autospec=True)
     @mock.patch('cleanup.init')
@@ -510,7 +511,7 @@ class TestSR(unittest.TestCase):
 
         # +1 to SR.LOCK_RETRY_ATTEMPTS as we attempt to get lock
         # once outside the loop.
-        side_effect = [False]*(cleanup.SR.LOCK_RETRY_ATTEMPTS)
+        side_effect = [False] * (cleanup.SR.LOCK_RETRY_ATTEMPTS)
 
         # On the final attempt we succeed.
         side_effect.append(True)
@@ -520,7 +521,7 @@ class TestSR(unittest.TestCase):
 
         ret = cleanup._abort(None)
         self.assertEqual(mocked_lock.acquireNoblock.call_count,
-                         cleanup.SR.LOCK_RETRY_ATTEMPTS+1)
+                         cleanup.SR.LOCK_RETRY_ATTEMPTS + 1)
         self.assertEqual(ret, True)
 
     @mock.patch('cleanup.lock', autospec=True)
@@ -671,7 +672,7 @@ class TestSR(unittest.TestCase):
     def test_findLeafCoalesceable_forbidden2(self, mock_log):
         sr_uuid = uuid4()
         sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
-        sr.xapi.srRecord =\
+        sr.xapi.srRecord = \
             {"other_config":
              {cleanup.VDI.DB_LEAFCLSC: cleanup.VDI.LEAFCLSC_DISABLED}}
 
@@ -718,7 +719,6 @@ class TestSR(unittest.TestCase):
         res = sr.findLeafCoalesceable()
         self.assertEqual(res, [])
         mock_log.assert_called_with("Coalesce disabled for this SR")
-
 # Utils for testing gatherLeafCoalesceable.
 
     def srWithOneGoodVDI(self, mock_getConfig, goodConfig):
@@ -848,10 +848,10 @@ class TestSR(unittest.TestCase):
     def makeVDIReturningSize(self, sr, size, canLiveCoalesce, liveSize):
         vdi_uuid = uuid4()
         vdi = cleanup.VDI(sr, str(vdi_uuid), False)
-        vdi._calcExtraSpaceForSnapshotCoalescing =\
+        vdi._calcExtraSpaceForSnapshotCoalescing = \
             mock.MagicMock(return_value=size)
         vdi.canLiveCoalesce = mock.MagicMock(return_value=canLiveCoalesce)
-        vdi._calcExtraSpaceForLeafCoalescing =\
+        vdi._calcExtraSpaceForLeafCoalescing = \
             mock.MagicMock(return_value=liveSize)
         vdi.setConfig = mock.MagicMock()
         return vdi
@@ -963,7 +963,7 @@ class TestSR(unittest.TestCase):
         FakeFile.seek = mock.MagicMock()
         return FakeFile
 
-    def getStorageSpeed(self, mock_lock, mock_unlock,  mock_isFile, sr,
+    def getStorageSpeed(self, mock_lock, mock_unlock, mock_isFile, sr,
                         fakeFile, isFile, expectedRes, closeCount,
                         lines=None):
         fakeFile.close.call_count = 0
@@ -1151,11 +1151,11 @@ class TestSR(unittest.TestCase):
         self.canLiveCoalesce(vdi, 10, cleanup.VDI.LEAFCLSC_FORCE, 0.1, True)
 
         # Fallback to hardcoded data size, too big
-        self.canLiveCoalesce(vdi, cleanup.VDI.LIVE_LEAF_COALESCE_MAX_SIZE+1,
+        self.canLiveCoalesce(vdi, cleanup.VDI.LIVE_LEAF_COALESCE_MAX_SIZE + 1,
                              "blah", None, False)
 
         # Fallback to hardcoded data size, too big but force
-        self.canLiveCoalesce(vdi, cleanup.VDI.LIVE_LEAF_COALESCE_MAX_SIZE+1,
+        self.canLiveCoalesce(vdi, cleanup.VDI.LIVE_LEAF_COALESCE_MAX_SIZE + 1,
                              cleanup.VDI.LEAFCLSC_FORCE, None, True)
 
         # Fallback to hardcoded data size, acceptable size.
@@ -1176,7 +1176,7 @@ class TestSR(unittest.TestCase):
     def forbiddenBySwitch(self, sr, mock_log, switch, switchValue, failMessage,
                           expectedRes):
         mock_log.reset_mock()
-        res = sr.forbiddenBySwitch(switch,  switchValue, failMessage)
+        res = sr.forbiddenBySwitch(switch, switchValue, failMessage)
         self.assertEqual(res, expectedRes)
         sr.getSwitch.assert_called_with(switch)
         if failMessage:
@@ -1207,12 +1207,12 @@ class TestSR(unittest.TestCase):
                                False)
 
     def leafCoalesceForbidden(self, sr, mock_srforbiddenBySwitch, side_effect,
-                              expectedRes,  expected_callCount, *argv):
+                              expectedRes, expected_callCount, *argv):
         mock_srforbiddenBySwitch.call_count = 0
         mock_srforbiddenBySwitch.side_effect = side_effect
         res = sr.leafCoalesceForbidden()
         self.assertEqual(res, expectedRes)
-        sr.forbiddenBySwitch.assert_called_with(*argv)
+        sr.forbiddenBySwitch.assert_called_with( * argv)
         self.assertEqual(expected_callCount, sr.forbiddenBySwitch.call_count)
 
     @mock.patch('cleanup.SR.forbiddenBySwitch', autospec=True)
@@ -1291,7 +1291,7 @@ class TestSR(unittest.TestCase):
         self.trackerReportOk(tracker, expectedHistory,
                              expectedReason, start, finish, minimum)
 
-    def exerciseTracker(self, size1, size2, its,  expectedHistory,
+    def exerciseTracker(self, size1, size2, its, expectedHistory,
                         expectedReason, start, finish, minimum):
         tracker = cleanup.SR.CoalesceTracker()
         for x in range(its):
@@ -1346,7 +1346,7 @@ class TestSR(unittest.TestCase):
             "Iteration: 1 -- Initial size 100 --> Final size 100",
             "Iteration: 2 -- Initial size 100 --> Final size 121",
         ]
-        expectedReason = "Unexpected bump in size,"\
+        expectedReason = "Unexpected bump in size," \
                          " compared to minimum acheived"
         res = tracker.abortCoalesce(100, 100)
         self.assertFalse(res)

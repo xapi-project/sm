@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -18,9 +18,13 @@
 # FileSR: local-file storage repository
 
 from __future__ import print_function
-import SR, SRCommand, FileSR, util
+import SR
+import SRCommand
+import FileSR
+import util
 import errno
-import os, sys
+import os
+import sys
 import xmlrpclib
 import xs_errors
 import nfs
@@ -28,17 +32,16 @@ import vhdutil
 from lock import Lock
 import cleanup
 
-CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_CACHING",
-                "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH",
-                "VDI_UPDATE", "VDI_CLONE","VDI_SNAPSHOT","VDI_RESIZE",
-                "VDI_GENERATE_CONFIG","VDI_MIRROR",
+CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_CACHING",
+                "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
+                "VDI_UPDATE", "VDI_CLONE", "VDI_SNAPSHOT", "VDI_RESIZE",
+                "VDI_GENERATE_CONFIG", "VDI_MIRROR",
                 "VDI_RESET_ON_BOOT/2", "ATOMIC_PAUSE", "VDI_CONFIG_CBT",
                 "VDI_ACTIVATE", "VDI_DEACTIVATE", "THIN_PROVISIONING", "VDI_READ_CACHING"]
 
 CONFIGURATION = [['server', 'hostname or IP address of NFS server (required)'],
                  ['serverpath', 'path on remote server (required)'],
                  nfs.NFS_VERSION]
-
 
 DRIVER_INFO = {
     'name': 'NFS VHD',
@@ -53,7 +56,6 @@ DRIVER_INFO = {
 
 DRIVER_CONFIG = {"ATTACH_FROM_CONFIG_WITH_TAPDISK": True}
 
-
 # The mountpoint for the directory when performing an sr_probe.  All probes
 # are guaranteed to be serialised by xapi, so this single mountpoint is fine.
 PROBE_MOUNTPOINT = "probe"
@@ -61,12 +63,13 @@ NFSPORT = 2049
 DEFAULT_TRANSPORT = "tcp"
 PROBEVERSION = 'probeversion'
 
+
 class NFSSR(FileSR.FileSR):
     """NFS file-based storage repository"""
+
     def handles(type):
         return type == 'nfs'
     handles = staticmethod(handles)
-
 
     def load(self, sr_uuid):
         self.ops_exclusive = FileSR.OPS_EXCLUSIVE
@@ -77,7 +80,7 @@ class NFSSR(FileSR.FileSR):
             raise xs_errors.XenError('ConfigServerMissing')
         self.remoteserver = self.dconf['server']
         self.nosubdir = False
-        if self.sr_ref and self.session is not None :
+        if self.sr_ref and self.session is not None:
             self.sm_config = self.session.xenapi.SR.get_sm_config(self.sr_ref)
             self.other_config = self.session.xenapi.SR.get_other_config(self.sr_ref)
         else:
@@ -98,7 +101,6 @@ class NFSSR(FileSR.FileSR):
             self.options = self.dconf['options']
         else:
             self.options = ''
-
 
     def validate_remotepath(self, scan):
         if 'serverpath' not in self.dconf:
@@ -124,7 +126,6 @@ class NFSSR(FileSR.FileSR):
             raise xs_errors.XenError('NFSVersion',
                                      opterr=exc.errstr)
 
-
     def mount(self, mountpoint, remotepath, timeout=None, retrans=None):
         try:
             nfs.soft_mount(
@@ -134,7 +135,6 @@ class NFSSR(FileSR.FileSR):
         except nfs.NfsException as exc:
             raise xs_errors.XenError('NFSMount', opterr=exc.errstr)
 
-
     def attach(self, sr_uuid):
         if not self._checkmount():
             self.validate_remotepath(False)
@@ -142,26 +142,24 @@ class NFSSR(FileSR.FileSR):
             #Extract timeout and retrans values, if any
             io_timeout = nfs.get_nfs_timeout(self.other_config)
             io_retrans = nfs.get_nfs_retrans(self.other_config)
-            self.mount_remotepath(sr_uuid, timeout=io_timeout, 
+            self.mount_remotepath(sr_uuid, timeout=io_timeout,
                                   retrans=io_retrans)
         self.attached = True
-
 
     def mount_remotepath(self, sr_uuid, timeout=5, retrans=5):
         if not self._checkmount():
             # FIXME: What is the purpose of this check_server?
             # It doesn't stop us from continuing if the server
-            # doesn't support the requested version. We fail 
+            # doesn't support the requested version. We fail
             # in mount instead
             self.check_server()
-            self.mount(self.path, self.remotepath, 
+            self.mount(self.path, self.remotepath,
                        timeout=timeout, retrans=retrans)
-
 
     def probe(self):
         # Verify NFS target and port
         util._testHost(self.dconf['server'], NFSPORT, 'NFSTarget')
-        
+
         self.validate_remotepath(True)
         self.check_server()
 
@@ -175,7 +173,6 @@ class NFSSR(FileSR.FileSR):
                 nfs.unmount(temppath, True)
             except:
                 pass
-
 
     def detach(self, sr_uuid):
         """Detach the SR: Unmounts and removes the mountpoint"""
@@ -193,7 +190,6 @@ class NFSSR(FileSR.FileSR):
             raise xs_errors.XenError('NFSUnMount', opterr=exc.errstr)
 
         self.attached = False
-        
 
     def create(self, sr_uuid, size):
         util._testHost(self.dconf['server'], NFSPORT, 'NFSTarget')
@@ -251,29 +247,30 @@ class NFSSR(FileSR.FileSR):
             if inst.code != errno.ENOENT:
                 raise xs_errors.XenError('NFSDelete')
 
-    def vdi(self, uuid, loadLocked = False):
+    def vdi(self, uuid, loadLocked=False):
         if not loadLocked:
             return NFSFileVDI(self, uuid)
         return NFSFileVDI(self, uuid)
-    
+
     def scan_exports(self, target):
         util.SMlog("scanning2 (target=%s)" % target)
         dom = nfs.scan_exports(target)
         print(dom.toprettyxml(), file=sys.stderr)
 
+
 class NFSFileVDI(FileSR.FileVDI):
     def attach(self, sr_uuid, vdi_uuid):
-        if not hasattr(self,'xenstore_data'):
+        if not hasattr(self, 'xenstore_data'):
             self.xenstore_data = {}
-            
-        self.xenstore_data["storage-type"]="nfs"
+
+        self.xenstore_data["storage-type"] = "nfs"
 
         return super(NFSFileVDI, self).attach(sr_uuid, vdi_uuid)
 
     def generate_config(self, sr_uuid, vdi_uuid):
         util.SMlog("NFSFileVDI.generate_config")
         if not util.pathexists(self.path):
-                raise xs_errors.XenError('VDIUnavailable')
+            raise xs_errors.XenError('VDIUnavailable')
         resp = {}
         resp['device_config'] = self.sr.dconf
         resp['sr_uuid'] = sr_uuid
@@ -284,7 +281,7 @@ class NFSFileVDI(FileSR.FileVDI):
         # Return the 'config' encoded within a normal XMLRPC response so that
         # we can use the regular response/error parsing code.
         config = xmlrpclib.dumps(tuple([resp]), "vdi_attach_from_config")
-        return xmlrpclib.dumps((config,), "", True)
+        return xmlrpclib.dumps((config, ), "", True)
 
     def attach_from_config(self, sr_uuid, vdi_uuid):
         """Used for HA State-file only. Will not just attach the VDI but

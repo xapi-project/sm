@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -22,14 +22,20 @@
 
 import B_util
 
-import SR, VDI, SRCommand, HBASR, LUNperVDI
-import util, scsiutil, devscan
+import SR
+import VDI
+import SRCommand
+import HBASR
+import LUNperVDI
+import util
+import scsiutil
+import devscan
 import xs_errors
 import os
 
 CAPABILITIES = ["SR_PROBE", "VDI_ATTACH", "VDI_DETACH", "VDI_DELETE"]
 
-CONFIGURATION = [ [ 'type', 'FIXME (optional)' ] ]
+CONFIGURATION = [['type', 'FIXME (optional)']]
 
 DRIVER_INFO = {
     'name': 'RawHBA LUN-per-VDI driver',
@@ -45,6 +51,7 @@ DRIVER_INFO = {
 NEEDS_LOADVDIS = ["sr_scan"]
 
 TYPE = 'rawhba'
+
 
 class RawHBASR(HBASR.HBASR):
     """ Raw LUN-per-VDI HBA storage repository"""
@@ -85,7 +92,7 @@ class RawHBASR(HBASR.HBASR):
         root_dev_id = util.getrootdevID()
 
         xapi_session = self.session.xenapi
-        known_scsid = {} # dict of ids processed within the following loop
+        known_scsid = {}  # dict of ids processed within the following loop
 
         for key in self.hbadict.iterkeys():
 
@@ -95,13 +102,13 @@ class RawHBASR(HBASR.HBASR):
 
             # The way we create vdi_path and the following check are
             # not clear at all
-            vdi_path = os.path.join("/dev",key)
+            vdi_path = os.path.join("/dev", key)
             if vdi_path not in self.devs:
                 continue
 
             scsi_id = scsiutil.getSCSIid(vdi_path)
             if scsi_id == root_dev_id:
-                util.SMlog("Skipping root device %s" %scsi_id)
+                util.SMlog("Skipping root device %s" % scsi_id)
                 continue
 
             # Avoid false positives: this SR can already contain this
@@ -110,13 +117,13 @@ class RawHBASR(HBASR.HBASR):
             if scsi_key in sm_config:
                 # if we know about this scsid we can skip this specific dev
                 if scsi_key in known_scsid:
-                    util.SMlog("This SCSI id (%s) is already added" %scsi_id)
+                    util.SMlog("This SCSI id (%s) is already added" % scsi_id)
                     continue
                 else:
                     # marked as known to avoid adding it again to sm_config
                     known_scsid[scsi_key] = ""
             elif util.test_SCSIid(self.session, None, scsi_id):
-                util.SMlog("This SCSI id (%s) is used by another SR" %scsi_id)
+                util.SMlog("This SCSI id (%s) is used by another SR" % scsi_id)
                 continue
 
             # getuniqueserial invokes again getSCSIid -> Fix!
@@ -129,7 +136,7 @@ class RawHBASR(HBASR.HBASR):
             # supposed to be always False
             if uuid in self.vdis:
                 util.SMlog("Warning: unexpected code block reached with"
-                           " uuid = %s" %scsi_id)
+                           " uuid = %s" % scsi_id)
                 continue
 
             obj = self.vdi(uuid)
@@ -156,7 +163,6 @@ class RawHBASR(HBASR.HBASR):
 
         return count
 
-
     def scan(self, sr_uuid):
         """
         This function is almost a copy of its base class equivalent.
@@ -175,13 +181,12 @@ class RawHBASR(HBASR.HBASR):
                 raise xs_errors.XenError('SRUnavailable')
 
             self._loadvdis()
-            
+
         # This block is almost SR.scan but without missing sync
         self._db_update()
         scanrecord = SR.ScanRecord(self)
         scanrecord.synchronise_new()
         scanrecord.synchronise_existing()
-
 
         # Fixing sizes calculation
         phys_util = 0
@@ -192,7 +197,6 @@ class RawHBASR(HBASR.HBASR):
         self._set_stats(phys_util=phys_util)
 
         self._set_vdis_name()
-        
 
     def _set_vdis_name(self):
         if not self.vdis:
@@ -202,10 +206,9 @@ class RawHBASR(HBASR.HBASR):
             try:
                 vdi = self.vdis[vdi_uuid]
             except:
-                util.SMlog("Cannot set name for for %s" %vdi_uuid)
+                util.SMlog("Cannot set name for for %s" % vdi_uuid)
                 continue
             self.session.xenapi.VDI.set_name_label(vdi_ref, vdi.SCSIid)
-
 
     def vdi(self, uuid):
         return RawHBAVDI(self, uuid)
@@ -239,38 +242,34 @@ class RawHBASR(HBASR.HBASR):
         new_util = self.physical_utilisation + phys_util
         self._set_stats(phys_util=new_util)
 
-
     def _add_pbd_other_config(self, key, value):
         try:
             pbd_ref = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
         except:
             util.SMlog("No pbd for sr_ref %s on host_ref %s"
-                       %(self.sr_ref, self.host_ref))
+                       % (self.sr_ref, self.host_ref))
             return
         try:
             self.session.xenapi.PBD.add_to_other_config(pbd_ref, key, value)
         except:
             util.SMlog("add_to_other_config failed")
 
-
     def attach(self, sr_uuid):
         super(RawHBASR, self).attach(sr_uuid)
         if self.mpath == 'true':
             self._add_pbd_other_config('multipathed', 'true')
-
 
     def _reset_pbd_other_config(self):
         try:
             pbd_ref = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
         except:
             util.SMlog("No pbd for sr_ref %s on host_ref %s"
-                       %(self.sr_ref, self.host_ref))
+                       % (self.sr_ref, self.host_ref))
         for key in ["multipathed"]:
             try:
                 self.session.xenapi.PBD.remove_from_other_config(pbd_ref, key)
             except:
                 util.SMlog("remove_from_other_config failed")
-
 
     def detach(self, sr_uuid):
         """ Override base class function because we rely on xapi
@@ -344,7 +343,7 @@ class RawHBAVDI(LUNperVDI.RAWVDI):
         devices = scsiutil._genReverseSCSIidmap(scsi_id)
         xapi_session = self.session.xenapi
 
-        # At the vdi attach stage if devices are not found against the scsi_id, 
+        # At the vdi attach stage if devices are not found against the scsi_id,
         # the two reasons would be 1. The machine is slave on which a bus scan
         # was not performed, perform a bus scan to rectify the same. 2. Genuine
         # HBA bus error, throw an error back.
@@ -382,7 +381,6 @@ class RawHBAVDI(LUNperVDI.RAWVDI):
         self.sr.update_stats(self.size)
         return ret
 
-
     def delete(self, sr_uuid, vdi_uuid):
         util.SMlog("Raw LUN VDI delete")
         scsi_id = self.sm_config['SCSIid']
@@ -391,7 +389,6 @@ class RawHBAVDI(LUNperVDI.RAWVDI):
         # Cleaning up SR sm_config
         scsi_key = "scsi-" + scsi_id
         xapi_session.SR.remove_from_sm_config(self.sr.sr_ref, scsi_key)
-
 
     def detach(self, sr_uuid, vdi_uuid):
         scsi_id = self.sm_config['SCSIid']

@@ -4,6 +4,7 @@ import mock
 import SRCommand
 import SR
 
+
 class SomeException(Exception):
     pass
 
@@ -52,7 +53,6 @@ class TestStandaloneFunctions(unittest.TestCase):
         SRCommand.run(mock_driver, DRIVER_INFO)
 
         self.assertTrue(rand_huge_msg in self.smlog_out)
-
 
     @mock.patch('util.logException', autospec=True)
     @mock.patch('SRCommand.SRCommand.run_statics', autospec=True)

@@ -193,7 +193,7 @@ class TestISCSISR(TestBase):
             'unicode' if they contain at least one non-ASCII character.
         """
 
-        s1 =  'ascii'
+        s1 = 'ascii'
         s2 = u'\u03bc\u03b9x\u03b5d'  # == 'mixed' in Greek and Latin chars
         s3 = u'\u03c4\u03bf\u03c0\u03b9\u03ba\u03cc'  # == 'local' in Greek
         s4 = u'\u6c5fw\u6708\u03c2\xfc\xe4\xd6'  # gibberish var char len str

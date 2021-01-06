@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -18,10 +18,13 @@
 # Manipulation utilities for multipath.conf
 #
 
-
 from __future__ import print_function
-import fileinput, shutil, sys, re
-import util, lock
+import fileinput
+import shutil
+import sys
+import re
+import util
+import lock
 
 LOCK_TYPE_HOST = "host"
 LOCK_NS = "multipath.conf"
@@ -29,6 +32,7 @@ LOCK_NS = "multipath.conf"
 # It must be a regular file pointed by /etc/multipath.conf
 CONF_FILE = "/etc/multipath.xenserver/multipath.conf"
 BELIST_TAG = "blacklist_exceptions"
+
 
 class WWIDException(Exception):
     def __init__(self, errstr):
@@ -41,9 +45,9 @@ def edit_wwid(wwid, remove=False):
 
     """
 
-    tmp_file = CONF_FILE+"~"
-    filt_regex = re.compile('^\s*%s\s*{'%BELIST_TAG)
-    wwid_regex = re.compile('^\s*wwid\s+\"%s\"'%wwid)
+    tmp_file = CONF_FILE + "~"
+    filt_regex = re.compile('^\s*%s\s*{' % BELIST_TAG)
+    wwid_regex = re.compile('^\s*wwid\s+\"%s\"' % wwid)
 
     conflock = lock.Lock(LOCK_TYPE_HOST, LOCK_NS)
     conflock.acquire()
@@ -51,7 +55,7 @@ def edit_wwid(wwid, remove=False):
     try:
         shutil.copy2(CONF_FILE, tmp_file)
     except:
-        util.SMlog("Failed to create temp file %s" %(tmp_file))
+        util.SMlog("Failed to create temp file %s" % (tmp_file))
         raise
 
     add_mode = True
@@ -64,16 +68,17 @@ def edit_wwid(wwid, remove=False):
             else:
                 print(line, end=' ')
             continue
-            
+
         if filt_regex.match(line):
             if remove:
                 # looking for the line to remove
                 add_mode = False
                 continue
             else:
-	        print("\twwid \"%s\""%wwid)
+                print("\twwid \"%s\"" % wwid)
 
     shutil.move(tmp_file, CONF_FILE)
+
 
 def is_blacklisted(dev):
     """This function returns True if the device is blacklisted according
@@ -99,7 +104,7 @@ def is_blacklisted(dev):
         WWIDException
     """
 
-    (rc,stdout,stderr) = util.doexec(['/sbin/multipath','-v3','-c',dev])
+    (rc, stdout, stderr) = util.doexec(['/sbin/multipath', '-v3', '-c', dev])
 
     if "scope is nul" in stdout:
         raise WWIDException("WARNING: Could not retrieve device's "
@@ -115,7 +120,7 @@ def is_blacklisted(dev):
 
 
 def check_conf_file():
-    (rc,stdout,stderr) = util.doexec(['/sbin/multipath','-h'])
+    (rc, stdout, stderr) = util.doexec(['/sbin/multipath', '-h'])
     # Ugly way to check for malformed conf file
     if len(stdout):
         util.SMlog("Malformed multipath conf file")
@@ -176,4 +181,3 @@ if __name__ == "__main__":
         util.SMlog(e.errstr)
 
     sys.exit(0)
-

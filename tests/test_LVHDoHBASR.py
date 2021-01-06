@@ -6,8 +6,8 @@ import SR
 
 
 def mock_init(self, sr, sr_uuid):
-        self.sr = sr
-        self.sr_uuid = sr_uuid
+    self.sr = sr
+    self.sr_uuid = sr_uuid
 
 
 class TestLVHDoHBAVDI(unittest.TestCase):

@@ -61,6 +61,7 @@ class TestVDI(VDI.VDI):
     def _deactivate_cbt_log(self, logname):
         self.state_mock._deactivate_cbt_log(logname)
 
+
 class TestCBT(unittest.TestCase):
 
     def setUp(self):
@@ -223,7 +224,7 @@ class TestCBT(unittest.TestCase):
 
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
-        self.vdi.state_mock._ensure_cbt_space.side_effect = [ xs_errors.XenError('SRNoSpace') ]
+        self.vdi.state_mock._ensure_cbt_space.side_effect = [xs_errors.XenError('SRNoSpace')]
 
         self._set_initial_state(self.vdi, False)
 
@@ -239,7 +240,7 @@ class TestCBT(unittest.TestCase):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, False)
-        self.vdi.state_mock._get_cbt_logpath.side_effect = [ xs_errors.XenError('CBTActivateFailed') ]
+        self.vdi.state_mock._get_cbt_logpath.side_effect = [xs_errors.XenError('CBTActivateFailed')]
 
         with self.assertRaises(SR.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
@@ -273,7 +274,7 @@ class TestCBT(unittest.TestCase):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, True)
-        self.vdi.state_mock._delete_cbt_log.side_effect = [ xs_errors.XenError('CBTDeactivateFailed') ]
+        self.vdi.state_mock._delete_cbt_log.side_effect = [xs_errors.XenError('CBTDeactivateFailed')]
 
         with self.assertRaises(SR.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, False)
@@ -319,7 +320,7 @@ class TestCBT(unittest.TestCase):
         calls = [mock.call(self.vdi, self.vdi_uuid,
                            cbtutil.get_cbt_consistency, args1),
                  mock.call(self.vdi, self.vdi_uuid,
-                           cbtutil.set_cbt_consistency, *args2)]
+                           cbtutil.set_cbt_consistency, * args2)]
 
         mock_cbt.assert_has_calls(calls)
         self.assertEquals({'cbtlog': expected_log_path}, log_path)
@@ -333,7 +334,7 @@ class TestCBT(unittest.TestCase):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, True)
-        mock_cbt.get_cbt_consistency.side_effect = [ False ]
+        mock_cbt.get_cbt_consistency.side_effect = [False]
 
         result = self.vdi.activate(self.sr_uuid, self.vdi_uuid)
 
@@ -375,7 +376,7 @@ class TestCBT(unittest.TestCase):
 
         args = (expected_log_path, True)
         mock_cbt.assert_called_with(self.vdi, self.vdi_uuid,
-                                    cbtutil.set_cbt_consistency, *args)
+                                    cbtutil.set_cbt_consistency, * args)
 
     @testlib.with_context
     def test_snapshot_success_with_CBT_disable(self, context):
@@ -392,7 +393,7 @@ class TestCBT(unittest.TestCase):
                                                             mock.ANY,
                                                             mock.ANY,
                                                             mock.ANY,
-                                                            None)        
+                                                            None)
 
     @testlib.with_context
     @mock.patch('VDI.cbtutil', autospec=True)
@@ -406,7 +407,7 @@ class TestCBT(unittest.TestCase):
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self._set_initial_state(self.vdi, True)
         (parent_uuid, child_uuid) = self._set_CBT_chain_state(mock_logchecker,
-                                                              mock_cbt, False) 
+                                                              mock_cbt, False)
         snap_uuid = uuid.uuid4()
 
         self.vdi._cbt_snapshot(snap_uuid, True)
@@ -427,7 +428,7 @@ class TestCBT(unittest.TestCase):
         # Set initial state
         self._set_initial_state(self.vdi, True)
         (parent_uuid, child_uuid) = self._set_CBT_chain_state(mock_logcheck,
-                                                              mock_cbt, True) 
+                                                              mock_cbt, True)
         snap_uuid = uuid.uuid4()
 
         self.vdi._cbt_snapshot(snap_uuid, True)
@@ -441,7 +442,7 @@ class TestCBT(unittest.TestCase):
     @mock.patch('VDI.VDI._ensure_cbt_space', autospec=True)
     @mock.patch('util.SMlog', autospec=True)
     def test_snapshot_out_of_space_failure(self, context, mock_smlog,
-			mock_ensure_space, mock_logcheck, mock_cbt):
+            mock_ensure_space, mock_logcheck, mock_cbt):
         context.setup_error_codes()
 
         # Create the test object
@@ -452,6 +453,7 @@ class TestCBT(unittest.TestCase):
 
         # Write util.SMlog calls to smlog_out
         self.fakesmlog = ""
+
         def fakeSMlog(inArg):
             self.fakesmlog = self.fakesmlog + inArg.strip()
 
@@ -464,7 +466,6 @@ class TestCBT(unittest.TestCase):
         self.assertTrue("insufficient space" in self.fakesmlog)
         self._check_setting_state(self.vdi, False)
         self.xenapi.message.create.assert_called_once()
-
 
     @testlib.with_context
     @mock.patch('VDI.VDI._cbt_op', autospec=True)
@@ -479,7 +480,7 @@ class TestCBT(unittest.TestCase):
         self.vdi.resize_cbt(self.sr_uuid, self.vdi_uuid, size)
         args = (logpath, size)
         mock_cbt.assert_called_with(self.vdi, self.vdi_uuid,
-                                    cbtutil.set_cbt_size, *args)
+                                    cbtutil.set_cbt_size, * args)
         self._check_setting_state(self.vdi, True)
 
     @testlib.with_context
@@ -504,7 +505,7 @@ class TestCBT(unittest.TestCase):
         self._set_initial_state(self.vdi, True)
         size = 2093050
         mock_cbt.side_effect = util.CommandException(errno.EINVAL)
-       
+
         self.vdi.resize_cbt(self.sr_uuid, self.vdi_uuid, size)
         self._check_setting_state(self.vdi, False)
         self.xenapi.message.create.assert_called_once()
@@ -626,7 +627,7 @@ class TestCBT(unittest.TestCase):
         with self.assertRaises(SR.SROSError) as exc:
             self.vdi.list_changed_blocks()
         # Test CBTChangedBlocksError is raised
-        self.assertEquals(exc.exception.errno, 460) 
+        self.assertEquals(exc.exception.errno, 460)
 
     @testlib.with_context
     @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
@@ -637,11 +638,11 @@ class TestCBT(unittest.TestCase):
         self.xenapi.VDI.get_uuid.return_value = "target_uuid"
         # Terminate the chain before target_uuid is reached
         mock_log.side_effect = [True, False]
-    
+
         with self.assertRaises(SR.SROSError) as exc:
             self.vdi.list_changed_blocks()
         # Test CBTChangedBlocksError is raised
-        self.assertEquals(exc.exception.errno, 460) 
+        self.assertEquals(exc.exception.errno, 460)
 
     @testlib.with_context
     def test_list_changed_blocks_cbt_disabled(self, context):
@@ -654,7 +655,7 @@ class TestCBT(unittest.TestCase):
         with self.assertRaises(SR.SROSError) as exc:
             self.vdi.list_changed_blocks()
         # Test CBTChangedBlocksError is raised
-        self.assertEquals(exc.exception.errno, 460) 
+        self.assertEquals(exc.exception.errno, 460)
 
     @testlib.with_context
     @mock.patch('VDI.cbtutil', autospec=True)
@@ -679,7 +680,7 @@ class TestCBT(unittest.TestCase):
         bitmap1.bytereverse()
         bitmap2.bytereverse()
         expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
-        expected_result = xmlrpclib.dumps((expected_string,), "", True)
+        expected_result = xmlrpclib.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()
         # Assert that bitmap is only read for VDIs from source + 1 to target
@@ -703,8 +704,8 @@ class TestCBT(unittest.TestCase):
         target_uuid = "targetUUID"
         self.xenapi.VDI.get_uuid.return_value = target_uuid
         mock_cbt.get_cbt_child.side_effect = [snap_uuid, target_uuid]
-        vdi_size1 = 5242880 # 5MB
-        vdi_size2 = 10485760 # 10MB
+        vdi_size1 = 5242880  # 5MB
+        vdi_size2 = 10485760  # 10MB
         bitmap1 = bitarray(80)
         bitmap2 = bitarray(160)
         mock_cbt.get_cbt_size.side_effect = [vdi_size1, vdi_size2]
@@ -715,7 +716,7 @@ class TestCBT(unittest.TestCase):
         bitmap1 += 80 * bitarray('0')
         bitmap2.bytereverse()
         expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
-        expected_result = xmlrpclib.dumps((expected_string,), "", True)
+        expected_result = xmlrpclib.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()
         self.assertEquals(result, expected_result)
@@ -732,8 +733,8 @@ class TestCBT(unittest.TestCase):
         self._set_initial_state(self.vdi, True)
         target_uuid = "targetUUID"
         self.xenapi.VDI.get_uuid.return_value = target_uuid
-        vdi_size1 = 10485760 # 10MB
-        vdi_size2 = 5242880 # 5MB
+        vdi_size1 = 10485760  # 10MB
+        vdi_size2 = 5242880  # 5MB
         mock_cbt.get_cbt_size.side_effect = [vdi_size1, vdi_size2]
         bitmap1 = bitarray(160)
         bitmap2 = bitarray(80)
@@ -785,8 +786,8 @@ class TestCBT(unittest.TestCase):
         target_uuid = "targetUUID"
         self.xenapi.VDI.get_uuid.return_value = target_uuid
         mock_cbt.get_cbt_child.side_effect = [snap_uuid, target_uuid]
-        vdi_size1 = 5242880 # 5MB
-        vdi_size2 = 5242880 # 5MB
+        vdi_size1 = 5242880  # 5MB
+        vdi_size2 = 5242880  # 5MB
         bitmap1 = bitarray(80)
         bitmap2 = bitarray(160)
         mock_cbt.get_cbt_size.side_effect = [vdi_size1, vdi_size2]
@@ -797,7 +798,7 @@ class TestCBT(unittest.TestCase):
         # Trim bitmap to the expected size
         bitmap2 = bitmap2[:80]
         expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
-        expected_result = xmlrpclib.dumps((expected_string,), "", True)
+        expected_result = xmlrpclib.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()
         self.assertEquals(result, expected_result)
@@ -821,8 +822,8 @@ class TestCBT(unittest.TestCase):
         target_uuid = "targetUUID"
         self.xenapi.VDI.get_uuid.return_value = target_uuid
         mock_child.side_effect = [snap_uuid, target_uuid]
-        vdi_size1 = 8388608 # 8MB
-        vdi_size2 = 8388608 # 8MB
+        vdi_size1 = 8388608  # 8MB
+        vdi_size2 = 8388608  # 8MB
         bitmap1 = bitarray(128)
         bitmap2 = bitarray()
         # strip sensitive byte string
@@ -833,11 +834,10 @@ class TestCBT(unittest.TestCase):
         bitmap1.bytereverse()
         bitmap2.bytereverse()
         expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
-        expected_result = xmlrpclib.dumps((expected_string,), "", True)
+        expected_result = xmlrpclib.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()
         self.assertEquals(result, expected_result)
-
 
     def _set_initial_state(self, vdi, cbt_enabled):
         self.xenapi.VDI.get_is_a_snapshot.return_value = False

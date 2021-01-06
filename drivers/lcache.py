@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -20,28 +20,28 @@ import os
 import blktap2
 import glob
 import SR
-from stat import * # S_ISBLK(), ...
+from stat import *  # S_ISBLK(), ...
 
 SECTOR_SHIFT = 9
+
 
 class CachingTap(object):
 
     def __init__(self, tapdisk, stats):
         self.tapdisk = tapdisk
-        self.stats   = stats
+        self.stats = stats
 
     @classmethod
     def from_tapdisk(cls, tapdisk, stats):
-
         # pick the last image. if it's a VHD, we got a parent
         # cache. the leaf case is an aio node sitting on a
         # parent-caching tapdev. always checking the complementary
         # case, so we bail on unexpected chains.
 
         images = stats['images']
-        image  = images[-1]
-        path   = image['name']
-        _type  = image['driver']['name']
+        image = images[-1]
+        path = image['name']
+        _type = image['driver']['name']
 
         def __assert(cond):
             if not cond:
@@ -71,12 +71,13 @@ class CachingTap(object):
 
         def __init__(self, tapdisk, stats):
             self.tapdisk = tapdisk
-            self.stats   = stats
+            self.stats = stats
 
         def __str__(self):
             return \
                 "Tapdisk %s in state '%s' not found caching." % \
                 (self.tapdisk, self.stats)
+
 
 class ParentCachingTap(CachingTap):
 
@@ -93,7 +94,7 @@ class ParentCachingTap(CachingTap):
         """Parent caching hits/miss count."""
 
         images = self.stats['images']
-        total  = self.stats['secs'][0]
+        total = self.stats['secs'][0]
 
         rd_Gc = images[0]['hits'][0]
         rd_lc = images[1]['hits'][0]
@@ -122,6 +123,7 @@ class ParentCachingTap(CachingTap):
             (self.__class__.__name__,
              self.tapdisk.path, self.tapdisk.minor)
 
+
 class LeafCachingTap(CachingTap):
 
     def __init__(self, tapdisk, stats, parent_minor):
@@ -133,13 +135,13 @@ class LeafCachingTap(CachingTap):
 
     def vdi_stats(self):
         images = self.stats['images']
-        total  = self.stats['secs'][0]
+        total = self.stats['secs'][0]
 
         rd_Ac = images[0]['hits'][0]
-        rd_A  = images[1]['hits'][0]
+        rd_A = images[1]['hits'][0]
 
-        rd_hits  = rd_Ac
-        rd_miss  = rd_A
+        rd_hits = rd_Ac
+        rd_miss = rd_A
         wr_rdir = self.stats['FIXME_enospc_redirect_count']
 
         return rd_hits, rd_miss, wr_rdir
@@ -148,6 +150,7 @@ class LeafCachingTap(CachingTap):
         return "%s(%s, minor=%s)" % \
             (self.__class__.__name__,
              self.tapdisk.path, self.tapdisk.minor)
+
 
 class CacheFileSR(object):
 
@@ -224,7 +227,7 @@ class CacheFileSR(object):
     def xapi_vfs_stats(self):
         import util
 
-        f =  self.statvfs()
+        f = self.statvfs()
         if not f.f_frsize:
             raise util.SMException("Cache FS does not report utilization.")
 
@@ -248,7 +251,6 @@ class CacheFileSR(object):
     @classmethod
     def _fast_find_tapdisks(cls):
         import errno
-
         # NB. we're only about to gather stats here, so take the
         # fastpath, bypassing agent based VBD[currently-attached] ->
         # VDI[allow-caching] -> Tap resolution altogether. Instead, we
@@ -262,13 +264,15 @@ class CacheFileSR(object):
             except:
                 continue
 
-            if ext != cls.CACHE_NODE_EXT: continue
+            if ext != cls.CACHE_NODE_EXT:
+                continue
 
             try:
                 stats = tapdisk.stats()
             except blktap2.TapCtl.CommandFailure as e:
-                if e.errno != errno.ENOENT: raise
-                continue # shut down
+                if e.errno != errno.ENOENT:
+                    raise
+                continue  # shut down
 
             caching = CachingTap.from_tapdisk(tapdisk, stats)
             tapdisks.append(caching)
@@ -276,12 +280,11 @@ class CacheFileSR(object):
         return tapdisks
 
     def fast_scan_topology(self):
-
         # NB. gather all tapdisks. figure out which ones are leaves
         # and which ones cache parents.
 
         parents = []
-        leaves  = []
+        leaves = []
 
         for caching in self._fast_find_tapdisks():
             if type(caching) == ParentCachingTap:
@@ -339,11 +342,13 @@ if __name__ == '__main__':
     prog = args.pop(0)
     prog = os.path.basename(prog)
 
+
     def usage(stream):
         if prog == 'tapdisk-cache-stats':
             print("usage: tapdisk-cache-stats [<sr-uuid>]", file=stream)
         else:
             print("usage: %s sr.{stats|topology} [<sr-uuid>]" % prog, file=stream)
+
 
     def usage_error():
         usage(sys.stderr)

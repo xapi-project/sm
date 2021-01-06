@@ -159,7 +159,7 @@ class TestISOSR_overSMB(unittest.TestCase):
         smbsr = self.create_smbisosr(atype='cifs', vers='1.0')
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)
-        pread.return_value="Success"
+        pread.return_value = "Success"
         pread.assert_called_with(['mount.cifs', '\\aServer\x07Location',
                                   '/var/run/sr-mount/asr_uuid', '-o',
                                   'cache=none,guest,vers=1.0'], True, new_env=None)

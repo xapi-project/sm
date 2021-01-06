@@ -2,13 +2,13 @@
 
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -17,7 +17,10 @@
 
 from __future__ import print_function
 import util
-import time, os, sys, re
+import time
+import os
+import sys
+import re
 import xs_errors
 import lock
 import mpath_cli
@@ -25,7 +28,7 @@ import mpp_mpathutil
 import glob
 import json
 
-supported = ['iscsi','lvmoiscsi','rawhba','lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp', 'lvmofcoe', 'gfs2']
+supported = ['iscsi', 'lvmoiscsi', 'rawhba', 'lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp', 'lvmofcoe', 'gfs2']
 
 LOCK_TYPE_HOST = "host"
 LOCK_NS1 = "mpathcount1"
@@ -38,6 +41,7 @@ mpath_enabled = True
 SCSIid = 'NOTSUPPLIED'
 mpp_entry = 'NOTSUPPLIED'
 
+
 def get_dm_major():
     global cached_DM_maj
     if not cached_DM_maj:
@@ -48,6 +52,7 @@ def get_dm_major():
             pass
     return cached_DM_maj
 
+
 def mpc_exit(session, code):
     if session is not None:
         try:
@@ -56,9 +61,11 @@ def mpc_exit(session, code):
             pass
     sys.exit(code)
 
+
 def match_host_id(s):
     regex = re.compile("^INSTALLATION_UUID")
     return regex.search(s, 0)
+
 
 def get_localhost_uuid():
     filename = '/etc/xensource-inventory'
@@ -72,9 +79,11 @@ def get_localhost_uuid():
         domid = line.split("'")[1]
     return domid
 
+
 def match_dmpLUN(s):
     regex = re.compile("[0-9]*:[0-9]*:[0-9]*:[0-9]*")
     return regex.search(s, 0)
+
 
 def match_pathup(s):
     match = re.match(r'.*\d+:\d+:\d+:\d+\s+\S+\s+\S+\s+\S+\s+(\S+)', s)
@@ -84,45 +93,49 @@ def match_pathup(s):
         return False
     return True
 
+
 def _tostring(l):
     return str(l)
+
 
 def get_path_count(SCSIid):
     count = 0
     total = 0
     lines = mpath_cli.get_topology(SCSIid)
-    for line in filter(match_dmpLUN,lines):
+    for line in filter(match_dmpLUN, lines):
         total += 1
         if match_pathup(line):
             count += 1
     return (count, total)
+
 
 def get_root_dev_major():
     buf = os.stat('/')
     devno = buf.st_dev
     return os.major(devno)
 
+
 # @key:     key to update
 # @SCSIid:  SCSI id of multipath map
 # @entry:   string representing previous value
 # @remove:  callback to remove key
 # @add:     callback to add key/value pair
-def update_config(key, SCSIid, entry, remove, add, mpp_path_update = False):
+def update_config(key, SCSIid, entry, remove, add, mpp_path_update=False):
     if mpp_path_update:
         remove('multipathed')
         remove(key)
         remove('MPPEnabled')
-        add('MPPEnabled','true')
-        add('multipathed','true')
-        add(key,str(entry))
+        add('MPPEnabled', 'true')
+        add('multipathed', 'true')
+        add(key, str(entry))
         return
 
     path = os.path.join(MAPPER_DIR, SCSIid)
-    util.SMlog("MPATH: Updating entry for [%s], current: %s" % (SCSIid,entry))
+    util.SMlog("MPATH: Updating entry for [%s], current: %s" % (SCSIid, entry))
     if os.path.exists(path):
         count, total = get_path_count(SCSIid)
         max = 0
-	if len(entry) != 0:
+        if len(entry) != 0:
             try:
                 p = entry.strip('[')
                 p = p.strip(']')
@@ -136,13 +149,14 @@ def update_config(key, SCSIid, entry, remove, add, mpp_path_update = False):
         if str(newentry) != entry:
             remove('multipathed')
             remove(key)
-            add('multipathed','true')
-            add(key,str(newentry))
+            add('multipathed', 'true')
+            add(key, str(newentry))
             util.SMlog("MPATH: Set val: %s" % str(newentry))
     else:
         util.SMlog('MPATH: device %s gone' % (SCSIid))
         remove('multipathed')
         remove(key)
+
 
 def get_SCSIidlist(devconfig, sm_config):
     SCSIidlist = []
@@ -155,8 +169,9 @@ def get_SCSIidlist(devconfig, sm_config):
     else:
         for key in sm_config:
             if util._isSCSIid(key):
-                SCSIidlist.append(re.sub("^scsi-","",key))
+                SCSIidlist.append(re.sub("^scsi-", "", key))
     return SCSIidlist
+
 
 def check_root_disk(config, maps, remove, add):
     if get_root_dev_major() == get_dm_major():
@@ -169,11 +184,12 @@ def check_root_disk(config, maps, remove, add):
         if (not match_bySCSIid) or i == SCSIid:
             util.SMlog("Matched SCSIid %s, updating " \
                     " Host.other-config:mpath-boot " % i)
-            key="mpath-boot"
+            key = "mpath-boot"
             if key not in config:
                 update_config(key, i, "", remove, add)
             else:
                 update_config(key, i, config[key], remove, add)
+
 
 def check_devconfig(devconfig, sm_config, config, remove, add):
     SCSIidlist = get_SCSIidlist(devconfig, sm_config)
@@ -224,9 +240,11 @@ if __name__ == '__main__':
     # Check root disk if multipathed
     try:
         def _remove(key):
-            session.xenapi.host.remove_from_other_config(localhost,key)
+            session.xenapi.host.remove_from_other_config(localhost, key)
+
+
         def _add(key, val):
-            session.xenapi.host.add_to_other_config(localhost,key,val)
+            session.xenapi.host.add_to_other_config(localhost, key, val)
         config = session.xenapi.host.get_other_config(localhost)
         maps = mpath_cli.list_maps()
         check_root_disk(config, maps, _remove, _add)
@@ -238,14 +256,16 @@ if __name__ == '__main__':
     try:
         pbds = session.xenapi.PBD.get_all_records_where("field \"host\" = \"%s\"" % localhost)
     except:
-        mpc_exit(session,-1)
+        mpc_exit(session, -1)
 
     try:
         for pbd in pbds:
             def remove(key):
-                session.xenapi.PBD.remove_from_other_config(pbd,key)
+                session.xenapi.PBD.remove_from_other_config(pbd, key)
+
+
             def add(key, val):
-                session.xenapi.PBD.add_to_other_config(pbd,key,val)
+                session.xenapi.PBD.add_to_other_config(pbd, key, val)
             record = pbds[pbd]
             config = record['other_config']
             SR = record['SR']
@@ -260,4 +280,4 @@ if __name__ == '__main__':
 
     util.SMlog("MPATH: Update done")
 
-    mpc_exit(session,0)
+    mpc_exit(session, 0)

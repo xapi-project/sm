@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -17,7 +17,6 @@
 #
 # Helper functions pertaining to VHD operations
 #
-
 
 import os
 import util
@@ -29,13 +28,13 @@ import time
 
 MIN_VHD_SIZE = 2 * 1024 * 1024
 MAX_VHD_SIZE = 2040 * 1024 * 1024 * 1024
-MAX_VHD_JOURNAL_SIZE = 6 * 1024 * 1024 # 2MB VHD block size, max 2TB VHD size
-MAX_CHAIN_SIZE = 30 # max VHD parent chain size
+MAX_VHD_JOURNAL_SIZE = 6 * 1024 * 1024  # 2MB VHD block size, max 2TB VHD size
+MAX_CHAIN_SIZE = 30  # max VHD parent chain size
 VHD_UTIL = "/usr/bin/vhd-util"
 OPT_LOG_ERR = "--debug"
 VHD_BLOCK_SIZE = 2 * 1024 * 1024
 VHD_FOOTER_SIZE = 512
- 
+
 # lock to lock the entire SR for short ops
 LOCK_TYPE_SR = "sr"
 
@@ -83,25 +82,30 @@ def calcOverheadEmpty(virtual_size):
 
     return overhead
 
+
 def calcOverheadBitmap(virtual_size):
     num_blocks = virtual_size / VHD_BLOCK_SIZE
     if virtual_size % VHD_BLOCK_SIZE:
         num_blocks += 1
     return num_blocks * 4096
 
+
 def calcOverheadFull(virtual_size):
     """Calculate the VHD space overhead for a full VDI of size virtual_size
     (this includes bitmaps, which constitute the bulk of the overhead)"""
     return calcOverheadEmpty(virtual_size) + calcOverheadBitmap(virtual_size)
 
+
 def fullSizeVHD(virtual_size):
     return virtual_size + calcOverheadFull(virtual_size)
 
+
 def ioretry(cmd):
     return util.ioretry(lambda: util.pread2(cmd),
-            errlist = [errno.EIO, errno.EAGAIN])
+            errlist=[errno.EIO, errno.EAGAIN])
 
-def getVHDInfo(path, extractUuidFunction, includeParent = True):
+
+def getVHDInfo(path, extractUuidFunction, includeParent=True):
     """Get the VHD info. The parent info may optionally be omitted: vhd-util
     tries to verify the parent by opening it, which results in error if the VHD
     resides on an inactive LV"""
@@ -125,6 +129,7 @@ def getVHDInfo(path, extractUuidFunction, includeParent = True):
     vhdInfo.path = path
     return vhdInfo
 
+
 def getVHDInfoLVM(lvName, extractUuidFunction, vgName):
     """Get the VHD info. This function does not require the container LV to be
     active, but uses lvs & vgs"""
@@ -133,8 +138,9 @@ def getVHDInfoLVM(lvName, extractUuidFunction, vgName):
     ret = ioretry(cmd)
     return _parseVHDInfo(ret, extractUuidFunction)
 
-def getAllVHDs(pattern, extractUuidFunction, vgName = None, \
-        parentsOnly = False, exitOnError = False):
+
+def getAllVHDs(pattern, extractUuidFunction, vgName=None, \
+        parentsOnly=False, exitOnError=False):
     vhds = dict()
     cmd = [VHD_UTIL, "scan", "-f", "-m", pattern]
     if vgName:
@@ -163,6 +169,7 @@ def getAllVHDs(pattern, extractUuidFunction, vgName = None, \
             util.SMlog("WARN: vhdinfo line doesn't parse correctly: %s" % line)
     return vhds
 
+
 def getParentChain(lvName, extractUuidFunction, vgName):
     """Get the chain of all VHD parents of 'path'. Safe to call for raw VDI's
     as well"""
@@ -183,6 +190,7 @@ def getParentChain(lvName, extractUuidFunction, vgName):
     #util.SMlog("Parent chain for %s: %s" % (lvName, chain))
     return chain
 
+
 def getParent(path, extractUuidFunction):
     cmd = [VHD_UTIL, "query", OPT_LOG_ERR, "-p", "-n", path]
     ret = ioretry(cmd)
@@ -192,16 +200,18 @@ def getParent(path, extractUuidFunction):
         return None
     return extractUuidFunction(ret)
 
+
 def hasParent(path):
     """Check if the VHD has a parent. A VHD has a parent iff its type is
     'Differencing'. This function does not need the parent to actually
     be present (e.g. the parent LV to be activated)."""
     cmd = [VHD_UTIL, "read", OPT_LOG_ERR, "-p", "-n", path]
     ret = ioretry(cmd)
-    m = re.match(".*Disk type\s+: (\S+) hard disk.*", ret, flags = re.S)
+    m = re.match(".*Disk type\s+: (\S+) hard disk.*", ret, flags=re.S)
     vhd_type = m.group(1)
     assert(vhd_type == "Differencing" or vhd_type == "Dynamic")
     return vhd_type == "Differencing"
+
 
 def setParent(path, parentPath, parentRaw):
     normpath = os.path.normpath(parentPath)
@@ -210,18 +220,21 @@ def setParent(path, parentPath, parentRaw):
         cmd.append("-m")
     ioretry(cmd)
 
+
 def getHidden(path):
     cmd = [VHD_UTIL, "query", OPT_LOG_ERR, "-f", "-n", path]
     ret = ioretry(cmd)
     hidden = int(ret.split(':')[-1].strip())
     return hidden
 
-def setHidden(path, hidden = True):
+
+def setHidden(path, hidden=True):
     opt = "1"
     if not hidden:
         opt = "0"
     cmd = [VHD_UTIL, "set", OPT_LOG_ERR, "-n", path, "-f", "hidden", "-v", opt]
     ret = ioretry(cmd)
+
 
 def getSizeVirt(path):
     cmd = [VHD_UTIL, "query", OPT_LOG_ERR, "-v", "-n", path]
@@ -229,18 +242,21 @@ def getSizeVirt(path):
     size = long(ret) * 1024 * 1024
     return size
 
+
 def setSizeVirt(path, size, jFile):
     "resize VHD offline"
-    size_mb = size / 1024 /1024
+    size_mb = size / 1024 / 1024
     cmd = [VHD_UTIL, "resize", OPT_LOG_ERR, "-s", str(size_mb), "-n", path,
             "-j", jFile]
     ioretry(cmd)
 
+
 def setSizeVirtFast(path, size):
     "resize VHD online"
-    size_mb = size / 1024 /1024
+    size_mb = size / 1024 / 1024
     cmd = [VHD_UTIL, "resize", OPT_LOG_ERR, "-s", str(size_mb), "-n", path, "-f"]
     ioretry(cmd)
+
 
 def getMaxResizeSize(path):
     """get the max virtual size for fast resize"""
@@ -248,12 +264,14 @@ def getMaxResizeSize(path):
     ret = ioretry(cmd)
     return int(ret)
 
+
 def getSizePhys(path):
     cmd = [VHD_UTIL, "query", OPT_LOG_ERR, "-s", "-n", path]
     ret = ioretry(cmd)
     return int(ret)
 
-def setSizePhys(path, size, debug = True):
+
+def setSizePhys(path, size, debug=True):
     "set physical utilisation (applicable to VHD's on fixed-size files)"
     if debug:
         cmd = [VHD_UTIL, "modify", OPT_LOG_ERR, "-s", str(size), "-n", path]
@@ -261,10 +279,12 @@ def setSizePhys(path, size, debug = True):
         cmd = [VHD_UTIL, "modify", "-s", str(size), "-n", path]
     ioretry(cmd)
 
+
 def killData(path):
     "zero out the disk (kill all data inside the VHD file)"
     cmd = [VHD_UTIL, "modify", OPT_LOG_ERR, "-z", "-n", path]
     ioretry(cmd)
+
 
 def getDepth(path):
     "get the VHD parent chain depth"
@@ -275,17 +295,20 @@ def getDepth(path):
         depth = int(text.split(':')[1].strip())
     return depth
 
+
 def getBlockBitmap(path):
     cmd = [VHD_UTIL, "read", OPT_LOG_ERR, "-B", "-n", path]
     text = ioretry(cmd)
     return zlib.compress(text)
 
+
 def coalesce(path):
     cmd = [VHD_UTIL, "coalesce", OPT_LOG_ERR, "-n", path]
     ioretry(cmd)
 
-def create(path, size, static, msize = 0):
-    size_mb = size / 1024 /1024
+
+def create(path, size, static, msize=0):
+    size_mb = size / 1024 / 1024
     cmd = [VHD_UTIL, "create", OPT_LOG_ERR, "-n", path, "-s", str(size_mb)]
     if static:
         cmd.append("-r")
@@ -294,7 +317,8 @@ def create(path, size, static, msize = 0):
         cmd.append(str(msize))
     ioretry(cmd)
 
-def snapshot(path, parent, parentRaw, msize = 0, checkEmpty = True):
+
+def snapshot(path, parent, parentRaw, msize=0, checkEmpty=True):
     cmd = [VHD_UTIL, "snapshot", OPT_LOG_ERR, "-n", path, "-p", parent]
     if parentRaw:
         cmd.append("-m")
@@ -305,7 +329,8 @@ def snapshot(path, parent, parentRaw, msize = 0, checkEmpty = True):
         cmd.append("-e")
     text = ioretry(cmd)
 
-def check(path, ignoreMissingFooter = False, fast = False):
+
+def check(path, ignoreMissingFooter=False, fast=False):
     cmd = [VHD_UTIL, "check", OPT_LOG_ERR, "-n", path]
     if ignoreMissingFooter:
         cmd.append("-i")
@@ -317,9 +342,11 @@ def check(path, ignoreMissingFooter = False, fast = False):
     except util.CommandException:
         return False
 
+
 def revert(path, jFile):
     cmd = [VHD_UTIL, "revert", OPT_LOG_ERR, "-n", path, "-j", jFile]
     ioretry(cmd)
+
 
 def _parseVHDInfo(line, extractUuidFunction):
     vhdInfo = None
@@ -350,6 +377,7 @@ def _parseVHDInfo(line, extractUuidFunction):
             vhdInfo.parentUuid = extractUuidFunction(val)
     return vhdInfo
 
+
 def _getVHDParentNoCheck(path):
     cmd = ["vhd-util", "read", "-p", "-n", "%s" % path]
     text = util.pread(cmd)
@@ -362,9 +390,12 @@ def _getVHDParentNoCheck(path):
                 vdi = vdi[1:]
             return vdi
     return None
+
+
 def repair(path):
     """Repairs the VHD."""
     ioretry([VHD_UTIL, 'repair', '-n', path])
+
 
 def validate_and_round_vhd_size(size):
     """ Take the supplied vhd size, in bytes, and check it is positive and less
@@ -382,6 +413,7 @@ def validate_and_round_vhd_size(size):
 
     return size
 
+
 def getKeyHash(path):
     """Extract the hash of the encryption key from the header of an encrypted VHD"""
     cmd = ["vhd-util", "key", "-p", "-n", path]
@@ -396,6 +428,7 @@ def getKeyHash(path):
         return None
     [_nonce, key_hash] = vals
     return key_hash
+
 
 def setKey(path, key_hash):
     """Set the encryption key for a VHD"""

@@ -6,15 +6,14 @@ import mock
 import os
 import lvutil
 
-
-ONE_MEGABYTE=1*1024*1024
+ONE_MEGABYTE = 1 * 1024 * 1024
 
 
 def with_lvm_subsystem(func):
     @testlib.with_context
     def decorated(self, context, *args, **kwargs):
         lvsystem = lvmlib.LVSubsystem(context.log, context.add_executable)
-        return func(self, lvsystem, *args, **kwargs)
+        return func(self, lvsystem, * args, ** kwargs)
 
     decorated.__name__ = func.__name__
     return decorated
@@ -92,6 +91,7 @@ class TestCreate(unittest.TestCase):
         self.assertEqual(1, mock_pread.call_count)
         self.assertIn("10%F", mock_pread.call_args[0][0])
 
+
 class TestRemove(unittest.TestCase):
     def setUp(self):
         lock_patcher = mock.patch('lvutil.lock', autospec=True)
@@ -114,4 +114,4 @@ class TestRemove(unittest.TestCase):
         mock_pread.assert_called_once_with(
             [os.path.join(lvutil.LVM_BIN, lvutil.CMD_LVREMOVE)]
             + "-f VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume --config devices{blah}".split(),
-           quiet= False)
+           quiet=False)

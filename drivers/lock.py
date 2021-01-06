@@ -1,13 +1,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -16,14 +16,17 @@
 
 """Serialization for concurrent operations"""
 
-import os, errno
+import os
+import errno
 import flock
 import util
 
 VERBOSE = True
 
+
 class LockException(util.SMException):
     pass
+
 
 class Lock(object):
     """Simple file-based lock on a local FS. With shared reader/writer
@@ -40,7 +43,7 @@ class Lock(object):
                 Lock.INSTANCES[ns] = {}
             instances = Lock.INSTANCES[ns]
         else:
-            instances= Lock.BASE_INSTANCES
+            instances = Lock.BASE_INSTANCES
 
         if name not in instances:
             instances[name] = LockImplementation(name, ns)
@@ -77,7 +80,7 @@ class Lock(object):
         Lock.INSTANCES = {}
         Lock.BASE_INSTANCES = {}
 
-    def cleanup(name, ns = None):
+    def cleanup(name, ns=None):
         if ns:
             if ns in Lock.INSTANCES:
                 if name in Lock.INSTANCES[ns]:
@@ -94,7 +97,7 @@ class Lock(object):
 
     cleanup = staticmethod(cleanup)
 
-    def cleanupAll(ns = None):
+    def cleanupAll(ns=None):
         ns = Lock._mknamespace(ns)
         nspath = os.path.join(Lock.BASE_DIR, ns)
 
@@ -108,7 +111,6 @@ class Lock(object):
         Lock._rmdir(nspath)
 
     cleanupAll = staticmethod(cleanupAll)
-
     #
     # Lock and attribute file management
     #
@@ -207,12 +209,11 @@ class LockImplementation(object):
 
     __del__ = _close
 
-    def cleanup(self, name, ns = None):
+    def cleanup(self, name, ns=None):
         Lock.cleanup(name, ns)
 
-    def cleanupAll(self, ns = None):
+    def cleanupAll(self, ns=None):
         Lock.cleanupAll(ns)
-
     #
     # Actual Locking
     #

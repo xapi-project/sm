@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -24,15 +24,17 @@ from srmetadata import open_file, close, get_min_blk_size_wrapper, \
 
 LVM_MAX_NAME_LEN = 127
 
+
 class JournalerException(util.SMException):
     pass
+
 
 class Journaler:
     """Simple journaler that uses LVM namespace for persistent "storage".
     A journal is a id-value pair, and there can be only one journal for a
     given id."""
 
-    LV_SIZE = 4 * 1024 * 1024 # minimum size
+    LV_SIZE = 4 * 1024 * 1024  # minimum size
     LV_TAG = "journaler"
     SEPARATOR = "_"
     JRN_CLONE = "clone"
@@ -63,7 +65,7 @@ class Journaler:
 
         if writeData:
             fullPath = self.lvmCache._getPath(lvName)
-            fd =  open_file(fullPath, True)
+            fd = open_file(fullPath, True)
             try:
                 e = None
                 try:
@@ -132,10 +134,10 @@ class Journaler:
                 return True
         return False
 
-    def _getNameLV(self, type, id, val = 1):
+    def _getNameLV(self, type, id, val=1):
         return "%s%s%s%s%s" % (type, self.SEPARATOR, id, self.SEPARATOR, val)
 
-    def _getAllEntries(self, readFile = True):
+    def _getAllEntries(self, readFile=True):
         lvList = self.lvmCache.getTagged(self.LV_TAG)
         entries = dict()
         for lvName in lvList:
@@ -149,7 +151,7 @@ class Journaler:
                 # TODO: Remove dependency on journal type
                 if type == self.JRN_CLONE or type == self.JRN_LEAF:
                     fullPath = self.lvmCache._getPath(lvName)
-                    self.lvmCache.activateNoRefcount(lvName,False)
+                    self.lvmCache.activateNoRefcount(lvName, False)
                     fd = open_file(fullPath)
                     try:
                         try:
@@ -177,6 +179,7 @@ class Journaler:
 #
 import lvutil
 import lvmcache
+
 
 def _runTests(vgName):
     """Unit testing"""

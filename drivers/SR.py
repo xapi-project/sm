@@ -51,10 +51,10 @@ class SRException(Exception):
 
 class SROSError(SRException):
     """Wrapper for OSError"""
+
     def __init__(self, errno, reason):
         self.errno = errno
         Exception.__init__(self, reason)
-
 
 backends = []
 
@@ -87,6 +87,7 @@ class SR(object):
       physical_size: int, bytes consumed by this repository
       sr_vditype: string, repository type
     """
+
     def handles(type):
         """Returns True if this SR class understands the given dconf string"""
         return False
@@ -125,7 +126,7 @@ class SR(object):
 
             if 'device_config' in self.srcmd.params:
                 if 'SCSIid' in self.srcmd.params['device_config']:
-                    dev_path = '/dev/disk/by-scsid/'+self.srcmd.params['device_config']['SCSIid']
+                    dev_path = '/dev/disk/by-scsid/' + self.srcmd.params['device_config']['SCSIid']
                     os.environ['LVM_DEVICE'] = dev_path
                     util.SMlog('Setting LVM_DEVICE to %s' % dev_path)
 
@@ -164,7 +165,6 @@ class SR(object):
         _SR = session.xenapi.SR
         sr_ref = _SR.get_by_uuid(sr_uuid)
         sm_type = _SR.get_type(sr_ref)
-
         # NB. load the SM driver module
 
         _SM = session.xenapi.SM
@@ -178,7 +178,6 @@ class SR(object):
 
         module = imp.load_source(module_name, driver_real)
         target = driver(sm_type)
-
         # NB. get the host pbd's device_config
 
         host_ref = util.get_localhost_uuid(session)
@@ -190,19 +189,18 @@ class SR(object):
         assert not pbds
 
         device_config = _PBD.get_device_config(pbd_ref)
-
         # NB. make srcmd, to please our supersized SR constructor.
         # FIXME
 
         from SRCommand import SRCommand
         cmd = SRCommand(module.DRIVER_INFO)
         cmd.dconf = device_config
-        cmd.params = {'session_ref':   session._session,
-                      'host_ref':      host_ref,
+        cmd.params = {'session_ref': session._session,
+                      'host_ref': host_ref,
                       'device_config': device_config,
-                      'sr_ref':        sr_ref,
-                      'sr_uuid':       sr_uuid,
-                      'command':       'nop'}
+                      'sr_ref': sr_ref,
+                      'sr_uuid': sr_uuid,
+                      'command': 'nop'}
 
         return target(cmd, sr_uuid)
 
@@ -351,7 +349,7 @@ class SR(object):
 
     def content_type(self, uuid):
         """Returns the 'content_type' of an SR as a string"""
-        return xmlrpclib.dumps((str(self.sr_vditype),), "", True)
+        return xmlrpclib.dumps((str(self.sr_vditype), ), "", True)
 
     def load(self, sr_uuid):
         """Post-init hook"""

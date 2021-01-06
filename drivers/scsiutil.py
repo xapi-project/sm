@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -34,11 +34,13 @@ SUFFIX_LEN = 12
 SECTOR_SHIFT = 9
 SCSI_ID_BIN = '/usr/lib/udev/scsi_id'
 
+
 def gen_hash(st, len):
     hs = 0
     for i in st:
         hs = ord(i) + (hs << 6) + (hs << 16) - hs
     return str(hs)[0:len]
+
 
 def gen_uuid_from_serial(iqn, serial):
     if len(serial) < SUFFIX_LEN:
@@ -46,27 +48,30 @@ def gen_uuid_from_serial(iqn, serial):
     prefix = gen_hash(iqn, PREFIX_LEN)
     suffix = gen_hash(serial, SUFFIX_LEN)
     str = prefix.encode("hex") + suffix.encode("hex")
-    return str[0:8]+'-'+str[8:12]+'-'+str[12:16]+'-'+str[16:20]+'-'+str[20:32]
+    return str[0:8] + '-' + str[8:12] + '-' + str[12:16] + '-' + str[16:20] + '-' + str[20:32]
+
 
 def gen_serial_from_uuid(iqn, uuid):
-    str = uuid.replace('-','')
+    str = uuid.replace('-', '')
     prefix = gen_hash(iqn, PREFIX_LEN)
     if str[0:(PREFIX_LEN * 2)].decode("hex") != prefix:
         raise util.CommandException(1)
     return str[(PREFIX_LEN * 2):].decode("hex")
 
+
 def getsize(path):
     dev = getdev(path)
-    sysfs = os.path.join('/sys/block',dev,'size')
+    sysfs = os.path.join('/sys/block', dev, 'size')
     size = 0
     if os.path.exists(sysfs):
         try:
-            f=open(sysfs, 'r')
+            f = open(sysfs, 'r')
             size = (long(f.readline()) << SECTOR_SHIFT)
             f.close()
         except:
             pass
     return size
+
 
 def getuniqueserial(path):
     dev = getdev(path)
@@ -78,14 +83,17 @@ def getuniqueserial(path):
     except:
         return ''
 
+
 def gen_uuid_from_string(str):
     if len(str) < (PREFIX_LEN + SUFFIX_LEN):
         raise util.CommandException(1)
-    return str[0:8]+'-'+str[8:12]+'-'+str[12:16]+'-'+str[16:20]+'-'+str[20:32]
+    return str[0:8] + '-' + str[8:12] + '-' + str[12:16] + '-' + str[16:20] + '-' + str[20:32]
+
 
 def SCSIid_sanitise(str):
     text = str.strip()
-    return re.sub("\s+","_",text)
+    return re.sub("\s+", "_", text)
+
 
 def getSCSIid(path):
     """Get the SCSI id of a block device
@@ -109,10 +117,11 @@ def getSCSIid(path):
 
     return SCSIid_sanitise(stdout)
 
+
 def compareSCSIid_2_6_18(SCSIid, path):
     serial = getserial(path)
     len_serial = len(serial)
-    if (len_serial == 0 ) or (len_serial > (len(SCSIid) - 1)):
+    if (len_serial == 0) or (len_serial > (len(SCSIid) - 1)):
         return False
     list_SCSIid = list(SCSIid)
     list_serial = list_SCSIid[1:(len_serial + 1)]
@@ -122,11 +131,12 @@ def compareSCSIid_2_6_18(SCSIid, path):
     else:
         return False
 
+
 def getserial(path):
-    dev = os.path.join('/dev',getdev(path))
+    dev = os.path.join('/dev', getdev(path))
     try:
         cmd = ["sginfo", "-s", dev]
-        text = re.sub("\s+","",util.pread2(cmd))
+        text = re.sub("\s+", "", util.pread2(cmd))
     except:
         raise xs_errors.XenError('EIO', \
               opterr='An error occured querying device serial number [%s]' \
@@ -136,13 +146,15 @@ def getserial(path):
     except:
         return ''
 
+
 def getmanufacturer(path):
     cmd = ["sginfo", "-M", path]
     try:
         for line in filter(match_vendor, util.pread2(cmd).split('\n')):
-            return line.replace(' ','').split(':')[-1]
+            return line.replace(' ', '').split(':')[-1]
     except:
         return ''
+
 
 def cacheSCSIidentifiers():
     SCSI = {}
@@ -153,24 +165,25 @@ def cacheSCSIidentifiers():
         dev = os.path.realpath(node)
         HBTL = os.path.basename(node).split("-")[-1].split(":")
         line = "NONE %s %s %s %s 0 %s" % \
-               (HBTL[0],HBTL[1],HBTL[2],HBTL[3],dev)
+               (HBTL[0], HBTL[1], HBTL[2], HBTL[3], dev)
         ids = line.split()
         SCSI[ids[6]] = ids
     return SCSI
 
+
 def scsi_dev_ctrl(ids, cmd):
     f = None
-    for i in range(0,10):
+    for i in range(0, 10):
         try:
             str = "scsi %s-single-device %s %s %s %s" % \
-                  (cmd, ids[1],ids[2],ids[3],ids[4])
+                  (cmd, ids[1], ids[2], ids[3], ids[4])
             util.SMlog(str)
-            f=open('/proc/scsi/scsi', 'w')
+            f = open('/proc/scsi/scsi', 'w')
             print(str, file=f)
             f.close()
             return
         except IOError as e:
-            util.SMlog("SCSI_DEV_CTRL: Failure, %s [%d]" % (e.strerror,e.errno))
+            util.SMlog("SCSI_DEV_CTRL: Failure, %s [%d]" % (e.strerror, e.errno))
             if f is not None:
                 f.close()
                 f = None
@@ -182,19 +195,22 @@ def scsi_dev_ctrl(ids, cmd):
     raise xs_errors.XenError('EIO', \
             opterr='An error occured during the scsi operation')
 
+
 def getdev(path):
     realpath = os.path.realpath(path)
     if match_dm(realpath):
-        newpath = realpath.replace("/dev/mapper/","/dev/disk/by-id/scsi-")
+        newpath = realpath.replace("/dev/mapper/", "/dev/disk/by-id/scsi-")
     else:
         newpath = path
     return os.path.realpath(newpath).split('/')[-1]
+
 
 def get_devices_by_SCSIid(SCSIid):
     devices = os.listdir(os.path.join('/dev/disk/by-scsid', SCSIid))
     if 'mapper' in devices:
         devices.remove('mapper')
     return devices
+
 
 def rawdev(dev):
     device = getdev(dev)
@@ -203,35 +219,43 @@ def rawdev(dev):
 
     return re.sub('[0-9]*$', '', device)
 
+
 def getSessionID(path):
     for line in filter(match_session, util.listdir(path)):
         return line.split('-')[-1]
+
 
 def match_session(s):
     regex = re.compile("^SESSIONID-")
     return regex.search(s, 0)
 
+
 def match_vendor(s):
     regex = re.compile("^Vendor:")
     return regex.search(s, 0)
 
+
 def match_dm(s):
     regex = re.compile("mapper/")
-    return regex.search(s, 0)    
-    
+    return regex.search(s, 0)
+
+
 def match_sd(s):
     regex = re.compile("/dev/sd")
     return regex.search(s, 0)
 
+
 def _isSCSIdev(dev):
     if match_dm(dev):
-        path = dev.replace("/dev/mapper/","/dev/disk/by-id/scsi-")
+        path = dev.replace("/dev/mapper/", "/dev/disk/by-id/scsi-")
     else:
         path = dev
     return match_sd(os.path.realpath(path))
 
+
 def gen_rdmfile():
     return "/tmp/%s" % util.gen_uuid()
+
 
 def add_serial_record(session, sr_ref, devstring):
     try:
@@ -241,12 +265,14 @@ def add_serial_record(session, sr_ref, devstring):
     except:
         pass
 
+
 def get_serial_record(session, sr_ref):
     try:
         conf = session.xenapi.SR.get_sm_config(sr_ref)
         return conf['devserial']
     except:
         return ""
+
 
 def devlist_to_serialstring(devlist):
     serial = ''
@@ -260,8 +286,9 @@ def devlist_to_serialstring(devlist):
             serial += devserial
         except:
             pass
-    
+
     return serial
+
 
 def gen_synthetic_page_data(uuid):
     # For generating synthetic page data for non-raw LUNs
@@ -273,7 +300,7 @@ def gen_synthetic_page_data(uuid):
     page80 += "\x00\x12"
     page80 += uuid[0:16]
     page80 += "  "
-    
+
     page83 = ""
     page83 += "\x00\x83"
     page83 += "\x00\x31"
@@ -281,8 +308,9 @@ def gen_synthetic_page_data(uuid):
     page83 += "XENSRC  "
     page83 += uuid
     page83 += " "
-    return ["",base64.b64encode(page80),base64.b64encode(page83)]
-    
+    return ["", base64.b64encode(page80), base64.b64encode(page83)]
+
+
 def gen_raw_page_data(path):
     default = ""
     page80 = ""
@@ -291,41 +319,44 @@ def gen_raw_page_data(path):
         cmd = ["sg_inq", "-r", path]
         text = util.pread2(cmd)
         default = base64.b64encode(text)
-            
+
         cmd = ["sg_inq", "--page=0x80", "-r", path]
         text = util.pread2(cmd)
         page80 = base64.b64encode(text)
-            
+
         cmd = ["sg_inq", "--page=0x83", "-r", path]
         text = util.pread2(cmd)
         page83 = base64.b64encode(text)
     except:
         pass
-    return [default,page80,page83]
+    return [default, page80, page83]
+
 
 def update_XS_SCSIdata(vdi_uuid, data):
-        # XXX: PR-1255: passing through SCSI data doesn't make sense when
-        # it will change over storage migration. It also doesn't make sense
-        # to preserve one array's identity and copy it when a VM moves to
-        # a new array because the drivers in the VM may attempt to contact
-        # the original array, fail and bluescreen.
+    # XXX: PR-1255: passing through SCSI data doesn't make sense when
+    # it will change over storage migration. It also doesn't make sense
+    # to preserve one array's identity and copy it when a VM moves to
+    # a new array because the drivers in the VM may attempt to contact
+    # the original array, fail and bluescreen.
 
-        xenstore_data = {}
-        xenstore_data["vdi-uuid"]=vdi_uuid
-        if len(data[0]):
-            xenstore_data["scsi/0x12/default"]=data[0]
+    xenstore_data = {}
+    xenstore_data["vdi-uuid"] = vdi_uuid
+    if len(data[0]):
+        xenstore_data["scsi/0x12/default"] = data[0]
 
-        if len(data[1]):
-            xenstore_data["scsi/0x12/0x80"]=data[1]
+    if len(data[1]):
+        xenstore_data["scsi/0x12/0x80"] = data[1]
 
-        if len(data[2]):
-            xenstore_data["scsi/0x12/0x83"]=data[2]
+    if len(data[2]):
+        xenstore_data["scsi/0x12/0x83"] = data[2]
 
-        return xenstore_data
+    return xenstore_data
+
 
 def rescan(ids, fullrescan=True):
     for id in ids:
         refresh_HostID(id, fullrescan)
+
 
 def _genArrayIdentifier(dev):
     try:
@@ -341,25 +372,27 @@ def _genHostList(procname):
     ids = []
     try:
         for dir in util.listdir('/sys/class/scsi_host'):
-            filename = os.path.join('/sys/class/scsi_host',dir,'proc_name')
+            filename = os.path.join('/sys/class/scsi_host', dir, 'proc_name')
             if os.path.exists(filename):
                 f = open(filename, 'r')
                 if f.readline().find(procname) != -1:
-                    ids.append(dir.replace("host",""))
+                    ids.append(dir.replace("host", ""))
                 f.close()
     except:
         pass
     return ids
 
+
 def _genReverseSCSIidmap(SCSIid, pathname="scsibus"):
     util.SMlog("map_by_scsibus: sid=%s" % SCSIid)
 
     devices = []
-    for link in glob.glob('/dev/disk/by-%s/%s-*' % (pathname,SCSIid)):
+    for link in glob.glob('/dev/disk/by-%s/%s-*' % (pathname, SCSIid)):
         realpath = os.path.realpath(link)
         if os.path.exists(realpath):
             devices.append(realpath)
     return devices
+
 
 def _genReverseSCSidtoLUNidmap(SCSIid):
     devices = []
@@ -367,26 +400,28 @@ def _genReverseSCSidtoLUNidmap(SCSIid):
         devices.append(link.split('-')[-1])
     return devices
 
+
 def _dosgscan():
-    regex=re.compile("([^:]*):\s+scsi([0-9]+)\s+channel=([0-9]+)\s+id=([0-9]+)\s+lun=([0-9]+)")
-    scan=util.pread2(["/usr/bin/sg_scan"]).split('\n')
-    sgs=[]
+    regex = re.compile("([^:]*):\s+scsi([0-9]+)\s+channel=([0-9]+)\s+id=([0-9]+)\s+lun=([0-9]+)")
+    scan = util.pread2(["/usr/bin/sg_scan"]).split('\n')
+    sgs = []
     for line in scan:
-        m=regex.match(line)
+        m = regex.match(line)
         if m:
-            device=m.group(1)
-            host=m.group(2)
-            channel=m.group(3)
-            sid=m.group(4)
-            lun=m.group(5)
-            sgs.append([device,host,channel,sid,lun])
+            device = m.group(1)
+            host = m.group(2)
+            channel = m.group(3)
+            sid = m.group(4)
+            lun = m.group(5)
+            sgs.append([device, host, channel, sid, lun])
     return sgs
+
 
 def refresh_HostID(HostID, fullrescan):
     LUNs = glob.glob('/sys/class/scsi_disk/%s*' % HostID)
     li = []
     for l in LUNs:
-        chan = re.sub(":[0-9]*$",'',os.path.basename(l))
+        chan = re.sub(":[0-9]*$", '', os.path.basename(l))
         if chan not in li:
             li.append(chan)
 
@@ -401,7 +436,7 @@ def refresh_HostID(HostID, fullrescan):
         if os.path.exists(path):
             try:
                 scanstring = "- - -"
-                f=open(path, 'w')
+                f = open(path, 'w')
                 f.write('%s\n' % scanstring)
                 f.close()
                 if len(li):
@@ -416,12 +451,12 @@ def refresh_HostID(HostID, fullrescan):
             LUNs = glob.glob('/sys/class/scsi_disk/%s*' % HostID)
             li = []
             for l in LUNs:
-                chan = re.sub(":[0-9]*$",'',os.path.basename(l))
+                chan = re.sub(":[0-9]*$", '', os.path.basename(l))
                 if chan not in li:
                     li.append(chan)
             for c in li:
                 refresh_scsi_channel(c)
-    
+
 
 def refresh_scsi_channel(channel):
     DEV_WAIT = 5
@@ -433,7 +468,7 @@ def refresh_scsi_channel(channel):
     except:
         util.SMlog("Failed to query root disk, failing operation")
         return False
-    
+
     # a) Find a LUN to issue a Query LUNs command
     li = []
     Query = False
@@ -441,7 +476,7 @@ def refresh_scsi_channel(channel):
         try:
             hbtl = lun.split('-')[-1]
             h = hbtl.split(':')
-            l=util.pread2(["/usr/bin/sg_luns","-q",lun]).split('\n')
+            l = util.pread2(["/usr/bin/sg_luns", "-q", lun]).split('\n')
             li = []
             for i in l:
                 if len(i):
@@ -456,19 +491,20 @@ def refresh_scsi_channel(channel):
         return False
 
     # b) Remove stale LUNs
-    current = glob.glob('/dev/disk/by-scsibus/*-%s:%s:%s*' % (h[0],h[1],h[2]))
+    current = glob.glob('/dev/disk/by-scsibus/*-%s:%s:%s*' % (h[0], h[1], h[2]))
     for cur in current:
         lunID = int(cur.split(':')[-1])
-        newhbtl = ['',h[0],h[1],h[2],str(lunID)]
+        newhbtl = ['', h[0], h[1], h[2], str(lunID)]
         if os.path.realpath(cur) in rootdevs:
             # Don't touch the rootdev
-            if lunID in li: li.remove(lunID)
+            if lunID in li:
+                li.remove(lunID)
             continue
-        
+
         # Check if LUN is stale, and remove it
         if not lunID in li:
             util.SMlog("Stale LUN detected. Removing HBTL: %s" % newhbtl)
-            scsi_dev_ctrl(newhbtl,"remove")
+            scsi_dev_ctrl(newhbtl, "remove")
             util.wait_for_nopath(cur, DEV_WAIT)
             continue
         else:
@@ -477,24 +513,24 @@ def refresh_scsi_channel(channel):
         # Check if the device is still present
         if not os.path.exists(cur):
             continue
-        
+
         # Query SCSIid, check it matches, if not, re-probe
-        cur_SCSIid = os.path.basename(cur).split("-%s:%s:%s" % (h[0],h[1],h[2]))[0]
+        cur_SCSIid = os.path.basename(cur).split("-%s:%s:%s" % (h[0], h[1], h[2]))[0]
         real_SCSIid = getSCSIid(cur)
         if cur_SCSIid != real_SCSIid:
             util.SMlog("HBTL %s does not match, re-probing" % newhbtl)
-            scsi_dev_ctrl(newhbtl,"remove")
+            scsi_dev_ctrl(newhbtl, "remove")
             util.wait_for_nopath(cur, DEV_WAIT)
-            scsi_dev_ctrl(newhbtl,"add")
-            util.wait_for_path('/dev/disk/by-scsibus/%s-%s' % (real_SCSIid,hbtl), DEV_WAIT)
+            scsi_dev_ctrl(newhbtl, "add")
+            util.wait_for_path('/dev/disk/by-scsibus/%s-%s' % (real_SCSIid, hbtl), DEV_WAIT)
             pass
 
     # c) Probe for any LUNs that are not present in the system
     for l in li:
-        newhbtl = ['',h[0],h[1],h[2],str(l)]
-        newhbtlstr = "%s:%s:%s:%s" % (h[0],h[1],h[2],str(l))
+        newhbtl = ['', h[0], h[1], h[2], str(l)]
+        newhbtlstr = "%s:%s:%s:%s" % (h[0], h[1], h[2], str(l))
         util.SMlog("Probing new HBTL: %s" % newhbtl)
-        scsi_dev_ctrl(newhbtl,"add")
+        scsi_dev_ctrl(newhbtl, "add")
         util.wait_for_path('/dev/disk/by-scsibus/*-%s' % newhbtlstr, DEV_WAIT)
 
     return True
@@ -506,11 +542,11 @@ def refreshdev(pathlist):
     """
     for path in pathlist:
         dev = getdev(path)
-        sysfs = os.path.join('/sys/block',dev,'device/rescan')
+        sysfs = os.path.join('/sys/block', dev, 'device/rescan')
         if os.path.exists(sysfs):
             try:
                 f = os.open(sysfs, os.O_WRONLY)
-                os.write(f,'1')
+                os.write(f, '1')
                 os.close(f)
             except:
                 pass
@@ -521,6 +557,7 @@ def refresh_lun_size_by_SCSIid(SCSIid):
     Refresh all devices for the SCSIid.
     Returns True if all known devices and the mapper device are up to date.
     """
+
     def get_primary_device(SCSIid):
         mapperdevice = os.path.join('/dev/mapper', SCSIid)
         if os.path.exists(mapperdevice):
@@ -588,7 +625,7 @@ def refresh_lun_size_by_SCSIid_on_slaves(session, SCSIid):
                                                   slave,
                                                   "on-slave",
                                                   "refresh_lun_size_by_SCSIid",
-                                                  {'SCSIid': SCSIid })
+                                                  {'SCSIid': SCSIid})
         if "True" == resulttext:
             util.SMlog("Calling on-slave.refresh_lun_size_by_SCSIid(%s) on"
                        " %s succeeded." % (SCSIid, slave))
@@ -601,10 +638,10 @@ def refresh_lun_size_by_SCSIid_on_slaves(session, SCSIid):
 
 def remove_stale_luns(hostids, lunid, expectedPath, mpath):
     try:
-        for hostid in hostids:            
+        for hostid in hostids:
             # get all LUNs of the format hostid:x:y:lunid
             luns = glob.glob('/dev/disk/by-scsibus/*-%s:*:*:%s' % (hostid, lunid))
-            
+
             # try to get the scsiid for each of these luns
             for lun in luns:
                 try:
@@ -616,51 +653,52 @@ def remove_stale_luns(hostids, lunid, expectedPath, mpath):
                 except:
                     # Now do the rest.
                     pass
-                
+
                 # get the HBTL
                 basename = os.path.basename(lun)
                 hbtl_list = basename.split(':')
                 hbtl = basename.split('-')[1]
-                
+
                 # the first one in scsiid-hostid
                 hbtl_list[0] = hbtl_list[0].split('-')[1]
-                
+
                 expectedPath = expectedPath + '*' + hbtl
                 if not os.path.exists(expectedPath):
                     # wait for sometime and check if the expected path exists
                     # check if a rescan was done outside of this process
                     time.sleep(2)
-                
+
                 if os.path.exists(expectedPath):
                     # do not remove device, this might be dangerous
-                    util.SMlog("Path %s appeared before checking for "\
+                    util.SMlog("Path %s appeared before checking for " \
                         "stale LUNs, ignore this LUN %s." % (expectedPath, lun))
-                    continue                        
-                    
+                    continue
+
                 # remove the scsi device
                 l = [os.path.realpath(lun), hbtl_list[0], hbtl_list[1], \
                      hbtl_list[2], hbtl_list[3]]
                 scsi_dev_ctrl(l, 'remove')
-                
+
                 # if multipath is enabled, do a best effort cleanup
                 if mpath:
                     try:
                         path = os.path.basename(os.path.realpath(lun))
                         mpath_cli.remove_path(path)
                     except Exception as e:
-                        util.SMlog("Failed to remove path %s, ignoring "\
+                        util.SMlog("Failed to remove path %s, ignoring " \
                             "exception as path may not be present." % path)
     except Exception as e:
-        util.SMlog("Exception removing stale LUNs, new devices may not come"\
+        util.SMlog("Exception removing stale LUNs, new devices may not come" \
                    " up properly! Error: %s" % str(e))
+
 
 def sg_readcap(device):
     device = os.path.join('/dev', getdev(device))
     readcapcommand = ['/usr/bin/sg_readcap', '-b', device]
-    (rc,stdout,stderr) = util.doexec(readcapcommand)
+    (rc, stdout, stderr) = util.doexec(readcapcommand)
     if rc == 6:
         # retry one time for "Capacity data has changed"
-        (rc,stdout,stderr) = util.doexec(readcapcommand)
+        (rc, stdout, stderr) = util.doexec(readcapcommand)
     if rc != 0:
         raise util.SMException("scsiutil.sg_readcap(%s) failed" % (device))
     match = re.search('(^|.*\n)(0x[0-9a-fA-F]+) (0x[0-9a-fA-F]+)\n$', stdout)

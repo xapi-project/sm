@@ -2,20 +2,23 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-import SR, VDI, SRCommand, util
+import SR
+import VDI
+import SRCommand
+import util
 import os
 import xs_errors
 
@@ -35,6 +38,7 @@ DRIVER_INFO = {
 
 TYPE = "shm"
 
+
 class SHMSR(SR.SR):
     """Shared memory storage repository"""
 
@@ -49,7 +53,7 @@ class SHMSR(SR.SR):
                     self.vdis[name] = SHMVDI(self, util.gen_uuid(), name)
         except:
             pass
-        
+
     def handles(type):
         """Do we handle this type?"""
         if type == TYPE:
@@ -58,12 +62,12 @@ class SHMSR(SR.SR):
     handles = staticmethod(handles)
 
     def content_type(self, sr_uuid):
-        """Returns the content_type XML""" 
+        """Returns the content_type XML"""
         return super(SHMSR, self).content_type(sr_uuid)
 
     def vdi(self, uuid):
         """Create a VDI class"""
-	if 'vdi_location' in self.srcmd.params:
+        if 'vdi_location' in self.srcmd.params:
             return SHMVDI(self, uuid, self.srcmd.params['vdi_location'])
         else:
             return SHMVDI(self, uuid, self.srcmd.params['device_config']['location'])
@@ -80,15 +84,15 @@ class SHMSR(SR.SR):
 
     def attach(self, sr_uuid):
         """Std. attach"""
-	self._loadvdis()
+        self._loadvdis()
 
     def detach(self, sr_uuid):
         """Std. detach"""
-	pass
+        pass
 
     def scan(self, sr_uuid):
         """Scan"""
-	self._loadvdis()
+        self._loadvdis()
         return super(SHMSR, self).scan(sr_uuid)
 
     def create(self, sr_uuid, size):
@@ -117,7 +121,7 @@ class SHMVDI(VDI.VDI):
         self.sm_config = {}
 
     def detach(self, sr_uuid, vdi_uuid):
-	pass
+        pass
 
     def clone(self, sr_uuid, vdi_uuid):
         return self.get_params()

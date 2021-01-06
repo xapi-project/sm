@@ -18,21 +18,24 @@
 # ISCSISR: ISCSI software initiator SR driver
 #
 
-import SR, SRCommand, BaseISCSI, LUNperVDI
+import SR
+import SRCommand
+import BaseISCSI
+import LUNperVDI
 import util
 
-CAPABILITIES = ["SR_PROBE","VDI_CREATE","VDI_DELETE","VDI_ATTACH",
+CAPABILITIES = ["SR_PROBE", "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH",
                 "VDI_DETACH", "VDI_INTRODUCE"]
 
-CONFIGURATION = [ [ 'target', 'IP address or hostname of the iSCSI target (required)' ], \
-                  [ 'targetIQN', 'The IQN of the target LUN group to be attached (required)' ], \
-                  [ 'chapuser', 'The username to be used during CHAP authentication (optional)' ], \
-                  [ 'chappassword', 'The password to be used during CHAP authentication (optional)' ], \
-                  [ 'incoming_chapuser', 'The incoming username to be used during bi-directional CHAP authentication (optional)' ], \
-                  [ 'incoming_chappassword', 'The incoming password to be used during bi-directional CHAP authentication (optional)' ], \
-                  [ 'port', 'The network port number on which to query the target (optional)' ], \
-                  [ 'multihomed', 'Enable multi-homing to this target, true or false (optional, defaults to same value as host.other_config:multipathing)' ],
-                  [ 'force_tapdisk', 'Force use of tapdisk, true or false (optional, defaults to false)'],
+CONFIGURATION = [['target', 'IP address or hostname of the iSCSI target (required)'], \
+                  ['targetIQN', 'The IQN of the target LUN group to be attached (required)'], \
+                  ['chapuser', 'The username to be used during CHAP authentication (optional)'], \
+                  ['chappassword', 'The password to be used during CHAP authentication (optional)'], \
+                  ['incoming_chapuser', 'The incoming username to be used during bi-directional CHAP authentication (optional)'], \
+                  ['incoming_chappassword', 'The incoming password to be used during bi-directional CHAP authentication (optional)'], \
+                  ['port', 'The network port number on which to query the target (optional)'], \
+                  ['multihomed', 'Enable multi-homing to this target, true or false (optional, defaults to same value as host.other_config:multipathing)'],
+                  ['force_tapdisk', 'Force use of tapdisk, true or false (optional, defaults to false)'],
 ]
 
 DRIVER_INFO = {
@@ -45,6 +48,7 @@ DRIVER_INFO = {
     'capabilities': CAPABILITIES,
     'configuration': CONFIGURATION
     }
+
 
 class RawISCSISR(BaseISCSI.BaseISCSISR):
     """Raw ISCSI storage repository"""
@@ -64,6 +68,7 @@ class RawISCSISR(BaseISCSI.BaseISCSISR):
 
     def vdi(self, uuid):
         return ISCSIVDI(self, uuid)
+
 
 class ISCSIVDI(LUNperVDI.RAWVDI):
     def load(self, vdi_uuid):

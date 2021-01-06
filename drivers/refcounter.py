@@ -2,27 +2,26 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
-# Persistent reference counter. This refcounter can maintain two separate 
-# refcounts: one binary (which can have a value of 0 or 1) and one normal. The 
-# parameter "binary" specifies which of the two counters to update, while the 
+# Persistent reference counter. This refcounter can maintain two separate
+# refcounts: one binary (which can have a value of 0 or 1) and one normal. The
+# parameter "binary" specifies which of the two counters to update, while the
 # return value is zero IFF both counters are zero
 #
 # Synchronization must be done at a higher level, by the users of this module
 #
-
 
 from __future__ import print_function
 import os
@@ -30,8 +29,10 @@ import util
 from lock import Lock
 import errno
 
+
 class RefCounterException(util.SMException):
     pass
+
 
 class RefCounter:
     """Persistent local-FS file-based reference counter. The
@@ -39,7 +40,7 @@ class RefCounter:
 
     BASE_DIR = "/var/run/sm/refcount"
 
-    def get(obj, binary, ns = None):
+    def get(obj, binary, ns=None):
         """Get (inc ref count) 'obj' in namespace 'ns' (optional). 
         Returns new ref count"""
         if binary:
@@ -48,7 +49,7 @@ class RefCounter:
             return RefCounter._adjust(ns, obj, 1, 0)
     get = staticmethod(get)
 
-    def put(obj, binary, ns = None):
+    def put(obj, binary, ns=None):
         """Put (dec ref count) 'obj' in namespace 'ns' (optional). If ref
         count was zero already, this operation is a no-op.
         Returns new ref count"""
@@ -58,7 +59,7 @@ class RefCounter:
             return RefCounter._adjust(ns, obj, -1, 0)
     put = staticmethod(put)
 
-    def set(obj, count, binaryCount, ns = None):
+    def set(obj, count, binaryCount, ns=None):
         """Set normal & binary counts explicitly to the specified values.
         Returns new ref count"""
         (obj, ns) = RefCounter._getSafeNames(obj, ns)
@@ -68,7 +69,7 @@ class RefCounter:
         RefCounter._set(ns, obj, count, binaryCount)
     set = staticmethod(set)
 
-    def check(obj, ns = None):
+    def check(obj, ns=None):
         """Get the ref count values for 'obj' in namespace 'ns' (optional)"""
         (obj, ns) = RefCounter._getSafeNames(obj, ns)
         return RefCounter._get(ns, obj)
@@ -84,12 +85,12 @@ class RefCounter:
             lock.release()
     checkLocked = staticmethod(checkLocked)
 
-    def reset(obj, ns = None):
+    def reset(obj, ns=None):
         """Reset ref counts for 'obj' in namespace 'ns' (optional) to 0."""
         RefCounter.resetAll(ns, obj)
     reset = staticmethod(reset)
 
-    def resetAll(ns = None, obj = None):
+    def resetAll(ns=None, obj=None):
         """Reset ref counts of 'obj' in namespace 'ns' to 0. If obj is not
         provided, reset all existing objects in 'ns' to 0. If neither obj nor 
         ns are supplied, do this for all namespaces"""
@@ -201,7 +202,7 @@ class RefCounter:
                 raise RefCounterException("failed to remove '%s'" % nsDir)
     _removeObject = staticmethod(_removeObject)
 
-    def _reset(ns, obj = None):
+    def _reset(ns, obj=None):
         nsDir = os.path.join(RefCounter.BASE_DIR, ns)
         if not util.pathexists(nsDir):
             return
@@ -244,7 +245,6 @@ class RefCounter:
             raise RefCounterException("failed to write '(%d %d)' to '%s': %s" \
                     % (count, binaryCount, fn, e))
     _writeCount = staticmethod(_writeCount)
-
 
     def _runTests():
         "Unit tests"

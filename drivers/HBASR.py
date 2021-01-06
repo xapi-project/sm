@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -19,16 +19,21 @@
 # hardware based iSCSI
 #
 
-import SR, SRCommand
-import devscan, scsiutil, util, LUNperVDI
-import os, time
+import SR
+import SRCommand
+import devscan
+import scsiutil
+import util
+import LUNperVDI
+import os
+import time
 import xs_errors
 import xml.dom.minidom
 
-CAPABILITIES = ["SR_PROBE","VDI_CREATE","VDI_DELETE","VDI_ATTACH",
+CAPABILITIES = ["SR_PROBE", "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH",
                 "VDI_DETACH", "VDI_INTRODUCE"]
 
-CONFIGURATION = [ [ 'type', 'HBA type (optional) (e.g. FC, iSCSI, SAS etc..)' ] ]
+CONFIGURATION = [['type', 'HBA type (optional) (e.g. FC, iSCSI, SAS etc..)']]
 
 DRIVER_INFO = {
     'name': 'HBA LUN-per-VDI driver',
@@ -41,8 +46,10 @@ DRIVER_INFO = {
     'configuration': CONFIGURATION
     }
 
+
 class HBASR(SR.SR):
     """HBA storage repository"""
+
     def handles(type):
         if type == "hba":
             return True
@@ -57,7 +64,7 @@ class HBASR(SR.SR):
         self.attached = False
         self.procname = ""
         self.devs = {}
-            
+
     def _init_hbadict(self):
         if not hasattr(self, "hbas"):
             dict = devscan.adapters(filterstr=self.type)
@@ -85,9 +92,9 @@ class HBASR(SR.SR):
 
     def _init_hbas(self):
         """ get the HBA information on this host function """
-        
+
         fc_xml = self._probe_hba()
-        adt = {}   
+        adt = {}
         try:
             fcs = xml.dom.minidom.parseString(fc_xml)
             infos = fcs.getElementsByTagName("HBAInfo")
@@ -115,7 +122,7 @@ class HBASR(SR.SR):
             dom.appendChild(hbalist)
 
             hostlist = util.listdir("/sys/class/fc_host")
-            for host in hostlist: 
+            for host in hostlist:
 
                 hbainfo = dom.createElement("HBAInfo")
                 hbalist.appendChild(hbainfo)
@@ -166,7 +173,7 @@ class HBASR(SR.SR):
         except:
             raise xs_errors.XenError('XMLParse', \
                                      opterr='HBA probe failed')
-    
+
     def attach(self, sr_uuid):
         self._mpathHandle()
 
@@ -220,7 +227,7 @@ class HBASR(SR.SR):
                sm_config['datatype'] == 'HBA':
                 Recs[record["uuid"]] = sm_config
         return self.srlist_toxml(Recs)
-    
+
     def scan(self, sr_uuid):
         self._init_hbadict()
         if not self.passthrough:
@@ -250,13 +257,13 @@ class HBASR(SR.SR):
         self._init_hbadict()
         count = 0
         for key in self.hbadict.iterkeys():
-            vdi_path = os.path.join("/dev",key)
-	    if vdi_path not in self.devs:
-		continue
+            vdi_path = os.path.join("/dev", key)
+            if vdi_path not in self.devs:
+                continue
             uuid = scsiutil.gen_uuid_from_string(scsiutil.getuniqueserial(vdi_path))
             obj = self.vdi(uuid)
             path = self.mpathmodule.path(scsiutil.getSCSIid(vdi_path))
-	    ids = self.devs[vdi_path]
+            ids = self.devs[vdi_path]
             obj._query(vdi_path, ids[4])
             self.vdis[uuid] = obj
             self.physical_size += obj.size
@@ -265,7 +272,7 @@ class HBASR(SR.SR):
 
     def _getLUNbySMconfig(self, sm_config):
         raise xs_errors.XenError('VDIUnavailable')
-        
+
     def vdi(self, uuid):
         return LUNperVDI.RAWVDI(self, uuid)
 

@@ -16,7 +16,7 @@ class Stubs(object):
         self._stubs = []
 
     def stubout(self, *args, **kwargs):
-        patcher = mock.patch(*args, **kwargs)
+        patcher = mock.patch( * args, ** kwargs)
         self._stubs.append(patcher)
         patcher.start()
 
