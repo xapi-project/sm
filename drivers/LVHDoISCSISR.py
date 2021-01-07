@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -19,13 +19,22 @@
 #
 
 from __future__ import print_function
-import SR, LVHDSR, BaseISCSI, SRCommand, util, scsiutil, lvutil
+import SR
+import LVHDSR
+import BaseISCSI
+import SRCommand
+import util
+import scsiutil
+import lvutil
 import time
-import os, sys
+import os
+import sys
 import xs_errors
 import xmlrpclib
-import mpath_cli, iscsilib
-import glob, copy
+import mpath_cli
+import iscsilib
+import glob
+import copy
 import scsiutil
 import xml.dom.minidom
 
@@ -33,20 +42,20 @@ CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_METADATA", "SR_TRIM",
                 "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
                 "VDI_GENERATE_CONFIG", "VDI_CLONE", "VDI_SNAPSHOT",
                 "VDI_RESIZE", "ATOMIC_PAUSE", "VDI_RESET_ON_BOOT/2",
-                "VDI_UPDATE", "VDI_MIRROR", "VDI_CONFIG_CBT", 
+                "VDI_UPDATE", "VDI_MIRROR", "VDI_CONFIG_CBT",
                 "VDI_ACTIVATE", "VDI_DEACTIVATE"]
 
-CONFIGURATION = [ [ 'SCSIid', 'The scsi_id of the destination LUN' ], \
-                  [ 'target', 'IP address or hostname of the iSCSI target' ], \
-                  [ 'targetIQN', 'The IQN of the target LUN group to be attached' ], \
-                  [ 'chapuser', 'The username to be used during CHAP authentication' ], \
-                  [ 'chappassword', 'The password to be used during CHAP authentication' ], \
-                  [ 'incoming_chapuser', 'The incoming username to be used during bi-directional CHAP authentication (optional)' ], \
-                  [ 'incoming_chappassword', 'The incoming password to be used during bi-directional CHAP authentication (optional)' ], \
-                  [ 'port', 'The network port number on which to query the target' ], \
-                  [ 'multihomed', 'Enable multi-homing to this target, true or false (optional, defaults to same value as host.other_config:multipathing)' ], \
-                  [ 'usediscoverynumber', 'The specific iscsi record index to use. (optional)' ], \
-                  [ 'allocation', 'Valid values are thick or thin (optional, defaults to thick)'] ]
+CONFIGURATION = [['SCSIid', 'The scsi_id of the destination LUN'], \
+                  ['target', 'IP address or hostname of the iSCSI target'], \
+                  ['targetIQN', 'The IQN of the target LUN group to be attached'], \
+                  ['chapuser', 'The username to be used during CHAP authentication'], \
+                  ['chappassword', 'The password to be used during CHAP authentication'], \
+                  ['incoming_chapuser', 'The incoming username to be used during bi-directional CHAP authentication (optional)'], \
+                  ['incoming_chappassword', 'The incoming password to be used during bi-directional CHAP authentication (optional)'], \
+                  ['port', 'The network port number on which to query the target'], \
+                  ['multihomed', 'Enable multi-homing to this target, true or false (optional, defaults to same value as host.other_config:multipathing)'], \
+                  ['usediscoverynumber', 'The specific iscsi record index to use. (optional)'], \
+                  ['allocation', 'Valid values are thick or thin (optional, defaults to thick)']]
 
 DRIVER_INFO = {
     'name': 'LVHD over iSCSI',
@@ -59,10 +68,12 @@ DRIVER_INFO = {
     'configuration': CONFIGURATION
     }
 
+
 class LVHDoISCSISR(LVHDSR.LVHDSR):
     """LVHD over ISCSI storage repository"""
+
     def handles(type):
-        if __name__ == '__main__': 
+        if __name__ == '__main__':
             name = sys.argv[0]
         else:
             name = __name__
@@ -121,22 +132,23 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                             except:
                                 raise xs_errors.XenError('DNSError')
                             iscsilib.ensure_daemon_running_ok(iscsi.localIQN)
-                            map = iscsilib.discovery(tgt_ip,iscsi.port,iscsi.chapuser,iscsi.chappassword,targetIQN=IQN)
-                            util.SMlog("Discovery for IP %s returned %s" % (tgt,map))
-                            for i in range(0,len(map)):
-                                (portal,tpgt,iqn) = map[i]
+                            map = iscsilib.discovery(tgt_ip, iscsi.port, iscsi.chapuser, iscsi.chappassword, targetIQN=IQN)
+                            util.SMlog("Discovery for IP %s returned %s" % (tgt, map))
+                            for i in range(0, len(map)):
+                                (portal, tpgt, iqn) = map[i]
                                 (ipaddr, port) = iscsilib.parse_IP_port(portal)
                                 try:
                                     util._testHost(ipaddr, long(port), 'ISCSITarget')
                                 except:
                                     util.SMlog("Target Not reachable: (%s:%s)" % (ipaddr, port))
                                     continue
-                                key = "%s,%s,%s" % (ipaddr,port,iqn)
+                                key = "%s,%s,%s" % (ipaddr, port, iqn)
                                 dict[key] = ""
                     # Again, do not mess up with IQNs order. Dual controllers will benefit from that
                     if IQNstring == "":
                         # Compose the IQNstring first
-                        for key in dict.iterkeys(): IQNstring += "%s|" % key
+                        for key in dict.iterkeys():
+                            IQNstring += "%s|" % key
                         # Reinitialize and store iterator
                         key_iterator = dict.iterkeys()
                     else:
@@ -144,7 +156,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
 
                     # Now load the individual iSCSI base classes
                     for key in key_iterator:
-                        (ipaddr,port,iqn) = key.split(',')
+                        (ipaddr, port, iqn) = key.split(',')
                         srcmd_copy = copy.deepcopy(self.original_srcmd)
                         srcmd_copy.dconf['target'] = ipaddr
                         srcmd_copy.dconf['targetIQN'] = iqn
@@ -163,7 +175,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 self.iscsi = self.iscsiSRs[0]
             except IndexError as exc:
                 if isinstance(saved_exc, SR.SROSError):
-                    raise saved_exc # pylint: disable-msg=E0702
+                    raise saved_exc  # pylint: disable-msg=E0702
                 elif isinstance(saved_exc, Exception):
                     raise xs_errors.XenError('SMGeneral', str(saved_exc))
                 else:
@@ -187,7 +199,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                     for key in self.iscsi.LUNs:
                         self.LUNs[key] = self.iscsi.LUNs[key]
                 self.print_LUNs_XML()
-                self.iscsi = self.iscsiSRs[0] # back to original value
+                self.iscsi = self.iscsiSRs[0]  # back to original value
                 raise xs_errors.XenError('ConfigSCSIid')
 
             self.SCSIid = self.dconf['SCSIid']
@@ -214,7 +226,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                         except:
                             raise xs_errors.XenError('ISCSILogout')
                     self.iscsi = self.iscsiSRs[iii]
-                    util.SMlog("path %s" %self.iscsi.path)
+                    util.SMlog("path %s" % self.iscsi.path)
                     util.SMlog("iscsci data: targetIQN %s, portal %s" % (self.iscsi.targetIQN, self.iscsi.target))
                     iscsilib.ensure_daemon_running_ok(self.iscsi.localIQN)
                     if not iscsilib._checkTGT(self.iscsi.targetIQN):
@@ -254,7 +266,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                                        " if available" %
                                        (self.iscsi.targetIQN, self.iscsi.target))
                             continue
-                        target_success = True;
+                        target_success = True
                         forced_login = True
                     # A session should be active.
                     if not util.wait_for_path(self.iscsi.path, BaseISCSI.MAX_TIMEOUT):
@@ -262,10 +274,10 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                         continue
                     scsiid_path = "/dev/disk/by-id/scsi-" + self.SCSIid
                     if not util.wait_for_path(scsiid_path, BaseISCSI.MAX_TIMEOUT):
-                        util.SMlog("%s not found" %scsiid_path)
+                        util.SMlog("%s not found" % scsiid_path)
                         continue
                     for file in filter(self.iscsi.match_lun, util.listdir(self.iscsi.path)):
-                        lun_path = os.path.join(self.iscsi.path,file)
+                        lun_path = os.path.join(self.iscsi.path, file)
                         lun_dev = scsiutil.getdev(lun_path)
                         try:
                             lun_scsiid = scsiutil.getSCSIid(lun_dev)
@@ -274,9 +286,9 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                                        " offline or iscsi path down" %
                                         (lun_dev, self.iscsi.path))
                             continue
-                        util.SMlog("dev from lun %s %s" %(lun_dev, lun_scsiid))
+                        util.SMlog("dev from lun %s %s" % (lun_dev, lun_scsiid))
                         if lun_scsiid == self.SCSIid:
-                            util.SMlog("lun match in %s" %self.iscsi.path)
+                            util.SMlog("lun match in %s" % self.iscsi.path)
                             dev_match = True
                             # No more need to raise ISCSITarget exception.
                             # Resetting attempt_discovery
@@ -295,14 +307,14 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                             ipaddr = self.iscsiSRs[kkk].target
                             port = self.iscsiSRs[kkk].port
                             iqn = self.iscsiSRs[kkk].targetIQN
-                            key = "%s,%s,%s" % (ipaddr,port,iqn)
+                            key = "%s,%s,%s" % (ipaddr, port, iqn)
                             # The final string must preserve the order without repetition
                             if key not in IQNs:
                                 IQNs[key] = ""
                                 IQNstring += "%s|" % key
-                        util.SMlog("IQNstring is now %s" %IQNstring)
+                        util.SMlog("IQNstring is now %s" % IQNstring)
                         self.iscsiSRs = new_iscsiSRs
-                        util.SMlog("iqn %s is leading now" %self.iscsiSRs[0].targetIQN)
+                        util.SMlog("iqn %s is leading now" % self.iscsiSRs[0].targetIQN)
                         # Updating pbd entry, if any
                         try:
                             pbd = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
@@ -326,7 +338,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                     except:
                         raise xs_errors.XenError('ISCSILogout')
 
-        self._pathrefresh(LVHDoISCSISR, load = False)
+        self._pathrefresh(LVHDoISCSISR, load=False)
 
         LVHDSR.LVHDSR.load(self, sr_uuid)
 
@@ -360,7 +372,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
         dev = self.dconf['LUNid'].split(',')
         if len(dev) > 1:
             raise xs_errors.XenError('LVMOneLUN')
-        path = os.path.join(self.iscsi.path,"LUN%s" % dev[0])
+        path = os.path.join(self.iscsi.path, "LUN%s" % dev[0])
         if not util.wait_for_path(path, BaseISCSI.MAX_TIMEOUT):
             util.SMlog("Unable to detect LUN attached to host [%s]" % path)
         try:
@@ -375,51 +387,51 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
             # Force a rescan on the bus.
             self.iscsi.refresh()
 #            time.sleep(5)
-        # Now call attach (handles the refcounting + session activa)
+# Now call attach (handles the refcounting + session activa)
         self.iscsi.attach(sr_uuid)
 
         util.SMlog("LUNprint: waiting for path: %s" % self.iscsi.path)
         if util.wait_for_path("%s/LUN*" % self.iscsi.path, BaseISCSI.MAX_TIMEOUT):
             try:
-                adapter=self.iscsi.adapter[self.iscsi.address]
+                adapter = self.iscsi.adapter[self.iscsi.address]
                 util.SMlog("adapter=%s" % adapter)
 
                 # find a scsi device on which to issue a report luns command:
-                devs=glob.glob("%s/LUN*" % self.iscsi.path)
+                devs = glob.glob("%s/LUN*" % self.iscsi.path)
                 sgdevs = []
                 for i in devs:
                     sgdevs.append(int(i.split("LUN")[1]))
                 sgdevs.sort()
-                sgdev = "%s/LUN%d" % (self.iscsi.path,sgdevs[0])                
+                sgdev = "%s/LUN%d" % (self.iscsi.path, sgdevs[0])
 
                 # issue a report luns:
-                luns=util.pread2(["/usr/bin/sg_luns","-q",sgdev]).split('\n')
-                nluns=len(luns)-1 # remove the line relating to the final \n
+                luns = util.pread2(["/usr/bin/sg_luns", "-q", sgdev]).split('\n')
+                nluns = len(luns) - 1  # remove the line relating to the final \n
                 # check if the LUNs are MPP-RDAC Luns
                 scsi_id = scsiutil.getSCSIid(sgdev)
 
                 # make sure we've got that many sg devices present
-                for i in range(0,30): 
-                    luns=scsiutil._dosgscan()
-                    sgdevs=filter(lambda r: r[1]==adapter, luns)
-                    if len(sgdevs)>=nluns:
+                for i in range(0, 30):
+                    luns = scsiutil._dosgscan()
+                    sgdevs = filter(lambda r: r[1] == adapter, luns)
+                    if len(sgdevs) >= nluns:
                         util.SMlog("Got all %d sg devices" % nluns)
                         break
                     else:
-                        util.SMlog("Got %d sg devices - expecting %d" % (len(sgdevs),nluns))
+                        util.SMlog("Got %d sg devices - expecting %d" % (len(sgdevs), nluns))
                         time.sleep(1)
 
                 if os.path.exists("/sbin/udevsettle"):
                     util.pread2(["/sbin/udevsettle"])
                 else:
-                    util.pread2(["/sbin/udevadm","settle"])
+                    util.pread2(["/sbin/udevadm", "settle"])
             except:
                 util.SMlog("Generic exception caught. Pass")
-                pass # Make sure we don't break the probe...
+                pass  # Make sure we don't break the probe...
 
         self.iscsi.print_LUNs()
-        self.iscsi.detach(sr_uuid)        
-        
+        self.iscsi.detach(sr_uuid)
+
     def create(self, sr_uuid, size):
         # Check SCSIid not already in use by other PBDs
         if util.test_SCSIid(self.session, sr_uuid, self.SCSIid):
@@ -432,7 +444,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 upgraded = False
                 matchSCSIid = False
                 for file in filter(self.iscsi.match_lun, util.listdir(self.iscsi.path)):
-                    path = os.path.join(self.iscsi.path,file)
+                    path = os.path.join(self.iscsi.path, file)
                     if not util.wait_for_path(path, BaseISCSI.MAX_TIMEOUT):
                         util.SMlog("Unable to detect LUN attached to host [%s]" % path)
                         continue
@@ -452,7 +464,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                             device_config['SCSIid'] = SCSIid
                             self.session.xenapi.PBD.set_device_config(pbd, device_config)
 
-                            self.dconf['SCSIid'] = SCSIid            
+                            self.dconf['SCSIid'] = SCSIid
                             self.SCSIid = self.dconf['SCSIid']
                         except:
                             continue
@@ -487,7 +499,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 except SR.SROSError as inst:
                     # Some iscsi objects can fail login but not all. Storing exception
                     if inst.errno == 141:
-                        util.SMlog("Connection failed for target %s, continuing.." %i.target)
+                        util.SMlog("Connection failed for target %s, continuing.." % i.target)
                         stored_exception = inst
                         continue
                     else:
@@ -514,7 +526,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 i.detach(sr_uuid)
             raise xs_errors.XenError("SRUnavailable", opterr=inst)
         self._setMultipathableFlag(SCSIid=self.SCSIid)
-        
+
     def detach(self, sr_uuid):
         LVHDSR.LVHDSR.detach(self, sr_uuid)
         for i in self.iscsiSRs:
@@ -526,15 +538,15 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 try:
                     i.attach(sr_uuid)
                 except SR.SROSError:
-                    util.SMlog("Connection failed for target %s, continuing.." %i.target)
+                    util.SMlog("Connection failed for target %s, continuing.." % i.target)
         LVHDSR.LVHDSR.scan(self, sr_uuid)
 
     def probe(self):
         self.uuid = util.gen_uuid()
 
-# When multipathing is enabled, since we don't refcount the multipath maps,
-# we should not attempt to do the iscsi.attach/detach when the map is already present,
-# as this will remove it (which may well be in use).
+        # When multipathing is enabled, since we don't refcount the multipath maps,
+        # we should not attempt to do the iscsi.attach/detach when the map is already present,
+        # as this will remove it (which may well be in use).
         if self.mpath == 'true' and 'SCSIid' in self.dconf:
             maps = []
             try:
@@ -556,12 +568,13 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
 
     def vdi(self, uuid):
         return LVHDoISCSIVDI(self, uuid)
-    
+
+
 class LVHDoISCSIVDI(LVHDSR.LVHDVDI):
     def generate_config(self, sr_uuid, vdi_uuid):
         util.SMlog("LVHDoISCSIVDI.generate_config")
         if not lvutil._checkLV(self.path):
-                raise xs_errors.XenError('VDIUnavailable')
+            raise xs_errors.XenError('VDIUnavailable')
         dict = {}
         self.sr.dconf['localIQN'] = self.sr.iscsi.localIQN
         self.sr.dconf['multipathing'] = self.sr.mpath
@@ -577,7 +590,7 @@ class LVHDoISCSIVDI(LVHDSR.LVHDVDI):
         # Return the 'config' encoded within a normal XMLRPC response so that
         # we can use the regular response/error parsing code.
         config = xmlrpclib.dumps(tuple([dict]), "vdi_attach_from_config")
-        return xmlrpclib.dumps((config,), "", True)
+        return xmlrpclib.dumps((config, ), "", True)
 
     def attach_from_config(self, sr_uuid, vdi_uuid):
         util.SMlog("LVHDoISCSIVDI.attach_from_config")

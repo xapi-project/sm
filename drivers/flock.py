@@ -1,13 +1,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -23,8 +23,11 @@ testing and trying of locks isn't well supported. Looks as if we've
 got to grow our own.
 """
 
-import os, fcntl, struct
+import os
+import fcntl
+import struct
 import errno
+
 
 class Flock:
     """A C flock struct."""
@@ -36,22 +39,22 @@ class Flock:
     FORMAT = "hhqql"
     # struct flock(2) format, tested with python2.4/i686 and
     # python2.5/x86_64. http://docs.python.org/lib/posix-large-files.html
-        
+
     def fcntl(self, fd, cmd):
         """Issues a system fcntl(fd, cmd, self). Updates self with what was
         returned by the kernel. Otherwise raises IOError(errno)."""
 
-        st = struct.pack(self.FORMAT, *self.fields)
+        st = struct.pack(self.FORMAT, * self.fields)
         st = fcntl.fcntl(fd, cmd, st)
 
         fields = struct.unpack(self.FORMAT, st)
-        self.__init__(*fields)
+        self.__init__( * fields)
 
-    FIELDS = { 'l_type':       0,
-               'l_whence':     1,
-               'l_start':      2,
-               'l_len':        3,
-               'l_pid':        4 }
+    FIELDS = {'l_type': 0,
+               'l_whence': 1,
+               'l_start': 2,
+               'l_len': 3,
+               'l_pid': 4}
 
     def __getattr__(self, name):
         idx = self.FIELDS[name]
@@ -64,13 +67,14 @@ class Flock:
         else:
             self.fields[idx] = value
 
+
 class FcntlLockBase:
     """Abstract base class for either reader or writer locks. A respective
     definition of LOCK_TYPE (fcntl.{F_RDLCK|F_WRLCK}) determines the
     type."""
 
     LOCK_TYPE = None
-    
+
     if __debug__:
         ERROR_ISLOCKED = "Attempt to acquire lock held."
         ERROR_NOTLOCKED = "Attempt to unlock lock not held."
@@ -94,7 +98,8 @@ class FcntlLockBase:
     def trylock(self):
         """Non-blocking lock aquisition. Returns True on success, False
         otherwise."""
-        if self._held: return False
+        if self._held:
+            return False
         try:
             Flock(self.LOCK_TYPE).fcntl(self.fd, fcntl.F_SETLK)
         except IOError as e:
@@ -116,7 +121,8 @@ class FcntlLockBase:
     def test(self):
         """Returns the PID of the process holding the lock or -1 if the lock
         is not held."""
-        if self._held: return os.getpid()
+        if self._held:
+            return os.getpid()
         flock = Flock(self.LOCK_TYPE)
         flock.fcntl(self.fd, fcntl.F_GETLK)
         if flock.l_type == fcntl.F_UNLCK:
@@ -128,8 +134,7 @@ class WriteLock(FcntlLockBase):
     """A simple global writer (i.e. exclusive) lock."""
     LOCK_TYPE = fcntl.F_WRLCK
 
+
 class ReadLock(FcntlLockBase):
     """A simple global reader (i.e. shared) lock."""
     LOCK_TYPE = fcntl.F_RDLCK
-
-

@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -17,7 +17,6 @@
 #
 # blktap2: blktap/tapdisk management layer
 #
-
 
 from __future__ import print_function
 import os
@@ -39,7 +38,7 @@ import xs_errors
 import XenAPI
 import scsiutil
 from syslog import openlog, syslog
-from stat import * # S_ISBLK(), ...
+from stat import *  # S_ISBLK(), ...
 import nfs
 
 import resetvdis
@@ -63,19 +62,22 @@ POOL_NAME_KEY = "mem-pool"
 POOL_SIZE_KEY = "mem-pool-size-rings"
 
 ENABLE_MULTIPLE_ATTACH = "/etc/xensource/allow_multiple_vdi_attach"
-NO_MULTIPLE_ATTACH = not (os.path.exists(ENABLE_MULTIPLE_ATTACH)) 
+NO_MULTIPLE_ATTACH = not (os.path.exists(ENABLE_MULTIPLE_ATTACH))
+
 
 class UnixStreamHTTPConnection(HTTPConnection):
     def connect(self):
         self.sock = socket(AF_UNIX, SOCK_STREAM)
         self.sock.connect(SOCKPATH)
 
+
 class UnixStreamHTTP(HTTP):
     _connection_class = UnixStreamHTTPConnection
 
+
 class UnixStreamTransport(Transport):
     def make_connection(self, host):
-        return UnixStreamHTTP(SOCKPATH) # overridden, but prevents IndexError
+        return UnixStreamHTTP(SOCKPATH)  # overridden, but prevents IndexError
 
 
 def locking(excType, override=True):
@@ -84,7 +86,7 @@ def locking(excType, override=True):
             self.lock.acquire()
             try:
                 try:
-                    ret = op(self, *args)
+                    ret = op(self, * args)
                 except (util.CommandException, util.SMException, XenAPI.Failure) as e:
                     util.logException("BLKTAP2:%s" % op)
                     msg = str(e)
@@ -104,11 +106,12 @@ def locking(excType, override=True):
         return wrapper
     return locking2
 
+
 class RetryLoop(object):
 
     def __init__(self, backoff, limit):
         self.backoff = backoff
-        self.limit   = limit
+        self.limit = limit
 
     def __call__(self, f):
 
@@ -119,12 +122,13 @@ class RetryLoop(object):
                 attempt += 1
 
                 try:
-                    return f(*__t, **__d)
+                    return f( * __t, ** __d)
 
                 except self.TransientFailure as e:
                     e = e.exception
 
-                    if attempt >= self.limit: raise e
+                    if attempt >= self.limit:
+                        raise e
 
                     time.sleep(self.backoff)
 
@@ -134,7 +138,10 @@ class RetryLoop(object):
         def __init__(self, exception):
             self.exception = exception
 
-def retried(**args): return RetryLoop(**args)
+
+def retried(**args):
+    return RetryLoop( ** args)
+
 
 class TapCtl(object):
     """Tapdisk IPC utility calls."""
@@ -142,27 +149,28 @@ class TapCtl(object):
     PATH = "/usr/sbin/tap-ctl"
 
     def __init__(self, cmd, p):
-        self.cmd    = cmd
-        self._p     = p
+        self.cmd = cmd
+        self._p = p
         self.stdout = p.stdout
 
     class CommandFailure(Exception):
         """TapCtl cmd failure."""
 
         def __init__(self, cmd, **info):
-            self.cmd  = cmd
+            self.cmd = cmd
             self.info = info
 
         def __str__(self):
             items = self.info.iteritems()
-            info  = ", ".join("%s=%s" % item
+            info = ", ".join("%s=%s" % item
                               for item in items)
             return "%s failed: %s" % (self.cmd, info)
 
         # Trying to get a non-existent attribute throws an AttributeError
         # exception
         def __getattr__(self, key):
-            if key in self.info: return self.info[key]
+            if key in self.info:
+                return self.info[key]
             return object.__getattribute__(self, key)
 
         @property
@@ -179,25 +187,25 @@ class TapCtl(object):
             key = 'status'
             if key in self.info:
                 return self.info[key]
-            else:                
+            else:
                 return 0
 
     @classmethod
     def __mkcmd_real(cls, args):
-        return [ cls.PATH ] + map(str, args)
+        return [cls.PATH] + map(str, args)
 
     __next_mkcmd = __mkcmd_real
 
     @classmethod
     def _mkcmd(cls, args):
 
-        __next_mkcmd     = cls.__next_mkcmd
+        __next_mkcmd = cls.__next_mkcmd
         cls.__next_mkcmd = cls.__mkcmd_real
 
         return __next_mkcmd(args)
 
     @classmethod
-    def _call(cls, args, quiet = False, input = None):
+    def _call(cls, args, quiet=False, input=None):
         """
         Spawn a tap-ctl process. Return a TapCtl invocation.
         Raises a TapCtl.CommandFailure if subprocess creation failed.
@@ -224,7 +232,7 @@ class TapCtl(object):
         output = map(str.rstrip, self._p.stderr)
         return "; ".join(output)
 
-    def _wait(self, quiet = False):
+    def _wait(self, quiet=False):
         """
         Reap the child tap-ctl process of this invocation.
         Raises a TapCtl.CommandFailure on non-zero exit status.
@@ -233,20 +241,21 @@ class TapCtl(object):
         if not quiet:
             util.SMlog(" = %d" % status)
 
-        if status == 0: return
+        if status == 0:
+            return
 
-        info = { 'errmsg'   : self._errmsg(),
-                 'pid'      : self._p.pid }
+        info = {'errmsg': self._errmsg(),
+                 'pid': self._p.pid}
 
         if status < 0:
             info['signal'] = -status
         else:
             info['status'] = status
 
-        raise self.CommandFailure(self.cmd, **info)
+        raise self.CommandFailure(self.cmd, ** info)
 
     @classmethod
-    def _pread(cls, args, quiet = False, input = None):
+    def _pread(cls, args, quiet=False, input=None):
         """
         Spawn a tap-ctl invocation and read a single line.
         """
@@ -259,12 +268,13 @@ class TapCtl(object):
 
     @staticmethod
     def _maybe(opt, parm):
-        if parm is not None: return [ opt, parm ]
+        if parm is not None:
+            return [opt, parm]
         return []
 
     @classmethod
-    def __list(cls, minor = None, pid = None, _type = None, path = None):
-        args = [ "list" ]
+    def __list(cls, minor=None, pid=None, _type=None, path=None):
+        args = ["list"]
         args += cls._maybe("-m", minor)
         args += cls._maybe("-p", pid)
         args += cls._maybe("-t", _type)
@@ -309,29 +319,29 @@ class TapCtl(object):
         # be fixed in SM.
 
         try:
-            return list(cls.__list(**args))
+            return list(cls.__list( ** args))
 
         except cls.CommandFailure as e:
-            transient = [ errno.EPROTO, errno.ENOENT ]
+            transient = [errno.EPROTO, errno.ENOENT]
             if e.has_status and e.status in transient:
                 raise RetryLoop.TransientFailure(e)
             raise
 
     @classmethod
-    def allocate(cls, devpath = None):
-        args = [ "allocate" ]
+    def allocate(cls, devpath=None):
+        args = ["allocate"]
         args += cls._maybe("-d", devpath)
         return cls._pread(args)
 
     @classmethod
     def free(cls, minor):
-        args = [ "free", "-m", minor ]
+        args = ["free", "-m", minor]
         cls._pread(args)
 
     @classmethod
     @retried(backoff=.5, limit=10)
     def spawn(cls):
-        args = [ "spawn" ]
+        args = ["spawn"]
         try:
             pid = cls._pread(args)
             return int(pid)
@@ -343,12 +353,12 @@ class TapCtl(object):
 
     @classmethod
     def attach(cls, pid, minor):
-        args = [ "attach", "-p", pid, "-m", minor ]
+        args = ["attach", "-p", pid, "-m", minor]
         cls._pread(args)
 
     @classmethod
     def detach(cls, pid, minor):
-        args = [ "detach", "-p", pid, "-m", minor ]
+        args = ["detach", "-p", pid, "-m", minor]
         cls._pread(args)
 
     @classmethod
@@ -360,7 +370,7 @@ class TapCtl(object):
     @classmethod
     def open(cls, pid, minor, _type, _file, options):
         params = Tapdisk.Arg(_type, _file)
-        args = [ "open", "-p", pid, "-m", minor, '-a', str(params) ]
+        args = ["open", "-p", pid, "-m", minor, '-a', str(params)]
         input = None
         if options.get("rdonly"):
             args.append('-R')
@@ -393,25 +403,26 @@ class TapCtl(object):
         cls._pread(args=args, input=input)
 
     @classmethod
-    def close(cls, pid, minor, force = False):
-        args = [ "close", "-p", pid, "-m", minor, "-t", "30" ]
-        if force: args += [ "-f" ]
+    def close(cls, pid, minor, force=False):
+        args = ["close", "-p", pid, "-m", minor, "-t", "30"]
+        if force:
+            args += ["-f"]
         cls._pread(args)
 
     @classmethod
     def pause(cls, pid, minor):
-        args = [ "pause", "-p", pid, "-m", minor ]
+        args = ["pause", "-p", pid, "-m", minor]
         cls._pread(args)
 
     @classmethod
-    def unpause(cls, pid, minor, _type = None, _file = None, mirror = None, 
-                cbtlog = None):
-        args = [ "unpause", "-p", pid, "-m", minor ]
+    def unpause(cls, pid, minor, _type=None, _file=None, mirror=None,
+                cbtlog=None):
+        args = ["unpause", "-p", pid, "-m", minor]
         if mirror:
             args.extend(["-2", mirror])
         if _type and _file:
             params = Tapdisk.Arg(_type, _file)
-            args  += [ "-a", str(params) ]
+            args += ["-a", str(params)]
         if cbtlog:
             args.extend(["-c", cbtlog])
         cls._pread(args)
@@ -424,14 +435,15 @@ class TapCtl(object):
 
     @classmethod
     def stats(cls, pid, minor):
-        args = [ "stats", "-p", pid, "-m", minor ]
-        return cls._pread(args, quiet = True)
+        args = ["stats", "-p", pid, "-m", minor]
+        return cls._pread(args, quiet=True)
 
     @classmethod
     def major(cls):
-        args = [ "major" ]
+        args = ["major"]
         major = cls._pread(args)
         return int(major)
+
 
 class TapdiskExists(Exception):
     """Tapdisk already running."""
@@ -441,6 +453,7 @@ class TapdiskExists(Exception):
 
     def __str__(self):
         return "%s already running" % self.tapdisk
+
 
 class TapdiskNotRunning(Exception):
     """No such Tapdisk."""
@@ -454,6 +467,7 @@ class TapdiskNotRunning(Exception):
                           for attr in items)
         return "No such Tapdisk(%s)" % attrs
 
+
 class TapdiskNotUnique(Exception):
     """More than one tapdisk on one path."""
 
@@ -464,18 +478,20 @@ class TapdiskNotUnique(Exception):
         tapdisks = map(str, self.tapdisks)
         return "Found multiple tapdisks: %s" % tapdisks
 
+
 class TapdiskFailed(Exception):
     """Tapdisk launch failure."""
 
     def __init__(self, arg, err):
-        self.arg   = arg
-        self.err   = err
+        self.arg = arg
+        self.err = err
 
     def __str__(self):
         return "Tapdisk(%s): %s" % (self.arg, self.err)
 
     def get_error(self):
         return self.err
+
 
 class TapdiskInvalidState(Exception):
     """Tapdisk pause/unpause failure"""
@@ -485,6 +501,7 @@ class TapdiskInvalidState(Exception):
 
     def __str__(self):
         return str(self.tapdisk)
+
 
 def mkdirs(path, mode=0o777):
     if not os.path.exists(path):
@@ -506,6 +523,7 @@ class KObject(object):
 
     def sysfs_devname(self):
         raise NotImplementedError("sysfs_devname is undefined")
+
 
 class Attribute(object):
 
@@ -545,6 +563,7 @@ class Attribute(object):
         f.write(val)
         f.close()
 
+
 class ClassDevice(KObject):
 
     @classmethod
@@ -554,6 +573,7 @@ class ClassDevice(KObject):
     def sysfs_path(self):
         return "%s/%s" % (self.sysfs_class_path(),
                           self.sysfs_devname())
+
 
 class Blktap(ClassDevice):
 
@@ -572,7 +592,7 @@ class Blktap(ClassDevice):
         mkdirs(cls.DEV_BASEDIR)
 
         devname = TapCtl.allocate()
-        minor   = Tapdisk._parse_minor(devname)
+        minor = Tapdisk._parse_minor(devname)
         return cls(minor)
 
     def free(self):
@@ -624,7 +644,8 @@ class Blktap(ClassDevice):
 
     def find_tapdisk(self):
         pid = self.get_task_pid()
-        if pid is None: return None
+        if pid is None:
+            return None
 
         return Tapdisk.find(pid=pid, minor=self.minor)
 
@@ -634,17 +655,18 @@ class Blktap(ClassDevice):
             raise TapdiskNotRunning(minor=self.minor)
         return tapdisk
 
+
 class Tapdisk(object):
 
-    TYPES = [ 'aio', 'vhd' ]
+    TYPES = ['aio', 'vhd']
 
     def __init__(self, pid, minor, _type, path, state):
-        self.pid     = pid
-        self.minor   = minor
-        self.type    = _type
-        self.path    = path
-        self.state   = state
-        self._dirty  = False
+        self.pid = pid
+        self.minor = minor
+        self.type = _type
+        self.path = path
+        self.state = state
+        self._dirty = False
         self._blktap = None
 
     def __str__(self):
@@ -655,13 +677,13 @@ class Tapdisk(object):
     @classmethod
     def list(cls, **args):
 
-        for row in TapCtl.list(**args):
+        for row in TapCtl.list( ** args):
 
-            args =  { 'pid'     : None,
-                      'minor'   : None,
-                      'state'   : None,
-                      '_type'   : None,
-                      'path'    : None }
+            args = {'pid': None,
+                      'minor': None,
+                      'state': None,
+                      '_type': None,
+                      'path': None}
 
             for key, val in row.iteritems():
                 if key in args:
@@ -670,17 +692,17 @@ class Tapdisk(object):
             if 'args' in row:
                 image = Tapdisk.Arg.parse(row['args'])
                 args['_type'] = image.type
-                args['path']  = image.path
+                args['path'] = image.path
 
             if None in args.values():
                 continue
 
-            yield Tapdisk(**args)
+            yield Tapdisk( ** args)
 
     @classmethod
     def find(cls, **args):
 
-        found = list(cls.list(**args))
+        found = list(cls.list( ** args))
 
         if len(found) > 1:
             raise TapdiskNotUnique(found)
@@ -701,10 +723,10 @@ class Tapdisk(object):
     @classmethod
     def get(cls, **attrs):
 
-        tapdisk = cls.find(**attrs)
+        tapdisk = cls.find( ** attrs)
 
         if not tapdisk:
-            raise TapdiskNotRunning(**attrs)
+            raise TapdiskNotRunning( ** attrs)
 
         return tapdisk
 
@@ -731,7 +753,7 @@ class Tapdisk(object):
 
         def __init__(self, _type, path):
             self.type = _type
-            self.path =  path
+            self.path = path
 
         def __str__(self):
             return "%s:%s" % (self.type, self.path)
@@ -828,7 +850,7 @@ class Tapdisk(object):
             util.logException(ctl)
             if ('/dev/xapi/cd/' in path and
                     'status' in ctl.info and
-                    ctl.info['status'] == 123): # ENOMEDIUM (No medium found)
+                    ctl.info['status'] == 123):  # ENOMEDIUM (No medium found)
                 raise xs_errors.XenError('TapdiskDriveEmpty')
             else:
                 raise TapdiskFailed(cls.Arg(_type, path), ctl)
@@ -842,7 +864,7 @@ class Tapdisk(object):
             blktap.free()
             raise
 
-    def shutdown(self, force = False):
+    def shutdown(self, force=False):
 
         TapCtl.close(self.pid, self.minor, force)
 
@@ -859,23 +881,24 @@ class Tapdisk(object):
 
         self._set_dirty()
 
-    def unpause(self, _type=None, path=None, mirror=None, cbtlog = None):
+    def unpause(self, _type=None, path=None, mirror=None, cbtlog=None):
 
         if not self.is_paused():
             raise TapdiskInvalidState(self)
 
         # FIXME: should the arguments be optional?
-        if _type is None: _type = self.type
-        if  path is None:  path = self.path
+        if _type is None:
+            _type = self.type
+        if  path is None:
+            path = self.path
 
-        TapCtl.unpause(self.pid, self.minor, _type, path, mirror=mirror, 
+        TapCtl.unpause(self.pid, self.minor, _type, path, mirror=mirror,
                        cbtlog=cbtlog)
 
         self._set_dirty()
 
     def stats(self):
         return json.loads(TapCtl.stats(self.pid, self.minor))
-
     #
     # NB. dirty/refresh: reload attributes on next access
     #
@@ -900,23 +923,23 @@ class Tapdisk(object):
         return __get(name)
 
     class PauseState:
-        RUNNING             = 'R'
-        PAUSING             = 'r'
-        PAUSED              = 'P'
+        RUNNING = 'R'
+        PAUSING = 'r'
+        PAUSED = 'P'
 
     class Flags:
-        DEAD                 = 0x0001
-        CLOSED               = 0x0002
-        QUIESCE_REQUESTED    = 0x0004
-        QUIESCED             = 0x0008
-        PAUSE_REQUESTED      = 0x0010
-        PAUSED               = 0x0020
-        SHUTDOWN_REQUESTED   = 0x0040
-        LOCKING              = 0x0080
-        RETRY_NEEDED         = 0x0100
-        LOG_DROPPED          = 0x0200
+        DEAD = 0x0001
+        CLOSED = 0x0002
+        QUIESCE_REQUESTED = 0x0004
+        QUIESCED = 0x0008
+        PAUSE_REQUESTED = 0x0010
+        PAUSED = 0x0020
+        SHUTDOWN_REQUESTED = 0x0040
+        LOCKING = 0x0080
+        RETRY_NEEDED = 0x0100
+        LOG_DROPPED = 0x0200
 
-        PAUSE_MASK           = PAUSE_REQUESTED|PAUSED
+        PAUSE_MASK = PAUSE_REQUESTED | PAUSED
 
     def is_paused(self):
         return not not (self.state & self.Flags.PAUSED)
@@ -936,9 +959,9 @@ class Tapdisk(object):
     @staticmethod
     def _parse_minor(devpath):
 
-        regex   = '%s/(blktap|tapdev)(\d+)$' % Blktap.DEV_BASEDIR
+        regex = '%s/(blktap|tapdev)(\d+)$' % Blktap.DEV_BASEDIR
         pattern = re.compile(regex)
-        groups  = pattern.search(devpath)
+        groups = pattern.search(devpath)
         if not groups:
             raise Exception("malformed tap device: '%s' (%s) " % (devpath, regex))
 
@@ -949,22 +972,26 @@ class Tapdisk(object):
 
     @classmethod
     def major(cls):
-        if cls._major: return cls._major
+        if cls._major:
+            return cls._major
 
         devices = file("/proc/devices")
         for line in devices:
 
             row = line.rstrip().split(' ')
-            if len(row) != 2: continue
+            if len(row) != 2:
+                continue
 
             major, name = row
-            if name != 'tapdev': continue
+            if name != 'tapdev':
+                continue
 
             cls._major = int(major)
             break
 
         devices.close()
         return cls._major
+
 
 class VDI(object):
     """SR.vdi driver decorator for blktap2"""
@@ -977,22 +1004,22 @@ class VDI(object):
 
     ATTACH_DETACH_RETRY_SECS = 120
 
-    # number of seconds on top of NFS timeo mount option the tapdisk should 
-    # wait before reporting errors. This is to allow a retry to succeed in case 
-    # packets were lost the first time around, which prevented the NFS client 
-    # from returning before the timeo is reached even if the NFS server did 
+    # number of seconds on top of NFS timeo mount option the tapdisk should
+    # wait before reporting errors. This is to allow a retry to succeed in case
+    # packets were lost the first time around, which prevented the NFS client
+    # from returning before the timeo is reached even if the NFS server did
     # come back earlier
     TAPDISK_TIMEOUT_MARGIN = 30
 
     def __init__(self, uuid, target, driver_info):
-        self.target      = self.TargetDriver(target, driver_info)
-        self._vdi_uuid   = uuid
-        self._session    = target.session
-        self.xenstore_data = scsiutil.update_XS_SCSIdata(uuid,scsiutil.gen_synthetic_page_data(uuid))
-        self.__o_direct  = None
+        self.target = self.TargetDriver(target, driver_info)
+        self._vdi_uuid = uuid
+        self._session = target.session
+        self.xenstore_data = scsiutil.update_XS_SCSIdata(uuid, scsiutil.gen_synthetic_page_data(uuid))
+        self.__o_direct = None
         self.__o_direct_reason = None
-        self.lock        = Lock("vdi", uuid)
-        self.tap         = None
+        self.lock = Lock("vdi", uuid)
+        self.tap = None
 
     def get_o_direct_capability(self, options):
         """Returns True/False based on licensing and caching_params"""
@@ -1041,13 +1068,13 @@ class VDI(object):
     def _tap_type(vdi_type):
         """Map a VDI type (e.g. 'raw') to a tapdisk driver type (e.g. 'aio')"""
         return {
-            'raw'  : 'aio',
-            'vhd'  : 'vhd',
-            'iso'  : 'aio', # for ISO SR
-            'aio'  : 'aio', # for LVHD
-            'file' : 'aio',
-            'phy'  : 'aio'
-            } [vdi_type]
+            'raw': 'aio',
+            'vhd': 'vhd',
+            'iso': 'aio',  # for ISO SR
+            'aio': 'aio',  # for LVHD
+            'file': 'aio',
+            'phy': 'aio'
+            }[vdi_type]
 
     def get_tap_type(self):
         vdi_type = self.target.get_vdi_type()
@@ -1060,22 +1087,21 @@ class VDI(object):
 
         def __init__(self, vdi_type, target):
             self.vdi_type = vdi_type
-            self.target   = target
+            self.target = target
 
         def __str__(self):
             return \
                 "Target %s has unexpected VDI type '%s'" % \
                 (type(self.target), self.vdi_type)
 
-    VDI_PLUG_TYPE = { 'phy'  : 'phy',  # for NETAPP
-                      'raw'  : 'phy',
-                      'aio'  : 'tap',  # for LVHD raw nodes
-                      'iso'  : 'tap', # for ISOSR
-                      'file' : 'tap',
-                      'vhd'  : 'tap' }
+    VDI_PLUG_TYPE = {'phy': 'phy',  # for NETAPP
+                      'raw': 'phy',
+                      'aio': 'tap',  # for LVHD raw nodes
+                      'iso': 'tap',  # for ISOSR
+                      'file': 'tap',
+                      'vhd': 'tap'}
 
     def tap_wanted(self):
-
         # 1. Let the target vdi_type decide
 
         vdi_type = self.target.get_vdi_type()
@@ -1090,7 +1116,6 @@ class VDI(object):
             return True
         elif self.target.vdi.sr.handles('udev'):
             return True
-
         # 2. Otherwise, there may be more reasons
         #
         # .. TBD
@@ -1099,14 +1124,13 @@ class VDI(object):
 
     class TargetDriver:
         """Safe target driver access."""
-
         # NB. *Must* test caps for optional calls. Some targets
         # actually implement some slots, but do not enable them. Just
         # try/except would risk breaking compatibility.
 
         def __init__(self, vdi, driver_info):
-            self.vdi    = vdi
-            self._caps  = driver_info['capabilities']
+            self.vdi = vdi
+            self._caps = driver_info['capabilities']
 
         def has_cap(self, cap):
             """Determine if target has given capability"""
@@ -1127,7 +1151,6 @@ class VDI(object):
         def deactivate(self, sr_uuid, vdi_uuid):
             if self.has_cap("VDI_DEACTIVATE"):
                 self.vdi.deactivate(sr_uuid, vdi_uuid)
-
         #def resize(self, sr_uuid, vdi_uuid, size):
         #    return self.vdi.resize(sr_uuid, vdi_uuid, size)
 
@@ -1144,7 +1167,6 @@ class VDI(object):
 
     class Link(object):
         """Relink a node under a common name"""
-
         # NB. We have to provide the device node path during
         # VDI.attach, but currently do not allocate the tapdisk minor
         # before VDI.activate. Therefore those link steps where we
@@ -1189,14 +1211,16 @@ class VDI(object):
                 # We do unlink during teardown, but have to stay
                 # idempotent. However, a *wrong* target should never
                 # be seen.
-                if e.errno != errno.EEXIST: raise
+                if e.errno != errno.EEXIST:
+                    raise
                 assert self._equals(target), "'%s' not equal to '%s'" % (path, target)
 
         def unlink(self):
             try:
                 os.unlink(self.path())
             except OSError as e:
-                if e.errno != errno.ENOENT: raise
+                if e.errno != errno.ENOENT:
+                    raise
 
         def __str__(self):
             path = self.path()
@@ -1252,7 +1276,7 @@ class VDI(object):
 
             def __init__(self, path, st):
                 self.path = path
-                self.st   = st
+                self.st = st
 
             def __str__(self):
                 return "%s is not a block device: %s" % (self.path, self.st)
@@ -1266,7 +1290,8 @@ class VDI(object):
 
         def rdev(self):
             st = self.stat()
-            if S_ISBLK(st.st_mode): return self._devnode.rdev()
+            if S_ISBLK(st.st_mode):
+                return self._devnode.rdev()
             raise self._devnode.NotABlockDevice(self.path(), st)
 
         def mklink(self, target):
@@ -1279,15 +1304,16 @@ class VDI(object):
         def _equals(self, target):
             return self._obj._equals(target)
 
-    class PhyLink(SymLink): BASEDIR = "/dev/sm/phy"
+    class PhyLink(SymLink):
+        BASEDIR = "/dev/sm/phy"
     # NB. Cannot use DeviceNodes, e.g. FileVDIs aren't bdevs.
 
     class NBDLink(SymLink):
 
         BASEDIR = "/run/blktap-control/nbd"
 
-    class BackendLink(Hybrid): BASEDIR = "/dev/sm/backend"
-
+    class BackendLink(Hybrid):
+        BASEDIR = "/dev/sm/backend"
     # NB. Could be SymLinks as well, but saving major,minor pairs in
     # Links enables neat state capturing when managing Tapdisks.  Note
     # that we essentially have a tap-ctl list replacement here. For
@@ -1295,7 +1321,7 @@ class VDI(object):
     # soon as ISOs are tapdisks.
 
     @staticmethod
-    def _tap_activate(phy_path, vdi_type, sr_uuid, options, pool_size = None):
+    def _tap_activate(phy_path, vdi_type, sr_uuid, options, pool_size=None):
 
         tapdisk = Tapdisk.find_by_path(phy_path)
         if not tapdisk:
@@ -1360,8 +1386,8 @@ class VDI(object):
         return True
 
     @classmethod
-    def tap_unpause(cls, session, sr_uuid, vdi_uuid, secondary = None,
-                    activate_parents = False):
+    def tap_unpause(cls, session, sr_uuid, vdi_uuid, secondary=None,
+                    activate_parents=False):
         util.SMlog("Unpause request for %s secondary=%s" % (vdi_uuid, secondary))
         vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
         sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
@@ -1376,7 +1402,7 @@ class VDI(object):
         return True
 
     @classmethod
-    def tap_refresh(cls, session, sr_uuid, vdi_uuid, activate_parents = False):
+    def tap_refresh(cls, session, sr_uuid, vdi_uuid, activate_parents=False):
         util.SMlog("Refresh request for %s" % vdi_uuid)
         vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
         sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
@@ -1384,7 +1410,7 @@ class VDI(object):
             host_ref = key[len('host_'):]
             util.SMlog("Calling tap-refresh on host %s" % host_ref)
             if not cls.call_pluginhandler(session, host_ref,
-                       sr_uuid, vdi_uuid, "refresh", None, 
+                       sr_uuid, vdi_uuid, "refresh", None,
                        activate_parents=activate_parents):
                 # Failed to refresh node
                 return False
@@ -1397,15 +1423,15 @@ class VDI(object):
         vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
         sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
         for key in filter(lambda x: x.startswith('host_'), sm_config.keys()):
-                return True
+            return True
         return False
 
     @classmethod
     def call_pluginhandler(cls, session, host_ref, sr_uuid, vdi_uuid, action,
-            secondary = None, activate_parents = False, failfast=False):
+            secondary=None, activate_parents=False, failfast=False):
         """Optionally, activate the parent LV before unpausing"""
         try:
-            args = {"sr_uuid":sr_uuid, "vdi_uuid":vdi_uuid,
+            args = {"sr_uuid": sr_uuid, "vdi_uuid": vdi_uuid,
                     "failfast": str(failfast)}
             if secondary:
                 args["secondary"] = secondary
@@ -1418,7 +1444,6 @@ class VDI(object):
         except Exception as e:
             util.logException("BLKTAP2:call_pluginhandler %s" % e)
             return False
-
 
     def _add_tag(self, vdi_uuid, writable):
         util.SMlog("Adding tag to: %s" % vdi_uuid)
@@ -1482,7 +1507,7 @@ class VDI(object):
         pool_info = dict()
         vdi_ref = self.target.vdi.sr.srcmd.params.get('vdi_ref')
         if not vdi_ref:
-            # attach_from_config context: HA disks don't need to be in any 
+            # attach_from_config context: HA disks don't need to be in any
             # special pool
             return pool_info
 
@@ -1519,7 +1544,7 @@ class VDI(object):
                                                          int(self.tap.minor))
             VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid).mklink(nbd_path)
 
-    def attach(self, sr_uuid, vdi_uuid, writable, activate = False, caching_params = {}):
+    def attach(self, sr_uuid, vdi_uuid, writable, activate=False, caching_params={}):
         """Return/dev/sm/backend symlink path"""
         self.xenstore_data.update(self._get_pool_config(sr_uuid))
         if not self.target.has_cap("ATOMIC_PAUSE") or activate:
@@ -1534,7 +1559,7 @@ class VDI(object):
         back_path = self.BackendLink.from_uuid(sr_uuid, vdi_uuid).path()
         if self.tap_wanted():
             # Only have NBD if we also have a tap
-            nbd_path =\
+            nbd_path = \
                        "nbd:unix:" + VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid).path()
         else:
             nbd_path = ""
@@ -1549,14 +1574,14 @@ class VDI(object):
                   'xenstore_data': self.xenstore_data}
         util.SMlog('result: %s' % struct)
 
-	try:
-            f=open("%s.attach_info" % back_path, 'a')
-            f.write(xmlrpclib.dumps((struct,), "", True))
+        try:
+            f = open("%s.attach_info" % back_path, 'a')
+            f.write(xmlrpclib.dumps((struct, ), "", True))
             f.close()
-	except:
-	    pass
+        except:
+            pass
 
-        return xmlrpclib.dumps((struct,), "", True)
+        return xmlrpclib.dumps((struct, ), "", True)
 
     def activate(self, sr_uuid, vdi_uuid, writable, caching_params):
         util.SMlog("blktap2.activate")
@@ -1568,7 +1593,7 @@ class VDI(object):
         timeout = nfs.get_nfs_timeout(sr_other_config)
         if timeout:
             # Note NFS timeout values are in deciseconds
-            timeout = int((timeout+5) / 10)
+            timeout = int((timeout + 5) / 10)
             options["timeout"] = timeout + self.TAPDISK_TIMEOUT_MARGIN
         for i in range(self.ATTACH_DETACH_RETRY_SECS):
             try:
@@ -1587,9 +1612,9 @@ class VDI(object):
         if self.tap_wanted():
             if not self._add_tag(vdi_uuid, not options["rdonly"]):
                 return False
-            # it is possible that while the VDI was paused some of its 
-            # attributes have changed (e.g. its size if it was inflated; or its 
-            # path if it was leaf-coalesced onto a raw LV), so refresh the 
+            # it is possible that while the VDI was paused some of its
+            # attributes have changed (e.g. its size if it was inflated; or its
+            # path if it was leaf-coalesced onto a raw LV), so refresh the
             # object completely
             params = self.target.vdi.sr.srcmd.params
             target = sm.VDI.from_uuid(self.target.vdi.session, vdi_uuid)
@@ -1664,12 +1689,11 @@ class VDI(object):
                 vdi_ref, 'activating')
             util.SMlog("Removed activating flag from %s" % vdi_uuid)
 
-
         # Link result to backend/
         self.BackendLink.from_uuid(sr_uuid, vdi_uuid).mklink(dev_path)
- 	self.linkNBD(sr_uuid, vdi_uuid)
+        self.linkNBD(sr_uuid, vdi_uuid)
         return True
-    
+
     def _activate(self, sr_uuid, vdi_uuid, options):
         vdi_options = self.target.activate(sr_uuid, vdi_uuid)
 
@@ -1686,7 +1710,7 @@ class VDI(object):
                         sr_uuid, options,
                         self._get_pool_config(sr_uuid).get("mem-pool-size"))
             else:
-                dev_path = phy_path # Just reuse phy
+                dev_path = phy_path  # Just reuse phy
 
         return dev_path
 
@@ -1729,14 +1753,14 @@ class VDI(object):
     def _resetPhylink(self, sr_uuid, vdi_uuid, path):
         self.PhyLink.from_uuid(sr_uuid, vdi_uuid).mklink(path)
 
-    def detach(self, sr_uuid, vdi_uuid, deactivate = False, caching_params = {}):
+    def detach(self, sr_uuid, vdi_uuid, deactivate=False, caching_params={}):
         if not self.target.has_cap("ATOMIC_PAUSE") or deactivate:
             util.SMlog("Deactivate & detach")
             self._deactivate(sr_uuid, vdi_uuid, caching_params)
             self._detach(sr_uuid, vdi_uuid)
         else:
-            pass # nothing to do
-    
+            pass  # nothing to do
+
     def _deactivate(self, sr_uuid, vdi_uuid, caching_params):
         import VDI as sm
 
@@ -1768,9 +1792,9 @@ class VDI(object):
 
         # Deactivate & detach the physical node
         if self.tap_wanted() and self.target.vdi.session is not None:
-            # it is possible that while the VDI was paused some of its 
-            # attributes have changed (e.g. its size if it was inflated; or its 
-            # path if it was leaf-coalesced onto a raw LV), so refresh the 
+            # it is possible that while the VDI was paused some of its
+            # attributes have changed (e.g. its size if it was inflated; or its
+            # path if it was leaf-coalesced onto a raw LV), so refresh the
             # object completely
             target = sm.VDI.from_uuid(self.target.vdi.session, vdi_uuid)
             driver_info = target.sr.srcmd.driver_info
@@ -1788,12 +1812,12 @@ class VDI(object):
         # Remove existing VDI.sm_config fields
         vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
         for key in ["on_boot", "caching"]:
-            session.xenapi.VDI.remove_from_sm_config(vdi_ref,key)
+            session.xenapi.VDI.remove_from_sm_config(vdi_ref, key)
         if not on_boot is None:
-            session.xenapi.VDI.add_to_sm_config(vdi_ref,'on_boot',on_boot)
+            session.xenapi.VDI.add_to_sm_config(vdi_ref, 'on_boot', on_boot)
         if not caching is None:
-            session.xenapi.VDI.add_to_sm_config(vdi_ref,'caching',caching)
-	
+            session.xenapi.VDI.add_to_sm_config(vdi_ref, 'caching', caching)
+
     def setup_cache(self, sr_uuid, vdi_uuid, params):
         if params.get(self.CONF_KEY_ALLOW_CACHING) != "true":
             return
@@ -1848,7 +1872,7 @@ class VDI(object):
                 vm_label = vm_rec.get("name_label")
         except:
             util.logException("alert_no_cache")
-        
+
         alert_obj = "SR"
         alert_uuid = str(cache_sr_uuid)
         alert_str = "No space left in Local Cache SR %s" % cache_sr_uuid
@@ -1920,7 +1944,7 @@ class VDI(object):
             os.unlink(local_leaf_path)
         try:
             vhdutil.snapshot(local_leaf_path, read_cache_path, False,
-                    msize = leaf_size / 1024 / 1024, checkEmpty = False)
+                    msize=leaf_size / 1024 / 1024, checkEmpty=False)
         except util.CommandException as e:
             util.SMlog("Error creating leaf cache: %s" % e)
             self.alert_no_cache(session, vdi_uuid, local_sr_uuid, e.code)
@@ -1943,7 +1967,7 @@ class VDI(object):
             blktap = Blktap.allocate()
             try:
                 blktap.set_pool_name("lcache-parent-pool-%s" % blktap.minor)
-                # no need to change pool_size since each parent tapdisk is in 
+                # no need to change pool_size since each parent tapdisk is in
                 # its own pool
                 prt_tapdisk = \
                     Tapdisk.launch_on_tap(blktap, read_cache_path,
@@ -1998,13 +2022,12 @@ class VDI(object):
         if self._session is not None:
             self._updateCacheRecord(self._session, self.target.vdi.uuid, None, None)
 
-
     def _is_tapdisk_in_use(self, minor):
         (retVal, links) = util.findRunningProcessOrOpenFile("tapdisk")
         if not retVal:
             # err on the side of caution
             return True
-        
+
         for link in links:
             if link.find("tapdev%d" % minor) != -1:
                 return True
@@ -2043,7 +2066,6 @@ class VDI(object):
             util.SMlog("Deleting local leaf node %s" % local_leaf_path)
             os.unlink(local_leaf_path)
 
-
         read_cache_path = "%s/%s.vhdcache" % (local_sr.path, shared_target.uuid)
         prt_tapdisk = Tapdisk.find_by_path(read_cache_path)
         if not prt_tapdisk:
@@ -2057,13 +2079,13 @@ class VDI(object):
                 util.logException("shutting down parent tapdisk")
         else:
             util.SMlog("Parent tapdisk still in use: %s" % read_cache_path)
-
-        # the parent cache files are removed during the local SR's background 
+        # the parent cache files are removed during the local SR's background
         # GC run
 
         lock.release()
 
 PythonKeyError = KeyError
+
 
 class UEventHandler(object):
 
@@ -2091,7 +2113,7 @@ class UEventHandler(object):
     class UnhandledEvent(Exception):
 
         def __init__(self, event, handler):
-            self.event   = event
+            self.event = event
             self.handler = handler
 
         def __str__(self):
@@ -2111,9 +2133,12 @@ class UEventHandler(object):
         return fn(self)
 
     def __str__(self):
-        try:    action = self.get_action()
-        except: action = None
+        try:
+            action = self.get_action()
+        except:
+            action = None
         return "%s[%s]" % (self.__class__.__name__, action)
+
 
 class __BlktapControl(ClassDevice):
     SYSFS_CLASSTYPE = "misc"
@@ -2162,8 +2187,9 @@ class __BlktapControl(ClassDevice):
 
 BlktapControl = __BlktapControl()
 
+
 class PagePool(KObject):
-    
+
     def __init__(self, path):
         self.path = path
         self._size = None
@@ -2187,6 +2213,7 @@ class PagePool(KObject):
         pages = self.get_size_attr().readline()
         return int(pages)
 
+
 class BusDevice(KObject):
 
     SYSFS_BUSTYPE = None
@@ -2198,8 +2225,9 @@ class BusDevice(KObject):
     def sysfs_path(self):
         path = "%s/devices/%s" % (self.sysfs_bus_path(),
                                   self.sysfs_devname())
-        
+
         return path
+
 
 class XenbusDevice(BusDevice):
     """Xenbus device, in XS and sysfs"""
@@ -2211,7 +2239,7 @@ class XenbusDevice(BusDevice):
     def __init__(self, domid, devid):
         self.domid = int(domid)
         self.devid = int(devid)
-        self._xbt  = XenbusDevice.XBT_NIL
+        self._xbt = XenbusDevice.XBT_NIL
 
         import xen.lowlevel.xs
         self.xs = xen.lowlevel.xs.xs()
@@ -2240,7 +2268,7 @@ class XenbusDevice(BusDevice):
         return val
 
     def _xs_write_path(self, path, val):
-        self.xs.write(self._xbt, path, val);
+        self.xs.write(self._xbt, path, val)
         self.info("wrote %s = '%s'" % (path, val))
 
     def _xs_rm_path(self, path):
@@ -2295,7 +2323,7 @@ class XenbusDevice(BusDevice):
             util.logException("BLKTAP2:create_physical_device")
 
     def signal_hotplug(self, online=True):
-        xapi_path = "/xapi/%d/hotplug/%s/%d/hotplug" % (self.domid, 
+        xapi_path = "/xapi/%d/hotplug/%s/%d/hotplug" % (self.domid,
                                                    self.XENBUS_DEVTYPE,
                                                    self.devid)
         upstream_path = self.xs_path("hotplug-status")
@@ -2307,7 +2335,7 @@ class XenbusDevice(BusDevice):
             self._xs_rm_path(upstream_path)
 
     def sysfs_devname(self):
-        return "%s-%d-%d" % (self.XENBUS_DEVTYPE, 
+        return "%s-%d-%d" % (self.XENBUS_DEVTYPE,
                              self.domid, self.devid)
 
     def __str__(self):
@@ -2323,6 +2351,7 @@ class XenbusDevice(BusDevice):
             (_type, domid, devid) = name.split('-')
 
             yield cls(domid, devid)
+
 
 class XenBackendDevice(XenbusDevice):
     """Xenbus backend device"""
@@ -2340,6 +2369,7 @@ class XenBackendDevice(XenbusDevice):
 
         return cls(domid, devid)
 
+
 class Blkback(XenBackendDevice):
     """A blkback VBD"""
 
@@ -2347,13 +2377,14 @@ class Blkback(XenBackendDevice):
 
     def __init__(self, domid, devid):
         XenBackendDevice.__init__(self, domid, devid)
-        self._phy      = None
+        self._phy = None
         self._vdi_uuid = None
-        self._q_state  = None
+        self._q_state = None
         self._q_events = None
 
     class XenstoreValueError(Exception):
         KEY = None
+
         def __init__(self, vbd, _str):
             self.vbd = vbd
             self.str = _str
@@ -2410,11 +2441,11 @@ class Blkback(XenBackendDevice):
 
         SYSFS_NODENAME = "queue_events"
 
-        QUEUE_RUNNING           = (1<<0)
-        QUEUE_PAUSE_DONE        = (1<<1)
-        QUEUE_SHUTDOWN_DONE     = (1<<2)
-        QUEUE_PAUSE_REQUEST     = (1<<3)
-        QUEUE_SHUTDOWN_REQUEST  = (1<<4)
+        QUEUE_RUNNING = (1 << 0)
+        QUEUE_PAUSE_DONE = (1 << 1)
+        QUEUE_SHUTDOWN_DONE = (1 << 2)
+        QUEUE_PAUSE_REQUEST = (1 << 3)
+        QUEUE_SHUTDOWN_REQUEST = (1 << 4)
 
         def get_mask(self):
             return int(self.readline(), 0x10)
@@ -2501,10 +2532,11 @@ class BlkbackEventHandler(UEventHandler):
     LOG_FACILITY = _syslog.LOG_DAEMON
 
     def __init__(self, ident=None, action=None):
-        if not ident: ident = self.__class__.__name__
+        if not ident:
+            ident = self.__class__.__name__
 
-        self.ident    = ident
-        self._vbd     = None
+        self.ident = ident
+        self._vbd = None
         self._tapdisk = None
 
         UEventHandler.__init__(self)
@@ -2518,11 +2550,15 @@ class BlkbackEventHandler(UEventHandler):
 
     def __str__(self):
 
-        try:    path = self.xs_path
-        except: path = None
+        try:
+            path = self.xs_path
+        except:
+            path = None
 
-        try:    action = self.get_action()
-        except: action = None
+        try:
+            action = self.get_action()
+        except:
+            action = None
 
         return "%s[%s](%s)" % (self.ident, action, path)
 
@@ -2549,14 +2585,12 @@ class BlkbackEventHandler(UEventHandler):
             minor = self.get_vbd().get_physical_device().minor
             self._tapdisk = Tapdisk.from_minor(minor)
         return self._tapdisk
-
     #
     # Events
     #
 
     def __add(self):
         vbd = self.get_vbd()
-
         # Manage blkback transitions
         # self._manage_vbd()
 
@@ -2585,7 +2619,7 @@ class BlkbackEventHandler(UEventHandler):
             pass
             #self._pause_update_tap()
 
-        # 2. Signal Xapi.VBD.pause/resume completion
+            # 2. Signal Xapi.VBD.pause/resume completion
 
         self._signal_xapi()
 
@@ -2616,10 +2650,9 @@ class BlkbackEventHandler(UEventHandler):
 
         vbd.signal_hotplug(False)
 
-    ACTIONS = { 'add':    add,
+    ACTIONS = {'add': add,
                 'change': change,
-                'remove': remove }
-
+                'remove': remove}
     #
     # VDI.pause
     #
@@ -2628,11 +2661,11 @@ class BlkbackEventHandler(UEventHandler):
         """Enumerate all VBDs on our tapdisk. Returns true iff any was
         paused"""
 
-        tapdisk  = self.get_tapdisk()
+        tapdisk = self.get_tapdisk()
         TapState = Tapdisk.PauseState
 
-        PAUSED          = 'P'
-        RUNNING         = 'R'
+        PAUSED = 'P'
+        RUNNING = 'R'
         PAUSED_SHUTDOWN = 'P,S'
         # NB. Shutdown/paused is special. We know it's not going
         # to restart again, so it's a RUNNING. Still better than
@@ -2658,7 +2691,7 @@ class BlkbackEventHandler(UEventHandler):
             else:
                 vbds[name] = RUNNING
 
-        self.info("tapdev%d (%s): %s -> %s" 
+        self.info("tapdev%d (%s): %s -> %s"
                   % (tapdisk.minor, tapdisk.pause_state(),
                      vbds, next))
 
@@ -2684,32 +2717,29 @@ class BlkbackEventHandler(UEventHandler):
 
         # NB. Raw VDI snapshots. Refresh the physical path and
         # type while resuming.
-        vbd      = self.get_vbd()
+        vbd = self.get_vbd()
         vdi_uuid = vbd.get_vdi_uuid()
 
         if tapdisk.is_paused():
             self.info("loading vdi uuid=%s" % vdi_uuid)
-            vdi      = VDI.from_cli(vdi_uuid)
-            _type    = vdi.get_tap_type()
-            path     = vdi.get_phy_path()
+            vdi = VDI.from_cli(vdi_uuid)
+            _type = vdi.get_tap_type()
+            path = vdi.get_phy_path()
             self.info("resuming %s on %s:%s" % (tapdisk, _type, path))
             tapdisk.unpause(_type, path)
-
     #
     # VBD.pause/shutdown
     #
 
     def _manage_vbd(self):
         vbd = self.get_vbd()
-
         # NB. Hook into VBD state transitions.
 
         events = vbd.get_queue_events()
 
-        mask  = 0
+        mask = 0
         mask |= events.QUEUE_PAUSE_DONE    # pause/unpause
-        mask |= events.QUEUE_SHUTDOWN_DONE # shutdown
-
+        mask |= events.QUEUE_SHUTDOWN_DONE  # shutdown
         # TODO: mask |= events.QUEUE_SHUTDOWN_REQUEST, for shutdown=force
         # TODO: mask |= events.QUEUE_RUNNING, for ionice updates etc
 
@@ -2748,7 +2778,7 @@ class BlkbackEventHandler(UEventHandler):
 if __name__ == '__main__':
 
     import sys
-    prog  = os.path.basename(sys.argv[0])
+    prog = os.path.basename(sys.argv[0])
 
     #
     # Simple CLI interface for manual operation
@@ -2808,7 +2838,7 @@ if __name__ == '__main__':
             try:
                 arg = Tapdisk.Arg.parse(item)
                 attrs['_type'] = arg.type
-                attrs['path']  = arg.path
+                attrs['path'] = arg.path
                 continue
             except Tapdisk.Arg.InvalidArgument:
                 pass
@@ -2817,7 +2847,7 @@ if __name__ == '__main__':
 
         if cmd == 'tap.list':
 
-            for tapdisk in Tapdisk.list(**attrs):
+            for tapdisk in Tapdisk.list( ** attrs):
                 blktap = tapdisk.get_blktap()
                 print(tapdisk, end=' ')
                 print("%s: task=%s pool=%s" % \
@@ -2828,9 +2858,9 @@ if __name__ == '__main__':
         elif cmd == 'tap.vbds':
             # Find all Blkback instances for a given tapdisk
 
-            for tapdisk in Tapdisk.list(**attrs):
+            for tapdisk in Tapdisk.list( ** attrs):
                 print("%s:" % tapdisk, end=' ')
-                for vbd in Blkback.find_by_tap(tapdisk): 
+                for vbd in Blkback.find_by_tap(tapdisk):
                     print(vbd, end=' ')
                 print()
 
@@ -2841,7 +2871,7 @@ if __name__ == '__main__':
                 sys.exit(1)
 
             try:
-                tapdisk = Tapdisk.get(**attrs)
+                tapdisk = Tapdisk.get( ** attrs)
             except TypeError:
                 usage(sys.stderr)
                 sys.exit(1)
@@ -2892,7 +2922,7 @@ if __name__ == '__main__':
 
     elif cmd == 'vbd.list':
 
-        for vbd in Blkback.find(): 
+        for vbd in Blkback.find():
             print(vbd, \
                 "physical-device=%s" % vbd.get_physical_device(), \
                 "pause=%s" % vbd.pause_requested())

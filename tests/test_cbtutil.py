@@ -3,6 +3,7 @@ import mock
 import unittest
 import uuid
 
+
 class TestCbtutil(unittest.TestCase):
 
     @mock.patch('cbtutil._call_cbt_util', autospec=True)

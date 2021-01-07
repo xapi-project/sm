@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -32,10 +32,11 @@ import uuid
 
 SM_CONFIG_PASS_THROUGH_FIELDS = ["base_mirror", "key_hash"]
 
-SNAPSHOT_SINGLE = 1 # true snapshot: 1 leaf, 1 read-only parent
-SNAPSHOT_DOUBLE = 2 # regular snapshot/clone that creates 2 leaves
-SNAPSHOT_INTERNAL = 3 # SNAPSHOT_SINGLE but don't update SR's virtual allocation
+SNAPSHOT_SINGLE = 1  # true snapshot: 1 leaf, 1 read-only parent
+SNAPSHOT_DOUBLE = 2  # regular snapshot/clone that creates 2 leaves
+SNAPSHOT_INTERNAL = 3  # SNAPSHOT_SINGLE but don't update SR's virtual allocation
 CBT_BLOCK_SIZE = (64 * 1024)
+
 
 def VDIMetadataSize(type, virtualsize):
     size = 0
@@ -57,6 +58,7 @@ def VDIMetadataSize(type, virtualsize):
 
     return size
 
+
 class VDI(object):
     """Virtual Disk Instance descriptor.
 
@@ -75,6 +77,7 @@ class VDI(object):
       attached: boolean, whether VDI is attached
       read_only: boolean, whether disk is read-only.
     """
+
     def __init__(self, sr, uuid):
         self.sr = sr
         # Don't set either the UUID or location to None- no good can
@@ -90,7 +93,6 @@ class VDI(object):
             # connections with their UUID strings (e.g. ISOSR, udevSR,
             # SHMSR). So we avoid overwriting these attributes here.
             pass
-
         # deliberately not initialised self.sm_config so that it is
         # ommitted from the XML output
 
@@ -122,7 +124,7 @@ class VDI(object):
 
         _VDI = session.xenapi.VDI
         vdi_ref = _VDI.get_by_uuid(vdi_uuid)
-        sr_ref  = _VDI.get_SR(vdi_ref)
+        sr_ref = _VDI.get_SR(vdi_ref)
 
         _SR = session.xenapi.SR
         sr_uuid = _SR.get_uuid(sr_ref)
@@ -174,9 +176,9 @@ class VDI(object):
         Returns:
           string, local device path.
         """
-        struct = { 'params': self.path,
+        struct = {'params': self.path,
                    'xenstore_data': (self.xenstore_data or {})}
-        return xmlrpclib.dumps((struct,), "", True)
+        return xmlrpclib.dumps((struct, ), "", True)
 
     def detach(self, sr_uuid, vdi_uuid):
         """Remove local access to the VDI. Destroys any device 
@@ -409,10 +411,10 @@ class VDI(object):
             if 'args' in self.sr.srcmd.params:
                 read_write = self.sr.srcmd.params['args'][0]
                 if read_write == "false":
-                    # Disk is being attached in RO mode, 
+                    # Disk is being attached in RO mode,
                     # don't attach metadata log file
                     return None
- 
+
             from lock import Lock
             lock = Lock("cbtlog", str(vdi_uuid))
             lock.acquire()
@@ -463,9 +465,9 @@ class VDI(object):
           XMLRPC response containing a single struct with fields
           'location' and 'uuid'
         """
-        struct = { 'location': self.location,
-                   'uuid': self.uuid }
-        return xmlrpclib.dumps((struct,), "", True)
+        struct = {'location': self.location,
+                   'uuid': self.uuid}
+        return xmlrpclib.dumps((struct, ), "", True)
 
     def load(self, vdi_uuid):
         """Post-init hook"""
@@ -651,9 +653,9 @@ class VDI(object):
         vdi_to = _VDI.get_uuid(params['args'][0])
         sr_uuid = params['sr_uuid']
 
-        if vdi_from == vdi_to: 
+        if vdi_from == vdi_to:
             raise xs_errors.XenError('CBTChangedBlocksError',
-                                     "Source and target VDI are same") 
+                                     "Source and target VDI are same")
 
         # Check 1: Check if CBT is enabled on VDIs and they are related
         if (self._get_blocktracking_status(vdi_from) and
@@ -691,7 +693,7 @@ class VDI(object):
 
                 expected_bitmap_len = curr_vdi_size // CBT_BLOCK_SIZE
                 # This should ideally never happen but fail call to calculate
-                # changed blocks instead of returning corrupt data 
+                # changed blocks instead of returning corrupt data
                 if len(curr_bitmap) < expected_bitmap_len:
                     util.SMlog("Size of bitmap %d is less than expected size %d"
                                % (len(curr_bitmap), expected_bitmap_len))
@@ -739,8 +741,7 @@ class VDI(object):
                 # Check if we have reached "vdi_to"
                 if curr_vdi == vdi_to:
                     encoded_string = base64.b64encode(merged_bitmap.tobytes())
-                    return xmlrpclib.dumps((encoded_string,), "", True)
-
+                    return xmlrpclib.dumps((encoded_string, ), "", True)
         # TODO: Check 2: If both VDIs still exist,
         # find common ancestor and find difference
 
@@ -748,7 +749,7 @@ class VDI(object):
         # return fully populated bitmap size of to VDI
 
         raise xs_errors.XenError('CBTChangedBlocksError',
-                                 "Source and target VDI are unrelated") 
+                                 "Source and target VDI are unrelated")
 
     def _cbt_snapshot(self, snapshot_uuid, consistency_state):
         """ CBT snapshot"""
@@ -797,7 +798,6 @@ class VDI(object):
             alert_str = ("Creating CBT metadata log for disk %s failed."
                          % self.uuid)
             self._disable_cbt_on_error(alert_name, alert_str)
-
 
     def _get_blocktracking_status(self, uuid=None):
         """ Get blocktracking status """
@@ -878,7 +878,7 @@ class VDI(object):
         try:
             logname = self._get_cbt_logname(uuid)
             activated = self._activate_cbt_log(logname)
-            ret = func(*args)
+            ret = func( * args)
             if activated:
                 self._deactivate_cbt_log(logname)
             return ret

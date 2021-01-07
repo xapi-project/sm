@@ -12,6 +12,7 @@ import vhdutil
 
 import on_slave
 
+
 class Test_on_slave_is_open(unittest.TestCase):
 
     MOCK_IMPORTS = ['SRCommand', 'SR', 'NFSSR', 'EXTSR', 'LVHDSR', 'blktap2']
@@ -179,12 +180,12 @@ class Test_on_slave_multi(unittest.TestCase):
         vdi_fileName = "test-vdi.vhd"
         lock_ref = lvhdutil.NS_PREFIX_LVM + sr_uuid
 
-        args = {"vgName" : vgName,
+        args = {"vgName": vgName,
                 "action1": "deactivateNoRefcount",
                 "lvName1": vdi_fileName,
                 "action2": "cleanupLockAndRefcount",
-                "uuid2"  : vdi_uuid,
-                "ns2"    : lock_ref}
+                "uuid2": vdi_uuid,
+                "ns2": lock_ref}
 
         on_slave.multi(self.session, args)
 
@@ -201,7 +202,7 @@ class Test_on_slave_multi(unittest.TestCase):
         tmpName = lvhdutil.LV_PREFIX[vhdutil.VDI_TYPE_VHD] + \
                 self.TMP_RENAME_PREFIX + child_uuid
 
-        args = {"vgName" : vgName,
+        args = {"vgName": vgName,
                 "action1": "deactivateNoRefcount",
                 "lvName1": tmpName,
                 "action2": "deactivateNoRefcount",
@@ -228,14 +229,14 @@ class Test_on_slave_multi(unittest.TestCase):
 
         lock_ref = lvhdutil.NS_PREFIX_LVM + vdi_uuid
 
-        args = {"vgName" : vgName,
+        args = {"vgName": vgName,
                 "action1": "deactivateNoRefcount",
                 "lvName1": old_name_lv,
                 "action2": "refresh",
                 "lvName2": vdi_fileName,
                 "action3": "cleanupLockAndRefcount",
-                "uuid3"  : origParentUuid,
-                "ns3"    : lock_ref}
+                "uuid3": origParentUuid,
+                "ns3": lock_ref}
 
         on_slave.multi(self.session, args)
         self.mock_lvmcache.deactivateNoRefcount.assert_called_once_with(
@@ -252,16 +253,16 @@ class Test_on_slave_multi(unittest.TestCase):
 
         lock_ref = lvhdutil.NS_PREFIX_LVM + sr_uuid
 
-        args = {"vgName" : vgName,
+        args = {"vgName": vgName,
                 "action1": "activate",
-                "uuid1"  : vdi_uuid,
-                "ns1"    : lock_ref,
+                "uuid1": vdi_uuid,
+                "ns1": lock_ref,
                 "lvName1": lv_name,
                 "action2": "refresh",
                 "lvName2": lv_name,
                 "action3": "deactivate",
-                "uuid3"  : vdi_uuid,
-                "ns3"    : lock_ref,
+                "uuid3": vdi_uuid,
+                "ns3": lock_ref,
                 "lvName3": lv_name}
 
         on_slave.multi(self.session, args)
@@ -285,14 +286,14 @@ class Test_on_slave_multi(unittest.TestCase):
 
         self.mock_lvmcache.deactivateNoRefcount.side_effect = util.CommandException(errno.EIO, 'activate')
 
-        args = {"vgName" : vgName,
+        args = {"vgName": vgName,
                 "action1": "deactivateNoRefcount",
                 "lvName1": old_name_lv,
                 "action2": "refresh",
                 "lvName2": vdi_fileName,
                 "action3": "cleanupLockAndRefcount",
-                "uuid3"  : origParentUuid,
-                "ns3"    : lock_ref}
+                "uuid3": origParentUuid,
+                "ns3": lock_ref}
 
         with self.assertRaises(util.CommandException):
             on_slave.multi(self.session, args)
@@ -314,14 +315,14 @@ class Test_on_slave_multi(unittest.TestCase):
 
         self.mock_lvmcache.activateNoRefcount.side_effect = util.CommandException(errno.EIO, 'activate')
 
-        args = {"vgName" : vgName,
+        args = {"vgName": vgName,
                 "action1": "deactivateNoRefcount",
                 "lvName1": old_name_lv,
                 "action2": "refresh",
                 "lvName2": vdi_fileName,
                 "action3": "cleanupLockAndRefcount",
-                "uuid3"  : origParentUuid,
-                "ns3"    : lock_ref}
+                "uuid3": origParentUuid,
+                "ns3": lock_ref}
 
         with self.assertRaises(util.CommandException):
             on_slave.multi(self.session, args)
@@ -340,16 +341,16 @@ class Test_on_slave_multi(unittest.TestCase):
 
         self.mock_lvmcache.activate.side_effect = util.CommandException(errno.EIO, 'activate')
 
-        args = {"vgName" : vgName,
+        args = {"vgName": vgName,
                 "action1": "activate",
-                "uuid1"  : vdi_uuid,
-                "ns1"    : lock_ref,
+                "uuid1": vdi_uuid,
+                "ns1": lock_ref,
                 "lvName1": lv_name,
                 "action2": "refresh",
                 "lvName2": lv_name,
                 "action3": "deactivate",
-                "uuid3"  : vdi_uuid,
-                "ns3"    : lock_ref,
+                "uuid3": vdi_uuid,
+                "ns3": lock_ref,
                 "lvName3": lv_name}
 
         with self.assertRaises(util.CommandException):
@@ -370,16 +371,16 @@ class Test_on_slave_multi(unittest.TestCase):
 
         self.mock_lvmcache.activateNoRefcount.side_effect = util.CommandException(errno.EIO, 'activate')
 
-        args = {"vgName" : vgName,
+        args = {"vgName": vgName,
                 "action1": "activate",
-                "uuid1"  : vdi_uuid,
-                "ns1"    : lock_ref,
+                "uuid1": vdi_uuid,
+                "ns1": lock_ref,
                 "lvName1": lv_name,
                 "action2": "refresh",
                 "lvName2": lv_name,
                 "action3": "deactivate",
-                "uuid3"  : vdi_uuid,
-                "ns3"    : lock_ref,
+                "uuid3": vdi_uuid,
+                "ns3": lock_ref,
                 "lvName3": lv_name}
 
         with self.assertRaises(util.CommandException):
@@ -401,16 +402,16 @@ class Test_on_slave_multi(unittest.TestCase):
 
         self.mock_lvmcache.deactivate.side_effect = util.CommandException(errno.EIO, 'activate')
 
-        args = {"vgName" : vgName,
+        args = {"vgName": vgName,
                 "action1": "activate",
-                "uuid1"  : vdi_uuid,
-                "ns1"    : lock_ref,
+                "uuid1": vdi_uuid,
+                "ns1": lock_ref,
                 "lvName1": lv_name,
                 "action2": "refresh",
                 "lvName2": lv_name,
                 "action3": "deactivate",
-                "uuid3"  : vdi_uuid,
-                "ns3"    : lock_ref,
+                "uuid3": vdi_uuid,
+                "ns3": lock_ref,
                 "lvName3": lv_name}
 
         with self.assertRaises(util.CommandException):
@@ -424,7 +425,7 @@ class Test_on_slave_multi(unittest.TestCase):
             lock_ref, vdi_uuid, lv_name, False)
 
     def test_multi_bad_operation(self):
-        args = {"vgName" : 'test-vg',
+        args = {"vgName": 'test-vg',
                 "action1": "bad_operation"}
 
         with self.assertRaises(util.SMException):

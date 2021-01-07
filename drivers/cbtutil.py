@@ -29,10 +29,12 @@ def create_cbt_log(file_name, size):
     cmd = [CBT_UTIL, "create", "-n", file_name, "-s", str(size)]
     _call_cbt_util(cmd)
 
+
 def set_cbt_parent(file_name, parent_uuid):
     """Set parent field in log file"""
     cmd = [CBT_UTIL, "set", "-n", file_name, "-p", str(parent_uuid)]
     _call_cbt_util(cmd)
+
 
 def get_cbt_parent(file_name):
     """Get parent field from log file"""
@@ -46,10 +48,12 @@ def get_cbt_parent(file_name):
     # Pylint doesn't like this for reason though
     return str(uret)
 
+
 def set_cbt_child(file_name, child_uuid):
     """Set child field in log file"""
     cmd = [CBT_UTIL, "set", "-n", file_name, "-c", str(child_uuid)]
     _call_cbt_util(cmd)
+
 
 def get_cbt_child(file_name):
     """Get parent field from log file"""
@@ -58,6 +62,7 @@ def get_cbt_child(file_name):
     uret = uuid.UUID(ret.strip())
     #TODO: Need to check for NULL UUID
     return str(uret)
+
 
 def set_cbt_consistency(file_name, consistent):
     """Set consistency field in log file"""
@@ -68,24 +73,28 @@ def set_cbt_consistency(file_name, consistent):
     cmd = [CBT_UTIL, "set", "-n", file_name, "-f", str(flag)]
     _call_cbt_util(cmd)
 
+
 def get_cbt_consistency(file_name):
     """Get consistency field from log file"""
     cmd = [CBT_UTIL, "get", "-n", file_name, "-f"]
     ret = _call_cbt_util(cmd)
     return bool(int(ret.strip()))
 
+
 def get_cbt_bitmap(file_name):
     """Get bitmap field from log file"""
     cmd = [CBT_UTIL, "get", "-n", file_name, "-b"]
-    ret =  _call_cbt_util(cmd)
+    ret = _call_cbt_util(cmd)
     #Do not strip the return string. It's a byte string and stripping
     #it sometimes leads to loss of information
     return ret
+
 
 def set_cbt_size(filename, size):
     """Set size field in log file"""
     cmd = [CBT_UTIL, "set", "-n", filename, "-s", str(size)]
     _call_cbt_util(cmd)
+
 
 def get_cbt_size(file_name):
     """Get size field from log file"""
@@ -93,10 +102,12 @@ def get_cbt_size(file_name):
     ret = _call_cbt_util(cmd)
     return int(ret.strip())
 
+
 def coalesce_bitmap(parent_path, child_path):
     """Coalesce bitmap contents of parent onto child log file"""
     cmd = [CBT_UTIL, "coalesce", "-p", parent_path, "-c", child_path]
     _call_cbt_util(cmd)
+
 
 def _call_cbt_util(cmd):
     return util.ioretry(lambda: util.pread2(cmd))

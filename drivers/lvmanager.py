@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -22,8 +22,10 @@ import time
 import util
 import lvhdutil
 
+
 class LVManagerException(util.SMException):
     pass
+
 
 class LVActivator:
     """Keep track of LV activations and make LV activations transactional,
@@ -41,7 +43,6 @@ class LVActivator:
     TEMPORARY = False
     PERSISTENT = True
 
-
     def __init__(self, srUuid, lvmCache):
         self.ns = lvhdutil.NS_PREFIX_LVM + srUuid
         self.lvmCache = lvmCache
@@ -52,7 +53,7 @@ class LVActivator:
             for binary in [self.NORMAL, self.BINARY]:
                 self.lvActivations[persistent][binary] = dict()
 
-    def activate(self, uuid, lvName, binary, persistent = False):
+    def activate(self, uuid, lvName, binary, persistent=False):
         if self.lvActivations[persistent][binary].get(uuid):
             if persistent:
                 raise LVManagerException("Double persistent activation: %s" % \
@@ -87,7 +88,7 @@ class LVActivator:
         self.lvmCache.changeOpen(lvName, 1)
 
     def deactivateAll(self):
-        # this is the cleanup step that will be performed even if the original 
+        # this is the cleanup step that will be performed even if the original
         # operation failed - don't throw exceptions here
         success = True
         for persistent in [self.TEMPORARY, self.PERSISTENT]:
@@ -101,7 +102,7 @@ class LVActivator:
                         util.logException("_deactivateAll")
         return success
 
-    def deactivate(self, uuid, binary, persistent = False):
+    def deactivate(self, uuid, binary, persistent=False):
         lvName = self.lvActivations[persistent][binary][uuid]
         if self.openFiles.get(uuid):
             self.openFiles[uuid].close()
@@ -137,5 +138,3 @@ class LVActivator:
 
     def get(self, uuid, binary):
         return self.lvActivations[self.TEMPORARY][binary].get(uuid)
-
-

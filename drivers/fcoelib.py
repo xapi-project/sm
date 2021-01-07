@@ -20,7 +20,8 @@ import util
 import glob
 import os
 
-SYSFS_NET_PATH='/sys/class/net'
+SYSFS_NET_PATH = '/sys/class/net'
+
 
 def parse_fcoe_eth_info():
     fcoe_eth_info = {}
@@ -43,17 +44,18 @@ def parse_fcoe_eth_info():
 
     return fcoe_eth_info
 
+
 def parse_fcoe_port_name_info():
     fcoe_port_info = []
     fcoe_ports = glob.glob(os.path.join(SYSFS_NET_PATH, "eth*"))
     for port in fcoe_ports:
         try:
-            cmd= ['fcoeadm', '-i', os.path.basename(port)]
+            cmd = ['fcoeadm', '-i', os.path.basename(port)]
             for line in util.doexec(cmd)[1].split('\n'):
                 if line.find("Port Name") != -1:
                     str1, str2 = line.split(":")
                     str2 = str2.strip()
-                    port = int(str2,0)
+                    port = int(str2, 0)
                     util.SMlog(" port is %d" % port)
                     fcoe_port_info.append(port)
                     break

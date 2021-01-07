@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -18,15 +18,20 @@
 # udevSR: represents VDIs which are hotplugged into dom0 via udev e.g.
 #         USB CDROM/disk devices
 
-import SR, VDI, SRCommand, util
-import os, time, stat
+import SR
+import VDI
+import SRCommand
+import util
+import os
+import time
+import stat
 import xs_errors
 import sysdevice
 
-CAPABILITIES = [ "VDI_INTRODUCE","VDI_ATTACH","VDI_DETACH","VDI_UPDATE", "SR_UPDATE" ]
+CAPABILITIES = ["VDI_INTRODUCE", "VDI_ATTACH", "VDI_DETACH", "VDI_UPDATE", "SR_UPDATE"]
 
 CONFIGURATION = \
-    [ [ 'location', 'path to mount (required) (e.g. server:/path)' ] ]
+    [['location', 'path to mount (required) (e.g. server:/path)']]
 
 DRIVER_INFO = {
     'name': 'udev',
@@ -41,8 +46,10 @@ DRIVER_INFO = {
 
 TYPE = 'udev'
 
+
 class udevSR(SR.SR):
     """udev-driven storage repository"""
+
     def handles(type):
         if type == TYPE:
             return True
@@ -69,15 +76,15 @@ class udevSR(SR.SR):
 
     def load(self, sr_uuid):
         # First of all, check we've got the correct keys in dconf
-        if 'location' not in self.dconf:        
+        if 'location' not in self.dconf:
             raise xs_errors.XenError('ConfigLocationMissing')
         self.sr_vditype = 'phy'
-        # Cache the sm_config 
+        # Cache the sm_config
         self.sm_config = self.session.xenapi.SR.get_sm_config(self.sr_ref)
 
     def update(self, sr_uuid):
         # Return as much information as we have
-        sr_root =self.dconf['location']
+        sr_root = self.dconf['location']
 
         if util.pathexists(sr_root):
             for filename in os.listdir(sr_root):
@@ -88,13 +95,13 @@ class udevSR(SR.SR):
         the_sum = 0
         for vdi in self.vdis.values():
             the_sum = the_sum + vdi.size
-            
+
         self.physical_size = the_sum
         self.physical_utilisation = the_sum
         self.virtual_allocation = the_sum
 
         self._db_update()
-    
+
     def scan(self, sr_uuid):
         self.update(sr_uuid)
 
@@ -113,6 +120,7 @@ class udevSR(SR.SR):
     def detach(self, sr_uuid):
         pass
 
+
 def read_whole_file(filename):
     f = open(filename, 'r')
     try:
@@ -120,11 +128,12 @@ def read_whole_file(filename):
     finally:
         f.close()
 
+
 class udevVDI(VDI.VDI):
     def __init__(self, sr, location):
         self.location = location
         VDI.VDI.__init__(self, sr, None)
-        
+
     def load(self, location):
         self.path = self.location
         self.size = 0
@@ -140,14 +149,14 @@ class udevVDI(VDI.VDI):
             self.sm_config['hotplugged_at'] = iso8601
 
             dev = os.path.basename(self.path)
-	    info = sysdevice.stat(dev)
-	    if "size" in info.keys():
-	        self.size = info["size"]
+            info = sysdevice.stat(dev)
+            if "size" in info.keys():
+                self.size = info["size"]
                 self.utilisation = self.size
 
             self.label = "%s %s" % (info["bus"], info["bus_path"])
             self.description = info["hwinfo"]
-            
+
             # XXX: what other information can we recover?
             if 'type' in self.sr.sm_config:
                 self.read_only = self.sr.sm_config['type'] == "cd"
@@ -161,10 +170,10 @@ class udevVDI(VDI.VDI):
                         if pusb.get("passthrough_enabled"):
                             raise xs_errors.XenError('VDIUnavailable')
                         break
-                
+
         except OSError as e:
             self.deleted = True
-        
+
     def introduce(self, sr_uuid, vdi_uuid):
         self.uuid = vdi_uuid
         self.location = self.sr.srcmd.params['vdi_location']
@@ -181,11 +190,11 @@ class udevVDI(VDI.VDI):
         # also reset the name-label and description since we're a bit of
         # a special SR
         # this would lead to an infinite loop as VDI.set_name_label now
-        # calls VDI.update 
+        # calls VDI.update
         # temporarily commenting this to pass quicktest
-        #vdi = self.sr.session.xenapi.VDI.get_by_uuid(self.uuid)        
+        #vdi = self.sr.session.xenapi.VDI.get_by_uuid(self.uuid)
         #self.sr.session.xenapi.VDI.set_name_label(vdi, self.label)
-        #self.sr.session.xenapi.VDI.set_name_description(vdi, self.description)        
+        #self.sr.session.xenapi.VDI.set_name_description(vdi, self.description)
 
     def attach(self, sr_uuid, vdi_uuid):
         if self.deleted:

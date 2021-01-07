@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -19,15 +19,24 @@
 #
 
 from __future__ import print_function
-import os, re, sys, subprocess, shutil, tempfile, signal
-import time, datetime
-import errno, socket
+import os
+import re
+import sys
+import subprocess
+import shutil
+import tempfile
+import signal
+import time
+import datetime
+import errno
+import socket
 import xml.dom.minidom
 import scsiutil
 import statvfs
 import stat
 import xs_errors
-import XenAPI,xmlrpclib
+import XenAPI
+import xmlrpclib
 import base64
 import syslog
 import resource
@@ -39,43 +48,47 @@ import tempfile
 
 from functools import reduce
 
-NO_LOGGING_STAMPFILE='/etc/xensource/no_sm_log'
+NO_LOGGING_STAMPFILE = '/etc/xensource/no_sm_log'
 
-IORETRY_MAX = 20 # retries
-IORETRY_PERIOD = 1.0 # seconds
+IORETRY_MAX = 20  # retries
+IORETRY_PERIOD = 1.0  # seconds
 
 LOGGING = not (os.path.exists(NO_LOGGING_STAMPFILE))
 _SM_SYSLOG_FACILITY = syslog.LOG_LOCAL2
-LOG_EMERG   = syslog.LOG_EMERG
-LOG_ALERT   = syslog.LOG_ALERT
-LOG_CRIT    = syslog.LOG_CRIT
-LOG_ERR     = syslog.LOG_ERR
+LOG_EMERG = syslog.LOG_EMERG
+LOG_ALERT = syslog.LOG_ALERT
+LOG_CRIT = syslog.LOG_CRIT
+LOG_ERR = syslog.LOG_ERR
 LOG_WARNING = syslog.LOG_WARNING
-LOG_NOTICE  = syslog.LOG_NOTICE
-LOG_INFO    = syslog.LOG_INFO
-LOG_DEBUG   = syslog.LOG_DEBUG
+LOG_NOTICE = syslog.LOG_NOTICE
+LOG_INFO = syslog.LOG_INFO
+LOG_DEBUG = syslog.LOG_DEBUG
 
 ISCSI_REFDIR = '/var/run/sr-ref'
 
 CMD_DD = "/bin/dd"
 
-FIST_PAUSE_PERIOD = 30 # seconds
+FIST_PAUSE_PERIOD = 30  # seconds
+
 
 class SMException(Exception):
     """Base class for all SM exceptions for easier catching & wrapping in 
     XenError"""
     pass
 
+
 class CommandException(SMException):
-    def __init__(self, code, cmd = "", reason='exec failed'):
+    def __init__(self, code, cmd="", reason='exec failed'):
         self.code = code
         self.cmd = cmd
         self.reason = reason
         Exception.__init__(self, os.strerror(abs(code)))
 
+
 class SRBusyException(SMException):
     """The SR could not be locked"""
     pass
+
 
 def logException(tag):
     info = sys.exc_info()
@@ -86,6 +99,7 @@ def logException(tag):
     str = "***** %s: EXCEPTION %s, %s\n%s" % (tag, info[0], info[1], tb)
     SMlog(str)
 
+
 def roundup(divisor, value):
     """Retruns the rounded up value so it is divisible by divisor."""
 
@@ -94,6 +108,7 @@ def roundup(divisor, value):
     if value % divisor != 0:
         return ((int(value) / divisor) + 1) * divisor
     return value
+
 
 def to_plain_string(obj):
     if obj is None:
@@ -104,35 +119,41 @@ def to_plain_string(obj):
         return obj.encode("utf-8")
     return str(obj)
 
+
 def shellquote(arg):
     return '"%s"' % arg.replace('"', '\\"')
 
+
 def make_WWN(name):
     hex_prefix = name.find("0x")
-    if (hex_prefix >=0):
-        name = name[name.find("0x")+2:len(name)]
+    if (hex_prefix >= 0):
+        name = name[name.find("0x") + 2:len(name)]
     # inject dashes for each nibble
-    if (len(name) == 16): #sanity check
+    if (len(name) == 16):  # sanity check
         name = name[0:2] + "-" + name[2:4] + "-" + name[4:6] + "-" + \
                name[6:8] + "-" + name[8:10] + "-" + name[10:12] + "-" + \
                name[12:14] + "-" + name[14:16]
     return name
+
 
 def _logToSyslog(ident, facility, priority, message):
     syslog.openlog(ident, 0, facility)
     syslog.syslog(priority, "[%d] %s" % (os.getpid(), message))
     syslog.closelog()
 
+
 def SMlog(message, ident="SM", priority=LOG_INFO):
     if LOGGING:
         for message_line in str(message).split('\n'):
             _logToSyslog(ident, _SM_SYSLOG_FACILITY, priority, message_line)
 
+
 def _getDateString():
     d = datetime.datetime.now()
     t = d.timetuple()
     return "%s-%s-%s:%s:%s:%s" % \
-          (t[0],t[1],t[2],t[3],t[4],t[5])
+          (t[0], t[1], t[2], t[3], t[4], t[5])
+
 
 def doexec(args, inputtext=None, new_env=None):
     """Execute a subprocess, then return its return code, stdout and stderr"""
@@ -144,16 +165,18 @@ def doexec(args, inputtext=None, new_env=None):
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE,
                             close_fds=True, env=env)
-    (stdout,stderr) = proc.communicate(inputtext)
+    (stdout, stderr) = proc.communicate(inputtext)
     # Workaround for a pylint bug, can be removed after upgrade to
     # python 3.x or maybe a newer version of pylint in the future
     stdout = str(stdout)
     stderr = str(stderr)
     rc = proc.returncode
-    return (rc,stdout,stderr)
+    return (rc, stdout, stderr)
+
 
 def is_string(value):
-    return isinstance(value,basestring)
+    return isinstance(value, basestring)
+
 
 # These are partially tested functions that replicate the behaviour of
 # the original pread,pread2 and pread3 functions. Potentially these can
@@ -182,7 +205,7 @@ def pread(cmdlist, close_stdin=False, scramble=None, expect_rc=0,
 
     if not quiet:
         SMlog(cmdlist_for_log)
-    (rc,stdout,stderr) = doexec(cmdlist_for_exec, new_env=new_env)
+    (rc, stdout, stderr) = doexec(cmdlist_for_exec, new_env=new_env)
     if rc != expect_rc:
         SMlog("FAILED in util.pread: (rc %d) stdout: '%s', stderr: '%s'" % \
                 (rc, stdout, stderr))
@@ -225,14 +248,16 @@ def atomicFileWrite(targetFile, directory, text):
         if os.path.isfile(tempPath):
             os.remove(tempPath)
 
+
 #Read STDOUT from cmdlist and discard STDERR output
-def pread2(cmdlist, quiet = False):
-    return pread(cmdlist, quiet = quiet)
+def pread2(cmdlist, quiet=False):
+    return pread(cmdlist, quiet=quiet)
+
 
 #Read STDOUT from cmdlist, feeding 'text' to STDIN
 def pread3(cmdlist, text):
     SMlog(cmdlist)
-    (rc,stdout,stderr) = doexec(cmdlist,text)
+    (rc, stdout, stderr) = doexec(cmdlist, text)
     if rc:
         SMlog("FAILED in util.pread3: (errno %d) stdout: '%s', stderr: '%s'" % \
                 (rc, stdout, stderr))
@@ -242,10 +267,11 @@ def pread3(cmdlist, text):
     SMlog("  pread3 SUCCESS")
     return stdout
 
-def listdir(path, quiet = False):
+
+def listdir(path, quiet=False):
     cmd = ["ls", path, "-1", "--color=never"]
     try:
-        text = pread2(cmd, quiet = quiet)[:-1]
+        text = pread2(cmd, quiet=quiet)[:-1]
         if len(text) == 0:
             return []
         return text.split('\n')
@@ -255,27 +281,32 @@ def listdir(path, quiet = False):
         else:
             raise CommandException(inst.code, inst.cmd, inst.reason)
 
+
 def gen_uuid():
     cmd = ["uuidgen", "-r"]
     return pread(cmd)[:-1]
+
 
 def match_uuid(s):
     regex = re.compile("^[0-9a-f]{8}-(([0-9a-f]{4})-){3}[0-9a-f]{12}")
     return regex.search(s, 0)
 
+
 def findall_uuid(s):
     regex = re.compile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
     return regex.findall(s, 0)
+
 
 def exactmatch_uuid(s):
     regex = re.compile("^[0-9a-f]{8}-(([0-9a-f]{4})-){3}[0-9a-f]{12}$")
     return regex.search(s, 0)
 
+
 def start_log_entry(srpath, path, args):
     logstring = str(datetime.datetime.now())
     logstring += " log: "
-    logstring += srpath 
-    logstring +=  " " + path
+    logstring += srpath
+    logstring += " " + path
     for element in args:
         logstring += " " + element
     try:
@@ -285,14 +316,15 @@ def start_log_entry(srpath, path, args):
         file.close()
     except:
         pass
-        # failed to write log ... 
+
+        # failed to write log ...
 
 def end_log_entry(srpath, path, args):
     # for teminating, use "error" or "done"
     logstring = str(datetime.datetime.now())
     logstring += " end: "
-    logstring += srpath 
-    logstring +=  " " + path
+    logstring += srpath
+    logstring += " " + path
     for element in args:
         logstring += " " + element
     try:
@@ -302,9 +334,10 @@ def end_log_entry(srpath, path, args):
         file.close()
     except:
         pass
-        # failed to write log ... 
-    # for now print
-    # print "%s" % logstring
+
+        # failed to write log ...
+        # for now print
+        # print "%s" % logstring
 
 def rotate_string(x, n):
     transtbl = ""
@@ -312,6 +345,7 @@ def rotate_string(x, n):
         transtbl = transtbl + chr(a)
     transtbl = transtbl[n:] + transtbl[0:n]
     return x.translate(transtbl)
+
 
 def untransform_string(str, remove_trailing_nulls=False):
     """De-obfuscate string. To cope with an obfuscation bug in Rio, the argument
@@ -321,10 +355,12 @@ def untransform_string(str, remove_trailing_nulls=False):
         tmp = tmp.rstrip('\x00')
     return rotate_string(tmp, -13)
 
+
 def transform_string(str):
     """Re-obfuscate string"""
     tmp = rotate_string(str, 13)
     return base64.encodestring(tmp)
+
 
 def ioretry(f, errlist=[errno.EIO], maxretry=IORETRY_MAX, period=IORETRY_PERIOD, **ignored):
     retries = 0
@@ -332,10 +368,10 @@ def ioretry(f, errlist=[errno.EIO], maxretry=IORETRY_MAX, period=IORETRY_PERIOD,
         try:
             return f()
         except OSError as inst:
-             err = int(inst.errno)
-             inst = CommandException(err, str(f), "OSError")
-             if not err in errlist:
-                 raise inst
+            err = int(inst.errno)
+            inst = CommandException(err, str(f), "OSError")
+            if not err in errlist:
+                raise inst
         except CommandException as inst:
             if not int(inst.code) in errlist:
                 raise
@@ -343,10 +379,11 @@ def ioretry(f, errlist=[errno.EIO], maxretry=IORETRY_MAX, period=IORETRY_PERIOD,
         retries += 1
         if retries >= maxretry:
             break
-        
+
         time.sleep(period)
 
     raise inst
+
 
 def ioretry_stat(f, maxretry=IORETRY_MAX):
     # this ioretry is similar to the previous method, but
@@ -360,6 +397,7 @@ def ioretry_stat(f, maxretry=IORETRY_MAX):
         retries += 1
     raise CommandException(errno.EIO, str(f))
 
+
 def sr_get_capability(sr_uuid):
     result = []
     session = get_localAPI_session()
@@ -371,15 +409,16 @@ def sr_get_capability(sr_uuid):
     # SM expects atleast one entry of any SR type
     if len(sm_rec) > 0:
         result = sm_rec.values()[0]['capabilities']
-    
+
     session.xenapi.logout()
     return result
+
 
 def sr_get_driver_info(driver_info):
     results = {}
     # first add in the vanilla stuff
-    for key in [ 'name', 'description', 'vendor', 'copyright', \
-                 'driver_version', 'required_api_version' ]:
+    for key in ['name', 'description', 'vendor', 'copyright', \
+                 'driver_version', 'required_api_version']:
         results[key] = driver_info[key]
     # add the capabilities (xmlrpc array)
     # enforcing activate/deactivate for blktap2
@@ -395,12 +434,14 @@ def sr_get_driver_info(driver_info):
     # add in the configuration options
     options = []
     for option in driver_info['configuration']:
-        options.append({ 'key': option[0], 'description': option[1] })
+        options.append({'key': option[0], 'description': option[1]})
     results['configuration'] = options
-    return xmlrpclib.dumps((results,), "", True)
+    return xmlrpclib.dumps((results, ), "", True)
+
 
 def return_nil():
-    return xmlrpclib.dumps((None,), "", True, allow_none=True)
+    return xmlrpclib.dumps((None, ), "", True, allow_none=True)
+
 
 def SRtoXML(SRlist):
     dom = xml.dom.minidom.Document()
@@ -411,7 +452,7 @@ def SRtoXML(SRlist):
         dict = SRlist[key]
         entry = dom.createElement("SR")
         driver.appendChild(entry)
-        
+
         e = dom.createElement("UUID")
         entry.appendChild(e)
         textnode = dom.createTextNode(key)
@@ -422,20 +463,21 @@ def SRtoXML(SRlist):
             entry.appendChild(e)
             textnode = dom.createTextNode(str(dict['size']))
             e.appendChild(textnode)
-            
+
         if 'storagepool' in dict:
             e = dom.createElement("StoragePool")
             entry.appendChild(e)
             textnode = dom.createTextNode(str(dict['storagepool']))
             e.appendChild(textnode)
-            
+
         if 'aggregate' in dict:
             e = dom.createElement("Aggregate")
             entry.appendChild(e)
             textnode = dom.createTextNode(str(dict['aggregate']))
             e.appendChild(textnode)
-            
+
     return dom.toprettyxml()
+
 
 def pathexists(path):
     try:
@@ -453,6 +495,7 @@ def pathexists(path):
             raise CommandException(errno.EIO, "os.lstat(%s)" % path, "failed")
         return False
 
+
 def force_unlink(path):
     try:
         os.unlink(path)
@@ -460,9 +503,11 @@ def force_unlink(path):
         if e.errno != errno.ENOENT:
             raise
 
+
 def create_secret(session, secret):
-    ref = session.xenapi.secret.create({'value' : secret})
+    ref = session.xenapi.secret.create({'value': secret})
     return session.xenapi.secret.get_uuid(ref)
+
 
 def get_secret(session, uuid):
     try:
@@ -470,6 +515,7 @@ def get_secret(session, uuid):
         return session.xenapi.secret.get_value(ref)
     except:
         raise xs_errors.XenError('InvalidSecret', opterr='Unable to look up secret [%s]' % uuid)
+
 
 def get_real_path(path):
     "Follow symlinks to the actual file"
@@ -481,29 +527,33 @@ def get_real_path(path):
         absPath = os.path.join(directory, absPath)
     return absPath
 
-def wait_for_path(path,timeout):
-    for i in range(0,timeout):
+
+def wait_for_path(path, timeout):
+    for i in range(0, timeout):
         if len(glob.glob(path)):
             return True
         time.sleep(1)
     return False
 
-def wait_for_nopath(path,timeout):
-    for i in range(0,timeout):
+
+def wait_for_nopath(path, timeout):
+    for i in range(0, timeout):
         if not os.path.exists(path):
             return True
         time.sleep(1)
     return False
 
-def wait_for_path_multi(path,timeout):
-    for i in range(0,timeout):
+
+def wait_for_path_multi(path, timeout):
+    for i in range(0, timeout):
         paths = glob.glob(path)
-        SMlog( "_wait_for_paths_multi: paths = %s" % paths )
+        SMlog("_wait_for_paths_multi: paths = %s" % paths)
         if len(paths):
-            SMlog( "_wait_for_paths_multi: return first path: %s" % paths[0] )
+            SMlog("_wait_for_paths_multi: return first path: %s" % paths[0])
             return paths[0]
         time.sleep(1)
     return ""
+
 
 def isdir(path):
     try:
@@ -514,20 +564,24 @@ def isdir(path):
             raise CommandException(errno.EIO, "os.stat(%s)" % path, "failed")
         return False
 
+
 def get_single_entry(path):
     f = open(path, 'r')
     line = f.readline()
     f.close()
     return line.rstrip()
 
+
 def get_fs_size(path):
     st = ioretry_stat(lambda: os.statvfs(path))
     return st[statvfs.F_BLOCKS] * st[statvfs.F_FRSIZE]
+
 
 def get_fs_utilisation(path):
     st = ioretry_stat(lambda: os.statvfs(path))
     return (st[statvfs.F_BLOCKS] - st[statvfs.F_BFREE]) * \
             st[statvfs.F_FRSIZE]
+
 
 def ismount(path):
     """Test whether a path is a mount point"""
@@ -546,6 +600,7 @@ def ismount(path):
         return True     # path/.. is the same i-node as path
     return False
 
+
 def makedirs(name, mode=0o777):
     head, tail = os.path.split(name)
     if not tail:
@@ -563,6 +618,7 @@ def makedirs(name, mode=0o777):
             pass
         else:
             raise
+
 
 def zeroOut(path, fromByte, bytes):
     """write 'bytes' zeros to 'path' starting from fromByte (inclusive)"""
@@ -603,9 +659,11 @@ def zeroOut(path, fromByte, bytes):
 
     return True
 
+
 def match_rootdev(s):
     regex = re.compile("^PRIMARY_DISK")
     return regex.search(s, 0)
+
 
 def getrootdev():
     filename = '/etc/xensource-inventory'
@@ -620,6 +678,7 @@ def getrootdev():
     if not rootdev:
         raise xs_errors.XenError('NoRootDev')
     return rootdev
+
 
 def getrootdevID():
     rootdev = getrootdev()
@@ -636,6 +695,7 @@ def getrootdevID():
 
     return rootdevID
 
+
 def get_localAPI_session():
     # First acquire a valid session
     session = XenAPI.xapi_local()
@@ -644,6 +704,7 @@ def get_localAPI_session():
     except:
         raise xs_errors.XenError('APISession')
     return session
+
 
 def get_this_host():
     uuid = None
@@ -654,10 +715,12 @@ def get_this_host():
     f.close()
     return uuid
 
+
 def is_master(session):
     pools = session.xenapi.pool.get_all()
     master = session.xenapi.pool.get_master(pools[0])
     return get_this_host_ref(session) == master
+
 
 # XXX: this function doesn't do what it claims to do
 def get_localhost_uuid(session):
@@ -681,9 +744,11 @@ def get_localhost_uuid(session):
             return hostid
     raise xs_errors.XenError('APILocalhost')
 
+
 def match_domain_id(s):
     regex = re.compile("^CONTROL_DOMAIN_UUID")
     return regex.search(s, 0)
+
 
 def get_hosts_attached_on(session, vdi_uuids):
     host_refs = {}
@@ -698,16 +763,19 @@ def get_hosts_attached_on(session, vdi_uuids):
             host_refs[key[len('host_'):]] = True
     return host_refs.keys()
 
+
 def get_this_host_ref(session):
     host_uuid = get_this_host()
     host_ref = session.xenapi.host.get_by_uuid(host_uuid)
     return host_ref
+
 
 def get_slaves_attached_on(session, vdi_uuids):
     "assume this host is the SR master"
     host_refs = get_hosts_attached_on(session, vdi_uuids)
     master_ref = get_this_host_ref(session)
     return filter(lambda x: x != master_ref, host_refs)
+
 
 def get_online_hosts(session):
     online_hosts = []
@@ -719,11 +787,13 @@ def get_online_hosts(session):
             online_hosts.append(host_ref)
     return online_hosts
 
+
 def get_all_slaves(session):
     "assume this host is the SR master"
     host_refs = get_online_hosts(session)
     master_ref = get_this_host_ref(session)
     return filter(lambda x: x != master_ref, host_refs)
+
 
 def is_attached_rw(sm_config):
     for key, val in sm_config.iteritems():
@@ -731,21 +801,24 @@ def is_attached_rw(sm_config):
             return True
     return False
 
+
 def attached_as(sm_config):
     for key, val in sm_config.iteritems():
         if key.startswith("host_") and (val == "RW" or val == "RO"):
             return val
+
 
 def find_my_pbd_record(session, host_ref, sr_ref):
     try:
         pbds = session.xenapi.PBD.get_all_records()
         for pbd_ref in pbds.keys():
             if pbds[pbd_ref]['host'] == host_ref and pbds[pbd_ref]['SR'] == sr_ref:
-                return [pbd_ref,pbds[pbd_ref]]
+                return [pbd_ref, pbds[pbd_ref]]
         return None
     except Exception as e:
         SMlog("Caught exception while looking up PBD for host %s SR %s: %s" % (str(host_ref), str(sr_ref), str(e)))
-        return None    
+        return None
+
 
 def find_my_pbd(session, host_ref, sr_ref):
     ret = find_my_pbd_record(session, host_ref, sr_ref)
@@ -753,6 +826,7 @@ def find_my_pbd(session, host_ref, sr_ref):
         return ret[0]
     else:
         return None
+
 
 def test_hostPBD_devs(session, sr_uuid, devs):
     host = get_localhost_uuid(session)
@@ -772,8 +846,9 @@ def test_hostPBD_devs(session, sr_uuid, devs):
                 if 'device' in devconfig:
                     for device in devconfig['device'].split(','):
                         if os.path.realpath(device) == os.path.realpath(dev):
-                            return True;
+                            return True
     return False
+
 
 def test_hostPBD_lun(session, targetIQN, LUNid):
     host = get_localhost_uuid(session)
@@ -788,8 +863,9 @@ def test_hostPBD_lun(session, targetIQN, LUNid):
             if 'targetIQN' in devconfig and 'LUNid' in devconfig:
                 if devconfig['targetIQN'] == targetIQN and \
                        devconfig['LUNid'] == LUNid:
-                    return True;
+                    return True
     return False
+
 
 def test_SCSIid(session, sr_uuid, SCSIid):
     if sr_uuid != None:
@@ -808,11 +884,11 @@ def test_SCSIid(session, sr_uuid, SCSIid):
         devconfig = record["device_config"]
         sm_config = session.xenapi.SR.get_sm_config(record["SR"])
         if 'SCSIid' in devconfig and devconfig['SCSIid'] == SCSIid:
-                    return True;
+            return True
         elif 'SCSIid' in sm_config and sm_config['SCSIid'] == SCSIid:
-                    return True;
+            return True
         elif 'scsi-' + SCSIid in sm_config:
-                    return True;
+            return True
     return False
 
 
@@ -826,7 +902,7 @@ def timeout_call(timeoutseconds, function, *arguments):
     signal.signal(signal.SIGALRM, handler)
     signal.alarm(timeoutseconds)
     try:
-        function(*arguments)
+        function( * arguments)
     except:
         signal.alarm(0)
         raise
@@ -841,7 +917,7 @@ def _incr_iscsiSR_refcount(targetIQN, uuid):
     except:
         raise xs_errors.XenError('LVMRefCount', \
                                  opterr='file %s' % filename)
-    
+
     found = False
     refcount = 0
     for line in filter(match_uuid, f.readlines()):
@@ -853,6 +929,7 @@ def _incr_iscsiSR_refcount(targetIQN, uuid):
         refcount += 1
     f.close()
     return refcount
+
 
 def _decr_iscsiSR_refcount(targetIQN, uuid):
     filename = os.path.join(ISCSI_REFDIR, targetIQN)
@@ -876,10 +953,11 @@ def _decr_iscsiSR_refcount(targetIQN, uuid):
     # Re-open file and truncate
     f.close()
     f = open(filename, 'w')
-    for i in range(0,refcount):
+    for i in range(0, refcount):
         f.write("%s\n" % output[i])
     f.close()
     return refcount
+
 
 # The agent enforces 1 PBD per SR per host, so we
 # check for active SR entries not attached to this host
@@ -895,6 +973,7 @@ def test_activePoolPBDs(session, host, uuid):
             return True
     return False
 
+
 def remove_mpathcount_field(session, host_ref, sr_ref, SCSIid):
     try:
         pbdref = find_my_pbd(session, host_ref, sr_ref)
@@ -904,12 +983,13 @@ def remove_mpathcount_field(session, host_ref, sr_ref, SCSIid):
     except:
         pass
 
+
 def _testHost(hostname, port, errstring):
-    SMlog("_testHost: Testing host/port: %s,%d" % (hostname,port))
+    SMlog("_testHost: Testing host/port: %s,%d" % (hostname, port))
     try:
         sockinfo = socket.getaddrinfo(hostname, int(port))[0]
     except:
-	logException('Exception occured getting IP for %s'%hostname)
+        logException('Exception occured getting IP for %s' % hostname)
         raise xs_errors.XenError('DNSError')
 
     timeout = 5
@@ -927,13 +1007,16 @@ def _testHost(hostname, port, errstring):
                    % (timeout, hostname, reason))
         raise xs_errors.XenError(errstring)
 
+
 def match_scsiID(s, id):
     regex = re.compile(id)
     return regex.search(s, 0)
 
+
 def _isSCSIid(s):
     regex = re.compile("^scsi-")
-    return regex.search(s, 0)    
+    return regex.search(s, 0)
+
 
 def test_scsiserial(session, device):
     device = os.path.realpath(device)
@@ -957,7 +1040,7 @@ def test_scsiserial(session, device):
         SMlog("util.test_scsiserial: Unable to identify scsi device [%s] via scsiID" \
                    % device)
         return False
-    
+
     try:
         SRs = session.xenapi.SR.get_all_records()
     except:
@@ -974,18 +1057,21 @@ def test_scsiserial(session, device):
                     return True
     return False
 
+
 def default(self, field, thunk):
     try:
         return getattr(self, field)
     except:
-        return thunk ()
-    
+        return thunk()
+
+
 def list_VDI_records_in_sr(sr):
     """Helper function which returns a list of all VDI records for this SR
     stored in the XenAPI server, useful for implementing SR.scan"""
     sr_ref = sr.session.xenapi.SR.get_by_uuid(sr.uuid)
     vdis = sr.session.xenapi.VDI.get_all_records_where("field \"SR\" = \"%s\"" % sr_ref)
     return vdis
+
 
 # Given a partition (e.g. sda1), get a disk name:
 def diskFromPartition(partition):
@@ -994,18 +1080,18 @@ def diskFromPartition(partition):
     if m is not None:
         return m.group(2)
 
-    numlen = 0 # number of digit characters
+    numlen = 0  # number of digit characters
     m = re.match("\D+(\d+)", partition)
     if m != None:
         numlen = len(m.group(1))
 
     # is it a cciss?
     if True in [partition.startswith(x) for x in ['cciss', 'ida', 'rd']]:
-        numlen += 1 # need to get rid of trailing 'p'
+        numlen += 1  # need to get rid of trailing 'p'
 
     # is it a mapper path?
     if partition.startswith("mapper"):
-        if re.search("p[0-9]*$",partition):
+        if re.search("p[0-9]*$", partition):
             numlen = len(re.match("\d+", partition[::-1]).group(0)) + 1
             SMlog("Found mapper part, len %d" % numlen)
         else:
@@ -1017,6 +1103,7 @@ def diskFromPartition(partition):
 
     return partition[:len(partition) - numlen]
 
+
 def dom0_disks():
     """Disks carrying dom0, e.g. ['/dev/sda']"""
     disks = []
@@ -1024,9 +1111,11 @@ def dom0_disks():
         (dev, mountpoint, fstype, opts, freq, passno) = line.split(' ')
         if mountpoint == '/':
             disk = diskFromPartition(dev)
-            if not (disk in disks): disks.append(disk)
+            if not (disk in disks):
+                disks.append(disk)
     SMlog("Dom0 disks: %s" % disks)
     return disks
+
 
 def set_scheduler_sysfs_node(node, str):
     """Set the scheduler for a sysfs node (e.g. '/sys/block/sda')"""
@@ -1044,6 +1133,7 @@ def set_scheduler_sysfs_node(node, str):
         SMlog("Error setting scheduler to [%s] on [%s]" % (str, node))
         pass
 
+
 def set_scheduler(dev, str):
     devices = []
     if not scsiutil.match_dm(dev):
@@ -1056,14 +1146,15 @@ def set_scheduler(dev, str):
     for d in devices:
         set_scheduler_sysfs_node("/sys/block/%s" % d, str)
 
+
 # This function queries XAPI for the existing VDI records for this SR
 def _getVDIs(srobj):
     VDIs = []
     try:
-        sr_ref = getattr(srobj,'sr_ref')
+        sr_ref = getattr(srobj, 'sr_ref')
     except AttributeError:
         return VDIs
-        
+
     refs = srobj.session.xenapi.SR.get_VDIs(sr_ref)
     for vdi in refs:
         ref = srobj.session.xenapi.VDI.get_record(vdi)
@@ -1071,15 +1162,18 @@ def _getVDIs(srobj):
         VDIs.append(ref)
     return VDIs
 
+
 def _getVDI(srobj, vdi_uuid):
     vdi = srobj.session.xenapi.VDI.get_by_uuid(vdi_uuid)
     ref = srobj.session.xenapi.VDI.get_record(vdi)
     ref['vdi_ref'] = vdi
     return ref
-    
+
+
 def _convertDNS(name):
-    addr = socket.getaddrinfo(name,None)[0][4][0]
+    addr = socket.getaddrinfo(name, None)[0][4][0]
     return addr
+
 
 def _containsVDIinuse(srobj):
     VDIs = _getVDIs(srobj)
@@ -1099,6 +1193,7 @@ def _containsVDIinuse(srobj):
                 pass
     return False
 
+
 def isVDICommand(cmd):
     if cmd == None or cmd in ["vdi_attach", "vdi_detach",
                               "vdi_activate", "vdi_deactivate"]:
@@ -1113,23 +1208,24 @@ def p_id_fork():
     try:
         p_id = os.fork()
     except OSError as e:
-        print("Fork failed: %s (%d)" % (e.strerror,e.errno))
+        print("Fork failed: %s (%d)" % (e.strerror, e.errno))
         sys.exit(-1)
-  
+
     if (p_id == 0):
         os.setsid()
         try:
             p_id = os.fork()
         except OSError as e:
-            print("Fork failed: %s (%d)" % (e.strerror,e.errno))
+            print("Fork failed: %s (%d)" % (e.strerror, e.errno))
             sys.exit(-1)
         if (p_id == 0):
             os.chdir('/opt/xensource/sm')
             os.umask(0)
         else:
-            os._exit(0)                             
+            os._exit(0)
     else:
         os._exit(0)
+
 
 def daemon():
     p_id_fork()
@@ -1157,7 +1253,6 @@ if __debug__:
     if __name__ == 'util' and XE_IOFI_IORETRY is not None:
         __import__('iofi')
 
-
 ################################################################################
 #
 #  Fist points
@@ -1177,9 +1272,11 @@ def _pause(secs, name):
     time.sleep(secs)
     SMlog("Executing fist point %s: done" % name)
 
+
 def _exit(name):
     SMlog("Executing fist point %s: exiting the current process ..." % name)
     raise xs_errors.XenError('FistPoint', opterr='%s' % name)
+
 
 class FistPoint:
     def __init__(self, points):
@@ -1193,23 +1290,23 @@ class FistPoint:
         return os.path.exists("/tmp/fist_%s" % name)
 
     def mark_sr(self, name, sruuid, started):
-        session=get_localAPI_session()
-        sr=session.xenapi.SR.get_by_uuid(sruuid)
+        session = get_localAPI_session()
+        sr = session.xenapi.SR.get_by_uuid(sruuid)
         if started:
-            session.xenapi.SR.add_to_other_config(sr,name,"active")
+            session.xenapi.SR.add_to_other_config(sr, name, "active")
         else:
-            session.xenapi.SR.remove_from_other_config(sr,name)
+            session.xenapi.SR.remove_from_other_config(sr, name)
 
     def activate(self, name, sruuid):
         if name in self.points:
-            if self.is_active(name): 
-                self.mark_sr(name,sruuid,True)
+            if self.is_active(name):
+                self.mark_sr(name, sruuid, True)
                 if self.is_active("LVHDRT_exit"):
-                    self.mark_sr(name,sruuid,False)
+                    self.mark_sr(name, sruuid, False)
                     _exit(name)
                 else:
-                    _pause(FIST_PAUSE_PERIOD, name) 
-                self.mark_sr(name,sruuid,False)
+                    _pause(FIST_PAUSE_PERIOD, name)
+                self.mark_sr(name, sruuid, False)
         else:
             SMlog("Unknown fist point: %s" % name)
 
@@ -1222,18 +1319,19 @@ class FistPoint:
         else:
             SMlog("Unknown fist point: %s" % name)
 
+
 def list_find(f, seq):
     for item in seq:
-        if f(item): 
+        if f(item):
             return item
 
 GCPAUSE_FISTPOINT = "GCLoop_no_pause"
 
-fistpoint = FistPoint( ["LVHDRT_finding_a_suitable_pair", 
-                        "LVHDRT_inflating_the_parent", 
-                        "LVHDRT_resizing_while_vdis_are_paused", 
-                        "LVHDRT_coalescing_VHD_data", 
-                        "LVHDRT_coalescing_before_inflate_grandparent", 
+fistpoint = FistPoint(["LVHDRT_finding_a_suitable_pair",
+                        "LVHDRT_inflating_the_parent",
+                        "LVHDRT_resizing_while_vdis_are_paused",
+                        "LVHDRT_coalescing_VHD_data",
+                        "LVHDRT_coalescing_before_inflate_grandparent",
                         "LVHDRT_relinking_grandchildren",
                         "LVHDRT_before_create_relink_journal",
                         "LVHDRT_xapiSM_serialization_tests",
@@ -1275,20 +1373,22 @@ fistpoint = FistPoint( ["LVHDRT_finding_a_suitable_pair",
                         "xenrt_default_vdi_type_legacy",
                         "blktap_activate_inject_failure",
                         "blktap_activate_error_handling",
-                        GCPAUSE_FISTPOINT] )
+                        GCPAUSE_FISTPOINT])
+
 
 def set_dirty(session, sr):
     try:
         session.xenapi.SR.add_to_other_config(sr, "dirty", "")
         SMlog("set_dirty %s succeeded" % (repr(sr)))
     except:
-        SMlog("set_dirty %s failed (flag already set?)" % (repr(sr)))        
+        SMlog("set_dirty %s failed (flag already set?)" % (repr(sr)))
+
 
 def doesFileHaveOpenHandles(fileName):
     SMlog("Entering doesFileHaveOpenHandles with file: %s" % fileName)
     (retVal, processAndPidTuples) = \
         findRunningProcessOrOpenFile(fileName, False)
-    
+
     if not retVal:
         SMlog("Failed to determine if file %s has open handles." % \
                    fileName)
@@ -1299,31 +1399,33 @@ def doesFileHaveOpenHandles(fileName):
             return True
         else:
             return False
-    
+
+
 # extract SR uuid from the passed in devmapper entry and return
 # /dev/mapper/VG_XenStorage--c3d82e92--cb25--c99b--b83a--482eebab4a93-MGT
 def extractSRFromDevMapper(path):
     try:
-        path=os.path.basename(path)
-        path=path[len('VG_XenStorage-')+1:]
-        path=path.replace('--','/')
-        path=path[0:path.rfind('-')]
-        return path.replace('/','-')
+        path = os.path.basename(path)
+        path = path[len('VG_XenStorage-') + 1:]
+        path = path.replace('--', '/')
+        path = path[0:path.rfind('-')]
+        return path.replace('/', '-')
     except:
         return ''
+
 
 # Looks at /proc and figures either
 #   If a process is still running (default), returns open file names
 #   If any running process has open handles to the given file (process = False)
 #       returns process names and pids
-def findRunningProcessOrOpenFile(name, process = True):
+def findRunningProcessOrOpenFile(name, process=True):
     retVal = True
     try:
         SMlog("Entering findRunningProcessOrOpenFile with params: %s" % \
                    [name, process])
         links = []
         processandpids = []
-        
+
         # Look at all pids
         pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
         for pid in sorted(pids):
@@ -1335,7 +1437,7 @@ def findRunningProcessOrOpenFile(name, process = True):
                     if prog:
                         # Just want the process name
                         argv = prog.split('\x00')
-                        prog =  argv[0]
+                        prog = argv[0]
                 except IOError as e:
                     if e.errno in (errno.ENOENT, errno.ESRCH):
                         SMlog("ERROR %s reading %s, ignore" % (e.errno, pid))
@@ -1343,7 +1445,7 @@ def findRunningProcessOrOpenFile(name, process = True):
             finally:
                 if f != None:
                     f.close()
-            
+
             try:
                 fd_dir = os.path.join('/proc', pid, 'fd')
                 files = os.listdir(fd_dir)
@@ -1354,7 +1456,7 @@ def findRunningProcessOrOpenFile(name, process = True):
                     continue
                 else:
                     raise
-            
+
             for file in files:
                 try:
                     link = os.readlink(os.path.join(fd_dir, file))
@@ -1371,22 +1473,23 @@ def findRunningProcessOrOpenFile(name, process = True):
                               "with pid %s" % (name, prog, pid))
                         processandpids.append((prog, pid))
     except Exception as e:
-        SMlog("Exception checking running process or open file handles. "\
+        SMlog("Exception checking running process or open file handles. " \
                    "Error: %s" % str(e))
         retVal = False
-        
+
     if process:
         return (retVal, links)
     else:
         return (retVal, processandpids)
 
+
 def retry(f, maxretry=20, period=3):
     retries = 0
     while True:
-        try:            
+        try:
             return f()
         except Exception as e:
-            SMlog("Got exception: %s. Retry number: %s" % (str(e),retries))
+            SMlog("Got exception: %s. Retry number: %s" % (str(e), retries))
 
         retries += 1
         if retries >= maxretry:
@@ -1395,6 +1498,7 @@ def retry(f, maxretry=20, period=3):
         time.sleep(period)
 
     return f()
+
 
 def getCslDevPath(svid):
     basepath = "/dev/disk/by-csldev/"
@@ -1407,6 +1511,7 @@ def getCslDevPath(svid):
 
     return globstr
 
+
 # Use device in /dev pointed to by cslg path which consists of svid
 def get_scsiid_from_svid(md_svid):
     cslg_path = getCslDevPath(md_svid)
@@ -1415,7 +1520,8 @@ def get_scsiid_from_svid(md_svid):
         real_path = os.path.realpath(abs_path[0])
         return scsiutil.getSCSIid(real_path)
     else:
-        return None 
+        return None
+
 
 def get_isl_scsiids(session):
     # Get cslg type SRs
@@ -1440,13 +1546,14 @@ def get_isl_scsiids(session):
 
     return scsi_id_ret
 
+
 class extractXVA:
-    # streams files as a set of file and checksum, caller should remove 
-    # the files, if not needed. The entire directory (Where the files 
+    # streams files as a set of file and checksum, caller should remove
+    # the files, if not needed. The entire directory (Where the files
     # and checksum) will only be deleted as part of class cleanup.
     HDR_SIZE = 512
     BLOCK_SIZE = 512
-    SIZE_LEN = 12 - 1 # To remove \0 from tail
+    SIZE_LEN = 12 - 1  # To remove \0 from tail
     SIZE_OFFSET = 124
     ZERO_FILLED_REC = 2
     NULL_IDEN = '\x00'
@@ -1454,7 +1561,7 @@ class extractXVA:
     CHECKSUM_IDEN = '.checksum'
     OVA_FILE = 'ova.xml'
 
-    # Init gunzips the file using a subprocess, and reads stdout later 
+    # Init gunzips the file using a subprocess, and reads stdout later
     # as and when needed
     def __init__(self, filename):
         self.__extract_path = ''
@@ -1476,7 +1583,7 @@ class extractXVA:
         shutil.rmtree(self.__extract_path)
 
     # Class supports Generator expression. 'for f_name, checksum in getTuple()'
-    #   returns filename, checksum content. Returns filename, '' in case  
+    #   returns filename, checksum content. Returns filename, '' in case
     #   of checksum file missing. e.g. ova.xml
     def getTuple(self):
         zerod_record = 0
@@ -1484,7 +1591,7 @@ class extractXVA:
         ret_base_f_name = ''
 
         try:
-            # Read tar file as sets of file and checksum. 
+            # Read tar file as sets of file and checksum.
             while True:
                 # Read the output of spawned process, or output of gunzip
                 f_hdr = self.spawn_p.stdout.read(self.HDR_SIZE)
@@ -1498,7 +1605,7 @@ class extractXVA:
                                extractXVA.ZERO_FILLED_REC)
                         raise Exception('Unrecognized end of file')
 
-                # Watch out for zero records, two zero records 
+                # Watch out for zero records, two zero records
                 # denote end of file.
                 if f_hdr == extractXVA.NULL_IDEN * extractXVA.HDR_SIZE:
                     zerod_record += 1
@@ -1519,12 +1626,12 @@ class extractXVA:
                             # Expects file followed by its checksum
                             SMlog('Error. Sequence mismatch starting with %s', \
                                      ret_f_name)
-                            raise Exception(\
+                            raise Exception( \
                                     'Files out of sequence starting with %s', \
                                     ret_f_name)
                     else:
-                        # In case of ova.xml, read the contents into a file and 
-                        # return the file name to the caller. For other files, 
+                        # In case of ova.xml, read the contents into a file and
+                        # return the file name to the caller. For other files,
                         # read the contents into a file, it will
                         # be used when a .checksum file is encountered.
                         ret_f_name = '%s/%s' % (self.__extract_path, f_name)
@@ -1536,7 +1643,7 @@ class extractXVA:
                         if not os.path.exists(folder_path):
                             os.mkdir(folder_path)
 
-                        # Store the file to the tmp folder, strip the tail \0 
+                        # Store the file to the tmp folder, strip the tail \0
                         f = open(ret_f_name, 'w')
                         f.write(self.spawn_p.stdout.read(f_size))
                         f.close()
@@ -1552,7 +1659,7 @@ class extractXVA:
             SMlog("Error: %s. File set extraction failed %s" % (str(e), \
                                                      self.__filename))
 
-            # Kill and Drain stdout of the gunzip process, 
+            # Kill and Drain stdout of the gunzip process,
             # else gunzip might block on stdout
             os.kill(self.spawn_p.pid, signal.SIGTERM)
             self.spawn_p.communicate()
@@ -1567,11 +1674,12 @@ illegal_xml_chars = [(0x00, 0x08), (0x0B, 0x1F), (0x7F, 0x84), (0x86, 0x9F),
                 (0xDFFFE, 0xDFFFF), (0xEFFFE, 0xEFFFF), (0xFFFFE, 0xFFFFF),
                 (0x10FFFE, 0x10FFFF)]
 
-illegal_ranges = ["%s-%s" % (unichr(low), unichr(high)) 
-        for (low, high) in illegal_xml_chars 
+illegal_ranges = ["%s-%s" % (unichr(low), unichr(high))
+        for (low, high) in illegal_xml_chars
         if low < sys.maxunicode]
 
 illegal_xml_re = re.compile(u'[%s]' % u''.join(illegal_ranges))
+
 
 def isLegalXMLString(s):
     """Tells whether this is a valid XML string (i.e. it does not contain
@@ -1583,6 +1691,7 @@ def isLegalXMLString(s):
         return None == re.search(illegal_xml_re, s)
     else:
         return True
+
 
 def unictrunc(string, max_bytes):
     """
@@ -1602,7 +1711,8 @@ def unictrunc(string, max_bytes):
             cur_bytes = cur_bytes + charsize
     return cur_bytes
 
-def hideValuesInPropMap( propmap, propnames ):
+
+def hideValuesInPropMap(propmap, propnames):
     """
     Worker function: input simple map of prop name/value pairs, and
     a list of specific propnames whose values we want to hide.
@@ -1622,20 +1732,21 @@ def hideValuesInPropMap( propmap, propnames ):
         return deepCopyRec
 
     return propmap
-
 # define the list of propnames whose value we want to hide
 
 PASSWD_PROP_KEYS = ['password', 'cifspassword', 'chappassword', 'incoming_chappassword']
 DEFAULT_SEGMENT_LEN = 950
 
-def hidePasswdInConfig( config ):
+
+def hidePasswdInConfig(config):
     """
     Function to hide passwd values in a simple prop map, 
     for example "device_config"
     """
-    return hideValuesInPropMap( config, PASSWD_PROP_KEYS )
+    return hideValuesInPropMap(config, PASSWD_PROP_KEYS)
 
-def hidePasswdInParams( params, configProp ):
+
+def hidePasswdInParams(params, configProp):
     """
     Function to hide password values in a specified property which 
     is a simple map of prop name/values, and is itself an prop entry
@@ -1643,10 +1754,11 @@ def hidePasswdInParams( params, configProp ):
     For example, param maps containing "device_config", or 
     "sm_config", etc
     """
-    params[configProp] = hideValuesInPropMap( params[configProp], PASSWD_PROP_KEYS )
+    params[configProp] = hideValuesInPropMap(params[configProp], PASSWD_PROP_KEYS)
     return params
 
-def hideMemberValuesInXmlParams( xmlParams, propnames = PASSWD_PROP_KEYS ):
+
+def hideMemberValuesInXmlParams(xmlParams, propnames=PASSWD_PROP_KEYS):
     """
     Function to hide password values in XML params, specifically 
     for the XML format of incoming params to SR modules.
@@ -1663,14 +1775,14 @@ def hideMemberValuesInXmlParams( xmlParams, propnames = PASSWD_PROP_KEYS ):
     findStrPrefixHead = "<member><name>"
     findStrPrefixTail = "</name><value>"
     findStrSuffix = "</value>"
-    strlen = len( xmlParams )
+    strlen = len(xmlParams)
 
     for propname in propnames:
         findStrPrefix = findStrPrefixHead + propname + findStrPrefixTail
-        idx = xmlParams.find( findStrPrefix )
+        idx = xmlParams.find(findStrPrefix)
         if idx != -1:                           # if found any of them
-            idx += len( findStrPrefix )
-            idx2 = xmlParams.find( findStrSuffix, idx );
+            idx += len(findStrPrefix)
+            idx2 = xmlParams.find(findStrSuffix, idx)
             if idx2 != -1:
                 retStr = xmlParams[0:idx]
                 retStr += "******"
@@ -1680,7 +1792,8 @@ def hideMemberValuesInXmlParams( xmlParams, propnames = PASSWD_PROP_KEYS ):
                 return xmlParams
     return xmlParams
 
-def splitXmlText( xmlData, segmentLen = DEFAULT_SEGMENT_LEN, showContd = False ):
+
+def splitXmlText(xmlData, segmentLen=DEFAULT_SEGMENT_LEN, showContd=False):
     """
     Split xml string data into substrings small enough for the
     syslog line length limit. Split at tag end markers ( ">" ).
@@ -1688,13 +1801,13 @@ def splitXmlText( xmlData, segmentLen = DEFAULT_SEGMENT_LEN, showContd = False )
         strList = []
         strList = splitXmlText( longXmlText, maxLineLen )   # maxLineLen is optional
     """
-    remainingData = str( xmlData )
+    remainingData = str(xmlData)
 
     # "Un-pretty-print"
-    remainingData = remainingData.replace( '\n', '' )
-    remainingData = remainingData.replace( '\t', '' )
+    remainingData = remainingData.replace('\n', '')
+    remainingData = remainingData.replace('\t', '')
 
-    remainingChars = len( remainingData )
+    remainingChars = len(remainingData)
     returnData = ''
 
     thisLineNum = 0
@@ -1702,13 +1815,13 @@ def splitXmlText( xmlData, segmentLen = DEFAULT_SEGMENT_LEN, showContd = False )
         thisLineNum = thisLineNum + 1
         index = segmentLen
         tmpStr = remainingData[:segmentLen]
-        tmpIndex = tmpStr.rfind( '>' )
+        tmpIndex = tmpStr.rfind('>')
         if tmpIndex != -1:
-            index = tmpIndex+1
+            index = tmpIndex + 1
 
         tmpStr = tmpStr[:index]
         remainingData = remainingData[index:]
-        remainingChars = len( remainingData )
+        remainingChars = len(remainingData)
 
         if showContd:
             if thisLineNum != 1:
@@ -1723,8 +1836,10 @@ def splitXmlText( xmlData, segmentLen = DEFAULT_SEGMENT_LEN, showContd = False )
 
     return returnData
 
+
 def inject_failure():
     raise Exception('injected failure')
+
 
 def open_atomic(path, mode=None):
     """Atomically creates a file if, and only if it does not already exist.
@@ -1752,14 +1867,17 @@ def open_atomic(path, mode=None):
         os.close(fd)
         raise
 
+
 def isInvalidVDI(exception):
     return exception.details[0] == "HANDLE_INVALID" or \
             exception.details[0] == "UUID_INVALID"
+
 
 def get_pool_restrictions(session):
     """Returns pool restrictions as a map, @session must be already
     established."""
     return session.xenapi.pool.get_all_records().values()[0]['restrictions']
+
 
 def read_caching_is_restricted(session):
     """Tells whether read caching is restricted."""
@@ -1771,12 +1889,12 @@ def read_caching_is_restricted(session):
         return True
     return False
 
+
 def sessions_less_than_targets(other_config, device_config):
     if 'multihomelist' in device_config and 'iscsi_sessions' in other_config:
         sessions = int(other_config['iscsi_sessions'])
         targets = len(device_config['multihomelist'].split(','))
-        SMlog("Targets %d and iscsi_sessions %d" %(targets, sessions))
+        SMlog("Targets %d and iscsi_sessions %d" % (targets, sessions))
         return (sessions < targets)
     else:
         return False
-

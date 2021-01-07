@@ -6,6 +6,7 @@ import unittest
 import xs_errors
 import testlib
 
+
 class FakeFCoESR(LVHDoFCoESR.LVHDoFCoESR):
     uuid = None
     sr_ref = None
@@ -21,11 +22,12 @@ class FakeFCoESR(LVHDoFCoESR.LVHDoFCoESR):
         self.sr_ref = sr_ref
         self.host_ref = host_ref
 
+
 class TestFCoESR(unittest.TestCase):
 
     def create_fcoesr(self, path="/dev/example", SCSIid="abcd",
-                      sr_uuid='asr_uuid', type="None", session = "sesion",
-                      sr_ref = "sr", host_ref = "host", params={}):
+                      sr_uuid='asr_uuid', type="None", session="sesion",
+                      sr_ref="sr", host_ref="host", params={}):
         srcmd = mock.Mock()
         srcmd.params = params
         srcmd.dconf = {
@@ -44,7 +46,7 @@ class TestFCoESR(unittest.TestCase):
     @testlib.with_context
     def test_load_no_scsiid(self, context, print_devs, find_my_pbd, driver):
         context.setup_error_codes()
-        find_my_pbd.return_value = ['pbd_ref','pbd']
+        find_my_pbd.return_value = ['pbd_ref', 'pbd']
         parameters = {}
         parameters['device_config'] = ""
         self.assertRaises(SR.SROSError, self.create_fcoesr, SCSIid="", params=parameters)
@@ -54,7 +56,7 @@ class TestFCoESR(unittest.TestCase):
     @mock.patch('SR.SR._pathrefresh', autospec=True)
     @mock.patch('LVHDoFCoESR.LVHDSR.LVHDSR.load', autospec=True)
     def test_load_scsiid(self, lvhdsrload, pathrefresh, find_my_pbd, driver):
-        find_my_pbd.return_value = ['pbd_ref','pbd']
+        find_my_pbd.return_value = ['pbd_ref', 'pbd']
         parameters = {}
         parameters['device_config'] = ""
         self.create_fcoesr(params=parameters)
@@ -79,6 +81,7 @@ class TestFCoESR(unittest.TestCase):
         parameters = {}
         parameters['device_config'] = ""
         fcoesr = self.create_fcoesr(params=parameters)
+
         def mock_init(self, sr, sr_uuid):
             pass
         with mock.patch('LVHDoFCoESR.LVHDoHBASR.LVHDoHBAVDI.__init__', new=mock_init):

@@ -17,7 +17,10 @@
 #
 # SMBSR: SMB filesystem based storage repository
 
-import SR, SRCommand, FileSR, util
+import SR
+import SRCommand
+import FileSR
+import util
 import errno
 import os
 import xmlrpclib
@@ -27,16 +30,16 @@ from lock import Lock
 import cleanup
 import cifutils
 
-CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_CACHING",
-                "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH",
-                "VDI_UPDATE", "VDI_CLONE","VDI_SNAPSHOT","VDI_RESIZE","VDI_MIRROR",
+CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_CACHING",
+                "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
+                "VDI_UPDATE", "VDI_CLONE", "VDI_SNAPSHOT", "VDI_RESIZE", "VDI_MIRROR",
                 "VDI_GENERATE_CONFIG",
                 "VDI_RESET_ON_BOOT/2", "ATOMIC_PAUSE", "VDI_CONFIG_CBT",
                 "VDI_ACTIVATE", "VDI_DEACTIVATE", "THIN_PROVISIONING", "VDI_READ_CACHING"]
 
-CONFIGURATION = [ [ 'server', 'Full path to share root on SMB server (required)' ], \
-                  [ 'username', 'The username to be used during SMB authentication' ], \
-                  [ 'password', 'The password to be used during SMB authentication' ] ]
+CONFIGURATION = [['server', 'Full path to share root on SMB server (required)'], \
+                  ['username', 'The username to be used during SMB authentication'], \
+                  ['password', 'The password to be used during SMB authentication']]
 
 DRIVER_INFO = {
     'name': 'SMB VHD',
@@ -55,9 +58,11 @@ DRIVER_CONFIG = {"ATTACH_FROM_CONFIG_WITH_TAPDISK": True}
 # are guaranteed to be serialised by xapi, so this single mountpoint is fine.
 PROBE_MOUNTPOINT = os.path.join(SR.MOUNT_BASE, "probe")
 
+
 class SMBException(Exception):
     def __init__(self, errstr):
         self.errstr = errstr
+
 
 # server = //smb-server/vol1 - ie the export path on the SMB server
 # mountpoint = /var/run/sr-mount/SMB/<smb_server_name>/<share_name>/uuid
@@ -65,6 +70,7 @@ class SMBException(Exception):
 # path = /var/run/sr-mount/uuid - symlink to SR directory on share
 class SMBSR(FileSR.FileSR):
     """SMB file-based storage repository"""
+
     def handles(type):
         return type == 'smb'
     handles = staticmethod(handles)
@@ -77,7 +83,7 @@ class SMBSR(FileSR.FileSR):
         if 'server' not in self.dconf:
             raise xs_errors.XenError('ConfigServerMissing')
         self.remoteserver = self.dconf['server']
-        if self.sr_ref and self.session is not None :
+        if self.sr_ref and self.session is not None:
             self.sm_config = self.session.xenapi.SR.get_sm_config(self.sr_ref)
         else:
             self.sm_config = self.srcmd.params.get('sr_sm_config') or {}
@@ -92,7 +98,7 @@ class SMBSR(FileSR.FileSR):
 
     def checkmount(self):
         return util.ioretry(lambda: ((util.pathexists(self.mountpoint) and \
-				util.ismount(self.mountpoint)) and \
+                util.ismount(self.mountpoint)) and \
                                 util.pathexists(self.linkpath)))
 
     def makeMountPoint(self, mountpoint):
@@ -150,14 +156,13 @@ class SMBSR(FileSR.FileSR):
         ]
 
         if domain:
-            options.append('domain='+domain)
+            options.append('domain=' + domain)
 
         if not cifutils.containsCredentials(self.dconf):
             # No login details provided.
-	    options.append('guest')
+            options.append('guest')
 
         return options
-
 
     def unmount(self, mountpoint, rmmountpoint):
         """Unmount the remote SMB export at 'mountpoint'"""
@@ -208,7 +213,7 @@ class SMBSR(FileSR.FileSR):
             raise
 
         # Create a dictionary from the SR uuids to feed SRtoXML()
-        sr_dict = {sr_uuid : {} for sr_uuid in sr_list}
+        sr_dict = {sr_uuid: {} for sr_uuid in sr_list}
 
         return util.SRtoXML(sr_dict)
 
@@ -282,24 +287,25 @@ class SMBSR(FileSR.FileSR):
             if inst.code != errno.ENOENT:
                 raise xs_errors.XenError('SMBDelete')
 
-    def vdi(self, uuid, loadLocked = False):
+    def vdi(self, uuid, loadLocked=False):
         if not loadLocked:
             return SMBFileVDI(self, uuid)
         return SMBFileVDI(self, uuid)
 
+
 class SMBFileVDI(FileSR.FileVDI):
     def attach(self, sr_uuid, vdi_uuid):
-        if not hasattr(self,'xenstore_data'):
+        if not hasattr(self, 'xenstore_data'):
             self.xenstore_data = {}
-            
-        self.xenstore_data["storage-type"]="smb"
+
+        self.xenstore_data["storage-type"] = "smb"
 
         return super(SMBFileVDI, self).attach(sr_uuid, vdi_uuid)
 
     def generate_config(self, sr_uuid, vdi_uuid):
         util.SMlog("SMBFileVDI.generate_config")
         if not util.pathexists(self.path):
-                raise xs_errors.XenError('VDIUnavailable')
+            raise xs_errors.XenError('VDIUnavailable')
         resp = {}
         resp['device_config'] = self.sr.dconf
         resp['sr_uuid'] = sr_uuid
@@ -309,7 +315,7 @@ class SMBFileVDI(FileSR.FileVDI):
         # Return the 'config' encoded within a normal XMLRPC response so that
         # we can use the regular response/error parsing code.
         config = xmlrpclib.dumps(tuple([resp]), "vdi_attach_from_config")
-        return xmlrpclib.dumps((config,), "", True)
+        return xmlrpclib.dumps((config, ), "", True)
 
     def attach_from_config(self, sr_uuid, vdi_uuid):
         """Used for HA State-file only. Will not just attach the VDI but

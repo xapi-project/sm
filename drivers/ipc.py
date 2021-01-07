@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -22,8 +22,10 @@ import os
 import util
 import errno
 
+
 class IPCFlagException(util.SMException):
     pass
+
 
 class IPCFlag:
     """Flag-based communication for processes (set, test, clear).
@@ -50,7 +52,7 @@ class IPCFlag:
         trying to set create, the file MAY be overwritten.
 
         returns: True if the file is written, False otherwise."""
-        if not soft and self.test(name): # XXX this is broken!
+        if not soft and self.test(name):  # XXX this is broken!
             return
         flagFile = os.path.join(self.nsDir, name)
         try:
@@ -93,6 +95,7 @@ class IPCFlag:
                 os.unlink(path)
         except OSError:
             raise IPCFlagException("failed to remove %s" % path)
+
 
 def _runTests():
     flag = IPCFlag("A")

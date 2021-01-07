@@ -1,10 +1,12 @@
 import optparse
 import sys
 
+
 class TestOptParse(optparse.OptionParser):
     """ Override the default exit and error functions so that they don't print
     to stderr during the tests
     """
+
     def exit(self, status=0, msg=None):
         sys.exit(status)
 

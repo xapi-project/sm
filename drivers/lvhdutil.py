@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -19,7 +19,6 @@
 that live in LV's."""
 from __future__ import print_function
 
-
 import os
 import sys
 import time
@@ -29,19 +28,18 @@ import vhdutil
 from lock import Lock
 from refcounter import RefCounter
 
-
-MSIZE_MB = 2 * 1024 * 1024 # max virt size for fast resize
+MSIZE_MB = 2 * 1024 * 1024  # max virt size for fast resize
 MSIZE = long(MSIZE_MB * 1024 * 1024)
 
 VG_LOCATION = "/dev"
 VG_PREFIX = "VG_XenStorage-"
 LVM_SIZE_INCREMENT = 4 * 1024 * 1024
 
-LV_PREFIX = { 
-        vhdutil.VDI_TYPE_VHD : "VHD-",
-        vhdutil.VDI_TYPE_RAW : "LV-",
+LV_PREFIX = {
+        vhdutil.VDI_TYPE_VHD: "VHD-",
+        vhdutil.VDI_TYPE_RAW: "LV-",
 }
-VDI_TYPES = [ vhdutil.VDI_TYPE_VHD, vhdutil.VDI_TYPE_RAW ]
+VDI_TYPES = [vhdutil.VDI_TYPE_VHD, vhdutil.VDI_TYPE_RAW]
 
 JRN_INFLATE = "inflate"
 
@@ -53,17 +51,18 @@ LOCK_RETRY_ATTEMPTS = 20
 # on the master
 NS_PREFIX_LVM = "lvm-"
 
+
 class VDIInfo:
-    uuid       = ""
-    scanError  = False
-    vdiType    = None
-    lvName     = ""
-    sizeLV     = -1
-    sizeVirt   = -1
-    lvActive   = False
-    lvOpen     = False
+    uuid = ""
+    scanError = False
+    vdiType = None
+    lvName = ""
+    sizeLV = -1
+    sizeVirt = -1
+    lvActive = False
+    lvOpen = False
     lvReadonly = False
-    hidden     = False
+    hidden = False
     parentUuid = ""
 
     def __init__(self, uuid):
@@ -79,6 +78,7 @@ def matchLV(lvName):
             return (vdiType, lvName.replace(prefix, ""))
     return (None, None)
 
+
 def extractUuid(path):
     uuid = os.path.basename(path)
     if uuid.startswith(VG_PREFIX):
@@ -93,17 +93,20 @@ def extractUuid(path):
             return uuid
     return None
 
+
 def calcSizeLV(sizeVHD):
     return util.roundup(LVM_SIZE_INCREMENT, sizeVHD)
 
+
 def calcSizeVHDLV(sizeVirt):
-    # all LVHD VDIs have the metadata area preallocated for the maximum 
+    # all LVHD VDIs have the metadata area preallocated for the maximum
     # possible virtual size (for fast online VDI.resize)
     metaOverhead = vhdutil.calcOverheadEmpty(MSIZE)
     bitmapOverhead = vhdutil.calcOverheadBitmap(sizeVirt)
     return calcSizeLV(sizeVirt + metaOverhead + bitmapOverhead)
 
-def getLVInfo(lvmCache, lvName = None):
+
+def getLVInfo(lvmCache, lvName=None):
     """Load LV info for all LVs in the VG or an individual LV. 
     This is a wrapper for lvutil.getLVInfo that filters out LV's that
     are not LVHD VDI's and adds the vdi_type information"""
@@ -118,6 +121,7 @@ def getLVInfo(lvmCache, lvName = None):
         lvs[uuid] = lv
     return lvs
 
+
 def getVDIInfo(lvmCache):
     """Load VDI info (both LV and if the VDI is not raw, VHD info)"""
     vdis = {}
@@ -128,15 +132,15 @@ def getVDIInfo(lvmCache):
         if lvInfo.vdiType == vhdutil.VDI_TYPE_VHD:
             haveVHDs = True
         vdiInfo = VDIInfo(uuid)
-        vdiInfo.vdiType    = lvInfo.vdiType
-        vdiInfo.lvName     = lvInfo.name
-        vdiInfo.sizeLV     = lvInfo.size
-        vdiInfo.sizeVirt   = lvInfo.size
-        vdiInfo.lvActive   = lvInfo.active
-        vdiInfo.lvOpen     = lvInfo.open
+        vdiInfo.vdiType = lvInfo.vdiType
+        vdiInfo.lvName = lvInfo.name
+        vdiInfo.sizeLV = lvInfo.size
+        vdiInfo.sizeVirt = lvInfo.size
+        vdiInfo.lvActive = lvInfo.active
+        vdiInfo.lvOpen = lvInfo.open
         vdiInfo.lvReadonly = lvInfo.readonly
-        vdiInfo.hidden     = lvInfo.hidden
-        vdis[uuid]         = vdiInfo
+        vdiInfo.hidden = lvInfo.hidden
+        vdis[uuid] = vdiInfo
 
     if haveVHDs:
         pattern = "%s*" % LV_PREFIX[vhdutil.VDI_TYPE_VHD]
@@ -157,10 +161,11 @@ def getVDIInfo(lvmCache):
                     util.SMlog("*** vhd-scan error: %s" % uuid)
                     vdis[uuid].scanError = True
                 else:
-                    vdis[uuid].sizeVirt   = vhds[uuid].sizeVirt
+                    vdis[uuid].sizeVirt = vhds[uuid].sizeVirt
                     vdis[uuid].parentUuid = vhds[uuid].parentUuid
-                    vdis[uuid].hidden     = vhds[uuid].hidden
+                    vdis[uuid].hidden = vhds[uuid].hidden
     return vdis
+
 
 def inflate(journaler, srUuid, vdiUuid, size):
     """Expand a VDI LV (and its VHD) to 'size'. If the LV is already bigger
@@ -175,16 +180,17 @@ def inflate(journaler, srUuid, vdiUuid, size):
     if newSize <= currSizeLV:
         return
     journaler.create(JRN_INFLATE, vdiUuid, str(currSizeLV))
-    util.fistpoint.activate("LVHDRT_inflate_after_create_journal",srUuid)
+    util.fistpoint.activate("LVHDRT_inflate_after_create_journal", srUuid)
     lvmCache.setSize(lvName, newSize)
-    util.fistpoint.activate("LVHDRT_inflate_after_setSize",srUuid)
+    util.fistpoint.activate("LVHDRT_inflate_after_setSize", srUuid)
     if not util.zeroOut(path, newSize - vhdutil.VHD_FOOTER_SIZE,
             vhdutil.VHD_FOOTER_SIZE):
         raise Exception('failed to zero out VHD footer')
-    util.fistpoint.activate("LVHDRT_inflate_after_zeroOut",srUuid)
+    util.fistpoint.activate("LVHDRT_inflate_after_zeroOut", srUuid)
     vhdutil.setSizePhys(path, newSize, False)
-    util.fistpoint.activate("LVHDRT_inflate_after_setSizePhys",srUuid)
+    util.fistpoint.activate("LVHDRT_inflate_after_setSizePhys", srUuid)
     journaler.remove(JRN_INFLATE, vdiUuid)
+
 
 def deflate(lvmCache, lvName, size):
     """Shrink the LV and the VHD on it to 'size'. Does not change the 
@@ -198,6 +204,7 @@ def deflate(lvmCache, lvName, size):
     vhdutil.setSizePhys(path, newSize)
     lvmCache.setSize(lvName, newSize)
 
+
 def setSizeVirt(journaler, srUuid, vdiUuid, size, jFile):
     """When resizing the VHD virtual size, we might have to inflate the LV in
     case the metadata size increases"""
@@ -206,6 +213,7 @@ def setSizeVirt(journaler, srUuid, vdiUuid, size, jFile):
     path = os.path.join(VG_LOCATION, vgName, lvName)
     inflate(journaler, srUuid, vdiUuid, calcSizeVHDLV(size))
     vhdutil.setSizeVirt(path, size, jFile)
+
 
 def _tryAcquire(lock):
     """We must give up if the SR is locked because it could be locked by the
@@ -217,6 +225,7 @@ def _tryAcquire(lock):
             return
         time.sleep(1)
     raise util.SRBusyException()
+
 
 def attachThin(journaler, srUuid, vdiUuid):
     """Ensure that the VDI LV is expanded to the fully-allocated size"""
@@ -237,6 +246,7 @@ def attachThin(journaler, srUuid, vdiUuid):
     finally:
         lvmCache.deactivate(NS_PREFIX_LVM + srUuid, vdiUuid, lvName, False)
     lock.release()
+
 
 def detachThin(session, lvmCache, srUuid, vdiUuid):
     """Shrink the VDI to the minimal size if no one is using it"""
@@ -264,16 +274,19 @@ def detachThin(session, lvmCache, srUuid, vdiUuid):
         lvmCache.deactivate(NS_PREFIX_LVM + srUuid, vdiUuid, lvName, False)
     lock.release()
 
+
 def createVHDJournalLV(lvmCache, jName, size):
     """Create a LV to hold a VHD journal"""
     lvName = "%s_%s" % (JVHD_TAG, jName)
     lvmCache.create(lvName, size, JVHD_TAG)
     return os.path.join(lvmCache.vgPath, lvName)
 
+
 def deleteVHDJournalLV(lvmCache, jName):
     """Delete a VHD journal LV"""
     lvName = "%s_%s" % (JVHD_TAG, jName)
     lvmCache.remove(lvName)
+
 
 def getAllVHDJournals(lvmCache):
     """Get a list of all VHD journals in VG vgName as (jName,jFile) pairs"""
@@ -284,26 +297,29 @@ def getAllVHDJournals(lvmCache):
         journals.append((jName, lvName))
     return journals
 
+
 def lvRefreshOnSlaves(session, srUuid, vgName, lvName, vdiUuid, slaves):
-    args = {"vgName" : vgName,
+    args = {"vgName": vgName,
             "action1": "activate",
-            "uuid1"  : vdiUuid,
-            "ns1"    : NS_PREFIX_LVM + srUuid,
+            "uuid1": vdiUuid,
+            "ns1": NS_PREFIX_LVM + srUuid,
             "lvName1": lvName,
             "action2": "refresh",
             "lvName2": lvName,
             "action3": "deactivate",
-            "uuid3"  : vdiUuid,
-            "ns3"    : NS_PREFIX_LVM + srUuid,
+            "uuid3": vdiUuid,
+            "ns3": NS_PREFIX_LVM + srUuid,
             "lvName3": lvName}
     for slave in slaves:
         util.SMlog("Refreshing %s on slave %s" % (lvName, slave))
         text = session.xenapi.host.call_plugin(slave, "on-slave", "multi", args)
         util.SMlog("call-plugin returned: '%s'" % text)
 
+
 def lvRefreshOnAllSlaves(session, srUuid, vgName, lvName, vdiUuid):
     slaves = util.get_all_slaves(session)
     lvRefreshOnSlaves(session, srUuid, vgName, lvName, vdiUuid, slaves)
+
 
 def setInnerNodeRefcounts(lvmCache, srUuid):
     """[Re]calculate and set the refcounts for inner VHD nodes based on
@@ -320,7 +336,7 @@ def setInnerNodeRefcounts(lvmCache, srUuid):
     ns = NS_PREFIX_LVM + srUuid
     for uuid, vdi in vdiInfo.iteritems():
         if vdi.hidden:
-            continue # only read leaf refcounts
+            continue  # only read leaf refcounts
         refcount = RefCounter.check(uuid, ns)
         assert(refcount == (0, 0) or refcount == (0, 1))
         if refcount[1]:
@@ -328,7 +344,7 @@ def setInnerNodeRefcounts(lvmCache, srUuid):
             while vdi.parentUuid:
                 vdi = vdiInfo[vdi.parentUuid]
                 vdi.refcount += 1
-    
+
     pathsNotInUse = []
     for uuid, vdi in vdiInfo.iteritems():
         if vdi.hidden:

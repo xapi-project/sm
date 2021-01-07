@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -17,20 +17,24 @@
 #
 # ISOSR: remote iso storage repository
 
-import SR, VDI, SRCommand, util
+import SR
+import VDI
+import SRCommand
+import util
 import nfs
-import os, re
+import os
+import re
 import xs_errors
 import cifutils
 
-CAPABILITIES = ["VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH", 
+CAPABILITIES = ["VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
                 "SR_SCAN", "SR_ATTACH", "SR_DETACH"]
 
 CONFIGURATION = \
-    [ [ 'location', 'path to mount (required) (e.g. server:/path)' ], 
-      [ 'options', 
-        'extra options to pass to mount (deprecated) (e.g. \'-o ro\')' ],
-      [ 'type','cifs or nfs'],
+    [['location', 'path to mount (required) (e.g. server:/path)'],
+      ['options',
+        'extra options to pass to mount (deprecated) (e.g. \'-o ro\')'],
+      ['type', 'cifs or nfs'],
       nfs.NFS_VERSION]
 
 DRIVER_INFO = {
@@ -49,6 +53,7 @@ SMB_VERSION_1 = '1.0'
 SMB_VERSION_3 = '3.0'
 NFSPORT = 2049
 
+
 def is_image_utf8_compatible(s):
     regex = re.compile("\.iso$|\.img$", re.I)
     if regex.search(s) == None:
@@ -61,7 +66,8 @@ def is_image_utf8_compatible(s):
         except UnicodeDecodeError as e:
             util.SMlog("WARNING: This string is not UTF-8 compatible.")
             return False
-    return True 
+    return True
+
 
 def tools_iso_name(filename):
     # The tools ISO used have a "xs-" prefix in its name.
@@ -71,10 +77,11 @@ def tools_iso_name(filename):
     else:
         return "guest-tools.iso"
 
+
 class ISOSR(SR.SR):
     """Local file storage repository"""
 
-# Some helper functions:
+    # Some helper functions:
     def _checkmount(self):
         """Checks that the mountpoint exists and is mounted"""
         if not util.pathexists(self.mountpoint):
@@ -90,9 +97,9 @@ class ISOSR(SR.SR):
             return
         if self.dconf['type'] == 'cifs':
             tgt = ''
-            if re.search('^//',location):
+            if re.search('^//', location):
                 tgt = location.split('/')[2]
-            elif re.search(r'^\\',location):
+            elif re.search(r'^\\', location):
                 l = location.split('\\')
                 for i in location.split('\\'):
                     if i:
@@ -112,6 +119,7 @@ class ISOSR(SR.SR):
 
     uuid_file_regex = re.compile(
         "([0-9a-f]{8}-(([0-9a-f]{4})-){3}[0-9a-f]{12})\.(iso|img)", re.I)
+
     def _loadvdis(self):
         """Scan the directory and get uuids either from the VDI filename, \
         or by creating a new one."""
@@ -119,8 +127,8 @@ class ISOSR(SR.SR):
             return
 
         for name in filter(is_image_utf8_compatible,
-                util.listdir(self.path, quiet = True)):
-	    fileName = self.path + "/" + name
+                util.listdir(self.path, quiet=True)):
+            fileName = self.path + "/" + name
             if os.path.isdir(fileName):
                 util.SMlog("_loadvdis : %s is a directory. Ignore" % fileName)
                 continue
@@ -131,7 +139,7 @@ class ISOSR(SR.SR):
                 name.decode('ascii')
             except UnicodeDecodeError:
                 raise xs_errors.XenError('CIFSExtendedCharsNotSupported', \
-                        opterr = 'The repository contains at least one file whose name consists of extended characters.')
+                        opterr='The repository contains at least one file whose name consists of extended characters.')
 
             self.vdis[name] = ISOVDI(self, name)
             # Set the VDI UUID if the filename is of the correct form.
@@ -153,7 +161,7 @@ class ISOSR(SR.SR):
                     vdi.sm_config['created'] = sm_config['created']
                     vdi.read_only = False
 
-# Now for the main functions:    
+# Now for the main functions:
     def handles(type):
         """Do we handle this type?"""
         if type == TYPE:
@@ -162,10 +170,11 @@ class ISOSR(SR.SR):
     handles = staticmethod(handles)
 
     def content_type(self, sr_uuid):
-        """Returns the content_type XML""" 
+        """Returns the content_type XML"""
         return super(ISOSR, self).content_type(sr_uuid)
 
     vdi_path_regex = re.compile("[a-z0-9.-]+\.(iso|img)", re.I)
+
     def vdi(self, uuid):
         """Create a VDI class.  If the VDI does not exist, we determine
         here what its filename should be."""
@@ -178,9 +187,10 @@ class ISOSR(SR.SR):
                 import XenAPI
                 _VDI = self.session.xenapi.VDI
                 try:
-                    vdi_ref  = _VDI.get_by_uuid(uuid)
+                    vdi_ref = _VDI.get_by_uuid(uuid)
                 except XenAPI.Failure as e:
-                    if e.details[0] != 'UUID_INVALID': raise
+                    if e.details[0] != 'UUID_INVALID':
+                        raise
                 else:
                     filename = _VDI.get_location(vdi_ref)
 
@@ -210,12 +220,12 @@ class ISOSR(SR.SR):
             # Verify the target address
             self._checkTargetStr(self.dconf['location'])
             self.mountpoint = os.path.join(SR.MOUNT_BASE, sr_uuid)
-            
+
         # Add on the iso_path value if there is one
         if "iso_path" in self.dconf:
             iso_path = util.to_plain_string(self.dconf['iso_path'])
             if iso_path.startswith("/"):
-                iso_path=iso_path[1:]
+                iso_path = iso_path[1:]
             self.path = os.path.join(self.mountpoint, iso_path)
         else:
             self.path = self.mountpoint
@@ -234,7 +244,7 @@ class ISOSR(SR.SR):
 
     def delete(self, sr_uuid):
         pass
- 
+
     def attach(self, sr_uuid):
         """Std. attach"""
         # Very-Legacy mode means the ISOs are in the local fs - so no need to attach.
@@ -243,7 +253,7 @@ class ISOSR(SR.SR):
             if not os.path.exists(self.mountpoint):
                 raise xs_errors.XenError('ISOLocalPath')
             return
-        
+
         # Check whether we're already mounted
         if self._checkmount():
             return
@@ -252,7 +262,7 @@ class ISOSR(SR.SR):
         if not util.isdir(self.mountpoint):
             util.makedirs(self.mountpoint)
 
-        mountcmd=[]
+        mountcmd = []
         location = util.to_plain_string(self.dconf['location'])
         # TODO: Have XC standardise iso type string
         protocol = 'nfs_iso'
@@ -267,7 +277,7 @@ class ISOSR(SR.SR):
             options = self.dconf['options'].split(' ')
             if protocol == 'cifs':
                 options = filter(lambda x: x != "", options)
-            else: 
+            else:
                 options = self.getNFSOptions(options)
 
         # SMB options are passed differently for create via
@@ -278,7 +288,7 @@ class ISOSR(SR.SR):
             if 'type' in self.dconf:
                 # Create via XC or sr-create
                 # Check for username and password
-                mountcmd=["mount.cifs", location, self.mountpoint]
+                mountcmd = ["mount.cifs", location, self.mountpoint]
                 if 'vers' in self.dconf:
                     self.is_smbversion_specified = True
                     self.smbversion = self.dconf['vers']
@@ -358,7 +368,7 @@ class ISOSR(SR.SR):
         # Check the iso_path is accessible
         if not self._checkmount():
             self.detach(sr_uuid)
-            raise xs_errors.XenError('ISOSharenameFailure')                        
+            raise xs_errors.XenError('ISOSharenameFailure')
 
     def after_master_attach(self, uuid):
         """Perform actions required after attaching on the pool master
@@ -457,23 +467,23 @@ class ISOSR(SR.SR):
         """Std. detach"""
         # This handles legacy mode too, so no need to check
         if not self._checkmount():
-            return 
- 
+            return
+
         try:
-            util.pread(["umount", self.mountpoint]);
+            util.pread(["umount", self.mountpoint])
         except util.CommandException as inst:
             raise xs_errors.XenError('NFSUnMount', \
-                                         opterr = 'error is %d' % inst.code)
+                                         opterr='error is %d' % inst.code)
 
     def scan(self, sr_uuid):
         """Scan: see _loadvdis"""
         if not util.isdir(self.path):
             raise xs_errors.XenError('SRUnavailable', \
-                    opterr = 'no such directory %s' % self.path)            
+                    opterr='no such directory %s' % self.path)
 
         if ('legacy_mode' not in self.dconf) and (not self._checkmount()):
             raise xs_errors.XenError('SRUnavailable', \
-                    opterr = 'directory not mounted: %s' % self.path) 
+                    opterr='directory not mounted: %s' % self.path)
 
         #try:
         if not self.vdis:
@@ -514,7 +524,6 @@ class ISOSR(SR.SR):
                     if "xs-tools" in vdi.sm_config:
                         del vdi.sm_config['xs-tools']
 
-
             # Synchronise the VDIs: this will update the sm_config maps of current records
             scanrecord = SR.ScanRecord(self)
             scanrecord.synchronise_new()
@@ -544,7 +553,7 @@ class ISOSR(SR.SR):
                     self.session.xenapi.VDI.set_name_label(vdi, "Old version of " + name_label)
                 # Mark it as missing for informational purposes only
                 self.session.xenapi.VDI.set_missing(vdi, True)
-                self.session.xenapi.VDI.remove_from_sm_config(vdi, 'xs-tools' )
+                self.session.xenapi.VDI.remove_from_sm_config(vdi, 'xs-tools')
 
         else:
             return super(ISOSR, self).scan(sr_uuid)
@@ -558,13 +567,13 @@ class ISOSR(SR.SR):
 
         # CA-80254: Check for iso/img files whose name consists of extended
         # characters.
-        for f in util.listdir(self.path, quiet = True):
+        for f in util.listdir(self.path, quiet=True):
             if is_image_utf8_compatible(f):
                 try:
                     f.decode('ascii')
                 except UnicodeDecodeError:
                     raise xs_errors.XenError('CIFSExtendedCharsNotSupported',
-                            opterr = 'The repository contains at least one file whose name consists of extended characters.')
+                            opterr='The repository contains at least one file whose name consists of extended characters.')
 
         self.detach(sr_uuid)
 
@@ -587,7 +596,7 @@ class ISOVDI(VDI.VDI):
         VDI.VDI.__init__(self, mysr, None)
         self.location = filename
         self.filename = filename
-        self.read_only = True                
+        self.read_only = True
         self.label = filename
         self.sm_config = {}
         if "legacy_mode" in mysr.dconf:
@@ -596,18 +605,18 @@ class ISOVDI(VDI.VDI):
                 # Mark this as a Tools CD
                 # self.sm_config['xs-tools'] = 'true'
                 # Extract a version string, if present
-                vsn = filename[filename.find("tools")+len("tools"):][:-len(".iso")].strip("-").split("-",1)
+                vsn = filename[filename.find("tools") + len("tools"):][:-len(".iso")].strip("-").split("-", 1)
                 # "4.1.0"
                 if len(vsn) == 1:
-                    build_number="0" # string
-                    product_version=vsn[0]
+                    build_number = "0"  # string
+                    product_version = vsn[0]
                 # "4.1.0-1234"
                 elif len(vsn) > 1:
-                    build_number=vsn[1]
-                    product_version=vsn[0]
+                    build_number = vsn[1]
+                    product_version = vsn[0]
                 else:
-                    build_number=0
-                    product_version="unknown"
+                    build_number = 0
+                    product_version = "unknown"
                 util.SMlog("version=%s build=%s" % (product_version, build_number))
                 self.sm_config['xs-tools-version'] = product_version
                 self.sm_config['xs-tools-build'] = build_number
@@ -617,7 +626,7 @@ class ISOVDI(VDI.VDI):
 
     def attach(self, sr_uuid, vdi_uuid):
         try:
-            os.stat(self.path)        
+            os.stat(self.path)
             return super(ISOVDI, self).attach(sr_uuid, vdi_uuid)
         except:
             raise xs_errors.XenError('VDIMissing')
@@ -635,7 +644,7 @@ class ISOVDI(VDI.VDI):
             raise xs_errors.XenError('VDIExists')
 
         try:
-            handle = open(self.path,"w")
+            handle = open(self.path, "w")
             handle.truncate(size)
             handle.close()
             self._db_introduce()
@@ -662,7 +671,7 @@ class ISOVDI(VDI.VDI):
             raise xs_errors.XenError('VDIDelete')
 
     # delete, update, introduce unimplemented. super class will raise
-    # exceptions 
+    # exceptions
 
 if __name__ == '__main__':
     SRCommand.run(ISOSR, DRIVER_INFO)

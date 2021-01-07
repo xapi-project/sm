@@ -3,6 +3,7 @@
 import xmlrpclib
 import xml
 
+
 def to_xml(d):
     dom = xml.dom.minidom.Document()
     upgrade_response = dom.createElement("upgrade_response")

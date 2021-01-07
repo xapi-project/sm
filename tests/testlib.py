@@ -8,7 +8,6 @@ import random
 import textwrap
 import errno
 
-
 PATHSEP = '/'
 
 
@@ -231,7 +230,7 @@ class TestContext(object):
         assert '*' not in path
         glob_pattern = path + '/*'
         glob_matches = self.fake_glob(glob_pattern)
-        return [match[len(path)+1:] for match in glob_matches]
+        return [match[len(path) + 1:] for match in glob_matches]
 
     def get_filesystem(self):
         result = set(['/'])
@@ -323,7 +322,7 @@ def with_custom_context(context_class):
             context = context_class()
             context.start()
             try:
-                return func(self, context, *args, **kwargs)
+                return func(self, context, * args, ** kwargs)
             finally:
                 context.stop()
 
@@ -358,7 +357,7 @@ def filesystem_for(path):
     assert path.startswith(PATHSEP)
     segments = [seg for seg in path.split(PATHSEP) if seg]
     for i in range(len(segments)):
-        result.append(PATHSEP + PATHSEP.join(segments[:i+1]))
+        result.append(PATHSEP + PATHSEP.join(segments[:i + 1]))
     return result
 
 

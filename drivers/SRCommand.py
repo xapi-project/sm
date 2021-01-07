@@ -44,18 +44,18 @@ NO_LOGGING = {
 }
 
 EXCEPTION_TYPE = {
-        "sr_scan":           "SRScan",
-        "vdi_init":          "VDILoad",
-        "vdi_create":        "VDICreate",
-        "vdi_delete":        "VDIDelete",
-        "vdi_attach":        "VDIUnavailable",
-        "vdi_detach":        "VDIUnavailable",
-        "vdi_activate":      "VDIUnavailable",
-        "vdi_deactivate":    "VDIUnavailable",
-        "vdi_resize":        "VDIResize",
+        "sr_scan": "SRScan",
+        "vdi_init": "VDILoad",
+        "vdi_create": "VDICreate",
+        "vdi_delete": "VDIDelete",
+        "vdi_attach": "VDIUnavailable",
+        "vdi_detach": "VDIUnavailable",
+        "vdi_activate": "VDIUnavailable",
+        "vdi_deactivate": "VDIUnavailable",
+        "vdi_resize": "VDIResize",
         "vdi_resize_online": "VDIResize",
-        "vdi_snapshot":      "VDISnapshot",
-        "vdi_clone":         "VDIClone"
+        "vdi_snapshot": "VDISnapshot",
+        "vdi_clone": "VDIClone"
 }
 
 
@@ -309,7 +309,7 @@ class SRCommand:
                 target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
                 extras['deactivate'] = True
                 extras['caching_params'] = caching_params
-            target.detach(self.params['sr_uuid'], self.vdi_uuid, **extras)
+            target.detach(self.params['sr_uuid'], self.vdi_uuid, ** extras)
 
         elif self.cmd == 'vdi_enable_cbt':
             return target.configure_blocktracking(self.params['sr_uuid'],
@@ -338,7 +338,7 @@ class SRCommand:
             txt = sr.probe()
             util.SMlog("sr_probe result: %s" % util.splitXmlText(txt, showContd=True))
             # return the XML document as a string
-            return xmlrpclib.dumps((txt,), "", True)
+            return xmlrpclib.dumps((txt, ), "", True)
 
         elif self.cmd == 'sr_attach':
             is_master = False

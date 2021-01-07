@@ -2,42 +2,46 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-import os, re
-import scsiutil, util
+import os
+import re
+import scsiutil
+import util
 import xml.dom.minidom
 import xs_errors
 import glob
 import fcoelib
 
-DEVPATH='/dev/disk/by-id'
-DMDEVPATH='/dev/mapper'
-SYSFS_PATH1='/sys/class/scsi_host'
-SYSFS_PATH2='/sys/class/scsi_disk'
-SYSFS_PATH3='/sys/class/fc_transport'
+DEVPATH = '/dev/disk/by-id'
+DMDEVPATH = '/dev/mapper'
+SYSFS_PATH1 = '/sys/class/scsi_host'
+SYSFS_PATH2 = '/sys/class/scsi_disk'
+SYSFS_PATH3 = '/sys/class/fc_transport'
 
 DRIVER_BLACKLIST = ['^(s|p|)ata_.*', '^ahci$', '^pdc_adma$', '^iscsi_tcp$', '^usb-storage$']
 
 INVALID_DEVICE_NAME = ''
 
+
 def getManufacturer(s):
-    (rc,stdout,stderr) = util.doexec(['/sbin/modinfo', '-d', s])
+    (rc, stdout, stderr) = util.doexec(['/sbin/modinfo', '-d', s])
     if stdout:
         return stdout.strip()
     else:
         return "Unknown"
+
 
 def update_devs_dict(devs, dev, entry):
     if dev != INVALID_DEVICE_NAME:
@@ -61,8 +65,8 @@ def adapters(filterstr="any"):
             continue
 
         #Special casing for fcoe
-        port_name_path = os.path.join(SYSFS_PATH1,a,'device',\
-                         'fc_host',a,'port_name')
+        port_name_path = os.path.join(SYSFS_PATH1, a, 'device', \
+                         'fc_host', a, 'port_name')
         port_name_path_exists = os.path.exists(port_name_path)
         util.SMlog("Port name path exists %d" % port_name_path_exists)
         if filterstr == "fcoe" and not port_name_path_exists:
@@ -83,7 +87,7 @@ def adapters(filterstr="any"):
                 continue
 
         adt[a] = proc
-        id = a.replace("host","")
+        id = a.replace("host", "")
         scsiutil.rescan([id])
         emulex = False
         paths = []
@@ -91,69 +95,70 @@ def adapters(filterstr="any"):
             emulex = True
             paths.append(SYSFS_PATH3)
         else:
-            for p in [os.path.join(SYSFS_PATH1,a,"device","session*"),os.path.join(SYSFS_PATH1,a,"device"),\
-                          os.path.join(SYSFS_PATH2,"%s:*"%id)]:
+            for p in [os.path.join(SYSFS_PATH1, a, "device", "session*"), os.path.join(SYSFS_PATH1, a, "device"), \
+                          os.path.join(SYSFS_PATH2, "%s:*" % id)]:
                 paths += glob.glob(p)
 
         if not len(paths):
             continue
         for path in paths:
-            for i in filter(match_targets,os.listdir(path)):
-                tgt = i.replace('target','')
+            for i in filter(match_targets, os.listdir(path)):
+                tgt = i.replace('target', '')
                 if emulex:
-                    sysfs = os.path.join(SYSFS_PATH3,i,"device")
+                    sysfs = os.path.join(SYSFS_PATH3, i, "device")
                 else:
                     sysfs = SYSFS_PATH2
                 for lun in os.listdir(sysfs):
-                    if not match_LUNs(lun,tgt):
+                    if not match_LUNs(lun, tgt):
                         continue
                     if emulex:
-                        dir = os.path.join(sysfs,lun)
+                        dir = os.path.join(sysfs, lun)
                     else:
-                        dir = os.path.join(sysfs,lun,"device")
+                        dir = os.path.join(sysfs, lun, "device")
                     (dev, entry) = _extract_dev(dir, proc, id, lun)
                     update_devs_dict(devs, dev, entry)
             # for new qlogic sysfs layout (rport under device, then target)
-            for i in filter(match_rport,os.listdir(path)):
+            for i in filter(match_rport, os.listdir(path)):
                 newpath = os.path.join(path, i)
-                for j in filter(match_targets,os.listdir(newpath)):
-                    tgt = j.replace('target','')
+                for j in filter(match_targets, os.listdir(newpath)):
+                    tgt = j.replace('target', '')
                     sysfs = SYSFS_PATH2
                     for lun in os.listdir(sysfs):
-                        if not match_LUNs(lun,tgt):
+                        if not match_LUNs(lun, tgt):
                             continue
                         #Special casing for fcoe, populating eth information
                         eth = ""
                         if i in fcoe_eth_info.keys():
                             eth = fcoe_eth_info[i]
-                        dir = os.path.join(sysfs,lun,"device")
+                        dir = os.path.join(sysfs, lun, "device")
                         (dev, entry) = _extract_dev(dir, proc, id, lun, eth)
                         update_devs_dict(devs, dev, entry)
 
             # for new mptsas sysfs entries, check for phy* node
-            for i in filter(match_phy,os.listdir(path)):
-                (target,lunid) = i.replace('phy-','').split(':')
-                tgt = "%s:0:0:%s" % (target,lunid)
+            for i in filter(match_phy, os.listdir(path)):
+                (target, lunid) = i.replace('phy-', '').split(':')
+                tgt = "%s:0:0:%s" % (target, lunid)
                 sysfs = SYSFS_PATH2
                 for lun in os.listdir(sysfs):
-                    if not match_LUNs(lun,tgt):
+                    if not match_LUNs(lun, tgt):
                         continue
-                    dir = os.path.join(sysfs,lun,"device")
+                    dir = os.path.join(sysfs, lun, "device")
                     (dev, entry) = _extract_dev(dir, proc, id, lun)
                     update_devs_dict(devs, dev, entry)
             if path.startswith(SYSFS_PATH2):
-                os.path.join(path,"device","block:*")
+                os.path.join(path, "device", "block:*")
                 dev = _extract_dev_name(os.path.join(path, 'device'))
                 if dev in devs:
                     continue
                 hbtl = os.path.basename(path)
-                (h,b,t,l) = hbtl.split(':')
-                entry = {'procname':proc, 'host':id, 'target':l}
+                (h, b, t, l) = hbtl.split(':')
+                entry = {'procname': proc, 'host': id, 'target': l}
                 update_devs_dict(devs, dev, entry)
 
     dict['devs'] = devs
     dict['adt'] = adt
     return dict
+
 
 def _get_port_name(port_name_path):
     port_name = 0
@@ -162,13 +167,14 @@ def _get_port_name(port_name_path):
         try:
             line = f.readline()[:-1]
             if not line in ['<NULL>', '(NULL)', '']:
-                port_name = int(line,16)
+                port_name = int(line, 16)
             util.SMlog("Port Name in sysfs is %d" % port_name)
         finally:
             f.close()
     except IOError:
         pass
     return port_name
+
 
 def _get_driver_name(scsihost):
     driver_name = 'Unknown'
@@ -198,16 +204,18 @@ def _get_driver_name(scsihost):
                 f = open(ueventpath, 'r')
                 for line in f:
                     if line.startswith('PHYSDEVDRIVER='):
-                        driver_name = line.replace('PHYSDEVDRIVER=','').strip()
+                        driver_name = line.replace('PHYSDEVDRIVER=', '').strip()
                 f.close()
             except IOError:
                 pass
     return driver_name
 
+
 def _parseHostId(str):
     id = str.split()
-    val = "%s:%s:%s" % (id[1],id[3],id[5])
-    return val.replace(',','')
+    val = "%s:%s:%s" % (id[1], id[3], id[5])
+    return val.replace(',', '')
+
 
 def _genMPPHBA(id):
     devs = scsiutil.cacheSCSIidentifiers()
@@ -223,7 +231,7 @@ def _genMPPHBA(id):
                 for line in util.doexec(cmd)[1].split('\n'):
                     if line.find(arr) != -1:
                         rec = line.split()[0]
-                        cmd2 = ['/usr/sbin/mppUtil', '-g',rec]
+                        cmd2 = ['/usr/sbin/mppUtil', '-g', rec]
                         li = []
                         for newline in util.doexec(cmd2)[1].split('\n'):
                             if newline.find('hostId') != -1:
@@ -233,43 +241,53 @@ def _genMPPHBA(id):
                 continue
     return mppdict
 
+
 def match_hbadevs(s, filterstr):
     driver_name = _get_driver_name(s)
     if match_host(s) and not match_blacklist(driver_name) \
                 and (filterstr == "any" or filterstr == "fcoe" or \
-                match_filterstr(filterstr, driver_name) ):
+                match_filterstr(filterstr, driver_name)):
         return driver_name
     else:
         return ""
 
+
 def match_blacklist(driver_name):
     return re.search("(" + ")|(".join(DRIVER_BLACKLIST) + ")", driver_name)
+
 
 def match_filterstr(filterstr, driver_name):
     return re.search("^%s" % filterstr, driver_name)
 
+
 def match_host(s):
     return re.search("^host[0-9]", s)
+
 
 def match_rport(s):
     regex = re.compile("^rport-*")
     return regex.search(s, 0)
 
+
 def match_targets(s):
     regex = re.compile("^target[0-9]")
     return regex.search(s, 0)
+
 
 def match_phy(s):
     regex = re.compile("^phy-*")
     return regex.search(s, 0)
 
+
 def match_LUNs(s, prefix):
     regex = re.compile("^%s" % prefix)
-    return regex.search(s, 0)    
+    return regex.search(s, 0)
+
 
 def match_dev(s):
     regex = re.compile("^block:")
     return regex.search(s, 0)
+
 
 def _extract_dev_name(device_dir):
     """Returns the name of the block device from sysfs e.g. 'sda'"""
@@ -284,6 +302,7 @@ def _extract_dev_name(device_dir):
         # Anything 3.0 and later should have the same ABI.
         return _get_block_device_name_with_kernel_3x(device_dir)
 
+
 def _get_block_device_name_with_kernel_3x(device_dir):
     devs = glob.glob(os.path.join(device_dir, 'block/*'))
     if len(devs):
@@ -291,6 +310,7 @@ def _get_block_device_name_with_kernel_3x(device_dir):
         return os.path.basename(devs[0])
     else:
         return INVALID_DEVICE_NAME
+
 
 def _extract_dev(device_dir, procname, host, target, eths=""):
     """Returns device name and creates dictionary entry for it"""
@@ -301,6 +321,7 @@ def _extract_dev(device_dir, procname, host, target, eths=""):
     entry['target'] = target
     entry['eth'] = eths
     return (dev, entry)
+
 
 def _add_host_parameters_to_adapter(dom, adapter, host_class, host_id,
                                     parameters):
@@ -322,6 +343,7 @@ def _add_host_parameters_to_adapter(dom, adapter, host_class, host_id,
             except IOError:
                 pass
 
+
 def scan(srobj):
     systemrootID = util.getrootdevID()
     hbadict = srobj.hbadict
@@ -332,13 +354,13 @@ def scan(srobj):
 
     if not os.path.exists(DEVPATH):
         return dom.toprettyxml()
-    
+
     devs = srobj.devs
     vdis = {}
 
     for key in hbadict:
         hba = hbadict[key]
-        path = os.path.join("/dev",key)
+        path = os.path.join("/dev", key)
         realpath = path
 
         obj = srobj.vdi("")
@@ -346,7 +368,7 @@ def scan(srobj):
             obj._query(realpath, devs[realpath][4])
         except:
             continue
-        
+
         # Test for root dev or existing PBD
         if len(obj.SCSIid) and len(systemrootID) and util.match_scsiID(obj.SCSIid, systemrootID):
             util.SMlog("Ignoring root device %s" % realpath)
@@ -356,7 +378,7 @@ def scan(srobj):
             continue
         elif realpath not in devs:
             continue
-        
+
         ids = devs[realpath]
         obj.adapter = ids[1]
         obj.channel = ids[2]
@@ -382,15 +404,15 @@ def scan(srobj):
                 if len(adapters):
                     obj.mpp = adapters
             vdis[obj.SCSIid] = obj
-        else:    
+        else:
             vdis[obj.SCSIid] = obj
-                    
+
     for key in vdis:
         obj = vdis[key]
         d = dom.createElement("BlockDevice")
         e.appendChild(d)
 
-        for attr in ['path','numpaths','SCSIid','vendor','serial','size','adapter','channel','id','lun','hba','mpp','eth']:
+        for attr in ['path', 'numpaths', 'SCSIid', 'vendor', 'serial', 'size', 'adapter', 'channel', 'id', 'lun', 'hba', 'mpp', 'eth']:
             try:
                 aval = getattr(obj, attr)
             except AttributeError:
@@ -421,7 +443,7 @@ def scan(srobj):
         textnode = dom.createTextNode(getManufacturer(hbas[key]))
         entry.appendChild(textnode)
 
-        id = key.replace("host","")
+        id = key.replace("host", "")
         entry = dom.createElement('id')
         a.appendChild(entry)
         textnode = dom.createTextNode(id)
@@ -438,17 +460,19 @@ def scan(srobj):
 
     return dom.toprettyxml()
 
+
 def check_iscsi(adapter):
     ret = False
     str = "host%s" % adapter
     try:
-        filename = os.path.join('/sys/class/scsi_host',str,'proc_name')
+        filename = os.path.join('/sys/class/scsi_host', str, 'proc_name')
         f = open(filename, 'r')
         if f.readline().find("iscsi_tcp") != -1:
             ret = True
     except:
         pass
-    return ret            
+    return ret
+
 
 def match_nonpartitions(s):
     regex = re.compile("-part[0-9]")

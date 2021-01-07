@@ -15,11 +15,12 @@ import testlib
 import util
 import XenAPI
 
+
 class BogusException(Exception):
     pass
 
-class TestTapdisk(unittest.TestCase):
 
+class TestTapdisk(unittest.TestCase):
     #
     # There is a bug in python mocking that prevents @Classmethods being mocked
     # hence no usual decorator mocks and the monkey patching.
@@ -105,6 +106,7 @@ class TestVDI(unittest.TestCase):
 
         log_patcher = mock.patch('blktap2.util.SMlog', autospec=True)
         self.mock_log = log_patcher.start()
+
         def log_stderr(message, ident="SM", priority=syslog.LOG_INFO):
             print(message, file=sys.stderr)
         self.mock_log.side_effect = log_stderr
@@ -343,7 +345,7 @@ class TestTapCtl(unittest.TestCase):
 
         attrs = {"pid": 705}
 
-        results = blktap2.TapCtl.list(**attrs)
+        results = blktap2.TapCtl.list( ** attrs)
 
         self.assertEqual(0, len(results))
         self.assertEqual(1, self.mock_subprocess.Popen.call_count)

@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -35,18 +35,19 @@ from refcounter import RefCounter
 VHDs_passed = 0
 VHDs_failed = 0
 
+
 def activateVdiChainAndCheck(vhd_info, vg_name):
     global VHDs_passed
     global VHDs_failed
     activated_list = []
     vhd_path = os.path.join(lvhdutil.VG_LOCATION, vg_name, vhd_info.path)
     if not activateVdi(
-                       vg_name.lstrip(lvhdutil.VG_PREFIX), 
-                       vhd_info.uuid, 
+                       vg_name.lstrip(lvhdutil.VG_PREFIX),
+                       vhd_info.uuid,
                        vhd_path):
-        # If activation fails, do not run check, also no point on running 
+        # If activation fails, do not run check, also no point on running
         # check on the VDIs down the chain
-        util.SMlog("VHD activate failed for %s, skipping rest of VDH chain" % 
+        util.SMlog("VHD activate failed for %s, skipping rest of VDH chain" %
                     vg_name)
         return activated_list
 
@@ -57,12 +58,13 @@ def activateVdiChainAndCheck(vhd_info, vg_name):
         VHDs_failed += 1
     else:
         VHDs_passed += 1
-    
+
     if hasattr(vhd_info, 'children'):
         for vhd_info_sub in vhd_info.children:
             activated_list.extend(activateVdiChainAndCheck(vhd_info_sub, vg_name))
 
     return activated_list
+
 
 def activateVdi(sr_uuid, vdi_uuid, vhd_path):
     name_space = lvhdutil.NS_PREFIX_LVM + sr_uuid
@@ -74,7 +76,7 @@ def activateVdi(sr_uuid, vdi_uuid, vhd_path):
             try:
                 lvutil.activateNoRefcount(vhd_path, False)
             except Exception as e:
-                util.SMlog("  lv activate failed for %s with error %s" % 
+                util.SMlog("  lv activate failed for %s with error %s" %
                            (vhd_path, str(e)))
                 RefCounter.put(vdi_uuid, True, name_space)
                 return False
@@ -82,6 +84,7 @@ def activateVdi(sr_uuid, vdi_uuid, vhd_path):
         lock.release()
 
     return True
+
 
 def deactivateVdi(sr_uuid, vdi_uuid, vhd_path):
     name_space = lvhdutil.NS_PREFIX_LVM + sr_uuid
@@ -99,6 +102,7 @@ def deactivateVdi(sr_uuid, vdi_uuid, vhd_path):
             RefCounter.get(vdi_uuid, False, name_space)
     finally:
         lock.release()
+
 
 def checkAllVHD(sr_uuid):
     activated_list = []
@@ -122,8 +126,8 @@ def checkAllVHD(sr_uuid):
             parent_VHD_info.children.append(vhds[vhd])
         else:
             vhd_trees.append(vhds[vhd])
-    
-    # If needed, activate VHDs belonging to each VDI chain,  do a check on 
+
+    # If needed, activate VHDs belonging to each VDI chain,  do a check on
     # all VHDs and then set the state back.
     for vhd_chain in vhd_trees:
         activated_list = activateVdiChainAndCheck(vhd_chain, vg_name)
@@ -132,7 +136,7 @@ def checkAllVHD(sr_uuid):
         for item in activated_list:
             deactivateVdi(sr_uuid, item[0], item[1])
 
-    print("VHD check passed on %d, failed on %d, not run on %d" % 
+    print("VHD check passed on %d, failed on %d, not run on %d" %
           (VHDs_passed, VHDs_failed, VHDs_total - (VHDs_passed + VHDs_failed)))
 
 if __name__ == '__main__':
@@ -141,4 +145,3 @@ if __name__ == '__main__':
         print("/opt/xensource/sm/verifyVHDsOnSR.py <sr_uuid>")
     else:
         checkAllVHD(sys.argv[1])
-

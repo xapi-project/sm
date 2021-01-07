@@ -6,6 +6,7 @@ import vhdutil
 import xs_errors
 import testlib
 
+
 class TestVhdUtil(unittest.TestCase):
 
     def test_validate_and_round_min_size(self):

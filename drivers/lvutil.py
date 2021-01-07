@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -17,7 +17,6 @@
 #
 # Miscellaneous LVM utility functions
 #
-
 
 import re
 import os
@@ -28,7 +27,7 @@ import lock
 import util
 import xs_errors
 import xml.dom.minidom
-from lvhdutil import VG_LOCATION,VG_PREFIX
+from lvhdutil import VG_LOCATION, VG_PREFIX
 from constants import EXT_PREFIX
 import lvmcache
 import srmetadata
@@ -36,24 +35,24 @@ import srmetadata
 MDVOLUME_NAME = 'MGT'
 VDI_UUID_TAG_PREFIX = 'vdi_'
 LVM_BIN = os.path.isfile('/sbin/lvdisplay') and '/sbin' or '/usr/sbin'
-CMD_VGS       = "vgs"
-CMD_VGCREATE  = "vgcreate"
-CMD_VGREMOVE  = "vgremove"
-CMD_VGCHANGE  = "vgchange"
-CMD_VGEXTEND  = "vgextend"
-CMD_PVS       = "pvs"
-CMD_PVCREATE  = "pvcreate"
-CMD_PVREMOVE  = "pvremove"
-CMD_PVRESIZE  = "pvresize"
-CMD_LVS       = "lvs"
+CMD_VGS = "vgs"
+CMD_VGCREATE = "vgcreate"
+CMD_VGREMOVE = "vgremove"
+CMD_VGCHANGE = "vgchange"
+CMD_VGEXTEND = "vgextend"
+CMD_PVS = "pvs"
+CMD_PVCREATE = "pvcreate"
+CMD_PVREMOVE = "pvremove"
+CMD_PVRESIZE = "pvresize"
+CMD_LVS = "lvs"
 CMD_LVDISPLAY = "lvdisplay"
-CMD_LVCREATE  = "lvcreate"
-CMD_LVREMOVE  = "lvremove"
-CMD_LVCHANGE  = "lvchange"
-CMD_LVRENAME  = "lvrename"
-CMD_LVRESIZE  = "lvresize"
-CMD_LVEXTEND  = "lvextend"
-CMD_DMSETUP   = "/sbin/dmsetup"
+CMD_LVCREATE = "lvcreate"
+CMD_LVREMOVE = "lvremove"
+CMD_LVCHANGE = "lvchange"
+CMD_LVRENAME = "lvrename"
+CMD_LVRESIZE = "lvresize"
+CMD_LVEXTEND = "lvextend"
+CMD_DMSETUP = "/sbin/dmsetup"
 
 MAX_OPERATION_DURATION = 15
 
@@ -73,6 +72,7 @@ LV_COMMANDS = frozenset({CMD_LVS, CMD_LVDISPLAY, CMD_LVCREATE, CMD_LVREMOVE,
 DM_COMMANDS = frozenset({CMD_DMSETUP})
 
 LVM_COMMANDS = VG_COMMANDS.union(PV_COMMANDS, LV_COMMANDS, DM_COMMANDS)
+
 
 def extract_vgname(str_in):
     """Search for and return a VG name
@@ -106,7 +106,7 @@ def extract_vgname(str_in):
     re_obj = util.match_uuid(str_in[uuid_start:])
 
     if i != -1 and re_obj:
-        return prefix + re_obj.group(0) # vgname
+        return prefix + re_obj.group(0)  # vgname
 
     return None
 
@@ -119,6 +119,7 @@ def get_lvm_lock():
     new_lock = lock.Lock('lvm')
     new_lock.acquire()
     return new_lock
+
 
 def cmd_lvm(cmd, pread_func=util.pread2, *args):
     """ Construct and run the appropriate lvm command.
@@ -166,7 +167,7 @@ def cmd_lvm(cmd, pread_func=util.pread2, *args):
 
     try:
         start_time = time.time()
-        stdout = pread_func([os.path.join(LVM_BIN, lvm_cmd)] + lvm_args, *args)
+        stdout = pread_func([os.path.join(LVM_BIN, lvm_cmd)] + lvm_args, * args)
         end_time = time.time()
     finally:
         lvm_lock.release()
@@ -193,12 +194,14 @@ class LVInfo:
                 (self.name, self.size, self.active, self.open, self.hidden, \
                 self.readonly)
 
+
 def _checkVG(vgname):
     try:
         cmd_lvm([CMD_VGS, "--readonly", vgname])
         return True
     except:
         return False
+
 
 def _checkPV(pvname):
     try:
@@ -207,12 +210,14 @@ def _checkPV(pvname):
     except:
         return False
 
+
 def _checkLV(path):
     try:
         cmd_lvm([CMD_LVDISPLAY, path])
         return True
     except:
         return False
+
 
 def _getLVsize(path):
     try:
@@ -221,6 +226,7 @@ def _getLVsize(path):
     except:
         raise xs_errors.XenError('VDIUnavailable', \
               opterr='no such VDI %s' % path)
+
 
 def _getVGstats(vgname):
     try:
@@ -241,6 +247,7 @@ def _getVGstats(vgname):
     except ValueError:
         raise xs_errors.XenError('VDILoad', opterr='rvgstats failed')
 
+
 def _getPVstats(dev):
     try:
         text = cmd_lvm([CMD_PVS, "--noheadings", "--nosuffix",
@@ -260,6 +267,7 @@ def _getPVstats(dev):
     except ValueError:
         raise xs_errors.XenError('VDILoad', opterr='rvgstats failed')
 
+
 # Retrieves the UUID of the SR that corresponds to the specified Physical
 # Volume (pvname). Each element in prefix_list is checked whether it is a
 # prefix of Volume Groups that correspond to the specified PV. If so, the
@@ -267,7 +275,7 @@ def _getPVstats(dev):
 # (effectively the SR UUID). If no match if found, the empty string is
 # returned.
 # E.g.
-#   PV         VG                          Fmt  Attr PSize   PFree  
+#   PV         VG                          Fmt  Attr PSize   PFree
 #  /dev/sda4  VG_XenStorage-some-hex-value lvm2 a-   224.74G 223.73G
 # will return "some-hex-value".
 def _get_sr_uuid(pvname, prefix_list):
@@ -276,6 +284,7 @@ def _get_sr_uuid(pvname, prefix_list):
                         "-o", "vg_name", pvname]), prefix_list)
     except:
         return ""
+
 
 # Tries to match any prefix contained in prefix_list in s. If matched, the
 # remainder string is returned, else the empty string is returned. E.g. if s is
@@ -292,6 +301,7 @@ def match_VG(s, prefix_list):
         if regex.search(s, 0):
             return s.split(val)[1]
     return ""
+
 
 # Retrieves the devices an SR is composed of. A dictionary is returned, indexed
 # by the SR UUID, where each SR UUID is mapped to a comma-separated list of
@@ -310,6 +320,7 @@ def scan_srlist(prefix, root):
             util.logException("exception (ignored): %s" % e)
             continue
     return VGs
+
 
 # Converts an SR list to an XML document with the following structure:
 # <SRlist>
@@ -331,11 +342,11 @@ def scan_srlist(prefix, root):
 #   VGs: a dictionary containing the SR UUID to device list mappings
 #   prefix: the prefix that if prefixes the SR UUID the VG is produced
 #   includeMetadata (optional): include additional information
-def srlist_toxml(VGs, prefix, includeMetadata = False):
+def srlist_toxml(VGs, prefix, includeMetadata=False):
     dom = xml.dom.minidom.Document()
     element = dom.createElement("SRlist")
     dom.appendChild(element)
-        
+
     for val in VGs:
         entry = dom.createElement('SR')
         element.appendChild(entry)
@@ -355,10 +366,10 @@ def srlist_toxml(VGs, prefix, includeMetadata = False):
         size = str(_getVGstats(prefix + val)['physical_size'])
         textnode = dom.createTextNode(size)
         subentry.appendChild(textnode)
-        
+
         if includeMetadata:
             metadataVDI = None
-            
+
             # add SR name_label
             mdpath = os.path.join(VG_LOCATION, VG_PREFIX + val)
             mdpath = os.path.join(mdpath, MDVOLUME_NAME)
@@ -370,7 +381,7 @@ def srlist_toxml(VGs, prefix, includeMetadata = False):
                     lvmCache = lvmcache.LVMCache(VG_PREFIX + val)
                     lvmCache.activateNoRefcount(MDVOLUME_NAME)
                     mgtVolActivated = True
-                
+
                 sr_metadata = \
                     srmetadata.LVMMetadataHandler(mdpath, \
                                                         False).getMetadata()[0]
@@ -378,13 +389,13 @@ def srlist_toxml(VGs, prefix, includeMetadata = False):
                 entry.appendChild(subentry)
                 textnode = dom.createTextNode(sr_metadata[srmetadata.NAME_LABEL_TAG])
                 subentry.appendChild(textnode)
-                
+
                 # add SR description
                 subentry = dom.createElement("name_description")
                 entry.appendChild(subentry)
                 textnode = dom.createTextNode(sr_metadata[srmetadata.NAME_DESCRIPTION_TAG])
                 subentry.appendChild(textnode)
-                
+
                 # add metadata VDI UUID
                 metadataVDI = srmetadata.LVMMetadataHandler(mdpath, \
                                     False).findMetadataVDI()
@@ -398,8 +409,9 @@ def srlist_toxml(VGs, prefix, includeMetadata = False):
                 if mgtVolActivated:
                     # deactivate only if we activated it
                     lvmCache.deactivateNoRefcount(MDVOLUME_NAME)
-                
+
     return dom.toprettyxml()
+
 
 def _openExclusive(dev, retry):
     try:
@@ -419,6 +431,7 @@ def _openExclusive(dev, retry):
         raise xs_errors.XenError(
             'SRInUse', opterr=('Device %s in use, please check your existing '
                                + 'SRs for an instance of this device') % dev)
+
 
 def createVG(root, vgname):
     systemroot = util.getrootdev()
@@ -465,7 +478,7 @@ def createVG(root, vgname):
     # Create VG on first device
     try:
         cmd_lvm([CMD_VGCREATE, "--metadatasize", "10M", vgname, rootdev])
-    except :
+    except:
         raise xs_errors.XenError('LVMGroupCreate')
 
     # Then add any additional devs into the VG
@@ -508,18 +521,21 @@ def removeVG(root, vgname):
         raise xs_errors.XenError('LVMDelete', \
               opterr='errno is %d' % inst.code)
 
+
 def resizePV(dev):
     try:
         cmd_lvm([CMD_PVRESIZE, dev])
     except util.CommandException as inst:
         util.SMlog("Failed to grow the PV, non-fatal")
-    
+
+
 def setActiveVG(path, active):
     "activate or deactivate VG 'path'"
     val = "n"
     if active:
         val = "y"
     text = cmd_lvm([CMD_VGCHANGE, "-a" + val, path])
+
 
 def create(name, size, vgname, tag=None, size_in_percentage=None):
     if size_in_percentage:
@@ -533,6 +549,7 @@ def create(name, size, vgname, tag=None, size_in_percentage=None):
     cmd.extend(['-W', 'n'])
     cmd_lvm(cmd)
 
+
 def remove(path, config_param=None):
     # see deactivateNoRefcount()
     for i in range(LVM_FAIL_RETRIES):
@@ -545,6 +562,7 @@ def remove(path, config_param=None):
             util.SMlog("*** lvremove failed on attempt #%d" % i)
     _lvmBugCleanup(path)
 
+
 def _remove(path, config_param=None):
     CONFIG_TAG = "--config"
     cmd = [CMD_LVREMOVE, "-f", path]
@@ -552,8 +570,10 @@ def _remove(path, config_param=None):
         cmd.extend([CONFIG_TAG, "devices{" + config_param + "}"])
     ret = cmd_lvm(cmd)
 
+
 def rename(path, newName):
     cmd_lvm([CMD_LVRENAME, path, newName], pread_func=util.pread)
+
 
 def setReadonly(path, readonly):
     val = "r"
@@ -561,22 +581,26 @@ def setReadonly(path, readonly):
         val += "w"
     ret = cmd_lvm([CMD_LVCHANGE, path, "-p", val], pread_func=util.pread)
 
+
 def exists(path):
     (rc, stdout, stderr) = cmd_lvm([CMD_LVS, "--noheadings", path], pread_func=util.doexec)
     return rc == 0
 
+
 def setSize(path, size, confirm):
     sizeMB = size / (1024 * 1024)
     if confirm:
-        cmd_lvm([CMD_LVRESIZE, "-L", str(sizeMB), path],util.pread3, "y\n")
+        cmd_lvm([CMD_LVRESIZE, "-L", str(sizeMB), path], util.pread3, "y\n")
     else:
         cmd_lvm([CMD_LVRESIZE, "-L", str(sizeMB), path], pread_func=util.pread)
 
-def setHidden(path, hidden = True):
+
+def setHidden(path, hidden=True):
     opt = "--addtag"
     if not hidden:
         opt = "--deltag"
     cmd_lvm([CMD_LVCHANGE, opt, LV_TAG_HIDDEN, path])
+
 
 def activateNoRefcount(path, refresh):
     cmd = [CMD_LVCHANGE, "-ay", path]
@@ -594,14 +618,15 @@ def activateNoRefcount(path, refresh):
         # Restore slave mode lvm.conf
         os.environ['LVM_SYSTEM_DIR'] = DEF_LVM_CONF
 
+
 def deactivateNoRefcount(path):
-    # LVM has a bug where if an "lvs" command happens to run at the same time 
-    # as "lvchange -an", it might hold the device in use and cause "lvchange 
-    # -an" to fail. Thus, we need to retry if "lvchange -an" fails. Worse yet, 
-    # the race could lead to "lvchange -an" starting to deactivate (removing 
-    # the symlink), failing to "dmsetup remove" the device, and still returning  
-    # success. Thus, we need to check for the device mapper file existence if 
-    # "lvchange -an" returns success. 
+    # LVM has a bug where if an "lvs" command happens to run at the same time
+    # as "lvchange -an", it might hold the device in use and cause "lvchange
+    # -an" to fail. Thus, we need to retry if "lvchange -an" fails. Worse yet,
+    # the race could lead to "lvchange -an" starting to deactivate (removing
+    # the symlink), failing to "dmsetup remove" the device, and still returning
+    # success. Thus, we need to check for the device mapper file existence if
+    # "lvchange -an" returns success.
     for i in range(LVM_FAIL_RETRIES):
         try:
             _deactivate(path)
@@ -612,8 +637,10 @@ def deactivateNoRefcount(path):
             util.SMlog("*** lvchange -an failed on attempt #%d" % i)
     _lvmBugCleanup(path)
 
+
 def _deactivate(path):
     text = cmd_lvm([CMD_LVCHANGE, "-an", path])
+
 
 def _checkActive(path):
     if util.pathexists(path):
@@ -653,12 +680,13 @@ def _checkActive(path):
 
     return False
 
+
 def _lvmBugCleanup(path):
-    # the device should not exist at this point. If it does, this was an LVM 
+    # the device should not exist at this point. If it does, this was an LVM
     # bug, and we manually clean up after LVM here
     mapperDevice = path[5:].replace("-", "--").replace("/", "-")
     mapperPath = "/dev/mapper/" + mapperDevice
-            
+
     nodeExists = False
     cmd_st = [CMD_DMSETUP, "status", mapperDevice]
     cmd_rm = [CMD_DMSETUP, "remove", mapperDevice]
@@ -710,6 +738,7 @@ def _lvmBugCleanup(path):
         os.unlink(path)
         util.SMlog("_lvmBugCleanup: deleted symlink %s" % path)
 
+
 # mdpath is of format /dev/VG-SR-UUID/MGT
 # or in other words /VG_LOCATION/VG_PREFIXSR-UUID/MDVOLUME_NAME
 def ensurePathExists(mdpath):
@@ -717,7 +746,8 @@ def ensurePathExists(mdpath):
         vgname = mdpath.split('/')[2]
         lvmCache = lvmcache.LVMCache(vgname)
         lvmCache.activateNoRefcount(MDVOLUME_NAME)
-        
+
+
 def removeDevMapperEntry(path, strict=True):
     try:
         # remove devmapper entry using dmsetup

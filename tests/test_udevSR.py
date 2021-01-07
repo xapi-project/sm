@@ -3,7 +3,6 @@ import udevSR
 import SRCommand
 import mock
 
-
 VDI_LOCATION = '/path/to/vdi'
 
 

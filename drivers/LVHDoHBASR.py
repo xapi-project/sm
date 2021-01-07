@@ -2,25 +2,29 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
-# LVHDoISCSISR: LVHD over Hardware HBA LUN driver, e.g. Fibre Channel or 
+# LVHDoISCSISR: LVHD over Hardware HBA LUN driver, e.g. Fibre Channel or
 # hardware based iSCSI
 #
 
 from __future__ import print_function
-import SR, LVHDSR, SRCommand, lvutil, HBASR
+import SR
+import LVHDSR
+import SRCommand
+import lvutil
+import HBASR
 import os
 import re
 import sys
@@ -37,8 +41,8 @@ CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_METADATA", "SR_TRIM",
                 "VDI_RESIZE", "ATOMIC_PAUSE", "VDI_RESET_ON_BOOT/2",
                 "VDI_UPDATE", "VDI_CONFIG_CBT", "VDI_ACTIVATE", "VDI_DEACTIVATE"]
 
-CONFIGURATION = [ [ 'SCSIid', 'The scsi_id of the destination LUN' ], \
-                  [ 'allocation', 'Valid values are thick or thin (optional, defaults to thick)'] ]
+CONFIGURATION = [['SCSIid', 'The scsi_id of the destination LUN'], \
+                  ['allocation', 'Valid values are thick or thin (optional, defaults to thick)']]
 
 DRIVER_INFO = {
     'name': 'LVHD over FC',
@@ -51,15 +55,17 @@ DRIVER_INFO = {
     'configuration': CONFIGURATION
     }
 
+
 class LVHDoHBASR(LVHDSR.LVHDSR):
     """LVHD over HBA storage repository"""
+
     def handles(type):
         if __name__ == '__main__':
             name = sys.argv[0]
         else:
             name = __name__
         if name.endswith("LVMoHBASR"):
-            return type == "lvmohba" # for the initial switch from LVM
+            return type == "lvmohba"  # for the initial switch from LVM
         if type == "lvhdohba":
             return True
         return False
@@ -101,13 +107,13 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
                 raise xs_errors.XenError('ConfigSCSIid')
 
         self.SCSIid = self.dconf['SCSIid']
-        self._pathrefresh(LVHDoHBASR, load = False)
+        self._pathrefresh(LVHDoHBASR, load=False)
         LVHDSR.LVHDSR.load(self, sr_uuid)
 
     def create(self, sr_uuid, size):
         self.hbasr.attach(sr_uuid)
         if self.mpath == "true":
-            self.mpathmodule.refresh(self.SCSIid,0)
+            self.mpathmodule.refresh(self.SCSIid, 0)
         self._pathrefresh(LVHDoHBASR)
         try:
             LVHDSR.LVHDSR.create(self, sr_uuid, size)
@@ -120,11 +126,11 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
     def attach(self, sr_uuid):
         self.hbasr.attach(sr_uuid)
         if self.mpath == "true":
-            self.mpathmodule.refresh(self.SCSIid,0)
+            self.mpathmodule.refresh(self.SCSIid, 0)
             # set the device mapper's I/O scheduler
             path = '/dev/disk/by-scsid/%s' % self.dconf['SCSIid']
             for file in os.listdir(path):
-                self.block_setscheduler('%s/%s' % (path,file))
+                self.block_setscheduler('%s/%s' % (path, file))
 
         self._pathrefresh(LVHDoHBASR)
         if not os.path.exists(self.dconf['device']):
@@ -132,7 +138,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             self.hbasr._init_hbadict()
             # Must re-initialise the multipath node
             if self.mpath == "true":
-                self.mpathmodule.refresh(self.SCSIid,0)
+                self.mpathmodule.refresh(self.SCSIid, 0)
         LVHDSR.LVHDSR.attach(self, sr_uuid)
         self._setMultipathableFlag(SCSIid=self.SCSIid)
 
@@ -143,16 +149,16 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
         if self.mpath == "true":
             if not os.path.exists(self.dconf['device']):
                 util.SMlog("@@@@@ path does not exists")
-                self.mpathmodule.refresh(self.SCSIid,0)
+                self.mpathmodule.refresh(self.SCSIid, 0)
                 self._pathrefresh(LVHDoHBASR)
                 self._setMultipathableFlag(SCSIid=self.SCSIid)
         LVHDSR.LVHDSR.scan(self, sr_uuid)
 
     def probe(self):
         if self.mpath == "true" and 'SCSIid' in self.dconf:
-# When multipathing is enabled, since we don't refcount the multipath maps,
-# we should not attempt to do the iscsi.attach/detach when the map is already present,
-# as this will remove it (which may well be in use).
+        # When multipathing is enabled, since we don't refcount the multipath maps,
+        # we should not attempt to do the iscsi.attach/detach when the map is already present,
+        # as this will remove it (which may well be in use).
             maps = []
             try:
                 maps = mpath_cli.list_maps()
@@ -162,7 +168,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             if self.dconf['SCSIid'] in maps:
                 raise xs_errors.XenError('SRInUse')
 
-            self.mpathmodule.refresh(self.SCSIid,0)
+            self.mpathmodule.refresh(self.SCSIid, 0)
 
         try:
             self._pathrefresh(LVHDoHBASR)
@@ -171,9 +177,9 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
                 self.mpathmodule.reset(self.SCSIid, explicit_unmap=True)
             return result
         except:
-           if self.mpath == "true":
+            if self.mpath == "true":
                 self.mpathmodule.reset(self.SCSIid, explicit_unmap=True)
-           raise
+            raise
 
     def detach(self, sr_uuid):
         LVHDSR.LVHDSR.detach(self, sr_uuid)
@@ -194,10 +200,11 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
         finally:
             if self.mpath == "true":
                 self.mpathmodule.reset(self.SCSIid, explicit_unmap=True)
-                
+
     def vdi(self, uuid):
         return LVHDoHBAVDI(self, uuid)
-    
+
+
 class LVHDoHBAVDI(LVHDSR.LVHDVDI):
     def generate_config(self, sr_uuid, vdi_uuid):
         util.SMlog("LVHDoHBAVDI.generate_config")
@@ -213,13 +220,13 @@ class LVHDoHBAVDI(LVHDSR.LVHDVDI):
         # Return the 'config' encoded within a normal XMLRPC response so that
         # we can use the regular response/error parsing code.
         config = xmlrpclib.dumps(tuple([dict]), "vdi_attach_from_config")
-        return xmlrpclib.dumps((config,), "", True)
+        return xmlrpclib.dumps((config, ), "", True)
 
     def attach_from_config(self, sr_uuid, vdi_uuid):
         util.SMlog("LVHDoHBAVDI.attach_from_config")
         self.sr.hbasr.attach(sr_uuid)
         if self.sr.mpath == "true":
-            self.sr.mpathmodule.refresh(self.sr.SCSIid,0)
+            self.sr.mpathmodule.refresh(self.sr.SCSIid, 0)
         try:
             return self.attach(sr_uuid, vdi_uuid)
         except:
@@ -227,10 +234,11 @@ class LVHDoHBAVDI(LVHDSR.LVHDVDI):
             raise xs_errors.XenError('SRUnavailable', \
                         opterr='Unable to attach the heartbeat disk')
 
+
 def match_scsidev(s):
     regex = re.compile("^/dev/disk/by-id|^/dev/mapper")
     return regex.search(s, 0)
-    
+
 if __name__ == '__main__':
     SRCommand.run(LVHDoHBASR, DRIVER_INFO)
 else:

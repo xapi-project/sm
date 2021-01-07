@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -18,7 +18,12 @@
 # FileSR: local-file storage repository
 
 from __future__ import print_function
-import SR, VDI, SRCommand, util, scsiutil, vhdutil
+import SR
+import VDI
+import SRCommand
+import util
+import scsiutil
+import vhdutil
 import os
 import errno
 import xs_errors
@@ -31,14 +36,14 @@ import xmlrpclib
 from constants import CBTLOG_TAG
 
 geneology = {}
-CAPABILITIES = ["SR_PROBE","SR_UPDATE", \
-                "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH", \
-                "VDI_CLONE","VDI_SNAPSHOT","VDI_RESIZE", "VDI_MIRROR",
-                "VDI_GENERATE_CONFIG", "ATOMIC_PAUSE", "VDI_CONFIG_CBT", 
+CAPABILITIES = ["SR_PROBE", "SR_UPDATE", \
+                "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH", \
+                "VDI_CLONE", "VDI_SNAPSHOT", "VDI_RESIZE", "VDI_MIRROR",
+                "VDI_GENERATE_CONFIG", "ATOMIC_PAUSE", "VDI_CONFIG_CBT",
                 "VDI_ACTIVATE", "VDI_DEACTIVATE", "THIN_PROVISIONING"]
 
-CONFIGURATION = [ [ 'location', 'local directory path (required)' ] ]
-                  
+CONFIGURATION = [['location', 'local directory path (required)']]
+
 DRIVER_INFO = {
     'name': 'Local Path VHD',
     'description': 'SR plugin which represents disks as VHD files stored on a local path',
@@ -57,9 +62,10 @@ JOURNAL_FILE_PREFIX = ".journal-"
 OPS_EXCLUSIVE = [
         "sr_create", "sr_delete", "sr_probe", "sr_attach", "sr_detach",
         "sr_scan", "vdi_init", "vdi_create", "vdi_delete", "vdi_attach",
-        "vdi_detach", "vdi_resize_online", "vdi_snapshot", "vdi_clone" ]
+        "vdi_detach", "vdi_resize_online", "vdi_snapshot", "vdi_clone"]
 
 DRIVER_CONFIG = {"ATTACH_FROM_CONFIG_WITH_TAPDISK": True}
+
 
 class FileSR(SR.SR):
     """Local file storage repository"""
@@ -78,13 +84,11 @@ class FileSR(SR.SR):
         else:
             self.o_direct = True
 
-
     def __init__(self, srcmd, sr_uuid):
         # We call SR.SR.__init__ explicitly because
         # "super" sometimes failed due to circular imports
         SR.SR.__init__(self, srcmd, sr_uuid)
         self._check_o_direct()
-
 
     def load(self, sr_uuid):
         self.ops_exclusive = OPS_EXCLUSIVE
@@ -125,7 +129,7 @@ class FileSR(SR.SR):
         self.attach(sr_uuid)
         cleanup.gc_force(self.session, self.uuid)
 
-        # check to make sure no VDIs are present; then remove old 
+        # check to make sure no VDIs are present; then remove old
         # files that are non VDI's
         try:
             if util.ioretry(lambda: util.pathexists(self.path)):
@@ -138,7 +142,7 @@ class FileSR(SR.SR):
 
                 # remove everything else, there are no vdi's
                 for name in util.ioretry(lambda: util.listdir(self.path)):
-                    fullpath =  os.path.join(self.path,name)
+                    fullpath = os.path.join(self.path, name)
                     try:
                         util.ioretry(lambda: os.unlink(fullpath))
                     except util.CommandException as inst:
@@ -190,7 +194,7 @@ class FileSR(SR.SR):
 
         if not self.passthrough:
             self.physical_size = self._getsize()
-            self.physical_utilisation  = self._getutilisation()
+            self.physical_utilisation = self._getutilisation()
 
         for uuid in self.vdis.keys():
             if self.vdis[uuid].deleted:
@@ -224,13 +228,13 @@ class FileSR(SR.SR):
         valloc = int(self.session.xenapi.SR.get_virtual_allocation(self.sr_ref))
         self.virtual_allocation = valloc + virt_alloc_delta
         self.physical_size = self._getsize()
-        self.physical_utilisation  = self._getutilisation()
+        self.physical_utilisation = self._getutilisation()
         self._db_update()
-        
+
     def content_type(self, sr_uuid):
         return super(FileSR, self).content_type(sr_uuid)
 
-    def vdi(self, uuid, loadLocked = False):
+    def vdi(self, uuid, loadLocked=False):
         return FileVDI(self, uuid)
 
     def added_vdi(self, vdi):
@@ -282,7 +286,7 @@ class FileSR(SR.SR):
                 uuid = fn[:-(len(vhdutil.FILE_EXTN_RAW))]
                 self.vdis[uuid] = self.vdi(uuid, True)
             elif fn.endswith(CBTLOG_TAG):
-                cbt_uuid = fn.split(".")[0] 
+                cbt_uuid = fn.split(".")[0]
                 # If an associated disk exists, update CBT status
                 # else create new VDI of type cbt_metadata
                 if cbt_uuid in self.vdis:
@@ -306,10 +310,10 @@ class FileSR(SR.SR):
             if not vdi.hidden:
                 self.virtual_allocation += (vdi.size)
 
-        # now remove all hidden leaf nodes from self.vdis so that they are not 
-        # introduced into the Agent DB when SR is synchronized. With the 
-        # asynchronous GC, a deleted VDI might stay around until the next 
-        # SR.scan, so if we don't ignore hidden leaves we would pick up 
+        # now remove all hidden leaf nodes from self.vdis so that they are not
+        # introduced into the Agent DB when SR is synchronized. With the
+        # asynchronous GC, a deleted VDI might stay around until the next
+        # SR.scan, so if we don't ignore hidden leaves we would pick up
         # freshly-deleted VDIs as newly-added VDIs
         for uuid in self.vdis.keys():
             if uuid not in geneology and self.vdis[uuid].hidden:
@@ -321,21 +325,21 @@ class FileSR(SR.SR):
         if self.handles("smb"):
             path = self.linkpath
         return util.get_fs_size(path)
-    
+
     def _getutilisation(self):
         return util.get_fs_utilisation(self.path)
 
     def _replay(self, logentry):
         # all replay commands have the same 5,6,7th arguments
         # vdi_command, sr-uuid, vdi-uuid
-        back_cmd = logentry[5].replace("vdi_","")
+        back_cmd = logentry[5].replace("vdi_", "")
         target = self.vdi(logentry[7])
         cmd = getattr(target, back_cmd)
         args = []
         for item in logentry[6:]:
-            item = item.replace("\n","")
+            item = item.replace("\n", "")
             args.append(item)
-        ret = cmd(*args)
+        ret = cmd( * args)
         if ret:
             print(ret)
 
@@ -354,27 +358,27 @@ class FileSR(SR.SR):
             return 1
 
     def _process_replay(self, data):
-        logentries=[]
+        logentries = []
         for logentry in data:
             logentry = logentry.split(" ")
             logentries.append(logentry)
         # we are looking for a log entry that has a log but no end or error
-        # wkcfix -- recreate (adjusted) logfile 
+        # wkcfix -- recreate (adjusted) logfile
         index = 0
-        while index < len(logentries)-1:
-            if self._compare_args(logentries[index],logentries[index+1]):
+        while index < len(logentries) - 1:
+            if self._compare_args(logentries[index], logentries[index + 1]):
                 self._replay(logentries[index])
             else:
                 # skip the paired one
                 index += 1
             # next
             index += 1
- 
+
     def _kickGC(self):
-        # don't bother if an instance already running (this is just an 
-        # optimization to reduce the overhead of forking a new process if we 
+        # don't bother if an instance already running (this is just an
+        # optimization to reduce the overhead of forking a new process if we
         # don't have to, but the process will check the lock anyways)
-        lockRunning = Lock(cleanup.LOCK_TYPE_RUNNING, self.uuid) 
+        lockRunning = Lock(cleanup.LOCK_TYPE_RUNNING, self.uuid)
         if not lockRunning.acquireNoblock():
             if cleanup.should_preempt(self.session, self.uuid):
                 util.SMlog("Aborting currently-running coalesce of garbage VDI")
@@ -417,8 +421,8 @@ class FileVDI(VDI.VDI):
     PARAM_VHD = "vhd"
     PARAM_RAW = "raw"
     VDI_TYPE = {
-            PARAM_VHD : vhdutil.VDI_TYPE_VHD,
-            PARAM_RAW : vhdutil.VDI_TYPE_RAW
+            PARAM_VHD: vhdutil.VDI_TYPE_VHD,
+            PARAM_RAW: vhdutil.VDI_TYPE_RAW
     }
 
     def _find_path_with_retries(self, vdi_uuid, maxretry=5, period=2.0):
@@ -478,7 +482,7 @@ class FileVDI(VDI.VDI):
             if not found:
                 if self.sr.srcmd.cmd == "vdi_delete":
                     # Could be delete for CBT log file
-                    self.path = os.path.join(self.sr.path, "%s.%s" % 
+                    self.path = os.path.join(self.sr.path, "%s.%s" %
                                              (vdi_uuid, self.PARAM_VHD))
                     return
                 if self.sr.srcmd.cmd == "vdi_attach_from_config":
@@ -498,9 +502,9 @@ class FileVDI(VDI.VDI):
                 self.managed = False
             self.parent = vhdInfo.parentUuid
             if self.parent:
-                self.sm_config_override = {'vhd-parent':self.parent}
+                self.sm_config_override = {'vhd-parent': self.parent}
             else:
-                self.sm_config_override = {'vhd-parent':None}
+                self.sm_config_override = {'vhd-parent': None}
             return
 
         try:
@@ -532,13 +536,13 @@ class FileVDI(VDI.VDI):
             if self.vdi_type == vhdutil.VDI_TYPE_RAW:
                 self.exists = True
                 self.size = self.utilisation
-                self.sm_config_override = {'type':self.PARAM_RAW}
+                self.sm_config_override = {'type': self.PARAM_RAW}
                 return
 
             if self.vdi_type == CBTLOG_TAG:
                 self.exists = True
                 self.size = self.utilisation
-                return 
+                return
 
             try:
                 # The VDI might be activated in R/W mode so the VHD footer
@@ -549,9 +553,9 @@ class FileVDI(VDI.VDI):
 
                 if 'parent' in diskinfo:
                     self.parent = diskinfo['parent']
-                    self.sm_config_override = {'vhd-parent':self.parent}
+                    self.sm_config_override = {'vhd-parent': self.parent}
                 else:
-                    self.sm_config_override = {'vhd-parent':None}
+                    self.sm_config_override = {'vhd-parent': None}
                     self.parent = ''
                 self.size = long(diskinfo['size']) * 1024 * 1024
                 self.hidden = long(diskinfo['hidden'])
@@ -611,7 +615,7 @@ class FileVDI(VDI.VDI):
         self.sr._update(self.sr.uuid, self.size)
         return super(FileVDI, self).get_params()
 
-    def delete(self, sr_uuid, vdi_uuid, data_only = False):
+    def delete(self, sr_uuid, vdi_uuid, data_only=False):
         if not util.ioretry(lambda: util.pathexists(self.path)):
             return super(FileVDI, self).delete(sr_uuid, vdi_uuid, data_only)
 
@@ -643,17 +647,17 @@ class FileVDI(VDI.VDI):
         try:
             self.attached = True
 
-            if not hasattr(self,'xenstore_data'):
+            if not hasattr(self, 'xenstore_data'):
                 self.xenstore_data = {}
 
             self.xenstore_data.update(scsiutil.update_XS_SCSIdata(vdi_uuid, \
                                                                       scsiutil.gen_synthetic_page_data(vdi_uuid)))
 
             if self.sr.handles("file"):
-                    # XXX: PR-1255: if these are constants then they should
-                    # be returned by the attach API call, not persisted in the
-                    # pool database.
-                self.xenstore_data['storage-type']='ext'
+                # XXX: PR-1255: if these are constants then they should
+                # be returned by the attach API call, not persisted in the
+                # pool database.
+                self.xenstore_data['storage-type'] = 'ext'
             return super(FileVDI, self).attach(sr_uuid, vdi_uuid)
         except util.CommandException as inst:
             raise xs_errors.XenError('VDILoad', opterr='error %d' % inst.code)
@@ -674,12 +678,12 @@ class FileVDI(VDI.VDI):
 
         if self.hidden:
             raise xs_errors.XenError('VDIUnavailable', opterr='hidden VDI')
-        
+
         if size < self.size:
             util.SMlog('vdi_resize: shrinking not supported: ' + \
                     '(current size: %d, new size: %d)' % (self.size, size))
             raise xs_errors.XenError('VDISize', opterr='shrinking not allowed')
-        
+
         if size == self.size:
             return VDI.VDI.get_params(self)
 
@@ -702,19 +706,19 @@ class FileVDI(VDI.VDI):
             # Revert the operation
             vhdutil.revert(self.path, jFile)
             raise xs_errors.XenError('VDISize', opterr='resize operation failed')
-        
+
         old_size = self.size
         self.size = vhdutil.getSizeVirt(self.path)
         st = util.ioretry(lambda: os.stat(self.path))
         self.utilisation = long(st.st_size)
-        
+
         self._db_update()
         self.sr._update(self.sr.uuid, self.size - old_size)
         super(FileVDI, self).resize_cbt(self.sr.uuid, self.uuid, self.size)
         return VDI.VDI.get_params(self)
 
     def clone(self, sr_uuid, vdi_uuid):
-            return self._do_snapshot(sr_uuid, vdi_uuid, VDI.SNAPSHOT_DOUBLE)
+        return self._do_snapshot(sr_uuid, vdi_uuid, VDI.SNAPSHOT_DOUBLE)
 
     def compose(self, sr_uuid, vdi1, vdi2):
         if self.vdi_type != vhdutil.VDI_TYPE_VHD:
@@ -790,7 +794,7 @@ class FileVDI(VDI.VDI):
         dst = None
         if snap_type == VDI.SNAPSHOT_DOUBLE:
             dest = util.gen_uuid()
-            dst = os.path.join(self.sr.path, "%s.%s" % (dest,self.vdi_type))
+            dst = os.path.join(self.sr.path, "%s.%s" % (dest, self.vdi_type))
             args.append(dest)
 
         if self.hidden:
@@ -817,8 +821,8 @@ class FileVDI(VDI.VDI):
 
         newuuid = util.gen_uuid()
         src = self.path
-        newsrc = os.path.join(self.sr.path, "%s.%s" % (newuuid,self.vdi_type))
-        newsrcname = "%s.%s" % (newuuid,self.vdi_type)
+        newsrc = os.path.join(self.sr.path, "%s.%s" % (newuuid, self.vdi_type))
+        newsrcname = "%s.%s" % (newuuid, self.vdi_type)
 
         if not self._checkpath(src):
             raise xs_errors.XenError('VDIUnavailable', \
@@ -864,7 +868,7 @@ class FileVDI(VDI.VDI):
             # Introduce the new VDI records
             leaf_vdi = None
             if snap_type == VDI.SNAPSHOT_DOUBLE:
-                leaf_vdi = VDI.VDI(self.sr, dest) # user-visible leaf VDI
+                leaf_vdi = VDI.VDI(self.sr, dest)  # user-visible leaf VDI
                 leaf_vdi.read_only = False
                 leaf_vdi.location = dest
                 leaf_vdi.size = self.size
@@ -884,7 +888,7 @@ class FileVDI(VDI.VDI):
 
             base_vdi = None
             if introduce_parent:
-                base_vdi = VDI.VDI(self.sr, newuuid) # readonly parent
+                base_vdi = VDI.VDI(self.sr, newuuid)  # readonly parent
                 base_vdi.label = "base copy"
                 base_vdi.read_only = True
                 base_vdi.location = newuuid
@@ -899,12 +903,12 @@ class FileVDI(VDI.VDI):
                 if snap_type == VDI.SNAPSHOT_DOUBLE:
                     leaf_vdi_ref = leaf_vdi._db_introduce()
                     util.SMlog("vdi_clone: introduced VDI: %s (%s)" % \
-                            (leaf_vdi_ref,dest))
-                
+                            (leaf_vdi_ref, dest))
+
                 if introduce_parent:
                     base_vdi_ref = base_vdi._db_introduce()
                     self.session.xenapi.VDI.set_managed(base_vdi_ref, False)
-                    util.SMlog("vdi_clone: introduced VDI: %s (%s)" % (base_vdi_ref,newuuid))
+                    util.SMlog("vdi_clone: introduced VDI: %s (%s)" % (base_vdi_ref, newuuid))
                 vdi_ref = self.sr.srcmd.params['vdi_ref']
                 sm_config = self.session.xenapi.VDI.get_sm_config(vdi_ref)
                 sm_config['vhd-parent'] = srcparent
@@ -913,11 +917,11 @@ class FileVDI(VDI.VDI):
                 util.SMlog("vdi_clone: caught error during VDI.db_introduce: %s" % (str(e)))
                 # Note it's too late to actually clean stuff up here: the base disk has
                 # been marked as deleted already.
-                util.end_log_entry(self.sr.path, self.path, ["error"])                
+                util.end_log_entry(self.sr.path, self.path, ["error"])
                 raise
         except util.CommandException as inst:
             # XXX: it might be too late if the base disk has been marked as deleted!
-            self._clonecleanup(src,dst,newsrc)
+            self._clonecleanup(src, dst, newsrc)
             util.end_log_entry(self.sr.path, self.path, ["error"])
             raise xs_errors.XenError('VDIClone',
                   opterr='VDI clone failed error %d' % inst.code)
@@ -941,7 +945,7 @@ class FileVDI(VDI.VDI):
         if not ret_vdi:
             ret_vdi = self
         return ret_vdi.get_params()
-            
+
     def get_params(self):
         if not self._checkpath(self.path):
             raise xs_errors.XenError('VDIUnavailable', \
@@ -952,7 +956,7 @@ class FileVDI(VDI.VDI):
         cmd = [SR.TAPDISK_UTIL, "snapshot", vhdutil.VDI_TYPE_VHD, child, parent]
         text = util.pread(cmd)
 
-    def _clonecleanup(self,src,dst,newsrc):
+    def _clonecleanup(self, src, dst, newsrc):
         try:
             if dst:
                 util.ioretry(lambda: self._unlink(dst))
@@ -968,7 +972,7 @@ class FileVDI(VDI.VDI):
                     self._rename(newsrc, src)
         except util.CommandException as inst:
             pass
-      
+
     def _checkpath(self, path):
         try:
             if not util.ioretry(lambda: util.pathexists(path)):
@@ -1039,7 +1043,7 @@ class FileVDI(VDI.VDI):
         # Return the 'config' encoded within a normal XMLRPC response so that
         # we can use the regular response/error parsing code.
         config = xmlrpclib.dumps(tuple([resp]), "vdi_attach_from_config")
-        return xmlrpclib.dumps((config,), "", True)
+        return xmlrpclib.dumps((config, ), "", True)
 
     def attach_from_config(self, sr_uuid, vdi_uuid):
         """

@@ -6,6 +6,7 @@ import mock
 
 EMPTY_VG_SPACE = 4 * 1024 * 1024
 
+
 class AlwaysBusyLock(object):
     def acquireNoblock(self):
         return False
@@ -147,7 +148,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
         pread2.assert_called_once_with(
-            ["/usr/sbin/blkdiscard","-v",
+            ["/usr/sbin/blkdiscard", "-v",
             "/dev/VG_XenStorage-some-uuid/some-uuid_trim_lv"])
 
     @mock.patch('trim_util.lvutil', autospec=True)

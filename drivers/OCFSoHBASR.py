@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -20,9 +20,16 @@
 #
 
 from __future__ import print_function
-import SR, VDI, OCFSSR, SRCommand, devscan, HBASR
+import SR
+import VDI
+import OCFSSR
+import SRCommand
+import devscan
+import HBASR
 import util
-import os, sys, re
+import os
+import sys
+import re
 import xs_errors
 import xmlrpclib
 import mpath_cli
@@ -32,7 +39,7 @@ CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_METADATA", "VDI_CREATE",
                 "VDI_GENERATE_CONFIG", "VDI_CLONE", "VDI_SNAPSHOT", "VDI_MIRROR",
                 "VDI_RESIZE", "ATOMIC_PAUSE", "VDI_UPDATE"]
 
-CONFIGURATION = [ [ 'SCSIid', 'The scsi_id of the destination LUN' ] ]
+CONFIGURATION = [['SCSIid', 'The scsi_id of the destination LUN']]
 
 DRIVER_INFO = {
     'name': 'OCFS over FC',
@@ -45,8 +52,10 @@ DRIVER_INFO = {
     'configuration': CONFIGURATION
     }
 
+
 class OCFSoHBASR(OCFSSR.OCFSSR):
     """OCFS over HBA storage repository"""
+
     def handles(type):
         if type == "ocfsohba":
             return True
@@ -68,30 +77,30 @@ class OCFSoHBASR(OCFSSR.OCFSSR):
             raise xs_errors.XenError('ConfigSCSIid')
 
         self.SCSIid = self.dconf['SCSIid']
-        self._pathrefresh(OCFSoHBASR, load = False)
+        self._pathrefresh(OCFSoHBASR, load=False)
         super(OCFSoHBASR, self).load(sr_uuid)
 
     def create(self, sr_uuid, size):
         self.hbasr.attach(sr_uuid)
         if self.mpath == "true":
-            self.mpathmodule.refresh(self.SCSIid,0)
+            self.mpathmodule.refresh(self.SCSIid, 0)
         self._pathrefresh(OCFSoHBASR)
         try:
             super(OCFSoHBASR, self).create(sr_uuid, size)
         finally:
             if self.mpath == "true":
-                self.mpathmodule.reset(self.SCSIid, True) # explicit unmap
+                self.mpathmodule.reset(self.SCSIid, True)  # explicit unmap
                 util.remove_mpathcount_field(self.session, self.host_ref, \
                                              self.sr_ref, self.SCSIid)
 
     def attach(self, sr_uuid):
         self.hbasr.attach(sr_uuid)
         if self.mpath == "true":
-            self.mpathmodule.refresh(self.SCSIid,0)
+            self.mpathmodule.refresh(self.SCSIid, 0)
             # set the device mapper's I/O scheduler
             path = '/dev/disk/by-scsid/%s' % self.dconf['SCSIid']
             for file in os.listdir(path):
-                self.block_setscheduler('%s/%s' % (path,file))
+                self.block_setscheduler('%s/%s' % (path, file))
 
         self._pathrefresh(OCFSoHBASR)
         if not os.path.exists(self.dconf['device']):
@@ -99,28 +108,28 @@ class OCFSoHBASR(OCFSSR.OCFSSR):
             self.hbasr._init_hbadict()
             # Must re-initialise the multipath node
             if self.mpath == "true":
-                self.mpathmodule.refresh(self.SCSIid,0)
+                self.mpathmodule.refresh(self.SCSIid, 0)
 
         super(OCFSoHBASR, self).attach(sr_uuid)
         self._setMultipathableFlag(SCSIid=self.SCSIid)
 
     def scan(self, sr_uuid):
         # During a reboot, scan is called ahead of attach, which causes the MGT
-        # to point of the wrong device instead of dm-x. Running multipathing 
+        # to point of the wrong device instead of dm-x. Running multipathing
         # will take care of this scenario.
         if self.mpath == "true":
             if not os.path.exists(self.dconf['device']):
                 util.SMlog("%s path does not exists" % self.dconf['device'])
-                self.mpathmodule.refresh(self.SCSIid,0)
+                self.mpathmodule.refresh(self.SCSIid, 0)
                 self._pathrefresh(OCFSoHBASR)
                 self._setMultipathableFlag(SCSIid=self.SCSIid)
         super(OCFSoHBASR, self).scan(sr_uuid)
 
     def probe(self):
         if self.mpath == "true" and 'SCSIid' in self.dconf:
-            # When multipathing is enabled, since we don't refcount the 
+            # When multipathing is enabled, since we don't refcount the
             # multipath maps, we should not attempt to do the iscsi.attach/
-            # detach when the map is already present, as this will remove it 
+            # detach when the map is already present, as this will remove it
             # (which may well be in use).
             maps = []
             try:
@@ -130,21 +139,21 @@ class OCFSoHBASR(OCFSSR.OCFSSR):
 
             if self.dconf['SCSIid'] in maps:
                 raise xs_errors.XenError('SRInUse')
-            self.mpathmodule.refresh(self.SCSIid,0)
+            self.mpathmodule.refresh(self.SCSIid, 0)
         try:
             self._pathrefresh(OCFSoHBASR)
             result = super(OCFSoHBASR, self).probe()
             if self.mpath == "true":
-                self.mpathmodule.reset(self.SCSIid,True)
+                self.mpathmodule.reset(self.SCSIid, True)
             return result
         except:
-           if self.mpath == "true":
-                self.mpathmodule.reset(self.SCSIid,True)
-           raise
+            if self.mpath == "true":
+                self.mpathmodule.reset(self.SCSIid, True)
+            raise
 
     def detach(self, sr_uuid):
         super(OCFSoHBASR, self).detach(sr_uuid)
-        self.mpathmodule.reset(self.SCSIid,True,True) # explicit_unmap
+        self.mpathmodule.reset(self.SCSIid, True, True)  # explicit_unmap
         try:
             pbdref = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
         except:
@@ -160,10 +169,11 @@ class OCFSoHBASR(OCFSSR.OCFSSR):
             super(OCFSoHBASR, self).delete(sr_uuid)
         finally:
             if self.mpath == "true":
-                self.mpathmodule.reset(self.SCSIid, True) # explicit unmap
+                self.mpathmodule.reset(self.SCSIid, True)  # explicit unmap
 
     def vdi(self, uuid, loadLocked=False):
         return OCFSoHBAVDI(self, uuid)
+
 
 class OCFSoHBAVDI(OCFSSR.OCFSFileVDI):
     def generate_config(self, sr_uuid, vdi_uuid):
@@ -177,13 +187,13 @@ class OCFSoHBAVDI(OCFSSR.OCFSFileVDI):
         # Return the 'config' encoded within a normal XMLRPC response so that
         # we can use the regular response/error parsing code.
         config = xmlrpclib.dumps(tuple([dict]), "vdi_attach_from_config")
-        return xmlrpclib.dumps((config,), "", True)
+        return xmlrpclib.dumps((config, ), "", True)
 
     def attach_from_config(self, sr_uuid, vdi_uuid):
         util.SMlog("OCFSoHBAVDI.attach_from_config")
         self.sr.hbasr.attach(sr_uuid)
         if self.sr.mpath == "true":
-            self.sr.mpathmodule.refresh(self.sr.SCSIid,0)
+            self.sr.mpathmodule.refresh(self.sr.SCSIid, 0)
         try:
             return self.attach(sr_uuid, vdi_uuid)
         except:
@@ -191,10 +201,11 @@ class OCFSoHBAVDI(OCFSSR.OCFSFileVDI):
             raise xs_errors.XenError('SRUnavailable', \
                         opterr='Unable to attach the heartbeat disk')
 
+
 def match_scsidev(s):
     regex = re.compile("^/dev/disk/by-id|^/dev/mapper")
     return regex.search(s, 0)
-    
+
 if __name__ == '__main__':
     SRCommand.run(OCFSoHBASR, DRIVER_INFO)
 else:

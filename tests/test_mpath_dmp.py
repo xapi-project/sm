@@ -130,7 +130,7 @@ class TestMpathDmp(unittest.TestCase):
         """
         mock_valid.return_value = True
 
-        test_id='360871234'
+        test_id = '360871234'
 
         mock_exists.return_value = True
 
@@ -158,7 +158,7 @@ class TestMpathDmp(unittest.TestCase):
 
         mock_valid.return_value = True
 
-        test_id='360871234'
+        test_id = '360871234'
 
         with self.assertRaises(SROSError):
             mpath_dmp._refresh_DMP(test_id, 4)
@@ -178,7 +178,7 @@ class TestMpathDmp(unittest.TestCase):
         """
         mock_valid.return_value = True
 
-        test_id='360871234'
+        test_id = '360871234'
 
         mapper_exists = Queue()
         mapper_exists.put(False)

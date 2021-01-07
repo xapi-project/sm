@@ -190,5 +190,3 @@ class TestLVSubSystem(unittest.TestCase, ExecResultMixIn):
             "someprog status".split(), '')
 
         self.assertExecutionSucceeded(exec_result)
-
-

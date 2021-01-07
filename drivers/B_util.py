@@ -1,14 +1,15 @@
+
 #!/usr/bin/python
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -24,7 +25,7 @@ def is_vdi_attached(session, vdi_ref):
 
     vbd_attached = False
 
-    # vdi is considered attached if there is a VBD and if one the 
+    # vdi is considered attached if there is a VBD and if one the
     # VBDs currently_attached flag is True
     vbds = session.xenapi.VBD.get_all_records_where( \
                                    "field \"VDI\" = \"%s\"" % vdi_ref)
@@ -34,4 +35,3 @@ def is_vdi_attached(session, vdi_ref):
             vbd_attached = True
             break
     return vbd_attached
-

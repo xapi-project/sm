@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -24,6 +24,8 @@ import SR
 import util
 
 XML_DEFS = '/opt/xensource/sm/XE_SR_ERRORCODES.xml'
+
+
 class XenError(Exception):
     def __new__(self, key, opterr=None):
         # Check the XML definition file exists
@@ -53,7 +55,6 @@ class XenError(Exception):
 
         # development error
         return SR.SROSError(1, "Error reporting error, unknown key %s" % key)
- 
 
     @staticmethod
     def _fromxml(tag):
@@ -75,4 +76,3 @@ class XenError(Exception):
                 name = taglist['name']
                 errorlist[name] = taglist
         return errorlist
-

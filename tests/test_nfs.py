@@ -5,6 +5,7 @@ import sys
 import unittest
 import util
 
+
 class Test_nfs(unittest.TestCase):
 
     @mock.patch('util.pread', autospec=True)
@@ -23,7 +24,7 @@ class Test_nfs(unittest.TestCase):
     # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('util.pread')
     def test_check_server_service(self, pread, sleep):
-        pread.side_effect=["    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
+        pread.side_effect = ["    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
         service_found = nfs.check_server_service('aServer')
 
         self.assertTrue(service_found)
@@ -36,7 +37,7 @@ class Test_nfs(unittest.TestCase):
     # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('util.pread')
     def test_check_server_service_with_retries(self, pread, sleep):
-        pread.side_effect=["",
+        pread.side_effect = ["",
                            "",
                            "    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
         service_found = nfs.check_server_service('aServer')
@@ -48,7 +49,7 @@ class Test_nfs(unittest.TestCase):
     @mock.patch('time.sleep', autospec=True)
     @mock.patch('util.pread', autospec=True)
     def test_check_server_service_not_available(self, pread, sleep):
-        pread.return_value=""
+        pread.return_value = ""
 
         service_found = nfs.check_server_service('aServer')
 
@@ -58,16 +59,15 @@ class Test_nfs(unittest.TestCase):
     # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('util.pread')
     def test_check_server_service_exception(self, pread, sleep):
-        pread.side_effect=[util.CommandException(errno.ENOMEM)]
+        pread.side_effect = [util.CommandException(errno.ENOMEM)]
         with self.assertRaises(util.CommandException):
             nfs.check_server_service('aServer')
-
 
     @mock.patch('time.sleep', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('util.pread')
     def test_check_server_service_first_call_exception(self, pread, sleep):
-        pread.side_effect=[util.CommandException(errno.EPIPE),
+        pread.side_effect = [util.CommandException(errno.EPIPE),
                             "    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
         service_found = nfs.check_server_service('aServer')
 
@@ -92,7 +92,7 @@ class Test_nfs(unittest.TestCase):
     @mock.patch('util.makedirs', autospec=True)
     @mock.patch('nfs.check_server_service', autospec=True)
     @mock.patch('util.pread', autospec=True)
-    def test_soft_mount_nfsversion_3(self, pread, 
+    def test_soft_mount_nfsversion_3(self, pread,
                                      check_server_service, makedirs):
         nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
                        timeout=None, nfsversion='3')
@@ -104,7 +104,7 @@ class Test_nfs(unittest.TestCase):
     @mock.patch('util.makedirs', autospec=True)
     @mock.patch('nfs.check_server_service', autospec=True)
     @mock.patch('util.pread', autospec=True)
-    def test_soft_mount_nfsversion_4(self, pread, 
+    def test_soft_mount_nfsversion_4(self, pread,
                                      check_server_service, makedirs):
         nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
                        timeout=None, nfsversion='4')

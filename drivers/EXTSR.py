@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -17,7 +17,12 @@
 #
 # EXTSR: Based on local-file storage repository, mounts ext3 partition
 
-import SR, SRCommand, FileSR, util, lvutil, scsiutil
+import SR
+import SRCommand
+import FileSR
+import util
+import lvutil
+import scsiutil
 
 import os
 import xs_errors
@@ -25,15 +30,15 @@ import vhdutil
 from lock import Lock
 from constants import EXT_PREFIX
 
-CAPABILITIES = ["SR_PROBE","SR_UPDATE", "SR_SUPPORTS_LOCAL_CACHING", \
-                "VDI_CREATE","VDI_DELETE","VDI_ATTACH","VDI_DETACH", \
-                "VDI_UPDATE","VDI_CLONE","VDI_SNAPSHOT","VDI_RESIZE","VDI_MIRROR", \
-                "VDI_GENERATE_CONFIG",                                \
-                "VDI_RESET_ON_BOOT/2","ATOMIC_PAUSE", "VDI_CONFIG_CBT", 
+CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_SUPPORTS_LOCAL_CACHING", \
+                "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH", \
+                "VDI_UPDATE", "VDI_CLONE", "VDI_SNAPSHOT", "VDI_RESIZE", "VDI_MIRROR", \
+                "VDI_GENERATE_CONFIG", \
+                "VDI_RESET_ON_BOOT/2", "ATOMIC_PAUSE", "VDI_CONFIG_CBT",
                 "VDI_ACTIVATE", "VDI_DEACTIVATE", "THIN_PROVISIONING", "VDI_READ_CACHING"]
 
-CONFIGURATION = [ [ 'device', 'local device path (required) (e.g. /dev/sda3)' ] ]
-                  
+CONFIGURATION = [['device', 'local device path (required) (e.g. /dev/sda3)']]
+
 DRIVER_INFO = {
     'name': 'Local EXT3 VHD',
     'description': 'SR plugin which represents disks as VHD files stored on a local EXT3 filesystem, created inside an LVM volume',
@@ -47,8 +52,10 @@ DRIVER_INFO = {
 
 DRIVER_CONFIG = {"ATTACH_FROM_CONFIG_WITH_TAPDISK": True}
 
+
 class EXTSR(FileSR.FileSR):
     """EXT3 Local file storage repository"""
+
     def handles(srtype):
         return srtype == 'ext'
     handles = staticmethod(handles)
@@ -67,7 +74,7 @@ class EXTSR(FileSR.FileSR):
                       opterr='path is %s' % dev)
         self.path = os.path.join(SR.MOUNT_BASE, sr_uuid)
         self.vgname = EXT_PREFIX + sr_uuid
-        self.remotepath = os.path.join("/dev",self.vgname,sr_uuid)
+        self.remotepath = os.path.join("/dev", self.vgname, sr_uuid)
         self.attached = self._checkmount()
         self.driver_config = DRIVER_CONFIG
 
@@ -90,7 +97,7 @@ class EXTSR(FileSR.FileSR):
         try:
             cmd = ["lvremove", "-f", self.remotepath]
             util.pread2(cmd)
-            
+
             cmd = ["vgremove", self.vgname]
             util.pread2(cmd)
 
@@ -100,21 +107,21 @@ class EXTSR(FileSR.FileSR):
         except util.CommandException as inst:
             raise xs_errors.XenError('LVMDelete', \
                   opterr='errno is %d' % inst.code)
-            
+
     def attach(self, sr_uuid):
         if not self._checkmount():
             try:
                 #Activate LV
-                cmd = ['lvchange','-ay',self.remotepath]
+                cmd = ['lvchange', '-ay', self.remotepath]
                 util.pread2(cmd)
-                
+
                 # make a mountpoint:
                 if not os.path.isdir(self.path):
                     os.makedirs(self.path)
             except util.CommandException as inst:
                 raise xs_errors.XenError('LVMMount', \
                       opterr='Unable to activate LV. Errno is %d' % inst.code)
-            
+
             try:
                 util.pread(["fsck", "-a", self.remotepath])
             except util.CommandException as inst:
@@ -122,7 +129,7 @@ class EXTSR(FileSR.FileSR):
                     util.SMlog("FSCK detected and corrected FS errors. Not fatal.")
                 else:
                     raise xs_errors.XenError('LVMMount', \
-                         opterr='FSCK failed on %s. Errno is %d' % (self.remotepath,inst.code))
+                         opterr='FSCK failed on %s. Errno is %d' % (self.remotepath, inst.code))
 
             try:
                 util.pread(["mount", self.remotepath, self.path])
@@ -135,9 +142,10 @@ class EXTSR(FileSR.FileSR):
         #Update SCSIid string
         scsiutil.add_serial_record(self.session, self.sr_ref, \
                 scsiutil.devlist_to_serialstring(self.root.split(',')))
-        
+
         # Set the block scheduler
-        for dev in self.root.split(','): self.block_setscheduler(dev)
+        for dev in self.root.split(','):
+            self.block_setscheduler(dev)
 
     def detach(self, sr_uuid):
         super(EXTSR, self).detach(sr_uuid)
@@ -211,7 +219,7 @@ class EXTSR(FileSR.FileSR):
         scsiutil.add_serial_record(self.session, self.sr_ref, \
                   scsiutil.devlist_to_serialstring(self.root.split(',')))
 
-    def vdi(self, uuid, loadLocked = False):
+    def vdi(self, uuid, loadLocked=False):
         if not loadLocked:
             return EXTFileVDI(self, uuid)
         return EXTFileVDI(self, uuid)
@@ -219,10 +227,10 @@ class EXTSR(FileSR.FileSR):
 
 class EXTFileVDI(FileSR.FileVDI):
     def attach(self, sr_uuid, vdi_uuid):
-        if not hasattr(self,'xenstore_data'):
+        if not hasattr(self, 'xenstore_data'):
             self.xenstore_data = {}
 
-        self.xenstore_data["storage-type"]="ext"
+        self.xenstore_data["storage-type"] = "ext"
 
         return super(EXTFileVDI, self).attach(sr_uuid, vdi_uuid)
 

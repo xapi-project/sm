@@ -2,13 +2,13 @@
 #
 # Copyright (C) Citrix Systems Inc.
 #
-# This program is free software; you can redistribute it and/or modify 
-# it under the terms of the GNU Lesser General Public License as published 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
 # by the Free Software Foundation; version 2.1 only.
 #
-# This program is distributed in the hope that it will be useful, 
-# but WITHOUT ANY WARRANTY; without even the implied warranty of 
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU Lesser General Public License for more details.
 #
 # You should have received a copy of the GNU Lesser General Public License
@@ -19,11 +19,13 @@
 #
 
 import os
-import VDI, util
+import VDI
+import util
 import scsiutil
 import xs_errors
 
 MAX_TIMEOUT = 15
+
 
 class RAWVDI(VDI.VDI):
     def load(self, vdi_uuid):
@@ -42,7 +44,7 @@ class RAWVDI(VDI.VDI):
             pass
         if self.sr.cmd == "vdi_introduce":
             self.managed = True
-        
+
     def _query(self, path, id):
         self.uuid = scsiutil.gen_uuid_from_string(scsiutil.getuniqueserial(path))
         self.location = self.uuid
@@ -105,7 +107,7 @@ class RAWVDI(VDI.VDI):
             self.sr.session.xenapi.VDI.set_managed(vdi['vdi_ref'], False)
         except:
             pass
-        
+
     def attach(self, sr_uuid, vdi_uuid):
         self.sr._loadvdis()
         if vdi_uuid not in self.sr.vdis:
@@ -127,7 +129,7 @@ class RAWVDI(VDI.VDI):
     def detach(self, sr_uuid, vdi_uuid):
         self.sr._loadvdis()
         if 'SCSIid' in self.sm_config:
-            self.sr.mpathmodule.reset(self.sm_config['SCSIid'], True) # explicitly unmap
+            self.sr.mpathmodule.reset(self.sm_config['SCSIid'], True)  # explicitly unmap
         if vdi_uuid not in self.sr.vdis:
             raise xs_errors.XenError('VDIUnavailable')
 
@@ -137,4 +139,3 @@ class RAWVDI(VDI.VDI):
             self.sr.session.xenapi.VDI.set_managed(vdi['vdi_ref'], managed)
         except:
             raise xs_errors.XenError('VDIUnavailable')
-
