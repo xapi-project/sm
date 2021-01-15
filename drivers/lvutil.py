@@ -73,6 +73,8 @@ DM_COMMANDS = frozenset({CMD_DMSETUP})
 
 LVM_COMMANDS = VG_COMMANDS.union(PV_COMMANDS, LV_COMMANDS, DM_COMMANDS)
 
+LVM_LOCK = 'lvm'
+
 
 def extract_vgname(str_in):
     """Search for and return a VG name
@@ -110,15 +112,30 @@ def extract_vgname(str_in):
 
     return None
 
+class LvmLockContext(object):
+    """
+    Context manager around the LVM lock.
 
-def get_lvm_lock():
+    To allow for higher level operations, e.g. VDI snapshot to pre-emptively
+    acquire the lock to encapsulte a set of calls and avoid having to reacquire
+    the locks for each LVM call.
     """
-    Open and acquire a system wide lock to wrap LVM calls
-    :return: the created lock
-    """
-    new_lock = lock.Lock('lvm')
-    new_lock.acquire()
-    return new_lock
+
+    def __init__(self, cmd=None):
+        self.lock = lock.Lock(LVM_LOCK)
+        self.cmd = cmd
+        self.locked = False
+
+    def __enter__(self):
+        if self.cmd and '--readonly' in self.cmd:
+            return
+
+        self.lock.acquire()
+        self.locked = True
+
+    def __exit__(self, exc_type, value, traceback):
+        if self.locked:
+            self.lock.release()
 
 
 def cmd_lvm(cmd, pread_func=util.pread2, *args):
@@ -163,14 +180,10 @@ def cmd_lvm(cmd, pread_func=util.pread2, *args):
             util.SMlog("CMD_LVM: Not all lvm arguments are of type 'str'")
             return None
 
-    lvm_lock = get_lvm_lock()
-
-    try:
+    with LvmLockContext(cmd):
         start_time = time.time()
         stdout = pread_func([os.path.join(LVM_BIN, lvm_cmd)] + lvm_args, * args)
         end_time = time.time()
-    finally:
-        lvm_lock.release()
 
     if (end_time - start_time > MAX_OPERATION_DURATION):
         util.SMlog("***** Long LVM call of '%s' took %s" % (lvm_cmd, (end_time - start_time)))
