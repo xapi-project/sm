@@ -29,6 +29,7 @@ import lvhdutil
 import scsiutil
 import os
 import sys
+import time
 import errno
 import xs_errors
 import cleanup
@@ -80,6 +81,8 @@ OPS_EXCLUSIVE = [
         "sr_update", "vdi_create", "vdi_delete", "vdi_resize", "vdi_snapshot",
         "vdi_clone"]
 
+# Log if snapshot pauses VM for more than this many seconds
+LONG_SNAPTIME = 60
 
 class LVHDSR(SR.SR):
     DRIVER_TYPE = 'lvhd'
@@ -1671,6 +1674,7 @@ class LVHDVDI(VDI.VDI):
         else:
             consistency_state = None
 
+        pause_time = time.time()
         if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
             raise util.SMException("failed to pause VDI %s" % vdi_uuid)
 
@@ -1686,6 +1690,10 @@ class LVHDVDI(VDI.VDI):
                         '%s (error ignored)' % e2)
             raise
         blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
+        unpause_time = time.time()
+        if (unpause_time - pause_time) > LONG_SNAPTIME:
+            util.SMlog('WARNING: snapshot paused VM for %s seconds' %
+                       (unpause_time - pause_time))
         return snapResult
 
     def _snapshot(self, snapType, cloneOp=False, cbtlog=None, cbt_consistency=None):
