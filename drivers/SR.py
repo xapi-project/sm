@@ -88,6 +88,8 @@ class SR(object):
       sr_vditype: string, repository type
     """
 
+    REQ_CONSISTENT_MODEL = ["sr_create", "sr_delete", "sr_probe", "sr_attach", "sr_scan"]
+
     def handles(type):
         """Returns True if this SR class understands the given dconf string"""
         return False
@@ -157,6 +159,15 @@ class SR(object):
         self.driver_config = {}
 
         self.load(sr_uuid)
+
+        if self.reqConsistentStorageModel(srcmd):
+            self.refreshStorageModel(srcmd)
+
+    def reqConsistentStorageModel(self, srcmd):
+        return srcmd.cmd in self.REQ_CONSISTENT_MODEL
+
+    def refreshStorageModel(self, srcmd):
+        pass
 
     @staticmethod
     def from_uuid(session, sr_uuid):
@@ -487,13 +498,21 @@ class SR(object):
         if self.mpath == "true":
             self.mpathmodule.activate()
         else:
-            self.mpathmodule.deactivate()
+                    self.mpathmodule.deactivate()
 
-    def _pathrefresh(self, obj, load=True):
+
+    def checkroot(self):
+        if 'device' in self.dconf:
+            self.root = self.dconf['device']
+            if self.root:
+                for dev in self.root.split(','):
+                    if not self._isvalidpathstring(dev):
+                        raise xs_errors.XenError('ConfigDeviceInvalid', \
+                              opterr='path is %s' % dev)
+
+    def _pathrefresh(self):
         SCSIid = getattr(self, 'SCSIid')
         self.dconf['device'] = self.mpathmodule.path(SCSIid)
-        if load:
-            super(obj, self).load(self.uuid)
 
     def _setMultipathableFlag(self, SCSIid=''):
         try:

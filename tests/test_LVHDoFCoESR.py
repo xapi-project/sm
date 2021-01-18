@@ -53,9 +53,8 @@ class TestFCoESR(unittest.TestCase):
 
     @mock.patch('SR.driver', autospec=True)
     @mock.patch('util.find_my_pbd', autospec=True)
-    @mock.patch('SR.SR._pathrefresh', autospec=True)
     @mock.patch('LVHDoFCoESR.LVHDSR.LVHDSR.load', autospec=True)
-    def test_load_scsiid(self, lvhdsrload, pathrefresh, find_my_pbd, driver):
+    def test_load_scsiid(self, lvhdsrload, find_my_pbd, driver):
         find_my_pbd.return_value = ['pbd_ref', 'pbd']
         parameters = {}
         parameters['device_config'] = ""
@@ -63,9 +62,8 @@ class TestFCoESR(unittest.TestCase):
 
     @mock.patch('SR.driver', autospec=True)
     @mock.patch('util.find_my_pbd', autospec=True)
-    @mock.patch('SR.SR._pathrefresh', autospec=True)
     @mock.patch('LVHDoFCoESR.LVHDSR.LVHDSR.load', autospec=True)
-    def test_load_pbd_exception(self, lvhdsrload, pathrefresh, find_my_pbd, driver):
+    def test_load_pbd_exception(self, lvhdsrload, find_my_pbd, driver):
         find_my_pbd.side_effect = Exception('exception raised')
         parameters = {}
         parameters['device_config'] = ""
@@ -73,9 +71,8 @@ class TestFCoESR(unittest.TestCase):
 
     @mock.patch('SR.driver', autospec=True)
     @mock.patch('util.find_my_pbd', autospec=True)
-    @mock.patch('SR.SR._pathrefresh', autospec=True)
     @mock.patch('LVHDoFCoESR.LVHDSR.LVHDSR.load', autospec=True)
-    def test_vdi(self, lvhdsrload, pathrefresh, find_my_pbd, driver):
+    def test_vdi(self, lvhdsrload, find_my_pbd, driver):
         sr_uuid = 'bsr_uuid'
         find_my_pbd.return_value = ['pbd_ref', 'pbd']
         parameters = {}

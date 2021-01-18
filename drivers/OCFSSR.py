@@ -81,6 +81,28 @@ class OCFSSR(FileSR.FileSR):
         self.driver_config = DRIVER_CONFIG
         self.path = os.path.join(SR.MOUNT_BASE, sr_uuid)
 
+    def refreshStorageDevice(self, srcmd):
+        if srcmd.cmd == "sr_scan":
+            SCSIid = getattr(self, 'SCSIid')
+            # During a reboot, scan is called ahead of attach, which causes the MGT
+            # to point of the wrong device instead of dm-x. Running multipathing will
+            # take care of this scenario.
+            if self.mpath == "true":
+                if not os.path.exists(self.dconf['device']):
+                    util.SMlog("@@@@@ path does not exists")
+                    self.mpathmodule.refresh(SCSIid, 0)
+                    self._pathrefresh()
+                    self._setMultipathableFlag(SCSIid=SCSIid)
+            else:
+                    self._pathrefresh()
+        else:
+            self._pathrefresh()
+
+    def refreshStorageModel(self, srcmd):
+        if hasattr(self, 'SCSIid'):
+            self.refreshStorageDevice(srcmd)
+        self.checkroot()
+
     def mount(self, mountpoint, blockdevice):
         try:
             if not util.ioretry(lambda: util.isdir(mountpoint)):

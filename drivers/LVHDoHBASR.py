@@ -107,14 +107,12 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
                 raise xs_errors.XenError('ConfigSCSIid')
 
         self.SCSIid = self.dconf['SCSIid']
-        self._pathrefresh(LVHDoHBASR, load=False)
         LVHDSR.LVHDSR.load(self, sr_uuid)
 
     def create(self, sr_uuid, size):
         self.hbasr.attach(sr_uuid)
         if self.mpath == "true":
-            self.mpathmodule.refresh(self.SCSIid, 0)
-        self._pathrefresh(LVHDoHBASR)
+            self.mpathmodule.refresh(self.SCSIid,0)
         try:
             LVHDSR.LVHDSR.create(self, sr_uuid, size)
         finally:
@@ -132,7 +130,6 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             for file in os.listdir(path):
                 self.block_setscheduler('%s/%s' % (path, file))
 
-        self._pathrefresh(LVHDoHBASR)
         if not os.path.exists(self.dconf['device']):
             # Force a rescan on the bus
             self.hbasr._init_hbadict()
@@ -143,15 +140,6 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
         self._setMultipathableFlag(SCSIid=self.SCSIid)
 
     def scan(self, sr_uuid):
-        # During a reboot, scan is called ahead of attach, which causes the MGT
-        # to point of the wrong device instead of dm-x. Running multipathing will
-        # take care of this scenario.
-        if self.mpath == "true":
-            if not os.path.exists(self.dconf['device']):
-                util.SMlog("@@@@@ path does not exists")
-                self.mpathmodule.refresh(self.SCSIid, 0)
-                self._pathrefresh(LVHDoHBASR)
-                self._setMultipathableFlag(SCSIid=self.SCSIid)
         LVHDSR.LVHDSR.scan(self, sr_uuid)
 
     def probe(self):
@@ -171,7 +159,6 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             self.mpathmodule.refresh(self.SCSIid, 0)
 
         try:
-            self._pathrefresh(LVHDoHBASR)
             result = LVHDSR.LVHDSR.probe(self)
             if self.mpath == "true":
                 self.mpathmodule.reset(self.SCSIid, explicit_unmap=True)

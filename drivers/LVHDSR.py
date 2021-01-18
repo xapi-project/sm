@@ -147,13 +147,6 @@ class LVHDSR(SR.SR):
 
     def load(self, sr_uuid):
         self.ops_exclusive = OPS_EXCLUSIVE
-        if 'device' not in self.dconf or not self.dconf['device']:
-            raise xs_errors.XenError('ConfigDeviceMissing', )
-        self.root = self.dconf['device']
-        for dev in self.root.split(','):
-            if not self._isvalidpathstring(dev):
-                raise xs_errors.XenError('ConfigDeviceInvalid', \
-                        opterr='path is %s' % dev)
 
         self.isMaster = False
         if 'SRmaster' in self.dconf and self.dconf['SRmaster'] == 'true':
@@ -231,6 +224,28 @@ class LVHDSR(SR.SR):
             self.mdexists = self.lvmCache.checkLV(self.MDVOLUME_NAME)
         except:
             pass
+
+    def refreshStorageDevice(self, srcmd):
+        if srcmd.cmd == "sr_scan":
+            SCSIid = getattr(self, 'SCSIid')
+            # During a reboot, scan is called ahead of attach, which causes the MGT
+            # to point of the wrong device instead of dm-x. Running multipathing will
+            # take care of this scenario.
+            if self.mpath == "true":
+                if not os.path.exists(self.dconf['device']):
+                    util.SMlog("@@@@@ path does not exists")
+                    self.mpathmodule.refresh(SCSIid, 0)
+                    self._pathrefresh()
+                    self._setMultipathableFlag(SCSIid=SCSIid)
+            else:
+                    self._pathrefresh()
+        else:
+            self._pathrefresh()
+
+    def refreshStorageModel(self, srcmd):
+        if hasattr(self, 'SCSIid'):
+            self.refreshStorageDevice(srcmd)
+        self.checkroot()
 
     def cleanup(self):
         # we don't need to hold the lock to dec refcounts of activated LVs
