@@ -338,7 +338,6 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                     except:
                         raise xs_errors.XenError('ISCSILogout')
 
-        self._pathrefresh(LVHDoISCSISR, load=False)
 
         LVHDSR.LVHDSR.load(self, sr_uuid)
 
@@ -478,7 +477,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                         continue
                 if not upgraded:
                     raise xs_errors.XenError('InvalidDev')
-            self._pathrefresh(LVHDoISCSISR)
+            self._pathrefresh()
             LVHDSR.LVHDSR.create(self, sr_uuid, size)
         except Exception as inst:
             self.iscsi.detach(sr_uuid)
@@ -519,7 +518,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 for a in self.iscsi.adapter:
                     scsiutil.rescan([self.iscsi.adapter[a]])
 
-            self._pathrefresh(LVHDoISCSISR)
+            self._pathrefresh()
             LVHDSR.LVHDSR.attach(self, sr_uuid)
         except Exception as inst:
             for i in self.iscsiSRs:
@@ -561,7 +560,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
         if not self.iscsi._attach_LUN_bySCSIid(self.SCSIid):
             util.SMlog("Unable to detect LUN")
             raise xs_errors.XenError('InvalidDev')
-        self._pathrefresh(LVHDoISCSISR)
+        self._pathrefresh()
         out = LVHDSR.LVHDSR.probe(self)
         self.iscsi.detach(self.uuid)
         return out
