@@ -157,6 +157,7 @@ class SR(object):
         self.driver_config = {}
 
         self.load(sr_uuid)
+        self.checkroot()
 
     @staticmethod
     def from_uuid(session, sr_uuid):
@@ -489,11 +490,19 @@ class SR(object):
         else:
             self.mpathmodule.deactivate()
 
-    def _pathrefresh(self, obj, load=True):
+    def checkroot(self):
+        if 'device' in self.dconf:
+            self.root = self.dconf['device']
+            if self.root:
+                for dev in self.root.split(','):
+                    if not self._isvalidpathstring(dev):
+                        raise xs_errors.XenError('ConfigDeviceInvalid', \
+                              opterr='path is %s' % dev)
+
+    def _pathrefresh(self):
         SCSIid = getattr(self, 'SCSIid')
         self.dconf['device'] = self.mpathmodule.path(SCSIid)
-        if load:
-            super(obj, self).load(self.uuid)
+        self.checkroot()
 
     def _setMultipathableFlag(self, SCSIid=''):
         try:

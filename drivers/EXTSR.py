@@ -64,14 +64,7 @@ class EXTSR(FileSR.FileSR):
         self.ops_exclusive = FileSR.OPS_EXCLUSIVE
         self.lock = Lock(vhdutil.LOCK_TYPE_SR, self.uuid)
         self.sr_vditype = SR.DEFAULT_TAP
-        if 'device' not in self.dconf or not self.dconf['device']:
-            raise xs_errors.XenError('ConfigDeviceMissing')
 
-        self.root = self.dconf['device']
-        for dev in self.root.split(','):
-            if not self._isvalidpathstring(dev):
-                raise xs_errors.XenError('ConfigDeviceInvalid', \
-                      opterr='path is %s' % dev)
         self.path = os.path.join(SR.MOUNT_BASE, sr_uuid)
         self.vgname = EXT_PREFIX + sr_uuid
         self.remotepath = os.path.join("/dev", self.vgname, sr_uuid)
