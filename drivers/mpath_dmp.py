@@ -182,8 +182,10 @@ def refresh(sid,npaths):
 def _is_valid_multipath_device(sid):
 
     # Check if device is already multipathed
-    (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath', '-ll', sid])
-    if not stdout+stderr:
+    (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath', '-l', sid])
+    if not stdout + stderr:
+        (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath', '-ll', sid])
+    if not stdout + stderr:
         (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath', '-a', sid])
         if ret < 0:
             util.SMlog("Failed to add {}: wwid could be explicitly "

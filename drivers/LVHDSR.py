@@ -148,13 +148,6 @@ class LVHDSR(SR.SR):
 
     def load(self, sr_uuid):
         self.ops_exclusive = OPS_EXCLUSIVE
-        if not self.dconf.has_key('device') or not self.dconf['device']:
-            raise xs_errors.XenError('ConfigDeviceMissing',)
-        self.root = self.dconf['device']
-        for dev in self.root.split(','):
-            if not self._isvalidpathstring(dev):
-                raise xs_errors.XenError('ConfigDeviceInvalid', \
-                        opterr='path is %s' % dev)
 
         self.isMaster = False
         if self.dconf.has_key('SRmaster') and self.dconf['SRmaster'] == 'true':
