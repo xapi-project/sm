@@ -77,14 +77,13 @@ class OCFSoHBASR(OCFSSR.OCFSSR):
             raise xs_errors.XenError('ConfigSCSIid')
 
         self.SCSIid = self.dconf['SCSIid']
-        self._pathrefresh(OCFSoHBASR, load=False)
         super(OCFSoHBASR, self).load(sr_uuid)
 
     def create(self, sr_uuid, size):
         self.hbasr.attach(sr_uuid)
         if self.mpath == "true":
             self.mpathmodule.refresh(self.SCSIid, 0)
-        self._pathrefresh(OCFSoHBASR)
+        self._pathrefresh()
         try:
             super(OCFSoHBASR, self).create(sr_uuid, size)
         finally:
@@ -102,7 +101,7 @@ class OCFSoHBASR(OCFSSR.OCFSSR):
             for file in os.listdir(path):
                 self.block_setscheduler('%s/%s' % (path, file))
 
-        self._pathrefresh(OCFSoHBASR)
+        self._pathrefresh()
         if not os.path.exists(self.dconf['device']):
             # Force a rescan on the bus
             self.hbasr._init_hbadict()
@@ -121,7 +120,7 @@ class OCFSoHBASR(OCFSSR.OCFSSR):
             if not os.path.exists(self.dconf['device']):
                 util.SMlog("%s path does not exists" % self.dconf['device'])
                 self.mpathmodule.refresh(self.SCSIid, 0)
-                self._pathrefresh(OCFSoHBASR)
+                self._pathrefresh()
                 self._setMultipathableFlag(SCSIid=self.SCSIid)
         super(OCFSoHBASR, self).scan(sr_uuid)
 
@@ -141,7 +140,7 @@ class OCFSoHBASR(OCFSSR.OCFSSR):
                 raise xs_errors.XenError('SRInUse')
             self.mpathmodule.refresh(self.SCSIid, 0)
         try:
-            self._pathrefresh(OCFSoHBASR)
+            self._pathrefresh()
             result = super(OCFSoHBASR, self).probe()
             if self.mpath == "true":
                 self.mpathmodule.reset(self.SCSIid, True)

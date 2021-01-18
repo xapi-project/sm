@@ -1196,7 +1196,8 @@ def _containsVDIinuse(srobj):
 
 def isVDICommand(cmd):
     if cmd == None or cmd in ["vdi_attach", "vdi_detach",
-                              "vdi_activate", "vdi_deactivate"]:
+                              "vdi_activate", "vdi_deactivate",
+                              "vdi_epoch_begin", "vdi_epoch_end"]:
         return True
     else:
         return False

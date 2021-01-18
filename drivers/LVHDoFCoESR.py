@@ -85,7 +85,6 @@ class LVHDoFCoESR(LVHDoHBASR.LVHDoHBASR):
             raise xs_errors.XenError('ConfigSCSIid')
 
         self.SCSIid = self.dconf['SCSIid']
-        self._pathrefresh(LVHDoFCoESR, load=False)
         LVHDSR.LVHDSR.load(self, sr_uuid)
 
     def vdi(self, uuid):
