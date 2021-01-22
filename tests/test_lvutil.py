@@ -107,9 +107,8 @@ class TestRemove(unittest.TestCase):
 
         self.assertEquals([], lvsystem.get_logical_volumes_with_name('volume'))
 
-    @mock.patch('lvutil._lvmBugCleanup', autospec=True)
     @mock.patch('util.pread', autospec=True)
-    def test_remove_additional_config_param(self, mock_pread, _bugCleanup):
+    def test_remove_additional_config_param(self, mock_pread):
         lvutil.remove('VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume', config_param="blah")
         mock_pread.assert_called_once_with(
             [os.path.join(lvutil.LVM_BIN, lvutil.CMD_LVREMOVE)]

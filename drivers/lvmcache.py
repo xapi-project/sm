@@ -210,7 +210,6 @@ class LVMCache:
             self.lvs[lvName].active = False
         else:
             util.SMlog("LVMCache.deactivateNoRefcount: no LV %s" % lvName)
-            lvutil._lvmBugCleanup(path)
 
     @lazyInit
     def setHidden(self, lvName, hidden=True):
