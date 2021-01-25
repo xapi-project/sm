@@ -29,6 +29,7 @@ import lvhdutil
 import scsiutil
 import os
 import sys
+import time
 import errno
 import xs_errors
 import cleanup
@@ -80,6 +81,8 @@ OPS_EXCLUSIVE = [
         "sr_update", "vdi_create", "vdi_delete", "vdi_resize", "vdi_snapshot",
         "vdi_clone"]
 
+# Log if snapshot pauses VM for more than this many seconds
+LONG_SNAPTIME = 60
 
 class LVHDSR(SR.SR):
     DRIVER_TYPE = 'lvhd'
@@ -1671,6 +1674,7 @@ class LVHDVDI(VDI.VDI):
         else:
             consistency_state = None
 
+        pause_time = time.time()
         if not blktap2.VDI.tap_pause(self.session, sr_uuid, vdi_uuid):
             raise util.SMException("failed to pause VDI %s" % vdi_uuid)
 
@@ -1686,6 +1690,10 @@ class LVHDVDI(VDI.VDI):
                         '%s (error ignored)' % e2)
             raise
         blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
+        unpause_time = time.time()
+        if (unpause_time - pause_time) > LONG_SNAPTIME:
+            util.SMlog('WARNING: snapshot paused VM for %s seconds' %
+                       (unpause_time - pause_time))
         return snapResult
 
     def _snapshot(self, snapType, cloneOp=False, cbtlog=None, cbt_consistency=None):
@@ -1765,54 +1773,57 @@ class LVHDVDI(VDI.VDI):
         if snapType == VDI.SNAPSHOT_DOUBLE:
             clonUuid = util.gen_uuid()
         jval = "%s_%s" % (baseUuid, clonUuid)
-        self.sr.journaler.create(self.JRN_CLONE, origUuid, jval)
+        with lvutil.LvmLockContext():
+            # This makes multiple LVM calls so take the lock early
+            self.sr.journaler.create(self.JRN_CLONE, origUuid, jval)
         util.fistpoint.activate("LVHDRT_clone_vdi_after_create_journal", self.sr.uuid)
 
         try:
-            # self becomes the "base vdi"
-            origOldLV = self.lvname
-            baseLV = lvhdutil.LV_PREFIX[self.vdi_type] + baseUuid
-            self.sr.lvmCache.rename(self.lvname, baseLV)
-            self.sr.lvActivator.replace(self.uuid, baseUuid, baseLV, False)
-            RefCounter.set(baseUuid, 1, 0, lvhdutil.NS_PREFIX_LVM + self.sr.uuid)
-            self.uuid = baseUuid
-            self.lvname = baseLV
-            self.path = os.path.join(self.sr.path, baseLV)
-            self.label = "base copy"
-            self.read_only = True
-            self.location = self.uuid
-            self.managed = False
+            with lvutil.LvmLockContext():
+                # self becomes the "base vdi"
+                origOldLV = self.lvname
+                baseLV = lvhdutil.LV_PREFIX[self.vdi_type] + baseUuid
+                self.sr.lvmCache.rename(self.lvname, baseLV)
+                self.sr.lvActivator.replace(self.uuid, baseUuid, baseLV, False)
+                RefCounter.set(baseUuid, 1, 0, lvhdutil.NS_PREFIX_LVM + self.sr.uuid)
+                self.uuid = baseUuid
+                self.lvname = baseLV
+                self.path = os.path.join(self.sr.path, baseLV)
+                self.label = "base copy"
+                self.read_only = True
+                self.location = self.uuid
+                self.managed = False
 
-            # shrink the base copy to the minimum - we do it before creating
-            # the snapshot volumes to avoid requiring double the space
-            if self.vdi_type == vhdutil.VDI_TYPE_VHD:
-                lvhdutil.deflate(self.sr.lvmCache, self.lvname, lvSizeBase)
-                self.utilisation = lvSizeBase
-            util.fistpoint.activate("LVHDRT_clone_vdi_after_shrink_parent", self.sr.uuid)
+                # shrink the base copy to the minimum - we do it before creating
+                # the snapshot volumes to avoid requiring double the space
+                if self.vdi_type == vhdutil.VDI_TYPE_VHD:
+                    lvhdutil.deflate(self.sr.lvmCache, self.lvname, lvSizeBase)
+                    self.utilisation = lvSizeBase
+                util.fistpoint.activate("LVHDRT_clone_vdi_after_shrink_parent", self.sr.uuid)
 
-            snapVDI = self._createSnap(origUuid, lvSizeOrig, False)
-            util.fistpoint.activate("LVHDRT_clone_vdi_after_first_snap", self.sr.uuid)
-            snapVDI2 = None
-            if snapType == VDI.SNAPSHOT_DOUBLE:
-                snapVDI2 = self._createSnap(clonUuid, lvSizeClon, True)
-                # If we have CBT enabled on the VDI,
-                # set CBT status for the new snapshot disk
-                if cbtlog:
-                    snapVDI2.cbt_enabled = True
-            util.fistpoint.activate("LVHDRT_clone_vdi_after_second_snap", self.sr.uuid)
+                snapVDI = self._createSnap(origUuid, lvSizeOrig, False)
+                util.fistpoint.activate("LVHDRT_clone_vdi_after_first_snap", self.sr.uuid)
+                snapVDI2 = None
+                if snapType == VDI.SNAPSHOT_DOUBLE:
+                    snapVDI2 = self._createSnap(clonUuid, lvSizeClon, True)
+                    # If we have CBT enabled on the VDI,
+                    # set CBT status for the new snapshot disk
+                    if cbtlog:
+                        snapVDI2.cbt_enabled = True
+                util.fistpoint.activate("LVHDRT_clone_vdi_after_second_snap", self.sr.uuid)
 
-
-            # note: it is important to mark the parent hidden only AFTER the
-            # new VHD children have been created, which are referencing it;
-            # otherwise we would introduce a race with GC that could reclaim
-            # the parent before we snapshot it
-            if self.vdi_type == vhdutil.VDI_TYPE_RAW:
-                self.sr.lvmCache.setHidden(self.lvname)
-            else:
-                vhdutil.setHidden(self.path)
-            util.fistpoint.activate("LVHDRT_clone_vdi_after_parent_hidden", self.sr.uuid)
+                # note: it is important to mark the parent hidden only AFTER the
+                # new VHD children have been created, which are referencing it;
+                # otherwise we would introduce a race with GC that could reclaim
+                # the parent before we snapshot it
+                if self.vdi_type == vhdutil.VDI_TYPE_RAW:
+                    self.sr.lvmCache.setHidden(self.lvname)
+                else:
+                    vhdutil.setHidden(self.path)
+                util.fistpoint.activate("LVHDRT_clone_vdi_after_parent_hidden", self.sr.uuid)
 
             # set the base copy to ReadOnly
+            # Do this outside the LvmLockContext to avoid deadlock
             self.sr.lvmCache.setReadonly(self.lvname, True)
             util.fistpoint.activate("LVHDRT_clone_vdi_after_parent_ro", self.sr.uuid)
 
@@ -1839,7 +1850,9 @@ class LVHDVDI(VDI.VDI):
             self._failClone(origUuid, jval, str(e))
         util.fistpoint.activate("LVHDRT_clone_vdi_before_remove_journal", self.sr.uuid)
 
-        self.sr.journaler.remove(self.JRN_CLONE, origUuid)
+        with lvutil.LvmLockContext():
+            # This makes multiple LVM calls so take the lock early
+            self.sr.journaler.remove(self.JRN_CLONE, origUuid)
 
         return self._finishSnapshot(snapVDI, snapVDI2, hostRefs, cloneOp, snapType)
 

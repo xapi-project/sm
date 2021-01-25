@@ -73,6 +73,8 @@ DM_COMMANDS = frozenset({CMD_DMSETUP})
 
 LVM_COMMANDS = VG_COMMANDS.union(PV_COMMANDS, LV_COMMANDS, DM_COMMANDS)
 
+LVM_LOCK = 'lvm'
+
 
 def extract_vgname(str_in):
     """Search for and return a VG name
@@ -110,15 +112,30 @@ def extract_vgname(str_in):
 
     return None
 
+class LvmLockContext(object):
+    """
+    Context manager around the LVM lock.
 
-def get_lvm_lock():
+    To allow for higher level operations, e.g. VDI snapshot to pre-emptively
+    acquire the lock to encapsulte a set of calls and avoid having to reacquire
+    the locks for each LVM call.
     """
-    Open and acquire a system wide lock to wrap LVM calls
-    :return: the created lock
-    """
-    new_lock = lock.Lock('lvm')
-    new_lock.acquire()
-    return new_lock
+
+    def __init__(self, cmd=None):
+        self.lock = lock.Lock(LVM_LOCK)
+        self.cmd = cmd
+        self.locked = False
+
+    def __enter__(self):
+        if self.cmd and '--readonly' in self.cmd:
+            return
+
+        self.lock.acquire()
+        self.locked = True
+
+    def __exit__(self, exc_type, value, traceback):
+        if self.locked:
+            self.lock.release()
 
 
 def cmd_lvm(cmd, pread_func=util.pread2, *args):
@@ -163,14 +180,10 @@ def cmd_lvm(cmd, pread_func=util.pread2, *args):
             util.SMlog("CMD_LVM: Not all lvm arguments are of type 'str'")
             return None
 
-    lvm_lock = get_lvm_lock()
-
-    try:
+    with LvmLockContext(cmd):
         start_time = time.time()
         stdout = pread_func([os.path.join(LVM_BIN, lvm_cmd)] + lvm_args, * args)
         end_time = time.time()
-    finally:
-        lvm_lock.release()
 
     if (end_time - start_time > MAX_OPERATION_DURATION):
         util.SMlog("***** Long LVM call of '%s' took %s" % (lvm_cmd, (end_time - start_time)))
@@ -560,7 +573,6 @@ def remove(path, config_param=None):
             if i >= LVM_FAIL_RETRIES - 1:
                 raise
             util.SMlog("*** lvremove failed on attempt #%d" % i)
-    _lvmBugCleanup(path)
 
 
 def _remove(path, config_param=None):
@@ -635,7 +647,6 @@ def deactivateNoRefcount(path):
             if i >= LVM_FAIL_RETRIES - 1:
                 raise
             util.SMlog("*** lvchange -an failed on attempt #%d" % i)
-    _lvmBugCleanup(path)
 
 
 def _deactivate(path):
@@ -679,64 +690,6 @@ def _checkActive(path):
             return True
 
     return False
-
-
-def _lvmBugCleanup(path):
-    # the device should not exist at this point. If it does, this was an LVM
-    # bug, and we manually clean up after LVM here
-    mapperDevice = path[5:].replace("-", "--").replace("/", "-")
-    mapperPath = "/dev/mapper/" + mapperDevice
-
-    nodeExists = False
-    cmd_st = [CMD_DMSETUP, "status", mapperDevice]
-    cmd_rm = [CMD_DMSETUP, "remove", mapperDevice]
-    cmd_rf = [CMD_DMSETUP, "remove", mapperDevice, "--force"]
-
-    try:
-        util.pread(cmd_st, expect_rc=1)
-    except util.CommandException as e:
-        if e.code == 0:
-            nodeExists = True
-
-    if not util.pathexists(mapperPath) and not nodeExists:
-        return
-
-    util.SMlog("_lvmBugCleanup: seeing dm file %s" % mapperPath)
-
-    # destroy the dm device
-    if nodeExists:
-        util.SMlog("_lvmBugCleanup: removing dm device %s" % mapperDevice)
-        for i in range(LVM_FAIL_RETRIES):
-            try:
-                util.pread2(cmd_rm)
-                break
-            except util.CommandException as e:
-                if i < LVM_FAIL_RETRIES - 1:
-                    util.SMlog("Failed on try %d, retrying" % i)
-                    try:
-                        util.pread(cmd_st, expect_rc=1)
-                        util.SMlog("_lvmBugCleanup: dm device {}"
-                                   " removed".format(mapperDevice)
-                                   )
-                        break
-                    except:
-                        cmd_rm = cmd_rf
-                        time.sleep(1)
-                else:
-                    # make sure the symlink is still there for consistency
-                    if not os.path.lexists(path):
-                        os.symlink(mapperPath, path)
-                        util.SMlog("_lvmBugCleanup: restored symlink %s" % path)
-                    raise e
-
-    if util.pathexists(mapperPath):
-        os.unlink(mapperPath)
-        util.SMlog("_lvmBugCleanup: deleted devmapper file %s" % mapperPath)
-
-    # delete the symlink
-    if os.path.lexists(path):
-        os.unlink(path)
-        util.SMlog("_lvmBugCleanup: deleted symlink %s" % path)
 
 
 # mdpath is of format /dev/VG-SR-UUID/MGT
