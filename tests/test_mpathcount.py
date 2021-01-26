@@ -54,7 +54,7 @@ class TestMpathCount(unittest.TestCase):
 
         ## Point this to a place where SCSIid files either do or
         ## don't exist, to exercise different branches
-        mpathcount.MAPPER_DIR = "test_support/fake_mapper"
+        mpathcount.MAPPER_DIR = "tests/fake_mapper"
 
         mpathcount.update_config("fred", "3600a098038303973743f486833396d44", "[2, 4]", remove, add, True)
         self.assertIn('MPPEnabled', store)
