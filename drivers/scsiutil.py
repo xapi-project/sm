@@ -75,7 +75,6 @@ def getsize(path):
 
 def getuniqueserial(path):
     dev = getdev(path)
-    output = gen_rdmfile()
     try:
         cmd = ["md5sum"]
         txt = util.pread3(cmd, getSCSIid(path))
@@ -251,10 +250,6 @@ def _isSCSIdev(dev):
     else:
         path = dev
     return match_sd(os.path.realpath(path))
-
-
-def gen_rdmfile():
-    return "/tmp/%s" % util.gen_uuid()
 
 
 def add_serial_record(session, sr_ref, devstring):
