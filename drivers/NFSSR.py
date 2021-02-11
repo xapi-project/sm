@@ -93,9 +93,7 @@ class NFSSR(FileSR.FileSR):
         self.path = os.path.join(SR.MOUNT_BASE, sr_uuid)
 
         # Handle optional dconf attributes
-        self.transport = DEFAULT_TRANSPORT
-        if 'useUDP' in self.dconf and self.dconf['useUDP'] == 'true':
-            self.transport = "udp"
+        self.set_transport()
         self.nfsversion = nfs.validate_nfsversion(self.dconf.get('nfsversion'))
         if 'options' in self.dconf:
             self.options = self.dconf['options']
@@ -256,6 +254,14 @@ class NFSSR(FileSR.FileSR):
         util.SMlog("scanning2 (target=%s)" % target)
         dom = nfs.scan_exports(target)
         print(dom.toprettyxml(), file=sys.stderr)
+
+    def set_transport(self):
+        self.transport = DEFAULT_TRANSPORT
+        use_ipv6 = util.get_ip_address_family(self.remoteserver) == 6
+        if use_ipv6:
+            self.transport = 'tcp6'
+        if 'useUDP' in self.dconf and self.dconf['useUDP'] == 'true':
+            self.transport = 'udp6' if use_ipv6 else 'udp'
 
 
 class NFSFileVDI(FileSR.FileVDI):

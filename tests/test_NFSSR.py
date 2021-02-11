@@ -89,3 +89,8 @@ class TestNFSSR(unittest.TestCase):
                                            timeout=100,
                                            nfsversion='aNfsversionChanged',
                                            retrans=3)
+
+    @mock.patch('NFSSR.Lock', autospec=True)
+    def test_load_ipv6(self, mock_lock):
+        nfssr = self.create_nfssr(server='::1')
+        self.assertEqual(nfssr.transport, 'tcp6')
