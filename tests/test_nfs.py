@@ -154,3 +154,33 @@ class Test_nfs(unittest.TestCase):
         for thenfsversion in ['3', '4', '4.1']:
             self.assertEquals(nfs.validate_nfsversion(thenfsversion),
                               thenfsversion)
+
+    # Can't use autospec due to http://bugs.python.org/issue17826
+    @mock.patch('util.pread2')
+    def test_scan_exports(self, pread2):
+        pread2.side_effect = ["/srv/nfs\n/srv/nfs2 *\n/srv/nfs3 127.0.0.1/24"]
+        res = nfs.scan_exports('aServer')
+
+        expected = """<?xml version="1.0" ?>
+<nfs-exports>
+\t<Export>
+\t\t<Target>aServer</Target>
+\t\t<Path>/srv/nfs</Path>
+\t\t<Accesslist>*</Accesslist>
+\t</Export>
+\t<Export>
+\t\t<Target>aServer</Target>
+\t\t<Path>/srv/nfs2</Path>
+\t\t<Accesslist>*</Accesslist>
+\t</Export>
+\t<Export>
+\t\t<Target>aServer</Target>
+\t\t<Path>/srv/nfs3</Path>
+\t\t<Accesslist>127.0.0.1/24</Accesslist>
+\t</Export>
+</nfs-exports>
+"""
+
+        self.assertEqual(res.toprettyxml(), expected)
+        self.assertEqual(len(pread2.mock_calls), 1)
+        pread2.assert_called_with(['/usr/sbin/showmount', '--no-headers', '-e', 'aServer'])
