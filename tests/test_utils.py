@@ -92,3 +92,9 @@ class TestCreate(unittest.TestCase):
             mock_log.assert_called_with(expectedMsg)
             mock_remove.assert_called_with("/var/run/random_temp.txt")
             self.assertEqual(opener_mock.return_value.close.call_count, 1)
+
+    def test_get_ip_address_family(self):
+        self.assertEqual(util.get_ip_address_family('127.0.0.1'), 4)
+        self.assertEqual(util.get_ip_address_family('::1'), 6)
+        self.assertEqual(util.get_ip_address_family('not an ip address'), -1)
+        self.assertEqual(util.get_ip_address_family('127.0.0.256'), -1)

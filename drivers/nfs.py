@@ -161,6 +161,8 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
         options += ",%s" % useroptions
 
     try:
+        if transport in ['tcp6', 'udp6']:
+            remoteserver = '[' + remoteserver + ']'
         util.ioretry(lambda:
                      util.pread([mountcommand, "%s:%s"
                                  % (remoteserver, remotepath),
@@ -261,12 +263,13 @@ def get_supported_nfs_versions(server):
     valid_versions = set(['3', '4'])
     cv = set()
     try:
-        ns = util.pread2([RPCINFO_BIN, "-p", "%s" % server])
+        ns = util.pread2([RPCINFO_BIN, "-s", "%s" % server])
         ns = ns.split("\n")
         for i in range(len(ns)):
             if ns[i].find("nfs") > 0:
-                cvi = ns[i].split()[1]
-                cv.add(cvi)
+                cvi = ns[i].split()[1].split(",")
+                for j in range(len(cvi)):
+                    cv.add(cvi[j])
         return list(cv & valid_versions)
     except:
         util.SMlog("Unable to obtain list of valid nfs versions")
