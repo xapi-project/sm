@@ -48,6 +48,8 @@ class LVSubsystem(object):
         executable_injector('/usr/sbin/lvremove', self.fake_lvremove)
         executable_injector('/sbin/lvremove', self.fake_lvremove)
         executable_injector('/sbin/dmsetup', self.fake_dmsetup)
+        executable_injector('/usr/sbin/lvchange', self.fake_lvchange)
+        executable_injector('/sbin/lvchange', self.fake_lvchange)
 
     def add_volume_group(self, name):
         self._volume_groups.append(VolumeGroup(name))
@@ -64,6 +66,9 @@ class LVSubsystem(object):
         for vg in self._volume_groups:
             if vg.name == vgname:
                 return vg
+
+    def fake_lvchange(self, args, stdin):
+        return 0, '', ''
 
     def fake_lvcreate(self, args, stdin):
         self.logger('lvcreate', repr(args), stdin)

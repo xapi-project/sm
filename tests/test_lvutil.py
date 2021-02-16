@@ -5,6 +5,7 @@ import mock
 
 import os
 import lvutil
+import util
 
 ONE_MEGABYTE = 1 * 1024 * 1024
 
@@ -115,3 +116,89 @@ class TestRemove(unittest.TestCase):
             [os.path.join(lvutil.LVM_BIN, lvutil.CMD_LVREMOVE)]
             + "-f VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume --config devices{blah}".split(),
            quiet=False)
+
+
+class TestDeactivate(unittest.TestCase):
+
+    def setUp(self):
+        lock_patcher = mock.patch('lvutil.lock', autospec=True)
+        pathexists_patcher = mock.patch('lvutil.util.pathexists', autospec=True)
+        lexists_patcher = mock.patch('lvutil.os.path.lexists', autospec=True)
+        unlink_patcher = mock.patch('lvutil.os.unlink', autospec=True)
+        self.addCleanup(mock.patch.stopall)
+        self.mock_lock = lock_patcher.start()
+        self.mock_exists = pathexists_patcher.start()
+        self.mock_lexists = lexists_patcher.start()
+        self.mock_unlink = unlink_patcher.start()
+
+
+    def __create_test_volume(self, lvsystem):
+        lvsystem.add_volume_group(
+            'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7')
+        lvsystem.get_volume_group(
+            'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7'
+        ).add_volume('volume', 100)
+
+    @with_lvm_subsystem
+    def test_deactivate_noref_withbugcleanup(self, lvsystem):
+        # Arrange
+        self.__create_test_volume(lvsystem)
+        self.mock_exists.return_value = True
+        self.mock_lexists.return_value = True
+
+        # Act
+        lvutil.deactivateNoRefcount(
+            'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume')
+
+    @mock.patch('lvutil.util.pread')
+    @with_lvm_subsystem
+    def test_deactivate_noref_withnobugcleanup(
+            self, lvsystem, mock_pread):
+        # Arrange
+        self.__create_test_volume(lvsystem)
+        self.mock_exists.return_value = False
+        mock_pread.side_effect = [0, 0]
+
+        # Act
+        lvutil.deactivateNoRefcount(
+            'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume')
+
+    @mock.patch('lvutil.util.pread')
+    @with_lvm_subsystem
+    def test_deactivate_noref_withbugcleanup_retry(
+            self, lvsystem, mock_pread):
+        # Arrange
+        self.__create_test_volume(lvsystem)
+        self.mock_exists.return_value = True
+        self.mock_lexists.return_value = True
+        mock_pread.side_effect = [0, util.CommandException(0),
+                                  util.CommandException(1), 0]
+
+        # Act
+        lvutil.deactivateNoRefcount(
+            'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume')
+
+    @mock.patch('lvutil.os.symlink', autotspec=True)
+    @mock.patch('lvutil.time.sleep', autospec=True)
+    @mock.patch('lvutil.util.pread')
+    @with_lvm_subsystem
+    def test_deactivate_noref_withbugcleanup_retry_fail(
+            self, lvsystem, mock_pread, mock_sleep, mock_symlink):
+        # Arrange
+        self.__create_test_volume(lvsystem)
+        self.mock_exists.return_value = True
+        self.mock_lexists.return_value = False
+        side_effect = [0, util.CommandException(0)]
+        side_effect += 11 * [util.CommandException(1),
+                             util.CommandException(0)]
+        mock_pread.side_effect = side_effect
+
+        # Act
+        with self.assertRaises(util.CommandException):
+            lvutil.deactivateNoRefcount(
+                'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume')
+
+        # Assert
+        mock_symlink.assert_called_once_with(
+            mock.ANY, 'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume')
+
