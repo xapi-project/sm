@@ -51,18 +51,18 @@ class TestMpathDmp(unittest.TestCase):
         self.assertTrue(mpath_dmp._is_valid_multipath_device("fake_dev"))
 
         # Test 'multipath -a' failure
-        util_mod.doexec.side_effect = [(0, "", ""), (1, "out", "err")]
+        util_mod.doexec.side_effect = [(0, "", ""), (0, "", ""), (1, "out", "err")]
         self.assertFalse(mpath_dmp._is_valid_multipath_device("fake_dev"))
 
         # Test failure when device is not available
         mock_os.path.exists.return_value = False
-        util_mod.doexec.side_effect = [(0, "", ""), (0, "out", "err")]
+        util_mod.doexec.side_effect = [(0, "", ""), (0, "", ""), (0, "out", "err")]
         self.assertFalse(mpath_dmp._is_valid_multipath_device("fake_dev"))
 
         # Test 'multipath -c' with error and empty output
         mock_os.path.exists.return_value = True
         mock_os.listdir.side_effect = [['sdc']]
-        util_mod.doexec.side_effect = [(0, "", ""), (0, "out", "err"),
+        util_mod.doexec.side_effect = [(0, "", ""), (0, "", ""), (0, "out", "err"),
                                        (1, "", ""), OSError()]
         with self.assertRaises(SR.SROSError) as exc:
             mpath_dmp._is_valid_multipath_device("xx")
@@ -70,23 +70,23 @@ class TestMpathDmp(unittest.TestCase):
 
         # Test 'multipath -c' with error but some output
         mock_os.listdir.side_effect = [['sdc']]
-        util_mod.doexec.side_effect = [(0, "", ""), (0, "out", "err"),
+        util_mod.doexec.side_effect = [(0, "", ""), (0, "", ""), (0, "out", "err"),
                                        (1, "xx", "")]
         self.assertFalse(mpath_dmp._is_valid_multipath_device("fake_dev"))
 
         mock_os.listdir.side_effect = [['sdc']]
-        util_mod.doexec.side_effect = [(0, "", ""), (0, "out", "err"),
+        util_mod.doexec.side_effect = [(0, "", ""), (0, "", ""), (0, "out", "err"),
                                        (1, "xx", "yy")]
         self.assertFalse(mpath_dmp._is_valid_multipath_device("fake_dev"))
 
         mock_os.listdir.side_effect = [['sdc']]
-        util_mod.doexec.side_effect = [(0, "", ""), (0, "out", "err"),
+        util_mod.doexec.side_effect = [(0, "", ""), (0, "", ""), (0, "out", "err"),
                                        (1, "", "yy")]
         self.assertFalse(mpath_dmp._is_valid_multipath_device("fake_dev"))
 
         # Test when everything is fine
         mock_os.listdir.side_effect = [['sdc']]
-        util_mod.doexec.side_effect = [(0, "", ""), (0, "out", "err"),
+        util_mod.doexec.side_effect = [(0, "", ""), (0, "", ""), (0, "out", "err"),
                                        (0, "out", "err")]
         self.assertTrue(mpath_dmp._is_valid_multipath_device("fake_dev"))
 
