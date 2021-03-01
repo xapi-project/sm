@@ -117,7 +117,7 @@ class OCFSoHBASR(OCFSSR.OCFSSR):
         # to point of the wrong device instead of dm-x. Running multipathing
         # will take care of this scenario.
         if self.mpath == "true":
-            if not os.path.exists(self.dconf['device']):
+            if 'device' not in self.dconf or not os.path.exists(self.dconf['device']):
                 util.SMlog("%s path does not exists" % self.dconf['device'])
                 self.mpathmodule.refresh(self.SCSIid, 0)
                 self._pathrefresh()
