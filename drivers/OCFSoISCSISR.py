@@ -308,7 +308,6 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
                 except:
                     raise xs_errors.XenError('ISCSILogout')
 
-        self._pathrefresh(OCFSoISCSISR, load = False)
         OCFSSR.OCFSSR.load(self, sr_uuid)
 
     def print_LUNs_XML(self):
@@ -447,7 +446,7 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
                         continue
                 if not upgraded:
                     raise xs_errors.XenError('InvalidDev')
-            self._pathrefresh(OCFSoISCSISR)
+            self._pathrefresh()
             OCFSSR.OCFSSR.create(self, sr_uuid, size)
         except Exception, inst:
             self.iscsi.detach(sr_uuid)
@@ -485,7 +484,7 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
                 # Force a manual bus refresh
                 for a in self.iscsi.adapter:
                     scsiutil.rescan([self.iscsi.adapter[a]])
-            self._pathrefresh(OCFSoISCSISR)
+            self._pathrefresh()
             OCFSSR.OCFSSR.attach(self, sr_uuid)
         except Exception, inst:
             for i in self.iscsiSRs:
@@ -519,7 +518,7 @@ class OCFSoISCSISR(OCFSSR.OCFSSR):
         if not self.iscsi._attach_LUN_bySCSIid(self.SCSIid):
             util.SMlog("Unable to detect LUN")
             raise xs_errors.XenError('InvalidDev')
-        self._pathrefresh(OCFSoISCSISR)
+        self._pathrefresh()
         out = OCFSSR.OCFSSR.probe(self)
         self.iscsi.detach(self.uuid)
         return out
