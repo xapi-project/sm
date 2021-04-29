@@ -64,6 +64,10 @@ class EXTSR(FileSR.FileSR):
         self.ops_exclusive = FileSR.OPS_EXCLUSIVE
         self.lock = Lock(vhdutil.LOCK_TYPE_SR, self.uuid)
         self.sr_vditype = SR.DEFAULT_TAP
+        if type(self) == EXTSR and (
+            'device' not in self.dconf or not self.dconf['device']
+        ):
+            raise xs_errors.XenError('ConfigDeviceMissing')
 
         self.path = os.path.join(SR.MOUNT_BASE, sr_uuid)
         self.vgname = EXT_PREFIX + sr_uuid

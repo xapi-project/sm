@@ -147,6 +147,10 @@ class LVHDSR(SR.SR):
 
     def load(self, sr_uuid):
         self.ops_exclusive = OPS_EXCLUSIVE
+        if type(self) == LVHDSR and (
+            'device' not in self.dconf or not self.dconf['device']
+        ):
+            raise xs_errors.XenError('ConfigDeviceMissing')
 
         self.isMaster = False
         if 'SRmaster' in self.dconf and self.dconf['SRmaster'] == 'true':
@@ -205,19 +209,19 @@ class LVHDSR(SR.SR):
 
         for key in self.lvmCache.lvs.keys():
             # if the lvname has a uuid in it
-            type = None
+            vdi_type = None
             if contains_uuid_regex.search(key) != None:
                 if key.startswith(lvhdutil.LV_PREFIX[vhdutil.VDI_TYPE_VHD]):
-                    type = vhdutil.VDI_TYPE_VHD
-                    vdi = key[len(lvhdutil.LV_PREFIX[type]):]
+                    vdi_type = vhdutil.VDI_TYPE_VHD
+                    vdi = key[len(lvhdutil.LV_PREFIX[vdi_type]):]
                 elif key.startswith(lvhdutil.LV_PREFIX[vhdutil.VDI_TYPE_RAW]):
-                    type = vhdutil.VDI_TYPE_RAW
-                    vdi = key[len(lvhdutil.LV_PREFIX[type]):]
+                    vdi_type = vhdutil.VDI_TYPE_RAW
+                    vdi = key[len(lvhdutil.LV_PREFIX[vdi_type]):]
                 else:
                     continue
 
-            if type != None:
-                self.storageVDIs[vdi] = type
+            if vdi_type != None:
+                self.storageVDIs[vdi] = vdi_type
 
         # check if metadata volume exists
         try:
