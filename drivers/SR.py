@@ -499,10 +499,11 @@ class SR(object):
                         raise xs_errors.XenError('ConfigDeviceInvalid', \
                               opterr='path is %s' % dev)
 
-    def _pathrefresh(self):
+    def _pathrefresh(self, obj):
         SCSIid = getattr(self, 'SCSIid')
         self.dconf['device'] = self.mpathmodule.path(SCSIid)
         self.checkroot()
+        super(obj, self).load(self.uuid)
 
     def _setMultipathableFlag(self, SCSIid=''):
         try:
