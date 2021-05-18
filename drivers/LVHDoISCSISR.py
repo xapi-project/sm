@@ -477,7 +477,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                         continue
                 if not upgraded:
                     raise xs_errors.XenError('InvalidDev')
-            self._pathrefresh()
+            self._pathrefresh(LVHDoISCSISR)
             LVHDSR.LVHDSR.create(self, sr_uuid, size)
         except Exception as inst:
             self.iscsi.detach(sr_uuid)
@@ -485,7 +485,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
         self.iscsi.detach(sr_uuid)
 
     def delete(self, sr_uuid):
-        self._pathrefresh()
+        self._pathrefresh(LVHDoISCSISR)
         LVHDSR.LVHDSR.delete(self, sr_uuid)
         for i in self.iscsiSRs:
             i.detach(sr_uuid)
@@ -519,7 +519,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 for a in self.iscsi.adapter:
                     scsiutil.rescan([self.iscsi.adapter[a]])
 
-            self._pathrefresh()
+            self._pathrefresh(LVHDoISCSISR)
             LVHDSR.LVHDSR.attach(self, sr_uuid)
         except Exception as inst:
             for i in self.iscsiSRs:
@@ -533,7 +533,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
             i.detach(sr_uuid)
 
     def scan(self, sr_uuid):
-        self._pathrefresh()
+        self._pathrefresh(LVHDoISCSISR)
         if self.mpath == "true":
             for i in self.iscsiSRs:
                 try:
@@ -562,7 +562,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
         if not self.iscsi._attach_LUN_bySCSIid(self.SCSIid):
             util.SMlog("Unable to detect LUN")
             raise xs_errors.XenError('InvalidDev')
-        self._pathrefresh()
+        self._pathrefresh(LVHDoISCSISR)
         out = LVHDSR.LVHDSR.probe(self)
         self.iscsi.detach(self.uuid)
         return out

@@ -113,7 +113,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
         self.hbasr.attach(sr_uuid)
         if self.mpath == "true":
             self.mpathmodule.refresh(self.SCSIid, 0)
-        self._pathrefresh()
+        self._pathrefresh(LVHDoHBASR)
         try:
             LVHDSR.LVHDSR.create(self, sr_uuid, size)
         finally:
@@ -131,7 +131,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             for file in os.listdir(path):
                 self.block_setscheduler('%s/%s' % (path, file))
 
-        self._pathrefresh()
+        self._pathrefresh(LVHDoHBASR)
         if not os.path.exists(self.dconf['device']):
             # Force a rescan on the bus
             self.hbasr._init_hbadict()
@@ -149,10 +149,10 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             if 'device' not in self.dconf or not os.path.exists(self.dconf['device']):
                 util.SMlog("@@@@@ path does not exists")
                 self.mpathmodule.refresh(self.SCSIid, 0)
-                self._pathrefresh()
+                self._pathrefresh(LVHDoHBASR)
                 self._setMultipathableFlag(SCSIid=self.SCSIid)
         else:
-                self._pathrefresh()
+                self._pathrefresh(LVHDoHBASR)
         LVHDSR.LVHDSR.scan(self, sr_uuid)
 
     def probe(self):
@@ -172,7 +172,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             self.mpathmodule.refresh(self.SCSIid, 0)
 
         try:
-            self._pathrefresh()
+            self._pathrefresh(LVHDoHBASR)
             result = LVHDSR.LVHDSR.probe(self)
             if self.mpath == "true":
                 self.mpathmodule.reset(self.SCSIid, explicit_unmap=True)
@@ -196,7 +196,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
                 pass
 
     def delete(self, sr_uuid):
-        self._pathrefresh()
+        self._pathrefresh(LVHDoHBASR)
         try:
             LVHDSR.LVHDSR.delete(self, sr_uuid)
         finally:
