@@ -19,6 +19,7 @@
 #
 
 import SR
+from SR import deviceCheck
 import VDI
 import SRCommand
 import util
@@ -494,7 +495,7 @@ class LVHDSR(SR.SR):
                 util.logException("LVHDSR._expand_size for %s failed to resize"
                                   " the PV" % self.uuid)
 
-
+    @deviceCheck
     def create(self, uuid, size):
         util.SMlog("LVHDSR.create for %s" % self.uuid)
         if not self.isMaster:
@@ -849,6 +850,7 @@ class LVHDSR(SR.SR):
         self.physical_utilisation = stats['physical_utilisation']
         self._db_update()
 
+    @deviceCheck
     def probe(self):
         return lvutil.srlist_toxml(
                 lvutil.scan_srlist(lvhdutil.VG_PREFIX, self.root),

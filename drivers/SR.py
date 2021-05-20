@@ -49,6 +49,15 @@ class SROSError(SRException):
         self.errno = errno
         Exception.__init__(self, reason)
 
+
+def deviceCheck(op):
+    def wrapper(self, *args):
+        if 'device' not in self.dconf:
+            raise xs_errors.XenError('ConfigDeviceMissing')
+        return op(self, *args)
+    return wrapper
+
+
 backends = []
 def registerSR(SRClass):
     """Register SR with handler. All SR subclasses should call this in 
