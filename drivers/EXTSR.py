@@ -18,6 +18,7 @@
 # EXTSR: Based on local-file storage repository, mounts ext3 partition
 
 import SR
+from SR import deviceCheck
 import SRCommand
 import FileSR
 import util
@@ -150,10 +151,12 @@ class EXTSR(FileSR.FileSR):
             raise xs_errors.XenError('LVMUnMount', \
                   opterr='lvm -an failed errno is %d' % inst.code)
 
+    @deviceCheck
     def probe(self):
         return lvutil.srlist_toxml(lvutil.scan_srlist(EXT_PREFIX, self.root),
                 EXT_PREFIX)
 
+    @deviceCheck
     def create(self, sr_uuid, size):
         if self._checkmount():
             raise xs_errors.XenError('SRExists')
