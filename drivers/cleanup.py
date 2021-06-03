@@ -2951,8 +2951,32 @@ def _gcLoop(sr, dryRun):
         lockActive.release()
 
 
+def _xapi_enabled(session, hostref):
+    host = session.xenapi.host.get_record(hostref)
+    return host['enabled']
+
+
+def _ensure_xapi_initialised(session):
+    """
+    Don't want to start GC until Xapi is fully initialised
+    """
+    local_session = None
+    if not session:
+        local_session = util.get_localAPI_session()
+        session = local_session
+
+    try:
+        hostref = session.xenapi.host.get_by_uuid(util.get_this_host())
+        while not _xapi_enabled(session, hostref):
+            util.SMlog("Xapi not ready, GC waiting")
+            time.sleep(15)
+    finally:
+        if local_session is not None:
+            local_session.logout()
+
 def _gc(session, srUuid, dryRun):
     init(srUuid)
+    _ensure_xapi_initialised(session)
     sr = SR.getInstance(srUuid, session)
     if not sr.gcEnabled(False):
         return
