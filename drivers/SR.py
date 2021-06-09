@@ -301,7 +301,15 @@ class SR(object):
         Return:
           None
         """
-        self.scan(uuid)
+        try:
+            self.scan(uuid)
+        except Exception as e:
+            util.SMlog("Error in SR.after_master_attach %s" % e)
+            msg_name = "POST_ATTACH_SCAN_FAILED"
+            msg_body = "Failed to scan SR %s after attaching, " \
+                "error %s" % (uuid, e)
+            self.session.xenapi.message.create(
+                msg_name, 2, "SR", uuid, msg_body)
 
     def detach(self, uuid):
         """Remove local access to the SR. Destroys any device
