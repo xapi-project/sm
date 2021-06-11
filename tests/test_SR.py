@@ -26,10 +26,12 @@ class TestSR(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def create_SR(self, cmd, dconf):
+    def create_SR(self, cmd, dconf, cmd_params=None):
         srcmd = mock.Mock()
         srcmd.dconf = dconf
         srcmd.params = {'command': cmd}
+        if cmd_params:
+            srcmd.params.update(cmd_params)
         return SR.SR(srcmd, "some SR UUID")
 
     def test_checkroot_no_device(self):
@@ -68,3 +70,39 @@ class TestSR(unittest.TestCase):
 
         with self.assertRaises(SR.SROSError) as sre:
             checker.verify()
+
+    @mock.patch('SR.SR.scan', autospec=True)
+    def test_after_master_attach_success(self, mock_scan):
+        """
+        Test that after_master_attach calls scan
+        """
+        sr1 = self.create_SR("sr_create", {'ISCSIid': '12333423'})
+
+        sr1.after_master_attach('dummy uuid')
+
+        mock_scan.assert_called_once_with(sr1, 'dummy uuid')
+
+    @mock.patch('SR.XenAPI')
+    @mock.patch('SR.SR.scan', autospec=True)
+    @mock.patch('SR.util.SMlog', autospec=True)
+    def test_after_master_attach_vdi_not_available(
+            self, mock_log, mock_scan, mock_xenapi):
+        """
+        Test that after_master_attach calls scan
+        """
+        mock_session = mock.MagicMock(name='MockXapiSession')
+        mock_xenapi.xapi_local.return_value = mock_session
+        sr1 = self.create_SR("sr_create", {'ISCSIid': '12333423'},
+            {'session_ref': 'session1'})
+
+        mock_scan.side_effect = SR.SROSError(46, "The VDI is not available")
+
+        sr1.after_master_attach('dummy uuid')
+
+        mock_scan.assert_called_once_with(sr1, 'dummy uuid')
+
+        self.assertEquals(1, mock_log.call_count)
+        self.assertIn("Error in SR.after_master_attach",
+                      mock_log.call_args[0][0])
+        mock_session.xenapi.message.create.assert_called_once_with(
+            "POST_ATTACH_SCAN_FAILED", 2, 'SR', 'dummy uuid', mock.ANY)
