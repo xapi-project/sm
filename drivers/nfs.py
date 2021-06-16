@@ -205,7 +205,11 @@ def scan_exports(target):
         textnode = dom.createTextNode(target)
         subentry.appendChild(textnode)
 
-        (path, access) = val.split()
+        # Access is not always provided by showmount return
+        # If none is provided we need to assume "*"
+        array = val.split()
+        path = array[0]
+        access = array[1] if len(array) >= 2 else "*"
         subentry = dom.createElement("Path")
         entry.appendChild(subentry)
         textnode = dom.createTextNode(path)
