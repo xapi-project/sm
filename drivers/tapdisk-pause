@@ -73,24 +73,6 @@ def _mkphylink(sr_uuid, vdi_uuid, path):
     util.pread2(cmd)
     return path
 
-def _pathRefresh():
-    # LVM rename check
-    realpath = os.path.realpath(self.phypath)
-    phypath = vdi_type = None
-    util.SMlog("Realpath: %s" % realpath)
-    if realpath.startswith("/dev/VG_XenStorage-") and \
-            not os.path.exists(realpath):
-        util.SMlog("Path inconsistent")
-        pfx = "/dev/VG_XenStorage-%s/" % self.sr_uuid
-        for ty in ["LV","VHD"]:
-            p = pfx + ty + "-" + self.vdi_uuid
-            util.SMlog("Testing path: %s" % p)
-            if os.path.exists(p):
-                _mkphylink(self.sr_uuid, self.vdi_uuid, p)
-                phypath = p
-                if ty == "LV": vdi_type = "aio"
-                else: vdi_type = "vhd"
-
 def tapPause(session, args):
     tap = Tapdisk(session, args)
     return tap.Pause()
