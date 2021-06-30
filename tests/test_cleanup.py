@@ -1441,10 +1441,10 @@ class TestSR(unittest.TestCase):
         Handle errors in coalesce
         """
         self.xapi_mock.getConfigVDI.return_value = {}
-        runAbortable = mock.MagicMock(spec=self.runAbortable)
-        mock_abortable.side_effect = runAbortable
+        run_abortable = mock.MagicMock(spec=self.runAbortable)
+        mock_abortable.side_effect = run_abortable
 
-        runAbortable.side_effect = util.SMException("Timed out")
+        run_abortable.side_effect = util.SMException("Timed out")
 
         sr_uuid = uuid4()
         sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
@@ -1456,8 +1456,6 @@ class TestSR(unittest.TestCase):
 
         vdis = self.add_vdis_for_coalesce(sr)
         mock_journaler.get.return_value = None
-
-        vdi_uuid = vdis['vdi'].uuid
 
         mock_vhdutil.getParent.return_value = vdis['parent']
 
@@ -1476,10 +1474,10 @@ class TestSR(unittest.TestCase):
         Handle errors in coalesce
         """
         self.xapi_mock.getConfigVDI.return_value = {}
-        runAbortable = mock.MagicMock(spec=self.runAbortable)
-        mock_abortable.side_effect = runAbortable
+        run_abortable = mock.MagicMock(spec=self.runAbortable)
+        mock_abortable.side_effect = run_abortable
 
-        runAbortable.side_effect = util.SMException("Timed out")
+        run_abortable.side_effect = util.SMException("Timed out")
 
         sr_uuid = uuid4()
         sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
@@ -1492,8 +1490,6 @@ class TestSR(unittest.TestCase):
         vdis = self.add_vdis_for_coalesce(sr)
         vdis['parent'].raw = True
         mock_journaler.get.return_value = None
-
-        vdi_uuid = vdis['vdi'].uuid
 
         mock_vhdutil.getParent.return_value = vdis['parent']
 
