@@ -1402,7 +1402,6 @@ class TestSR(unittest.TestCase):
         sr.journaler = mock_journaler
 
         mock_ipc_flag = mock.MagicMock(spec=ipc.IPCFlag)
-        print('IPC = %s' % (mock_ipc_flag))
         self.mock_IPCFlag.return_value = mock_ipc_flag
         mock_ipc_flag.test.return_value = None
 
@@ -1431,6 +1430,77 @@ class TestSR(unittest.TestCase):
             [mock.call(vdis['child'], 'relinking'),
              mock.call(vdis['child'], 'vhd-parent'),
              mock.call(vdis['child'], 'relinking')])
+
+    @mock.patch('cleanup.util', autospec=True)
+    @mock.patch('cleanup.vhdutil', autospec=True)
+    @mock.patch('cleanup.journaler.Journaler', autospec=True)
+    @mock.patch('cleanup.Util.runAbortable')
+    def test_coalesce_error(
+            self, mock_abortable, mock_journaler, mock_vhdutil, mock_util):
+        """
+        Handle errors in coalesce
+        """
+        self.xapi_mock.getConfigVDI.return_value = {}
+        runAbortable = mock.MagicMock(spec=self.runAbortable)
+        mock_abortable.side_effect = runAbortable
+
+        runAbortable.side_effect = util.SMException("Timed out")
+
+        sr_uuid = uuid4()
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
+        sr.journaler = mock_journaler
+
+        mock_ipc_flag = mock.MagicMock(spec=ipc.IPCFlag)
+        self.mock_IPCFlag.return_value = mock_ipc_flag
+        mock_ipc_flag.test.return_value = None
+
+        vdis = self.add_vdis_for_coalesce(sr)
+        mock_journaler.get.return_value = None
+
+        vdi_uuid = vdis['vdi'].uuid
+
+        mock_vhdutil.getParent.return_value = vdis['parent']
+
+        with self.assertRaises(util.SMException):
+            sr.coalesce(vdis['vdi'], False)
+
+        mock_vhdutil.repair.assert_called_with(vdis['parent'])
+
+    @mock.patch('cleanup.util', autospec=True)
+    @mock.patch('cleanup.vhdutil', autospec=True)
+    @mock.patch('cleanup.journaler.Journaler', autospec=True)
+    @mock.patch('cleanup.Util.runAbortable')
+    def test_coalesce_error_raw_parent(
+            self, mock_abortable, mock_journaler, mock_vhdutil, mock_util):
+        """
+        Handle errors in coalesce
+        """
+        self.xapi_mock.getConfigVDI.return_value = {}
+        runAbortable = mock.MagicMock(spec=self.runAbortable)
+        mock_abortable.side_effect = runAbortable
+
+        runAbortable.side_effect = util.SMException("Timed out")
+
+        sr_uuid = uuid4()
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
+        sr.journaler = mock_journaler
+
+        mock_ipc_flag = mock.MagicMock(spec=ipc.IPCFlag)
+        self.mock_IPCFlag.return_value = mock_ipc_flag
+        mock_ipc_flag.test.return_value = None
+
+        vdis = self.add_vdis_for_coalesce(sr)
+        vdis['parent'].raw = True
+        mock_journaler.get.return_value = None
+
+        vdi_uuid = vdis['vdi'].uuid
+
+        mock_vhdutil.getParent.return_value = vdis['parent']
+
+        with self.assertRaises(util.SMException):
+            sr.coalesce(vdis['vdi'], False)
+
+        self.assertEqual(0, mock_vhdutil.repair.call_count)
 
     def test_tag_children_for_relink_activation(self):
         """

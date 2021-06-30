@@ -885,10 +885,11 @@ class VDI:
             parent = ""
             try:
                 parent = vhdutil.getParent(self.path, lambda x: x.strip())
-                # Repair error is logged and ignored. Error reraised later
-                util.SMlog('Coalesce failed on %s, attempting repair on ' \
-                           'parent %s' % (self.uuid, parent))
-                vhdutil.repair(parent)
+                if not parent.raw:
+                    # Repair error is logged and ignored. Error reraised later
+                    util.SMlog('Coalesce failed on %s, attempting repair on ' \
+                               'parent %s' % (self.uuid, parent))
+                    vhdutil.repair(parent)
             except Exception as e:
                 util.SMlog('(error ignored) Failed to repair parent %s ' \
                            'after failed coalesce on %s, err: %s' %
