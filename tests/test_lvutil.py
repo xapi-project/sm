@@ -1,14 +1,18 @@
+import mock
+import os
+import syslog
 import unittest
+
 import testlib
 import lvmlib
-import mock
-
-import os
-import lvutil
 import util
+
+import lvutil
 
 ONE_MEGABYTE = 1 * 1024 * 1024
 
+TEST_VG = "VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7"
+TEST_VOL = "%s/volume" % TEST_VG
 
 def with_lvm_subsystem(func):
     @testlib.with_context
@@ -202,3 +206,106 @@ class TestDeactivate(unittest.TestCase):
         mock_symlink.assert_called_once_with(
             mock.ANY, 'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume')
 
+
+class TestActivate(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(mock.patch.stopall)
+
+        lock_patcher = mock.patch('lvutil.lock', autospec=True)
+        self.mock_lock = lock_patcher.start()
+        pathexists_patcher = mock.patch('lvutil.util.pathexists', autospec=True)
+        self.mock_exists = pathexists_patcher.start()
+
+        log_patcher = mock.patch('lvutil.util.SMlog', autospec=True)
+        mock_log = log_patcher.start()
+        mock_log.side_effect = self.__log
+
+    def __log(self, message, ident="SM", priority=syslog.LOG_INFO):
+        print("%s: %s: %s" %(ident, priority, message))
+
+    def __create_test_volume(self, lvsystem):
+        lvsystem.add_volume_group(TEST_VG)
+        lvsystem.get_volume_group(TEST_VG).add_volume('volume', 100)
+
+    @with_lvm_subsystem
+    def test_activate_noref_norefresh(self, lvsystem):
+        # Arrange
+        self.__create_test_volume(lvsystem)
+        self.mock_exists.return_value = True
+
+        # Act
+        lvutil.activateNoRefcount(TEST_VOL, False)
+
+    @mock.patch('lvutil.time.sleep', autospec=True)
+    @mock.patch('lvutil.cmd_lvm')
+    @with_lvm_subsystem
+    def test_activate_noref_metadata_error_retry(self, lvsystem, mock_cmd_lvm, mock_sleep):
+        # Arrange
+        self.__create_test_volume(lvsystem)
+        self.mock_exists.return_value = True
+
+        metadata_error = """  Incorrect checksum in metadata area header on /dev/sdb at 4096
+   Failed to read mda header from /dev/sdb
+   Failed to scan VG from /dev/sdb
+   Volume group "VG_XenStorage-94d5c7de-3bee-e7c2-8aeb-d609e7dcd358" not found
+   Cannot process volume group VG_XenStorage-94d5c7de-3bee-e7c2-8aeb-d609e7dcd358"""
+
+        mock_cmd_lvm.side_effect = [
+            util.CommandException(5, 'lvchange', metadata_error),
+            ''
+        ]
+
+        # Act
+        lvutil.activateNoRefcount(TEST_VOL, False)
+
+    @mock.patch('lvutil.time.sleep', autospec=True)
+    @mock.patch('lvutil.cmd_lvm')
+    @with_lvm_subsystem
+    def test_activate_noref_metadata_max_retries(self, lvsystem, mock_cmd_lvm, mock_sleep):
+        # Arrange
+        self.__create_test_volume(lvsystem)
+        self.mock_exists.return_value = True
+
+        metadata_error = """  Incorrect checksum in metadata area header on /dev/sdb at 4096
+   Failed to read mda header from /dev/sdb
+   Failed to scan VG from /dev/sdb
+   Volume group "VG_XenStorage-94d5c7de-3bee-e7c2-8aeb-d609e7dcd358" not found
+   Cannot process volume group VG_XenStorage-94d5c7de-3bee-e7c2-8aeb-d609e7dcd358"""
+
+        mock_cmd_lvm.side_effect = util.CommandException(5, 'lvchange', metadata_error)
+
+        # Act
+        with self.assertRaises(util.CommandException):
+            lvutil.activateNoRefcount(TEST_VOL, False)
+
+        self.assertEqual(9, mock_sleep.call_count)
+
+    @mock.patch('lvutil.cmd_lvm')
+    @with_lvm_subsystem
+    def test_activate_noref_IO_error_reported(self, lvsystem, mock_cmd_lvm):
+        # Arrange
+        self.__create_test_volume(lvsystem)
+        self.mock_exists.return_value = True
+
+
+        mock_cmd_lvm.side_effect = [
+            util.CommandException(5, 'lvchange', "Device not found")
+        ]
+
+        # Act
+        with self.assertRaises(util.CommandException) as ce:
+            lvutil.activateNoRefcount(TEST_VOL, False)
+
+        self.assertEqual(5, ce.exception.code)
+
+    @with_lvm_subsystem
+    def test_activate_noref_not_activated(self, lvsystem):
+        # Arrange
+        self.__create_test_volume(lvsystem)
+        self.mock_exists.return_value = False
+
+        # Act
+        with self.assertRaises(util.CommandException) as ce:
+            lvutil.activateNoRefcount(TEST_VOL, False)
+
+        self.assertIn('LV not activated', ce.exception.reason)
