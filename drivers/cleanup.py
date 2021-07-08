@@ -2850,7 +2850,9 @@ def _create_init_file(sr_uuid):
         f.write('1')
 
 
-def _gcLoopPause(sr, dryRun):
+def _gcLoopPause(sr, dryRun, immediate=False):
+    if immediate:
+        return
 
     # Check to see if the GCPAUSE_FISTPOINT is present. If so the fist
     # point will just return. Otherwise, fall back on an abortable sleep.
@@ -2873,7 +2875,7 @@ def _gcLoopPause(sr, dryRun):
         Util.log("GC active, quiet period ended")
 
 
-def _gcLoop(sr, dryRun):
+def _gcLoop(sr, dryRun, immediate=False):
     if not lockActive.acquireNoblock():
         Util.log("Another GC instance already active, exiting")
         return
@@ -2889,7 +2891,7 @@ def _gcLoop(sr, dryRun):
         sr.xapi.create_task(
             "Garbage Collection",
             "Garbage collection for SR %s" % sr.uuid)
-        _gcLoopPause(sr, dryRun)
+        _gcLoopPause(sr, dryRun, immediate=immediate)
         while True:
             if not sr.xapi.isPluggedHere():
                 Util.log("SR no longer attached, exiting")
@@ -2975,7 +2977,7 @@ def _ensure_xapi_initialised(session):
         if local_session is not None:
             local_session.logout()
 
-def _gc(session, srUuid, dryRun):
+def _gc(session, srUuid, dryRun, immediate=False):
     init(srUuid)
     _ensure_xapi_initialised(session)
     sr = SR.getInstance(srUuid, session)
@@ -2984,7 +2986,7 @@ def _gc(session, srUuid, dryRun):
 
     sr.cleanupCache()
     try:
-        _gcLoop(sr, dryRun)
+        _gcLoop(sr, dryRun, immediate=immediate)
     finally:
         sr.cleanup()
         sr.logFilter.logState()
@@ -3111,7 +3113,7 @@ def gc(session, srUuid, inBackground, dryRun=False):
                 Util.log("* * * * * SR %s: ERROR\n" % srUuid)
             os._exit(0)
     else:
-        _gc(session, srUuid, dryRun)
+        _gc(session, srUuid, dryRun, immediate=True)
 
 
 def gc_force(session, srUuid, force=False, dryRun=False, lockSR=False):
