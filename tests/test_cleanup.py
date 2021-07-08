@@ -9,9 +9,6 @@ import cleanup
 import lock
 
 import util
-import xs_errors
-import os
-import stat
 
 import ipc
 
@@ -175,10 +172,8 @@ class TestSR(unittest.TestCase):
         sr = create_cleanup_sr(self.xapi_mock)
         sr._srLock = AlwaysLockedLock()
 
-        try:
+        with self.assertRaises(util.SMException):
             sr.lock()
-        except (util.SMException, cleanup.AbortException) as e:
-            pass
 
         self.assertEquals(0, sr._locked)
 
@@ -612,7 +607,7 @@ class TestSR(unittest.TestCase):
         vdi = cleanup.VDI(sr, str(vdi_uuid), False)
 
         with self.assertRaises(util.SMException) as exc:
-            res = sr._coalesceLeaf(vdi)
+            sr._coalesceLeaf(vdi)
 
         self.assertEqual("VDI {uuid} could not be"
                          " coalesced".format(uuid=vdi_uuid),
@@ -639,7 +634,7 @@ class TestSR(unittest.TestCase):
         sr._snapshotCoalesce.return_value = True
 
         with self.assertRaises(util.SMException) as exc:
-            res = sr._coalesceLeaf(vdi)
+            sr._coalesceLeaf(vdi)
 
         self.assertEqual("VDI {uuid} could not be"
                          " coalesced".format(uuid=vdi_uuid),
@@ -1228,16 +1223,11 @@ class TestSR(unittest.TestCase):
         mock_srforbiddenBySwitch.side_effect = side_effect
         res = sr.leafCoalesceForbidden()
         self.assertEqual(res, expectedRes)
-        sr.forbiddenBySwitch.assert_called_with( * argv)
+        sr.forbiddenBySwitch.assert_called_with(*argv)
         self.assertEqual(expected_callCount, sr.forbiddenBySwitch.call_count)
 
     @mock.patch('cleanup.SR.forbiddenBySwitch', autospec=True)
     def test_leafCoalesceForbidden(self, mock_srforbiddenBySwitch):
-        sr_uuid = uuid4()
-        switch = "blah"
-        switchValue = "test"
-        failMessage = "This is a test"
-
         sr = create_cleanup_sr(self.xapi_mock)
 
         side_effect = iter([True, True])
@@ -1426,7 +1416,7 @@ class TestSR(unittest.TestCase):
 
         vdi_uuid = vdis['vdi'].uuid
 
-        res = sr.coalesce(vdis['vdi'], False)
+        sr.coalesce(vdis['vdi'], False)
 
         mock_journaler.create.assert_has_calls(
             [mock.call('coalesce', vdi_uuid, '1'),
