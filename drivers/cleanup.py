@@ -2962,7 +2962,7 @@ def _ensure_xapi_initialised(session):
     Don't want to start GC until Xapi is fully initialised
     """
     local_session = None
-    if not session:
+    if session is None:
         local_session = util.get_localAPI_session()
         session = local_session
 
