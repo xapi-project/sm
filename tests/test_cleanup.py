@@ -9,9 +9,6 @@ import cleanup
 import lock
 
 import util
-import xs_errors
-import os
-import stat
 
 import ipc
 
@@ -175,10 +172,8 @@ class TestSR(unittest.TestCase):
         sr = create_cleanup_sr(self.xapi_mock)
         sr._srLock = AlwaysLockedLock()
 
-        try:
+        with self.assertRaises(util.SMException):
             sr.lock()
-        except (util.SMException, cleanup.AbortException) as e:
-            pass
 
         self.assertEquals(0, sr._locked)
 
@@ -273,6 +268,22 @@ class TestSR(unittest.TestCase):
         mock_fist_point.is_active.assert_called_with(util.GCPAUSE_FISTPOINT)
 
         # Fist point is not active so call abortable sleep.
+        self.assertEqual(0, mock_abortable.call_count)
+
+    @mock.patch('cleanup.SR', autospec=True)
+    @mock.patch('cleanup.Util.runAbortable')
+    def test_gc_pause_skipped_if_immediate(self, mock_abortable, mock_sr):
+        """
+        Foreground GC runs immediate
+        """
+        ## Arrange
+        self.setup_mock_sr(mock_sr)
+
+        ## Act
+        cleanup._gcLoopPause(mock_sr, False, immediate=True)
+
+        ## Assert
+        # Never call runAbortable
         self.assertEqual(0, mock_abortable.call_count)
 
     @mock.patch('cleanup.SR', autospec=True)
@@ -596,7 +607,7 @@ class TestSR(unittest.TestCase):
         vdi = cleanup.VDI(sr, str(vdi_uuid), False)
 
         with self.assertRaises(util.SMException) as exc:
-            res = sr._coalesceLeaf(vdi)
+            sr._coalesceLeaf(vdi)
 
         self.assertEqual("VDI {uuid} could not be"
                          " coalesced".format(uuid=vdi_uuid),
@@ -623,7 +634,7 @@ class TestSR(unittest.TestCase):
         sr._snapshotCoalesce.return_value = True
 
         with self.assertRaises(util.SMException) as exc:
-            res = sr._coalesceLeaf(vdi)
+            sr._coalesceLeaf(vdi)
 
         self.assertEqual("VDI {uuid} could not be"
                          " coalesced".format(uuid=vdi_uuid),
@@ -1212,16 +1223,11 @@ class TestSR(unittest.TestCase):
         mock_srforbiddenBySwitch.side_effect = side_effect
         res = sr.leafCoalesceForbidden()
         self.assertEqual(res, expectedRes)
-        sr.forbiddenBySwitch.assert_called_with( * argv)
+        sr.forbiddenBySwitch.assert_called_with(*argv)
         self.assertEqual(expected_callCount, sr.forbiddenBySwitch.call_count)
 
     @mock.patch('cleanup.SR.forbiddenBySwitch', autospec=True)
     def test_leafCoalesceForbidden(self, mock_srforbiddenBySwitch):
-        sr_uuid = uuid4()
-        switch = "blah"
-        switchValue = "test"
-        failMessage = "This is a test"
-
         sr = create_cleanup_sr(self.xapi_mock)
 
         side_effect = iter([True, True])
@@ -1410,7 +1416,7 @@ class TestSR(unittest.TestCase):
 
         vdi_uuid = vdis['vdi'].uuid
 
-        res = sr.coalesce(vdis['vdi'], False)
+        sr.coalesce(vdis['vdi'], False)
 
         mock_journaler.create.assert_has_calls(
             [mock.call('coalesce', vdi_uuid, '1'),
@@ -1573,10 +1579,29 @@ class TestSR(unittest.TestCase):
         self.assertGreater(mock_sleep.call_count, 5)
 
     @mock.patch('cleanup.util.get_this_host', autospec=True)
-    @mock.patch('cleanup.util.get_localAPI_session', autospec=True)
     @mock.patch('cleanup._gcLoop', autospec=True)
     @mock.patch('cleanup.SR.getInstance')
     def test_check_for_xapi_running(
+            self, mock_sr, mock_loop, mock_this_host):
+        """
+        Check we start immediately if xapi is enabled
+        """
+        host_uuid = uuid4()
+        mock_this_host.return_value = host_uuid
+
+        mock_session = mock.MagicMock(name='MockSession')
+        mock_session.xenapi.host.get_record.return_value = {
+            'enabled': True
+        }
+        sr_uuid = uuid4()
+
+        cleanup._gc(mock_session, sr_uuid, False)
+
+    @mock.patch('cleanup.util.get_this_host', autospec=True)
+    @mock.patch('cleanup.util.get_localAPI_session', autospec=True)
+    @mock.patch('cleanup._gcLoop', autospec=True)
+    @mock.patch('cleanup.SR.getInstance')
+    def test_check_for_xapi_running_no_session(
             self, mock_sr, mock_loop, mock_get_session, mock_this_host):
         """
         Check we start immediately if xapi is enabled
@@ -1617,3 +1642,101 @@ class TestSR(unittest.TestCase):
         cleanup._gc(None, sr_uuid, False)
 
         self.assertEqual(3, mock_session.xenapi.host.get_record.call_count)
+
+    def init_gc_loop_sr(self):
+        sr_uuid = str(uuid4())
+        mock_sr = mock.MagicMock(spec=cleanup.SR)
+        mock_sr.vdis = {}
+        mock_sr.xapi = self.xapi_mock
+        mock_sr.uuid = sr_uuid
+        mock_sr.gcEnabled.return_value = True
+
+        mock_sr.garbageCollect = mock.MagicMock(spec=cleanup.SR.garbageCollect)
+        mock_sr.coalesce = mock.MagicMock(spec=cleanup.SR.coalesce)
+        mock_sr.coalesceLeaf = mock.MagicMock(spec=cleanup.SR.coalesceLeaf)
+
+        return (sr_uuid, mock_sr)
+
+    @mock.patch('cleanup._create_init_file', autospec=True)
+    def test_gcloop_no_work(self, mock_init_file):
+        """
+        GC exits immediate with no work
+        """
+        ## Arrange
+        sr_uuid, mock_sr = self.init_gc_loop_sr()
+
+        mock_sr.hasWork.return_value = False
+        cleanup.lockActive.acquireNoblock = mock.Mock(return_value=True)
+
+        ## Act
+        cleanup._gcLoop(mock_sr, dryRun=False)
+
+        ## Assert
+        mock_init_file.assert_called_with(sr_uuid)
+
+    @mock.patch('cleanup._create_init_file', autospec=True)
+    def test_gcloop_one_of_each(self, mock_init_file):
+        """
+        GC, one garbage, one non-leaf, one leaf
+        """
+        ## Arrange
+        sr_uuid, mock_sr = self.init_gc_loop_sr()
+        vdis = self.add_vdis_for_coalesce(mock_sr)
+
+        mock_sr.hasWork.side_effect = [
+            True, True, True, False]
+        mock_sr.findGarbage.side_effect = [
+            [vdis['child']], []]
+        mock_sr.findCoalesceable.side_effect = [
+            vdis['vdi'], None]
+        mock_sr.findLeafCoalesceable.side_effect = [
+            vdis['vdi']]
+
+        cleanup.lockActive.acquireNoblock = mock.Mock(return_value=True)
+        cleanup.lockRunning.acquireNoblock = mock.Mock(return_value=True)
+
+        ## Act
+        cleanup._gcLoop(mock_sr, dryRun=False)
+
+        ## Assert
+        mock_sr.garbageCollect.assert_called_with(False)
+        mock_sr.coalesce.assert_called_with(vdis['vdi'], False)
+        mock_sr.coalesceLeaf.assert_called_with(vdis['vdi'], False)
+
+    @mock.patch('cleanup.Util')
+    @mock.patch('cleanup._gc', autospec=True)
+    def test_gc_foreground_is_immediate(self, mock_gc, mock_util):
+        """
+        GC called in foreground will run immediate
+        """
+        ## Arrange
+        mock_session = mock.MagicMock(name='MockSession')
+        sr_uuid = str(uuid4())
+
+        ## Act
+        cleanup.gc(mock_session, sr_uuid, inBackground=False)
+
+        ## Assert
+        mock_gc.assert_called_with(mock_session, sr_uuid,
+                                   False, immediate=True)
+
+    @mock.patch('cleanup.os._exit', autospec=True)
+    @mock.patch('cleanup.daemonize', autospec=True)
+    @mock.patch('cleanup.Util')
+    @mock.patch('cleanup._gc', autospec=True)
+    def test_gc_background_is_not_immediate(
+            self, mock_gc, mock_util, mock_daemonize, mock_exit):
+        """
+        GC called in background will daemonize
+        """
+        ## Arrange
+        mock_session = mock.MagicMock(name='MockSession')
+        sr_uuid = str(uuid4())
+        mock_daemonize.return_value = True
+
+        ## Act
+        cleanup.gc(mock_session, sr_uuid, inBackground=True)
+
+        ## Assert
+        mock_gc.assert_called_with(None, sr_uuid, False)
+        mock_daemonize.assert_called_with()
