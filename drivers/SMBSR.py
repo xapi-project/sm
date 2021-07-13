@@ -182,8 +182,7 @@ class SMBSR(FileSR.FileSR):
 
     def __check_license(self):
         """Raises an exception if SMB is not licensed."""
-        if self.session is None or (isinstance(self.session, str) and \
-                self.session == ""):
+        if self.session is None:
             raise xs_errors.XenError('NoSMBLicense',
                     'No session object to talk to XAPI')
         restrictions = util.get_pool_restrictions(self.session)

@@ -1894,7 +1894,7 @@ def get_pool_restrictions(session):
 
 def read_caching_is_restricted(session):
     """Tells whether read caching is restricted."""
-    if session is None or (isinstance(session, str) and session == ""):
+    if session is None:
         return True
     restrictions = get_pool_restrictions(session)
     if 'restrict_read_caching' in restrictions and \
