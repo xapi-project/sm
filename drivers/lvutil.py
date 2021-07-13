@@ -138,6 +138,34 @@ class LvmLockContext(object):
             self.lock.release()
 
 
+LVM_RETRY_ERRORS = [
+    "Incorrect checksum in metadata area header"
+]
+
+
+def lvmretry(func):
+    def check_exception(exception):
+        retry = False
+        for error in LVM_RETRY_ERRORS:
+            if error in exception.reason:
+                retry = True
+        return retry
+
+    def decorated(*args, **kwargs):
+        for i in range(LVM_FAIL_RETRIES):
+            try:
+                return func(*args, **kwargs)
+            except util.CommandException as ce:
+                retry = check_exception(ce)
+                if not retry or (i == LVM_FAIL_RETRIES - 1):
+                    raise
+
+                time.sleep(1)
+
+    decorated.__name__ = func.__name__
+    return decorated
+
+
 def cmd_lvm(cmd, pread_func=util.pread2, *args):
     """ Construct and run the appropriate lvm command.
 
@@ -550,6 +578,7 @@ def setActiveVG(path, active):
     text = cmd_lvm([CMD_VGCHANGE, "-a" + val, path])
 
 
+@lvmretry
 def create(name, size, vgname, tag=None, size_in_percentage=None):
     if size_in_percentage:
         cmd = [CMD_LVCREATE, "-n", name, "-l", size_in_percentage, vgname]
@@ -576,6 +605,7 @@ def remove(path, config_param=None):
     _lvmBugCleanup(path)
 
 
+@lvmretry
 def _remove(path, config_param=None):
     CONFIG_TAG = "--config"
     cmd = [CMD_LVREMOVE, "-f", path]
@@ -584,10 +614,12 @@ def _remove(path, config_param=None):
     ret = cmd_lvm(cmd)
 
 
+@lvmretry
 def rename(path, newName):
     cmd_lvm([CMD_LVRENAME, path, newName], pread_func=util.pread)
 
 
+@lvmretry
 def setReadonly(path, readonly):
     val = "r"
     if not readonly:
@@ -600,6 +632,7 @@ def exists(path):
     return rc == 0
 
 
+@lvmretry
 def setSize(path, size, confirm):
     sizeMB = size / (1024 * 1024)
     if confirm:
@@ -608,6 +641,7 @@ def setSize(path, size, confirm):
         cmd_lvm([CMD_LVRESIZE, "-L", str(sizeMB), path], pread_func=util.pread)
 
 
+@lvmretry
 def setHidden(path, hidden=True):
     opt = "--addtag"
     if not hidden:
@@ -615,11 +649,16 @@ def setHidden(path, hidden=True):
     cmd_lvm([CMD_LVCHANGE, opt, LV_TAG_HIDDEN, path])
 
 
-def activateNoRefcount(path, refresh):
+@lvmretry
+def _activate(path):
     cmd = [CMD_LVCHANGE, "-ay", path]
-    text = cmd_lvm(cmd)
+    cmd_lvm(cmd)
     if not _checkActive(path):
         raise util.CommandException(-1, str(cmd), "LV not activated")
+
+
+def activateNoRefcount(path, refresh):
+    _activate(path)
     if refresh:
         # Override slave mode lvm.conf for this command
         os.environ['LVM_SYSTEM_DIR'] = MASTER_LVM_CONF
@@ -651,6 +690,7 @@ def deactivateNoRefcount(path):
     _lvmBugCleanup(path)
 
 
+@lvmretry
 def _deactivate(path):
     text = cmd_lvm([CMD_LVCHANGE, "-an", path])
 
