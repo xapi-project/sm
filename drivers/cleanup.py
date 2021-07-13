@@ -277,7 +277,7 @@ class XAPI:
     def __init__(self, session, srUuid):
         self.sessionPrivate = False
         self.session = session
-        if self.session == None:
+        if self.session is None:
             self.session = self.getSession()
             self.sessionPrivate = True
         self._srRef = self.session.xenapi.SR.get_by_uuid(srUuid)
@@ -2878,7 +2878,7 @@ def _ensure_xapi_initialised(session):
     Don't want to start GC until Xapi is fully initialised
     """
     local_session = None
-    if not session:
+    if session is None:
         local_session = util.get_localAPI_session()
         session = local_session
 
