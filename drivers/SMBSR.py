@@ -103,7 +103,7 @@ class SMBSR(FileSR.FileSR):
 
     def makeMountPoint(self, mountpoint):
         """Mount the remote SMB export at 'mountpoint'"""
-        if mountpoint == None:
+        if mountpoint is None:
             mountpoint = self.mountpoint
         elif not util.is_string(mountpoint) or mountpoint == "":
             raise SMBException("mountpoint not a string object")

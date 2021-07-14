@@ -127,7 +127,7 @@ class BaseISCSISR(SR.SR):
             pbd = None
             try:
                 pbd = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
-                if pbd != None:
+                if pbd is not None:
                     device_config = self.session.xenapi.PBD.get_device_config(pbd)
                     device_config['multihomelist'] = mstr
                     self.session.xenapi.PBD.set_device_config(pbd, device_config)
@@ -434,7 +434,7 @@ class BaseISCSISR(SR.SR):
             keys.append("mpath-" + self.dconf['SCSIid'])
 
         # Remove iscsi_sessions and multipathed keys
-        if pbdref != None:
+        if pbdref is not None:
             if self.cmd == 'sr_detach':
                 keys += ["multipathed", "iscsi_sessions", "MPPEnabled"]
             for key in keys:
@@ -559,7 +559,7 @@ class BaseISCSISR(SR.SR):
                 except:
                     pass
 
-                if real_SCSIid != None:
+                if real_SCSIid is not None:
                     # make sure this is the same scsiid, if not remove the device
                     cur_scsibuspath = glob.glob('/dev/disk/by-scsibus/*-%s:0:0:%s' % (host, lunid))
                     cur_SCSIid = os.path.basename(cur_scsibuspath[0]).split("-")[0]

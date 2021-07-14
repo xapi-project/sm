@@ -265,7 +265,7 @@ class MetadataHandler:
 
         self.fd = -1
         self.path = path
-        if self.path != None:
+        if self.path is not None:
             self.fd = open_file(self.path, write)
 
     def __del__(self):
