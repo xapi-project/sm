@@ -281,7 +281,7 @@ class XAPI:
     def __init__(self, session, srUuid):
         self.sessionPrivate = False
         self.session = session
-        if self.session == None:
+        if self.session is None:
             self.session = self.getSession()
             self.sessionPrivate = True
         self._srRef = self.session.xenapi.SR.get_by_uuid(srUuid)
