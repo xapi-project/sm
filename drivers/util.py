@@ -822,7 +822,7 @@ def find_my_pbd_record(session, host_ref, sr_ref):
 
 def find_my_pbd(session, host_ref, sr_ref):
     ret = find_my_pbd_record(session, host_ref, sr_ref)
-    if ret != None:
+    if ret is not None:
         return ret[0]
     else:
         return None
@@ -868,7 +868,7 @@ def test_hostPBD_lun(session, targetIQN, LUNid):
 
 
 def test_SCSIid(session, sr_uuid, SCSIid):
-    if sr_uuid != None:
+    if sr_uuid is not None:
         sr = session.xenapi.SR.get_by_uuid(sr_uuid)
     try:
         pbds = session.xenapi.PBD.get_all_records()
@@ -878,7 +878,7 @@ def test_SCSIid(session, sr_uuid, SCSIid):
         record = pbds[pbd]
         # it's ok if it's *our* PBD
         # During FC SR creation, devscan.py passes sr_uuid as None
-        if sr_uuid != None:
+        if sr_uuid is not None:
             if record["SR"] == sr:
                 break
         devconfig = record["device_config"]
@@ -977,7 +977,7 @@ def test_activePoolPBDs(session, host, uuid):
 def remove_mpathcount_field(session, host_ref, sr_ref, SCSIid):
     try:
         pbdref = find_my_pbd(session, host_ref, sr_ref)
-        if pbdref != None:
+        if pbdref is not None:
             key = "mpath-" + SCSIid
             session.xenapi.PBD.remove_from_other_config(pbdref, key)
     except:
@@ -1094,7 +1094,7 @@ def diskFromPartition(partition):
 
     numlen = 0  # number of digit characters
     m = re.match("\D+(\d+)", partition)
-    if m != None:
+    if m is not None:
         numlen = len(m.group(1))
 
     # is it a cciss?
@@ -1207,7 +1207,7 @@ def _containsVDIinuse(srobj):
 
 
 def isVDICommand(cmd):
-    if cmd == None or cmd in ["vdi_attach", "vdi_detach",
+    if cmd is None or cmd in ["vdi_attach", "vdi_detach",
                               "vdi_activate", "vdi_deactivate",
                               "vdi_epoch_begin", "vdi_epoch_end"]:
         return True
@@ -1456,7 +1456,7 @@ def findRunningProcessOrOpenFile(name, process=True):
                         SMlog("ERROR %s reading %s, ignore" % (e.errno, pid))
                     continue
             finally:
-                if f != None:
+                if f is not None:
                     f.close()
 
             try:
@@ -1701,7 +1701,7 @@ def isLegalXMLString(s):
     """
 
     if len(s) > 0:
-        return None == re.search(illegal_xml_re, s)
+        return re.search(illegal_xml_re, s) is None
     else:
         return True
 
@@ -1894,7 +1894,7 @@ def get_pool_restrictions(session):
 
 def read_caching_is_restricted(session):
     """Tells whether read caching is restricted."""
-    if session is None or (isinstance(session, str) and session == ""):
+    if session is None:
         return True
     restrictions = get_pool_restrictions(session)
     if 'restrict_read_caching' in restrictions and \

@@ -545,7 +545,7 @@ class VDI:
         return self.DRIVER_NAME_VHD
 
     def getRef(self):
-        if self._vdiRef == None:
+        if self._vdiRef is None:
             self._vdiRef = self.sr.xapi.getRefVDI(self)
         return self._vdiRef
 

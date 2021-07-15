@@ -93,7 +93,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
                     self.dconf['SCSIid'] = SCSIid
                     del self.dconf['device']
 
-                    if pbd != None:
+                    if pbd is not None:
                         device_config = self.session.xenapi.PBD.get_device_config(pbd)
                         device_config['SCSIid'] = SCSIid
                         device_config['upgraded_from_miami'] = 'true'

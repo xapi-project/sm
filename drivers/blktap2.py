@@ -376,7 +376,7 @@ class TapCtl(object):
             args.append('-R')
         if options.get("lcache"):
             args.append("-r")
-        if options.get("existing_prt") != None:
+        if options.get("existing_prt") is not None:
             args.append("-e")
             args.append(str(options["existing_prt"]))
         if options.get("secondary"):

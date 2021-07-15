@@ -103,7 +103,7 @@ class SMBSR(FileSR.FileSR):
 
     def makeMountPoint(self, mountpoint):
         """Mount the remote SMB export at 'mountpoint'"""
-        if mountpoint == None:
+        if mountpoint is None:
             mountpoint = self.mountpoint
         elif not util.is_string(mountpoint) or mountpoint == "":
             raise SMBException("mountpoint not a string object")
@@ -182,8 +182,7 @@ class SMBSR(FileSR.FileSR):
 
     def __check_license(self):
         """Raises an exception if SMB is not licensed."""
-        if self.session is None or (isinstance(self.session, str) and \
-                self.session == ""):
+        if self.session is None:
             raise xs_errors.XenError('NoSMBLicense',
                     'No session object to talk to XAPI')
         restrictions = util.get_pool_restrictions(self.session)

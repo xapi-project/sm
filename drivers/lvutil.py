@@ -442,7 +442,7 @@ def srlist_toxml(VGs, prefix, includeMetadata=False):
                                     False).findMetadataVDI()
                 subentry = dom.createElement("pool_metadata_detected")
                 entry.appendChild(subentry)
-                if metadataVDI != None:
+                if metadataVDI is not None:
                     subentry.appendChild(dom.createTextNode("true"))
                 else:
                     subentry.appendChild(dom.createTextNode("false"))

@@ -207,7 +207,7 @@ class LVHDSR(SR.SR):
         for key in self.lvmCache.lvs.keys():
             # if the lvname has a uuid in it
             type = None
-            if contains_uuid_regex.search(key) != None:
+            if contains_uuid_regex.search(key) is not None:
                 if key.startswith(lvhdutil.LV_PREFIX[vhdutil.VDI_TYPE_VHD]):
                     type = vhdutil.VDI_TYPE_VHD
                     vdi = key[len(lvhdutil.LV_PREFIX[type]):]
@@ -217,7 +217,7 @@ class LVHDSR(SR.SR):
                 else:
                     continue
 
-            if type != None:
+            if type is not None:
                 self.storageVDIs[vdi] = type
 
         # check if metadata volume exists
@@ -722,7 +722,7 @@ class LVHDSR(SR.SR):
                             parent = \
                                 vhdutil._getVHDParentNoCheck(lvPath)
 
-                            if parent != None:
+                            if parent is not None:
                                 sm_config['vhd-parent'] = parent[len( \
                                     lvhdutil.LV_PREFIX[vhdutil.VDI_TYPE_VHD]):]
                             size = vhdutil.getSizeVirt(lvPath)

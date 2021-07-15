@@ -80,7 +80,7 @@ def _walkXML(parent):
     Dict = {}
 
     if not parent.hasChildNodes():
-        if parent.nodeValue == None:
+        if parent.nodeValue is None:
             return ''
 
     for node in parent.childNodes:

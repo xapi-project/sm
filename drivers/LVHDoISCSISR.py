@@ -164,7 +164,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                         util.SMlog("Setting targetlist: %s" % srcmd_copy.dconf['targetlist'])
                         self.iscsiSRs.append(BaseISCSI.BaseISCSISR(srcmd_copy, sr_uuid))
                     pbd = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
-                    if pbd != None and 'multiSession' not in self.dconf:
+                    if pbd is not None and 'multiSession' not in self.dconf:
                         dconf = self.session.xenapi.PBD.get_device_config(pbd)
                         dconf['multiSession'] = IQNstring
                         self.session.xenapi.PBD.set_device_config(pbd, dconf)
@@ -318,7 +318,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                         # Updating pbd entry, if any
                         try:
                             pbd = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
-                            if pbd != None and 'multiSession' in self.dconf:
+                            if pbd is not None and 'multiSession' in self.dconf:
                                 util.SMlog("Updating multiSession in PBD")
                                 dconf = self.session.xenapi.PBD.get_device_config(pbd)
                                 dconf['multiSession'] = IQNstring

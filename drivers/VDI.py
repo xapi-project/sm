@@ -82,7 +82,7 @@ class VDI(object):
         self.sr = sr
         # Don't set either the UUID or location to None- no good can
         # ever come of this.
-        if uuid != None:
+        if uuid is not None:
             self.uuid = uuid
             self.location = uuid
             self.path = None

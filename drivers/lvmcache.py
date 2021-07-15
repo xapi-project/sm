@@ -252,7 +252,7 @@ class LVMCache:
     def getLVInfo(self, lvName=None):
         result = dict()
         lvs = []
-        if lvName == None:
+        if lvName is None:
             lvs = self.lvs.keys()
         elif self.lvs.get(lvName):
             lvs = [lvName]

@@ -56,7 +56,7 @@ NFSPORT = 2049
 
 def is_image_utf8_compatible(s):
     regex = re.compile("\.iso$|\.img$", re.I)
-    if regex.search(s) == None:
+    if regex.search(s) is None:
         return False
 
     # Check for extended characters
@@ -505,7 +505,7 @@ class ISOSR(SR.SR):
             for vdi_name in self.vdis:
                 vdi = self.vdis[vdi_name]
 
-                if latest_build_vdi == None:
+                if latest_build_vdi is None:
                     latest_build_vdi = vdi.location
                     latest_build_number = "0"
 

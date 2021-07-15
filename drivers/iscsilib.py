@@ -61,7 +61,7 @@ def doexec_locked(cmd):
         _lock.acquire()
     #util.SMlog("%s" % (cmd))
     (rc, stdout, stderr) = util.doexec(cmd)
-    if _lock != None and _lock.held():
+    if _lock is not None and _lock.held():
         _lock.release()
     return (rc, stdout, stderr)
 
