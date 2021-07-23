@@ -940,7 +940,7 @@ class VDI:
         if len(self.children) == 0:
             retries = 0
             try:
-                while retries < 10:
+                while retries < 15:
                     retries += 1
                     if self.getConfig(VDI.DB_VDI_ACTIVATING) is not None:
                         Util.log("VDI %s is activating, wait to relink" %
@@ -954,7 +954,7 @@ class VDI:
                                      self.uuid)
                         else:
                             return
-                    time.sleep(1)
+                    time.sleep(2)
 
                 raise util.SMException("Failed to tag vdi %s for relink" % self)
             except XenAPI.Failure as e:
@@ -1897,8 +1897,9 @@ class SR:
             vdi._relinkSkip()
         finally:
             self.unlock()
+            # Reload the children to leave things consistent
+            vdi.parent._reloadChildren(vdi)
 
-        vdi.parent._reloadChildren(vdi)
         self.journaler.remove(vdi.JRN_RELINK, vdi.uuid)
         self.deleteVDI(vdi)
 
