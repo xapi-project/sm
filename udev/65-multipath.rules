@@ -2,6 +2,9 @@ SUBSYSTEM!="block", GOTO="end_mpath"
 KERNEL=="nbd*", GOTO="end_mpath"
 KERNEL=="td[a-z]*", GOTO="end_mpath"
 
+# like in 62-multipath.rules
+ENV{nompath}=="?*", GOTO="end_mpath"
+
 IMPORT{db}="DM_MULTIPATH_DEVICE_PATH"
 ACTION=="add",  ENV{DM_MULTIPATH_DEVICE_PATH}=="1", GOTO="count_mpath"
 ACTION=="remove", ENV{DM_MULTIPATH_DEVICE_PATH}=="1",  GOTO="count_mpath"

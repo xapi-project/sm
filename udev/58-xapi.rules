@@ -3,6 +3,8 @@
 # Skip block devices - no networks in here
 SUBSYSTEM!="block", GOTO="end_xapi"
 
+ACTION=="add|change", KERNEL=="xvd*", GOTO="ignore_device"
+
 # srX are not partitions, go check if it's a cdrom. handle remove specially.
 ACTION=="remove", KERNEL=="sr[0-9]", GOTO="usb_symlink"
 KERNEL=="sr[0-9]", GOTO="maybe_cdrom"
@@ -44,6 +46,28 @@ ACTION=="add|change", SYMLINK+="xapi/block/%k"
 
 ACTION=="add", RUN+="/bin/sh -c '/opt/xensource/libexec/local-device-change %k 2>&1 >/dev/null&'"
 ACTION=="remove", RUN+="/bin/sh -c '/opt/xensource/libexec/local-device-change %k 2>&1 >/dev/null&'"
+
+GOTO="end_xapi"
+
+# Handle VDIs plugged into Dom0 here: #############################################
+LABEL="ignore_device"
+
+# Do not let udev access them: it would prevent unplugging during VDI import
+# To avoid patching other udev rule files we set env vars to skip processing rules
+
+# from dm_disable in 10-dm.rules
+# will also disable 65-md-incremental.rules processing
+ENV{DM_UDEV_DISABLE_SUBSYSTEM_RULES_FLAG}="1"
+ENV{DM_UDEV_DISABLE_DISK_RULES_FLAG}="1"
+ENV{DM_UDEV_DISABLE_OTHER_RULES_FLAG}="1"
+OPTIONS:="nowatch"
+
+# prevent 60-persistent-storage.rules processing
+# depends on backported env flag in systemd
+ENV{UDEV_DISABLE_PERSISTENT_STORAGE_RULES_FLAG}="1"
+
+# prevent 62-multipath.rules processing
+ENV{nompath}="1"
 
 GOTO="end_xapi"
 
