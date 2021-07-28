@@ -1,6 +1,4 @@
 SUBSYSTEM!="block", GOTO="end_mpath"
-KERNEL=="nbd*", GOTO="end_mpath"
-KERNEL=="td[a-z]*", GOTO="end_mpath"
 
 # like in 62-multipath.rules
 ENV{nompath}=="?*", GOTO="end_mpath"
