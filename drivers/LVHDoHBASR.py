@@ -195,6 +195,17 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             except:
                 pass
 
+    def _remove_device_nodes(self):
+        """
+        Remove the kernel device nodes
+        """
+        nodes = glob.glob('/dev/disk/by-scsid/%s/*' % self.SCSIid)
+        util.SMlog('Remove_nodes, nodes are %s' % nodes)
+        for node in nodes:
+            with open('/sys/block/%s/device/delete' %
+                      (os.path.basename(node)), 'w') as f:
+                f.write('1\n')
+
     def delete(self, sr_uuid):
         self._pathrefresh(LVHDoHBASR)
         try:
@@ -202,6 +213,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
         finally:
             if self.mpath == "true":
                 self.mpathmodule.reset(self.SCSIid, explicit_unmap=True)
+            self._remove_device_nodes()
 
     def vdi(self, uuid):
         return LVHDoHBAVDI(self, uuid)
