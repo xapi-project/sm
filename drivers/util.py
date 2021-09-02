@@ -78,11 +78,18 @@ class SMException(Exception):
 
 
 class CommandException(SMException):
+    def error_message(self, code):
+        if code > 0:
+            return os.strerror(code)
+        elif code < 0:
+            return "Signalled %s" % (abs(code))
+        return "Success"
+
     def __init__(self, code, cmd="", reason='exec failed'):
         self.code = code
         self.cmd = cmd
         self.reason = reason
-        Exception.__init__(self, os.strerror(abs(code)))
+        Exception.__init__(self, self.error_message(code))
 
 
 class SRBusyException(SMException):
