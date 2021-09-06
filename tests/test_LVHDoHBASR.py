@@ -3,7 +3,9 @@ import LVHDoHBASR
 import unittest
 import xmlrpclib
 import SR
+import SRCommand
 
+from uuid import uuid4
 
 def mock_init(self, sr, sr_uuid):
     self.sr = sr
@@ -68,3 +70,78 @@ class TestLVHDoHBAVDI(unittest.TestCase):
             stuff = vdi.generate_config(sr_uuid, vdi_uuid)
 
         self.assertEqual(str(cm.exception), "The VDI is not available")
+
+
+class TestLVHDoHBASR(unittest.TestCase):
+
+    def setUp(self):
+        self.host_ref = str(uuid4())
+        self.session_ref = str(uuid4())
+        self.sr_ref = str(uuid4())
+        self.sr_uuid = str(uuid4())
+        self.scsi_id = '360a98000534b4f4e46704c76692d6d33'
+
+        lock_patcher = mock.patch('LVHDSR.Lock', autospec=True)
+        self.mock_lock = lock_patcher.start()
+        lvhdsr_patcher = mock.patch('LVHDoHBASR.LVHDSR')
+        self.mock_lvhdsr = lvhdsr_patcher.start()
+        util_patcher = mock.patch('LVHDoHBASR.util', autospec=True)
+        self.mock_util = util_patcher.start()
+        xenapi_patcher = mock.patch('SR.XenAPI')
+        self.mock_xapi = xenapi_patcher.start()
+
+        self.addCleanup(mock.patch.stopall)
+
+    def create_sr_cmd(self, cmd):
+        host_ref = self.host_ref
+        scsi_id = self.scsi_id
+        session_ref = self.session_ref
+        sr_ref = self.sr_ref
+        sr_uuid = self.sr_uuid
+
+        def mock_parse(self):
+            self.cmd = cmd
+            device_config = {
+                'SCSIid': scsi_id,
+                'SRmaster': 'true'
+            }
+            self.params = {
+                'command': cmd,
+                'device_config': device_config,
+                'host_ref': host_ref,
+                'session_ref': session_ref,
+                'sr_ref': sr_ref,
+                'sr_uuid': sr_uuid
+            }
+            self.sr_uuid = sr_uuid
+            self.dconf = device_config
+
+        with mock.patch('SRCommand.SRCommand.parse', autospec=True) as parse:
+            parse.side_effect = mock_parse
+            srcmd = SRCommand.SRCommand({})
+            srcmd.parse()
+        return srcmd
+
+    @mock.patch('LVHDoHBASR.xs_errors.XML_DEFS',
+                "drivers/XE_SR_ERRORCODES.xml")
+    @mock.patch("__builtin__.open", new_callable=mock.mock_open())
+    @mock.patch('LVHDoHBASR.glob.glob', autospec=True)
+    def test_sr_delete_no_multipath(self, mock_glob, mock_open):
+        # Arrange
+        srcmd = self.create_sr_cmd("sr_delete")
+
+        sr = LVHDoHBASR.LVHDoHBASR(srcmd, self.sr_uuid)
+
+        mock_glob.return_value = ['/dev/sdd', '/dev/sde',
+                                  '/dev/sdi', '/dev/sdh']
+
+        # Act
+        srcmd.run(sr)
+
+        # Assert
+        mock_open.assert_has_calls([
+            mock.call('/sys/block/sdd/device/delete', 'w'),
+            mock.call('/sys/block/sde/device/delete', 'w'),
+            mock.call('/sys/block/sdi/device/delete', 'w'),
+            mock.call('/sys/block/sdh/device/delete', 'w')],
+            any_order=True)
