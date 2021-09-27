@@ -507,10 +507,17 @@ class VDI(object):
 
     def _db_update_sm_config(self, ref, sm_config):
         import cleanup
+        # List of sm-config keys that should not be modifed by db_update
+        smconfig_protected_keys = [
+            cleanup.VDI.DB_VDI_PAUSED,
+            cleanup.VDI.DB_VHD_BLOCKS,
+            cleanup.VDI.DB_VDI_RELINKING,
+            cleanup.VDI.DB_VDI_ACTIVATING]
+
         current_sm_config = self.sr.session.xenapi.VDI.get_sm_config(ref)
         for key, val in sm_config.iteritems():
-            if key.startswith("host_") or \
-                key in ["paused", cleanup.VDI.DB_VHD_BLOCKS]:
+            if (key.startswith("host_") or
+                key in smconfig_protected_keys):
                 continue
             if sm_config.get(key) != current_sm_config.get(key):
                 util.SMlog("_db_update_sm_config: %s sm-config:%s %s->%s" % \
@@ -519,9 +526,9 @@ class VDI(object):
                 self.sr.session.xenapi.VDI.add_to_sm_config(ref, key, val)
 
         for key in current_sm_config.keys():
-            if key.startswith("host_") or \
-                key in ["paused", cleanup.VDI.DB_VHD_BLOCKS] or \
-                key in self.sm_config_keep:
+            if (key.startswith("host_") or
+                key in smconfig_protected_keys or
+                key in self.sm_config_keep):
                 continue
             if not sm_config.get(key):
                 util.SMlog("_db_update_sm_config: %s del sm-config:%s" % \
