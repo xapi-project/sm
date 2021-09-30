@@ -1371,7 +1371,8 @@ fistpoint = FistPoint(["LVHDRT_finding_a_suitable_pair",
                         "blktap_activate_inject_failure",
                         "blktap_activate_error_handling",
                         GCPAUSE_FISTPOINT,
-                        "cleanup_coalesceVHD_inject_failure"])
+                        "cleanup_coalesceVHD_inject_failure",
+                        "FileSR_fail_hardlink"])
 
 
 def set_dirty(session, sr):
