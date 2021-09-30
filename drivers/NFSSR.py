@@ -60,7 +60,7 @@ NFSPORT = 2049
 DEFAULT_TRANSPORT = "tcp"
 PROBEVERSION = 'probeversion'
 
-class NFSSR(FileSR.FileSR):
+class NFSSR(FileSR.SharedFileSR):
     """NFS file-based storage repository"""
     def handles(type):
         return type == 'nfs'
@@ -143,6 +143,8 @@ class NFSSR(FileSR.FileSR):
             io_retrans = nfs.get_nfs_retrans(self.other_config)
             self.mount_remotepath(sr_uuid, timeout=io_timeout, 
                                   retrans=io_retrans)
+
+            self._check_hardlinks()
         self.attached = True
 
 
