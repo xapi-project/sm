@@ -68,7 +68,7 @@ class SMBException(Exception):
 # mountpoint = /var/run/sr-mount/SMB/<smb_server_name>/<share_name>/uuid
 # linkpath = mountpoint/uuid - path to SR directory on share
 # path = /var/run/sr-mount/uuid - symlink to SR directory on share
-class SMBSR(FileSR.FileSR):
+class SMBSR(FileSR.SharedFileSR):
     """SMB file-based storage repository"""
 
     def handles(type):
@@ -197,6 +197,7 @@ class SMBSR(FileSR.FileSR):
                 os.symlink(self.linkpath, self.path)
             except SMBException as exc:
                 raise xs_errors.XenError('SMBMount', opterr=exc.errstr)
+            self._check_hardlinks()
         self.attached = True
 
     def probe(self):

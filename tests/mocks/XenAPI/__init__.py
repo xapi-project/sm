@@ -1,2 +1,3 @@
 class Failure(Exception):
-    pass
+    def __init__(self, details):
+        pass

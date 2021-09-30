@@ -31,8 +31,10 @@ import cleanup
 import blktap2
 import time
 import glob
+from uuid import uuid4
 from lock import Lock
 import xmlrpclib
+import XenAPI
 from constants import CBTLOG_TAG
 
 geneology = {}
@@ -1081,6 +1083,48 @@ class FileVDI(VDI.VDI):
 
     def _cbt_log_exists(self, logpath):
         return util.pathexists(logpath)
+
+
+class SharedFileSR(FileSR):
+    """
+    FileSR subclass for SRs that use shared network storage
+    """
+    NO_HARDLINK_SUPPORT = "no_hardlinks"
+
+    def _raise_hardlink_error(self):
+        raise OSError(542, "Unknown error 524")
+
+    def _check_hardlinks(self):
+        test_name = os.path.join(self.path, str(uuid4()))
+        open(test_name, 'ab').close()
+
+        link_name = '%s.new' % test_name
+        try:
+            # XSI-1100: Fail the link operation
+            util.fistpoint.activate_custom_fn(
+                "FileSR_fail_hardlink",
+                self._raise_hardlink_error)
+
+            os.link(test_name, link_name)
+            self.session.xenapi.SR.remove_from_sm_config(
+                self.sr_ref, SharedFileSR.NO_HARDLINK_SUPPORT)
+        except OSError:
+            msg = "File system for SR %s does not support hardlinks, crash " \
+                "consistency of snapshots cannot be assured" % self.uuid
+            util.SMlog(msg, priority=util.LOG_WARNING)
+            try:
+                self.session.xenapi.SR.add_to_sm_config(
+                    self.sr_ref, SharedFileSR.NO_HARDLINK_SUPPORT, 'True')
+                self.session.xenapi.message.create(
+                    "sr_does_not_support_hardlinks", 2, "SR", self.uuid,
+                    msg)
+            except XenAPI.Failure:
+                # Might already be set and checking has TOCTOU issues
+                pass
+        finally:
+            util.force_unlink(link_name)
+            util.force_unlink(test_name)
+
 
 if __name__ == '__main__':
     SRCommand.run(FileSR, DRIVER_INFO)
