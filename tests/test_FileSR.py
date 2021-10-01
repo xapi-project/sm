@@ -17,6 +17,44 @@ class FakeFileVDI(FileSR.FileVDI):
 
 
 class TestFileVDI(unittest.TestCase):
+    def setUp(self):
+        startlog_patcher = mock.patch('FileSR.util.start_log_entry',
+                                        autospec=True)
+        self.mock_startlog = startlog_patcher.start()
+        endlog_patcher = mock.patch('FileSR.util.end_log_entry',
+                                      autospec=True)
+        self.mock_endlog = endlog_patcher.start()
+        os_link_patcher = mock.patch('FileSR.os.link', autospec=True)
+        self.mock_os_link = os_link_patcher.start()
+        os_stat_patcher = mock.patch('FileSR.os.stat')
+        self.mock_os_stat = os_stat_patcher.start()
+        os_rename_patcher = mock.patch('FileSR.os.rename', autospec=True)
+        self.mock_os_rename = os_rename_patcher.start()
+        os_unlink_patcher = mock.patch('FileSR.os.unlink', autospec=True)
+        self.mock_os_unlink = os_unlink_patcher.start()
+        pread_patcher = mock.patch('FileSR.util.pread')
+        self.mock_pread = pread_patcher.start()
+        gethidden_patch = mock.patch('FileSR.vhdutil.getHidden')
+        self.mock_gethidden = gethidden_patch.start()
+
+        errors_patcher = mock.patch('FileSR.xs_errors.XML_DEFS',
+                "drivers/XE_SR_ERRORCODES.xml")
+        errors_patcher.start()
+
+        fist_patcher = mock.patch('FileSR.util.FistPoint.is_active',
+                                  autospec=True)
+        self.mock_fist = fist_patcher.start()
+        self.active_fists = set()
+        def active_fists():
+            return self.active_fists
+
+        def is_active(self, name):
+            return name in active_fists()
+
+        self.mock_fist.side_effect = is_active
+
+        self.addCleanup(mock.patch.stopall)
+
     @mock.patch('os.lstat', autospec=True)
     def test_find_vhd_path(self, mock_os_stat):
         vdi_uuid=uuid.uuid4()
