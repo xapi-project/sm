@@ -346,29 +346,6 @@ def end_log_entry(srpath, path, args):
         # for now print
         # print "%s" % logstring
 
-def rotate_string(x, n):
-    transtbl = ""
-    for a in range(0, 256):
-        transtbl = transtbl + chr(a)
-    transtbl = transtbl[n:] + transtbl[0:n]
-    return x.translate(transtbl)
-
-
-def untransform_string(str, remove_trailing_nulls=False):
-    """De-obfuscate string. To cope with an obfuscation bug in Rio, the argument
-    remove_trailing_nulls should be set to True"""
-    tmp = base64.decodestring(str)
-    if remove_trailing_nulls:
-        tmp = tmp.rstrip('\x00')
-    return rotate_string(tmp, -13)
-
-
-def transform_string(str):
-    """Re-obfuscate string"""
-    tmp = rotate_string(str, 13)
-    return base64.encodestring(tmp)
-
-
 def ioretry(f, errlist=[errno.EIO], maxretry=IORETRY_MAX, period=IORETRY_PERIOD, **ignored):
     retries = 0
     while True:
