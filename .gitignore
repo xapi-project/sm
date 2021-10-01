@@ -16,3 +16,5 @@ nosetests.xml
 htmlcov
 .scannerwork
 sonar-project.properties
+dcopy/dcopy
+dcopy/tp
