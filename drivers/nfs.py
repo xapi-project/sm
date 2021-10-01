@@ -112,7 +112,7 @@ def validate_nfsversion(nfsversion):
     if not nfsversion:
         nfsversion = DEFAULT_NFSVERSION
     else:
-        if nfsversion not in ['3', '4', '4.0', '4.1']:
+        if not (nfsversion == '3' or nfsversion.startswith('4')):
             raise NfsException("Invalid nfsversion.")
     return nfsversion
 
