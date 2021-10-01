@@ -784,6 +784,9 @@ class FileVDI(VDI.VDI):
         util.SMlog("FileVDI._unlink %s" % (path))
         os.unlink(path)
 
+    def __fist_enospace(self):
+        raise util.CommandException(28, "vhd-util snapshot", reason="No space")
+
     def _snapshot(self, snap_type, cbtlog=None, cbt_consistency=None):
         util.SMlog("FileVDI._snapshot for %s (type %s)" % (self.uuid, snap_type))
 
@@ -843,9 +846,17 @@ class FileVDI(VDI.VDI):
             # snap_type == VDI.SNAPSHOT_DOUBLE because dst never existed
             # before so nobody will try to query it.
             tmpsrc = "%s.%s" % (src, "new")
+            # Fault injection site to fail the snapshot with ENOSPACE
+            util.fistpoint.activate_custom_fn(
+                "FileSR_fail_snap1",
+                self.__fist_enospace)
             util.ioretry(lambda: self._snap(tmpsrc, newsrcname))
             self._rename(tmpsrc, src)
             if snap_type == VDI.SNAPSHOT_DOUBLE:
+                # Fault injection site to fail the snapshot with ENOSPACE
+                util.fistpoint.activate_custom_fn(
+                    "FileSR_fail_snap2",
+                    self.__fist_enospace)
                 util.ioretry(lambda: self._snap(dst, newsrcname))
             # mark the original file (in this case, its newsrc)
             # as hidden so that it does not show up in subsequent scans

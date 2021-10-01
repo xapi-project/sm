@@ -47,6 +47,18 @@ class TestFileVDI(unittest.TestCase):
                 "drivers/XE_SR_ERRORCODES.xml")
         errors_patcher.start()
 
+        fist_patcher = mock.patch('FileSR.util.FistPoint.is_active',
+                                  autospec=True)
+        self.mock_fist = fist_patcher.start()
+        self.active_fists = set()
+        def active_fists():
+            return self.active_fists
+
+        def is_active(self, name):
+            return name in active_fists()
+
+        self.mock_fist.side_effect = is_active
+
         self.addCleanup(mock.patch.stopall)
 
     @mock.patch('os.lstat', autospec=True)
