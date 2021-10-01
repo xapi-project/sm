@@ -151,7 +151,7 @@ class Test_nfs(unittest.TestCase):
             self.assertEquals(nfs.validate_nfsversion(thenfsversion), '3')
 
     def test_validate_nfsversion_valid(self):
-        for thenfsversion in ['3', '4', '4.0', '4.1']:
+        for thenfsversion in ['3', '4', '4.0', '4.1', '4.2']:
             self.assertEquals(nfs.validate_nfsversion(thenfsversion),
                               thenfsversion)
 
