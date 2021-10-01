@@ -133,7 +133,7 @@ class Test_nfs(unittest.TestCase):
                        timeout=None, nfsversion='4')
 
         check_server_service.assert_called_once_with('remoteserver')
-        pread.assert_called_with(self.get_soft_mount_pread('mount.nfs4',
+        pread.assert_called_with(self.get_soft_mount_pread('mount.nfs',
                                                                 '4'))
 
     def test_validate_nfsversion_invalid(self):
@@ -151,7 +151,7 @@ class Test_nfs(unittest.TestCase):
             self.assertEquals(nfs.validate_nfsversion(thenfsversion), '3')
 
     def test_validate_nfsversion_valid(self):
-        for thenfsversion in ['3', '4', '4.1']:
+        for thenfsversion in ['3', '4', '4.0', '4.1']:
             self.assertEquals(nfs.validate_nfsversion(thenfsversion),
                               thenfsversion)
 
