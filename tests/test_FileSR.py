@@ -175,6 +175,49 @@ class TestFileVDI(unittest.TestCase):
                mock.call('sr_path/%s.vhd.new' % vdi_uuid,
                          'sr_path/%s.vhd' % vdi_uuid)])
 
+    @mock.patch('FileSR.util.gen_uuid')
+    @mock.patch('FileSR.FileVDI._query_p_uuid')
+    @mock.patch('FileSR.util.pathexists', autospec=True)
+    @mock.patch('FileSR.vhdutil.getDepth', autospec=True)
+    @mock.patch('FileSR.blktap2', autospec=True)
+    def test_clone_no_links_success(
+            self, mock_blktap, mock_getDepth, mock_pathexists,
+            mock_query_p_uuid, mock_uuid):
+        # Arrange
+        sr_uuid = str(uuid.uuid4())
+        vdi_uuid = str(uuid.uuid4())
+        sr = mock.MagicMock()
+        sr.path = "sr_path"
+        vdi = FakeFileVDI(sr, vdi_uuid)
+        vdi.sr = sr
+
+        mock_getDepth.return_value = 1
+        mock_pathexists.return_value = True
+        new_vdi_uuid = str(uuid.uuid4())
+        clone_vdi_uuid = str(uuid.uuid4())
+        mock_uuid.side_effect = [clone_vdi_uuid, new_vdi_uuid]
+        grandp_uuid = str(uuid.uuid4())
+
+        mock_query_p_uuid.side_effect = [new_vdi_uuid, new_vdi_uuid, grandp_uuid]
+
+        sr.session.xenapi.SR.get_sm_config.return_value = {
+            "no_hardlinks": "True"}
+
+        # Act
+        clone_xml = vdi.clone(sr_uuid, vdi_uuid)
+
+        # Assert
+        clone_vdi = self.decode_vdi_xml(clone_xml)
+
+        self.assertEqual(clone_vdi_uuid, clone_vdi['uuid'])
+        self.assertEqual(0, self.mock_os_link.call_count)
+        self.assertEqual(0, self.mock_os_unlink.call_count)
+        self.mock_os_rename.assert_has_calls([
+            mock.call('sr_path/%s.vhd' % vdi_uuid,
+                      'sr_path/%s.vhd' % new_vdi_uuid),
+            mock.call('sr_path/%s.vhd.new' % vdi_uuid,
+                      'sr_path/%s.vhd' % vdi_uuid)])
+
     @mock.patch('FileSR.FileVDI._snap')
     @mock.patch('FileSR.util.gen_uuid')
     @mock.patch('FileSR.FileVDI._query_p_uuid')
