@@ -9,6 +9,7 @@ import cleanup
 import lock
 
 import util
+import vhdutil
 
 import ipc
 
@@ -1367,14 +1368,14 @@ class TestSR(unittest.TestCase):
         vdis = {}
 
         parent_uuid = str(uuid4())
-        parent = cleanup.VDI(sr, parent_uuid, False)
-        parent.path = 'dummy-path'
+        parent = cleanup.FileVDI(sr, parent_uuid, False)
+        parent.path = '%s.vhd' % (parent_uuid)
         sr.vdis[parent_uuid] = parent
         vdis['parent'] = parent
 
         vdi_uuid = str(uuid4())
-        vdi = cleanup.VDI(sr, vdi_uuid, False)
-        vdi.path = 'dummy-path'
+        vdi = cleanup.FileVDI(sr, vdi_uuid, False)
+        vdi.path = '%s.vhd' % (vdi_uuid)
         vdi.parent = parent
         parent.children.append(vdi)
 
@@ -1382,20 +1383,22 @@ class TestSR(unittest.TestCase):
         vdis['vdi'] = vdi
 
         child_vdi_uuid = str(uuid4())
-        child_vdi = cleanup.VDI(sr, child_vdi_uuid, False)
-        child_vdi.path = 'dummy-child'
+        child_vdi = cleanup.FileVDI(sr, child_vdi_uuid, False)
+        child_vdi.path = '%s.vhd' % (child_vdi_uuid)
         vdi.children.append(child_vdi)
         sr.vdis[child_vdi_uuid] = child_vdi
         vdis['child'] = child_vdi
 
         return vdis
 
+    @mock.patch('cleanup.os.unlink', autospec=True)
     @mock.patch('cleanup.util', autospec=True)
     @mock.patch('cleanup.vhdutil', autospec=True)
     @mock.patch('cleanup.journaler.Journaler', autospec=True)
     @mock.patch('cleanup.Util.runAbortable')
     def test_coalesce_success(
-            self, mock_abortable, mock_journaler, mock_vhdutil, mock_util):
+            self, mock_abortable, mock_journaler, mock_vhdutil, mock_util,
+            mock_unlink):
         """
         Non-leaf coalesce
         """
@@ -1463,12 +1466,14 @@ class TestSR(unittest.TestCase):
         vdis = self.add_vdis_for_coalesce(sr)
         mock_journaler.get.return_value = None
 
-        mock_vhdutil.getParent.return_value = vdis['parent']
+        mock_vhdutil.FILE_EXTN_VHD = vhdutil.FILE_EXTN_VHD
+        mock_vhdutil.FILE_EXTN_RAW = vhdutil.FILE_EXTN_RAW
+        mock_vhdutil.getParent.return_value = vdis['parent'].path
 
         with self.assertRaises(util.SMException):
             sr.coalesce(vdis['vdi'], False)
 
-        mock_vhdutil.repair.assert_called_with(vdis['parent'])
+        mock_vhdutil.repair.assert_called_with(vdis['parent'].path)
 
     @mock.patch('cleanup.util', autospec=True)
     @mock.patch('cleanup.vhdutil', autospec=True)
@@ -1477,7 +1482,7 @@ class TestSR(unittest.TestCase):
     def test_coalesce_error_raw_parent(
             self, mock_abortable, mock_journaler, mock_vhdutil, mock_util):
         """
-        Handle errors in coalesce
+        Handle errors in coalesce with raw parent
         """
         self.xapi_mock.getConfigVDI.return_value = {}
         run_abortable = mock.MagicMock(spec=self.runAbortable)
@@ -1497,7 +1502,9 @@ class TestSR(unittest.TestCase):
         vdis['parent'].raw = True
         mock_journaler.get.return_value = None
 
-        mock_vhdutil.getParent.return_value = vdis['parent']
+        mock_vhdutil.FILE_EXTN_VHD = vhdutil.FILE_EXTN_VHD
+        mock_vhdutil.FILE_EXTN_RAW = vhdutil.FILE_EXTN_RAW
+        mock_vhdutil.getParent.return_value = vdis['parent'].path
 
         with self.assertRaises(util.SMException):
             sr.coalesce(vdis['vdi'], False)

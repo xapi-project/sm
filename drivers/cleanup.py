@@ -537,6 +537,10 @@ class VDI:
         self._vdiRef = None
         self._clearRef()
 
+    @staticmethod
+    def extractUuid(path):
+        raise NotImplementedError("Implement in sub class")
+
     def load(self):
         """Load VDI info"""
         pass  # abstract
@@ -872,10 +876,20 @@ class VDI:
             raise
     _doCoalesceVHD = staticmethod(_doCoalesceVHD)
 
+    def _vdi_is_raw(self, vdi_path):
+        """
+        Given path to vdi determine if it is raw
+        """
+        uuid = self.extractUuid(vdi_path)
+        return self.sr.vdis[uuid].raw
+
     def _coalesceVHD(self, timeOut):
         Util.log("  Running VHD coalesce on %s" % self)
         abortTest = lambda: IPCFlag(self.sr.uuid).test(FLAG_TYPE_ABORT)
         try:
+            util.fistpoint.activate_custom_fn(
+                "cleanup_coalesceVHD_inject_failure",
+                util.inject_failure)
             Util.runAbortable(lambda: VDI._doCoalesceVHD(self), None,
                     self.sr.uuid, abortTest, VDI.POLL_INTERVAL, timeOut)
         except:
@@ -885,7 +899,7 @@ class VDI:
             parent = ""
             try:
                 parent = vhdutil.getParent(self.path, lambda x: x.strip())
-                if not parent.raw:
+                if not self._vdi_is_raw(parent):
                     # Repair error is logged and ignored. Error reraised later
                     util.SMlog('Coalesce failed on %s, attempting repair on ' \
                                'parent %s' % (self.uuid, parent))
@@ -1078,6 +1092,7 @@ class VDI:
 class FileVDI(VDI):
     """Object representing a VDI in a file-based SR (EXT or NFS)"""
 
+    @staticmethod
     def extractUuid(path):
         path = os.path.basename(path.strip())
         if not (path.endswith(vhdutil.FILE_EXTN_VHD) or \
@@ -1087,7 +1102,6 @@ class FileVDI(VDI):
                 vhdutil.FILE_EXTN_RAW, "")
         # TODO: validate UUID format
         return uuid
-    extractUuid = staticmethod(extractUuid)
 
     def __init__(self, sr, uuid, raw):
         VDI.__init__(self, sr, uuid, raw)
@@ -1160,6 +1174,10 @@ class LVHDVDI(VDI):
         self.hidden = vdiInfo.hidden
         self.parentUuid = vdiInfo.parentUuid
         self.path = os.path.join(self.sr.path, self.fileName)
+
+    @staticmethod
+    def extractUuid(path):
+        return lvhdutil.extractUuid(path)
 
     def getDriverName(self):
         if self.raw:
