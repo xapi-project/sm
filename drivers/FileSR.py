@@ -779,6 +779,13 @@ class FileVDI(VDI.VDI):
         util.SMlog("FileVDI._unlink %s" % (path))
         os.unlink(path)
 
+    def _create_new_parent(self, src, newsrc):
+        sr_sm_config = self.session.xenapi.SR.get_sm_config(self.sr.sr_ref)
+        if SharedFileSR.NO_HARDLINK_SUPPORT in sr_sm_config:
+            self._rename(src, newsrc)
+        else:
+            self._link(src, newsrc)
+
     def __fist_enospace(self):
         raise util.CommandException(28, "vhd-util snapshot", reason="No space")
 
@@ -833,7 +840,7 @@ class FileVDI(VDI.VDI):
 
         # We assume the filehandle has been released
         try:
-            self._link(src, newsrc)
+            self._create_new_parent(src, newsrc)
 
             # Create the snapshot under a temporary name, then rename
             # it afterwards. This avoids a small window where it exists
