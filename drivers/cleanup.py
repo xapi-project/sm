@@ -50,6 +50,7 @@ from ipc import IPCFlag
 from lvmanager import LVActivator
 from srmetadata import LVMMetadataHandler
 from functools import reduce
+from monotonic import monotonic as _time
 
 # Disable automatic leaf-coalescing. Online leaf-coalesce is currently not
 # possible due to lvhd_stop_using_() not working correctly. However, we leave
@@ -159,7 +160,7 @@ class Util:
         resultFlag.clearAll()
         pid = os.fork()
         if pid:
-            startTime = time.time()
+            startTime = _time()
             try:
                 while True:
                     if resultFlag.test("success"):
@@ -172,7 +173,7 @@ class Util:
                     if abortTest() or abortSignaled:
                         os.killpg(pid, signal.SIGKILL)
                         raise AbortException("Aborting due to signal")
-                    if timeOut and time.time() - startTime > timeOut:
+                    if timeOut and _time() - startTime > timeOut:
                         os.killpg(pid, signal.SIGKILL)
                         resultFlag.clearAll()
                         raise util.SMException("Timed out")
