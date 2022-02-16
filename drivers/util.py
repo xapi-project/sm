@@ -886,7 +886,7 @@ def timeout_call(timeoutseconds, function, *arguments):
     signal.signal(signal.SIGALRM, handler)
     signal.alarm(timeoutseconds)
     try:
-        function(*arguments)
+        return function(*arguments)
     finally:
         signal.alarm(0)
 
