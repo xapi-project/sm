@@ -259,6 +259,10 @@ class NFSSR(FileSR.SharedFileSR):
 
     def set_transport(self):
         self.transport = DEFAULT_TRANSPORT
+        if self.remoteserver is None:
+            # CA-365359: on_slave.is_open sends a dconf with {"server": None}
+            return
+
         use_ipv6 = util.get_ip_address_family(self.remoteserver) == 6
         if use_ipv6:
             self.transport = 'tcp6'
