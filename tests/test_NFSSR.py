@@ -95,3 +95,12 @@ class TestNFSSR(unittest.TestCase):
     def test_load_ipv6(self, mock_lock):
         nfssr = self.create_nfssr(server='::1')
         self.assertEqual(nfssr.transport, 'tcp6')
+
+    @mock.patch('NFSSR.Lock', autospec=True)
+    def test_load_no_server(self, mock_lock):
+        """
+        As called by on_slave.is_open
+        """
+        nfssr = self.create_nfssr(server=None)
+
+        self.assertIsNotNone(nfssr)
