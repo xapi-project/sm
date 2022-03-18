@@ -364,6 +364,8 @@ class ISOSR(SR.SR):
             else:
                 raise xs_errors.XenError(
                     'ISOMountFailure', opterr=inst.reason)
+        except nfs.NfsException as e:
+            raise xs_errors.XenError('ISOMountFailure', opterr=str(e.errstr))
 
         # Check the iso_path is accessible
         if not self._checkmount():
