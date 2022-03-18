@@ -135,10 +135,12 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
     # Wait for NFS service to be available
     try:
         if not check_server_service(remoteserver):
-            raise util.CommandException(code=errno.EOPNOTSUPP,
-                    reason="No NFS service on host")
+            raise util.CommandException(
+                code=errno.EOPNOTSUPP,
+                reason='No NFS service on server: `%s`' % remoteserver
+            )
     except util.CommandException as inst:
-        raise NfsException("Failed to detect NFS service on server %s"
+        raise NfsException("Failed to detect NFS service on server `%s`"
                            % remoteserver)
 
     mountcommand = 'mount.nfs'
@@ -165,7 +167,11 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
                      errlist=[errno.EPIPE, errno.EIO],
                      maxretry=2, nofail=True)
     except util.CommandException as inst:
-        raise NfsException("mount failed with return code %d" % inst.code)
+        raise NfsException(
+            "mount failed on server `%s` with return code %d" % (
+                remoteserver, inst.code
+            )
+        )
 
 
 def unmount(mountpoint, rmmountpoint):
