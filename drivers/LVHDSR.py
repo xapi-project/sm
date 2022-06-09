@@ -1216,7 +1216,7 @@ class LVHDSR(SR.SR):
             if hostRef == masterRef:
                 continue
             util.SMlog("Deactivate VDI on %s" % hostRef)
-            rv = eval(self.session.xenapi.host.call_plugin(hostRef, self.PLUGIN_ON_SLAVE, "multi", args))
+            rv = self.session.xenapi.host.call_plugin(hostRef, self.PLUGIN_ON_SLAVE, "multi", args)
             util.SMlog("call-plugin returned: %s" % rv)
             if not rv:
                 raise Exception('plugin %s failed' % self.PLUGIN_ON_SLAVE)
@@ -1240,8 +1240,8 @@ class LVHDSR(SR.SR):
                 continue
             util.SMlog("Updating %s, %s, %s on slave %s" % \
                     (origOldLV, origLV, baseLV, hostRef))
-            rv = eval(self.session.xenapi.host.call_plugin(
-                    hostRef, self.PLUGIN_ON_SLAVE, "multi", args))
+            rv = self.session.xenapi.host.call_plugin(
+                hostRef, self.PLUGIN_ON_SLAVE, "multi", args)
             util.SMlog("call-plugin returned: %s" % rv)
             if not rv:
                 raise Exception('plugin %s failed' % self.PLUGIN_ON_SLAVE)
@@ -1259,8 +1259,8 @@ class LVHDSR(SR.SR):
             if hostRef == masterRef:
                 continue
             util.SMlog("Updating %s on slave %s" % (cbtlog, hostRef))
-            rv = eval(self.session.xenapi.host.call_plugin(
-                    hostRef, self.PLUGIN_ON_SLAVE, "multi", args))
+            rv = self.session.xenapi.host.call_plugin(
+                hostRef, self.PLUGIN_ON_SLAVE, "multi", args)
             util.SMlog("call-plugin returned: %s" % rv)
             if not rv:
                 raise Exception('plugin %s failed' % self.PLUGIN_ON_SLAVE)
@@ -1277,8 +1277,8 @@ class LVHDSR(SR.SR):
             if hostRef == masterRef:
                 continue
             util.SMlog("Cleaning locks for %s on slave %s" % (baseLV, hostRef))
-            rv = eval(self.session.xenapi.host.call_plugin(
-                hostRef, self.PLUGIN_ON_SLAVE, "multi", args))
+            rv = self.session.xenapi.host.call_plugin(
+                hostRef, self.PLUGIN_ON_SLAVE, "multi", args)
             util.SMlog("call-plugin returned: %s" % rv)
             if not rv:
                 raise Exception('plugin %s failed' % self.PLUGIN_ON_SLAVE)
