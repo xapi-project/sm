@@ -404,7 +404,7 @@ class TapCtl(object):
 
     @classmethod
     def close(cls, pid, minor, force=False):
-        args = ["close", "-p", pid, "-m", minor, "-t", "30"]
+        args = ["close", "-p", pid, "-m", minor, "-t", "120"]
         if force:
             args += ["-f"]
         cls._pread(args)
