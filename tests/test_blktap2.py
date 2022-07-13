@@ -542,7 +542,7 @@ class TestTapCtl(unittest.TestCase):
         self.assertIn('-p 22127', proc_args)
         self.assertIn('-m 2', proc_args)
         # Close should have a timeout
-        self.assertIn('-t 30', proc_args)
+        self.assertIn('-t 120', proc_args)
         # Not forced
         self.assertNotIn('-f', proc_args)
 
@@ -563,7 +563,7 @@ class TestTapCtl(unittest.TestCase):
         self.assertIn('-p 22127', proc_args)
         self.assertIn('-m 2', proc_args)
         # Close should have a timeout
-        self.assertIn('-t 30', proc_args)
+        self.assertIn('-t 120', proc_args)
         # Forced
         self.assertIn('-f', proc_args)
 
