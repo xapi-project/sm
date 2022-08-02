@@ -487,7 +487,7 @@ class SR(object):
             else:
                 hconf = self.session.xenapi.host.get_other_config(self.host_ref)
                 self.mpath = hconf['multipathing']
-                self.mpathhandle = hconf['multipathhandle']
+                self.mpathhandle = hconf.get('multipathhandle', 'dmp')
 
             if self.mpath != "true":
                 self.mpath = "false"
