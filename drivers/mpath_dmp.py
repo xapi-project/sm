@@ -104,10 +104,10 @@ def refresh(sid, npaths):
         if not os.path.exists(path):
             scsiutil.rescan(scsiutil._genHostList(""))
             if not util.wait_for_path(path, 60):
-                raise xs_errors.XenError('Device not appeared yet')
+                raise xs_errors.XenError('MultipathDeviceNotAppeared', path)
         _refresh_DMP(sid, npaths)
     else:
-        raise xs_errors.XenError('MPath not written yet')
+        raise xs_errors.XenError('MultipathDeviceNoScsiid')
 
 
 def _is_valid_multipath_device(sid):
