@@ -20,6 +20,15 @@ class Test_nfs(unittest.TestCase):
 
         pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-s', 'aServer'], quiet=False)
 
+    @mock.patch('util.pread', autospec=True)
+    def test_check_server_tcp_nfsversion_error(self, pread):
+        pread.side_effect = util.CommandException
+
+        with self.assertRaises(nfs.NfsException):
+            nfs.check_server_tcp('aServer', 'aNfsversion')
+
+        pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-s', 'aServer'], quiet=False)
+
     @mock.patch('time.sleep', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('util.pread')
