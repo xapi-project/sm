@@ -278,7 +278,7 @@ def get_supported_nfs_versions(server):
         return list(cv & valid_versions)
     except:
         util.SMlog("Unable to obtain list of valid nfs versions")
-        raise NfsException('Failed to read supported NFS version from server' %
+        raise NfsException('Failed to read supported NFS version from server %s' %
                            (server))
 
 
