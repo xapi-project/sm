@@ -1,8 +1,8 @@
-import optparse
+import argparse
 import sys
 
 
-class TestOptParse(optparse.OptionParser):
+class TestArgParse(argparse.ArgumentParser):
     """ Override the default exit and error functions so that they don't print
     to stderr during the tests
     """
@@ -12,7 +12,7 @@ class TestOptParse(optparse.OptionParser):
 
     def error(self, msg):
         """error(msg : string)"""
-        self.exit(2, "%s: error: %s\n" % (self.get_prog_name(), msg))
+        self.exit(2, "%s: error: %s\n" % (self.prog, msg))
 
 
 class LogicalVolume(object):
@@ -72,33 +72,34 @@ class LVSubsystem(object):
 
     def fake_lvcreate(self, args, stdin):
         self.logger('lvcreate', repr(args), stdin)
-        parser = TestOptParse()
-        parser.add_option("-n", dest='name')
-        parser.add_option("-L", dest='size_mb')
-        parser.add_option("--addtag", dest='tag')
-        parser.add_option("--inactive", dest='inactive', action='store_true')
-        parser.add_option("--zero", dest='zero', default='y')
-        parser.add_option("-W", dest='wipe_sig')
+        parser = TestArgParse(prog='lvcreate')
+        parser.add_argument("-n", dest='name')
+        parser.add_argument("-L", dest='size_mb', type=int)
+        parser.add_argument("--addtag", dest='tag')
+        parser.add_argument("--inactive", dest='inactive', action='store_true')
+        parser.add_argument("--zero", dest='zero', default='y')
+        parser.add_argument("-W", dest='wipe_sig')
+        parser.add_argument('vgname')
         try:
-            options, args = parser.parse_args(args[1:])
+            args = parser.parse_args(args[1:])
         except SystemExit as e:
             self.logger("LVCREATE OPTION PARSING FAILED")
             return (1, '', str(e))
 
-        vgname, = args
+        vgname = args.vgname
 
         if self.get_volume_group(vgname) is None:
             self.logger("volume group does not exist:", vgname)
             return (1, '', '  Volume group "%s" not found\n' % vgname)
 
-        active = not options.inactive
-        assert options.zero in ['y', 'n']
-        zeroed = options.zero == 'y'
+        active = not args.inactive
+        assert args.zero in ['y', 'n']
+        zeroed = args.zero == 'y'
 
         self.get_volume_group(vgname).add_volume(
-            options.name,
-            int(options.size_mb),
-            options.tag,
+            args.name,
+            args.size_mb,
+            args.tag,
             active,
             zeroed)
 
@@ -106,17 +107,18 @@ class LVSubsystem(object):
 
     def fake_lvremove(self, args, stdin):
         self.logger('lvremove', repr(args), stdin)
-        parser = TestOptParse()
-        parser.add_option(
+        parser = TestArgParse(prog='lvremove')
+        parser.add_argument(
             "-f", "--force", dest='force', action='store_true', default=False)
+        parser.add_argument('lvpath')
         self.logger(args, stdin)
         try:
-            options, args = parser.parse_args(args[1:])
+            args = parser.parse_args(args[1:])
         except SystemExit as e:
             self.logger("LVREMOVE OPTION PARSING FAILED")
             return (1, '', str(e))
 
-        lvpath, = args
+        lvpath = args.lvpath
 
         for vg in self._volume_groups:
             for lv in vg.volumes:
