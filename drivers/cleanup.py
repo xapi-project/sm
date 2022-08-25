@@ -1930,7 +1930,7 @@ class SR:
         HISTORY_STRING = "Iteration: {its} -- Initial size {initSize}" \
                          " --> Final size {finSize}"
 
-        def __init__(self):
+        def __init__(self, sr):
             self.itsNoProgress = 0
             self.its = 0
             self.minSize = float("inf")
@@ -1938,6 +1938,7 @@ class SR:
             self.reason = ""
             self.startSize = None
             self.finishSize = None
+            self.sr = sr
 
         def abortCoalesce(self, prevSize, curSize):
             res = False
@@ -1962,6 +1963,7 @@ class SR:
                 self.itsNoProgress += 1
                 Util.log("No progress, attempt:"
                          " {attempt}".format(attempt=self.itsNoProgress))
+                util.fistpoint.activate("cleanup_tracker_no_progress", self.sr.uuid)
 
             if (not res) and (self.its > self.MAX_ITERATIONS):
                 max = self.MAX_ITERATIONS
@@ -2001,7 +2003,7 @@ class SR:
         """Leaf-coalesce VDI vdi. Return true if we succeed, false if we cannot
         complete due to external changes, namely vdi_delete and vdi_snapshot 
         that alter leaf-coalescibility of vdi"""
-        tracker = self.CoalesceTracker()
+        tracker = self.CoalesceTracker(self)
         while not vdi.canLiveCoalesce(self.getStorageSpeed()):
             prevSizeVHD = vdi.getSizeVHD()
             if not self._snapshotCoalesce(vdi):

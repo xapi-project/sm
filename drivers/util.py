@@ -1371,6 +1371,7 @@ fistpoint = FistPoint(["LVHDRT_finding_a_suitable_pair",
                         "blktap_activate_error_handling",
                         GCPAUSE_FISTPOINT,
                         "cleanup_coalesceVHD_inject_failure",
+                        "cleanup_tracker_no_progress",
                         "FileSR_fail_hardlink",
                         "FileSR_fail_snap1",
                         "FileSR_fail_snap2"])
