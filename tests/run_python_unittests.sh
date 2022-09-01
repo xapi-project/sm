@@ -2,7 +2,7 @@
 #set -eux # for debug only
 set -eu
 
-SMROOT=$(cd $(dirname $0) && cd .. && pwd)
+SMROOT=$(cd "$(dirname "$0")" && cd .. && pwd)
 
 TESTS=tests
 
@@ -11,48 +11,24 @@ if [ $# -ge 1 ] && [ -n "$1" ]; then
     TESTS=$*
 fi
 
-if  [ ! -v RPM_BUILD_ROOT ]; then
-    echo "Activating virtual env"
-
-    ENVDIR="$SMROOT/.env"
-
-    if [ ! -d $ENVDIR ]; then
-        $(dirname $0)/setup_env_for_python_unittests.sh
-    fi
-
-    set +u
-    . "$ENVDIR/bin/activate"
-    set -u
-fi
-
 (
     cd "$SMROOT"
     PYTHONPATH="$SMROOT/tests/mocks:$SMROOT/drivers/" \
         coverage run --branch \
             --source="$SMROOT/drivers,$SMROOT/tests" \
-            $(which nosetests) \
-            -c .noserc \
-            --with-xunit \
-            --xunit-file=nosetests.xml \
-            $TESTS
-
-    # Handle coverage errors explicitly
-    set +e
+            -m unittest discover -s "$TESTS" -p "*.py" -v
 
     echo "Test coverage"
-    coverage report -m --fail-under=100 --include=$SMROOT/tests/*
-    if [ $? -gt 0 -a $# -eq 0 ]
+    if ! coverage report -m --fail-under=100 --include="$SMROOT/tests/*"
     then
         echo "Test code not fully covered"
         exit 1
     fi
 
-    set -e
-
     echo "Code coverage"
     OMITS="$SMROOT/tests/*,$SMROOT/.env/*,$SMROOT/tests/mocks/*"
     for format in html report; do
-        coverage $format --include="$SMROOT/*" --omit=$OMITS
+        coverage $format --include="$SMROOT/*" --omit="$OMITS"
     done
 
     coverage xml --include="$SMROOT/*"
