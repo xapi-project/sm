@@ -5,10 +5,11 @@ set -eu
 SMROOT=$(cd $(dirname $0) && cd .. && pwd)
 
 TESTS=tests
+FILES="*.py"
 
 if [ $# -ge 1 ] && [ -n "$1" ]; then
     echo "Only testing $1"
-    TESTS=$*
+    FILES=$1
 fi
 
 if  [ ! -v RPM_BUILD_ROOT ]; then
@@ -30,11 +31,7 @@ fi
     PYTHONPATH="$SMROOT/tests/mocks:$SMROOT/drivers/" \
         coverage run --branch \
             --source="$SMROOT/drivers,$SMROOT/tests" \
-            $(which nosetests) \
-            -c .noserc \
-            --with-xunit \
-            --xunit-file=nosetests.xml \
-            $TESTS
+            -m unittest discover -s "$TESTS" -p "$FILES" -v
 
     # Handle coverage errors explicitly
     set +e
