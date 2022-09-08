@@ -1872,7 +1872,8 @@ class LVHDVDI(VDI.VDI):
         snapVDI.utilisation = snapSizeLV
         snapVDI.sm_config = dict()
         for key, val in self.sm_config.iteritems():
-            if key not in ["type", "vdi_type", "vhd-parent", "paused"] and \
+            if key not in [
+                    "type", "vdi_type", "vhd-parent", "paused", "relinking", "activating"] and \
                     not key.startswith("host_"):
                 snapVDI.sm_config[key] = val
         snapVDI.sm_config["vdi_type"] = vhdutil.VDI_TYPE_VHD
