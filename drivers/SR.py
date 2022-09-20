@@ -166,7 +166,6 @@ class SR(object):
         self.driver_config = {}
 
         self.load(sr_uuid)
-        self.checkroot()
 
     @staticmethod
     def from_uuid(session, sr_uuid):
@@ -456,21 +455,6 @@ class SR(object):
                     taglist[node.nodeName] += n.data
         return taglist
 
-    def _isvalidpathstring(self, path):
-        if not path.startswith("/"):
-            return False
-        l = self._splitstring(path)
-        for char in l:
-            if char.isalpha():
-                continue
-            elif char.isdigit():
-                continue
-            elif char in ['/', '-', '_', '.', ':']:
-                continue
-            else:
-                return False
-        return True
-
     def _splitstring(self, str):
         elementlist = []
         for i in range(0, len(str)):
@@ -507,19 +491,9 @@ class SR(object):
         else:
             self.mpathmodule.deactivate()
 
-    def checkroot(self):
-        if 'device' in self.dconf:
-            self.root = self.dconf['device']
-            if self.root:
-                for dev in self.root.split(','):
-                    if not self._isvalidpathstring(dev):
-                        raise xs_errors.XenError('ConfigDeviceInvalid', \
-                              opterr='path is %s' % dev)
-
     def _pathrefresh(self, obj):
         SCSIid = getattr(self, 'SCSIid')
         self.dconf['device'] = self.mpathmodule.path(SCSIid)
-        self.checkroot()
         super(obj, self).load(self.uuid)
 
     def _setMultipathableFlag(self, SCSIid=''):

@@ -77,7 +77,7 @@ class EXTSR(FileSR.FileSR):
 
         # Check PVs match VG
         try:
-            for dev in self.root.split(','):
+            for dev in self.dconf['device'].split(','):
                 cmd = ["pvs", dev]
                 txt = util.pread2(cmd)
                 if txt.find(self.vgname) == -1:
@@ -95,7 +95,7 @@ class EXTSR(FileSR.FileSR):
             cmd = ["vgremove", self.vgname]
             util.pread2(cmd)
 
-            for dev in self.root.split(','):
+            for dev in self.dconf['device'].split(','):
                 cmd = ["pvremove", dev]
                 util.pread2(cmd)
         except util.CommandException as inst:
@@ -135,10 +135,10 @@ class EXTSR(FileSR.FileSR):
 
         #Update SCSIid string
         scsiutil.add_serial_record(self.session, self.sr_ref, \
-                scsiutil.devlist_to_serialstring(self.root.split(',')))
+                scsiutil.devlist_to_serialstring(self.dconf['device'].split(',')))
 
         # Set the block scheduler
-        for dev in self.root.split(','):
+        for dev in self.dconf['device'].split(','):
             self.block_setscheduler(dev)
 
     def detach(self, sr_uuid):
@@ -153,7 +153,7 @@ class EXTSR(FileSR.FileSR):
 
     @deviceCheck
     def probe(self):
-        return lvutil.srlist_toxml(lvutil.scan_srlist(EXT_PREFIX, self.root),
+        return lvutil.srlist_toxml(lvutil.scan_srlist(EXT_PREFIX, self.dconf['device']),
                 EXT_PREFIX)
 
     @deviceCheck
@@ -162,26 +162,26 @@ class EXTSR(FileSR.FileSR):
             raise xs_errors.XenError('SRExists')
 
         # Check none of the devices already in use by other PBDs
-        if util.test_hostPBD_devs(self.session, sr_uuid, self.root):
+        if util.test_hostPBD_devs(self.session, sr_uuid, self.dconf['device']):
             raise xs_errors.XenError('SRInUse')
 
         # Check serial number entry in SR records
-        for dev in self.root.split(','):
+        for dev in self.dconf['device'].split(','):
             if util.test_scsiserial(self.session, dev):
                 raise xs_errors.XenError('SRInUse')
 
         if not lvutil._checkVG(self.vgname):
-            lvutil.createVG(self.root, self.vgname)
+            lvutil.createVG(self.dconf['device'], self.vgname)
 
         if lvutil._checkLV(self.remotepath):
             raise xs_errors.XenError('SRExists')
 
         try:
-            numdevs = len(self.root.split(','))
+            numdevs = len(self.dconf['device'].split(','))
             cmd = ["lvcreate", "-n", sr_uuid]
             if numdevs > 1:
                 lowest = -1
-                for dev in self.root.split(','):
+                for dev in self.dconf['device'].split(','):
                     stats = lvutil._getPVstats(dev)
                     if lowest < 0  or stats['freespace'] < lowest:
                         lowest = stats['freespace']
@@ -213,7 +213,7 @@ class EXTSR(FileSR.FileSR):
 
         #Update serial number string
         scsiutil.add_serial_record(self.session, self.sr_ref, \
-                  scsiutil.devlist_to_serialstring(self.root.split(',')))
+                  scsiutil.devlist_to_serialstring(self.dconf['device'].split(',')))
 
     def vdi(self, uuid, loadLocked=False):
         if not loadLocked:
