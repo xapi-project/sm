@@ -108,9 +108,6 @@ class NFSSR(FileSR.SharedFileSR):
                 except:
                     pass
             raise xs_errors.XenError('ConfigServerPathMissing')
-        if not self._isvalidpathstring(self.dconf['serverpath']):
-            raise xs_errors.XenError('ConfigServerPathBad', \
-                  opterr='serverpath is %s' % self.dconf['serverpath'])
 
     def check_server(self):
         try:
