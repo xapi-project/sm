@@ -18,6 +18,9 @@
 # FileSR: local-file storage repository
 
 from __future__ import print_function
+
+import socket
+
 import SR
 import SRCommand
 import FileSR
@@ -260,7 +263,12 @@ class NFSSR(FileSR.SharedFileSR):
             # CA-365359: on_slave.is_open sends a dconf with {"server": None}
             return
 
-        use_ipv6 = util.get_ip_address_family(self.remoteserver) == 6
+        try:
+            addr_info = socket.getaddrinfo(self.remoteserver, 0)[0]
+        except Exception:
+            return
+
+        use_ipv6 = addr_info[0] == socket.AF_INET6
         if use_ipv6:
             self.transport = 'tcp6'
         if 'useUDP' in self.dconf and self.dconf['useUDP'] == 'true':

@@ -967,17 +967,6 @@ def remove_mpathcount_field(session, host_ref, sr_ref, SCSIid):
         pass
 
 
-def get_ip_address_family(address):
-    try:
-        socket.inet_aton(address)
-        return 4
-    except socket.error:
-        try:
-            socket.inet_pton(socket.AF_INET6, address)
-            return 6
-        except:
-            return -1
-
 
 def _testHost(hostname, port, errstring):
     SMlog("_testHost: Testing host/port: %s,%d" % (hostname, port))
