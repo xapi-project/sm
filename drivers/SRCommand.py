@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -18,11 +18,10 @@
 # SRCommand: parse SR command-line objects
 #
 
-from __future__ import print_function
 import XenAPI
 import sys
 import xs_errors
-import xmlrpclib
+import xmlrpc.client
 import SR
 import util
 import blktap2
@@ -84,7 +83,7 @@ class SRCommand:
         #                                  priority=util.LOG_DEBUG )
 
         try:
-            params, methodname = xmlrpclib.loads(sys.argv[1])
+            params, methodname = xmlrpc.client.loads(sys.argv[1])
             self.cmd = methodname
             params = params[0]  # expect a single struct
             self.params = params
@@ -217,7 +216,7 @@ class SRCommand:
             target.snapshot_of = self.params['args'][6]
             target.read_only = self.params['args'][7] == "true"
 
-            return target.create(self.params['sr_uuid'], self.vdi_uuid, long(self.params['args'][0]))
+            return target.create(self.params['sr_uuid'], self.vdi_uuid, int(self.params['args'][0]))
 
         elif self.cmd == 'vdi_update':
             # Check for invalid XML characters, similar to VDI.create right
@@ -263,10 +262,10 @@ class SRCommand:
             return target.clone(self.params['sr_uuid'], self.vdi_uuid)
 
         elif self.cmd == 'vdi_resize':
-            return target.resize(self.params['sr_uuid'], self.vdi_uuid, long(self.params['args'][0]))
+            return target.resize(self.params['sr_uuid'], self.vdi_uuid, int(self.params['args'][0]))
 
         elif self.cmd == 'vdi_resize_online':
-            return target.resize_online(self.params['sr_uuid'], self.vdi_uuid, long(self.params['args'][0]))
+            return target.resize_online(self.params['sr_uuid'], self.vdi_uuid, int(self.params['args'][0]))
 
         elif self.cmd == 'vdi_activate':
             target = blktap2.VDI(self.vdi_uuid, target, self.driver_info)
@@ -326,7 +325,7 @@ class SRCommand:
             return target.list_changed_blocks()
 
         elif self.cmd == 'sr_create':
-            return sr.create(self.params['sr_uuid'], long(self.params['args'][0]))
+            return sr.create(self.params['sr_uuid'], int(self.params['args'][0]))
 
         elif self.cmd == 'sr_delete':
             return sr.delete(self.params['sr_uuid'])
@@ -338,7 +337,7 @@ class SRCommand:
             txt = sr.probe()
             util.SMlog("sr_probe result: %s" % util.splitXmlText(txt, showContd=True))
             # return the XML document as a string
-            return xmlrpclib.dumps((txt, ), "", True)
+            return xmlrpc.client.dumps((txt, ), "", True)
 
         elif self.cmd == 'sr_attach':
             is_master = False
@@ -403,6 +402,6 @@ def run(driver, driver_info):
         if isinstance(e, SR.SRException):
             print(e.toxml())
         else:
-            print(xmlrpclib.dumps(xmlrpclib.Fault(1200, str(e)), "", True))
+            print(xmlrpc.client.dumps(xmlrpc.client.Fault(1200, str(e)), "", True))
 
     sys.exit(0)

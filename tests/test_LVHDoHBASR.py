@@ -1,7 +1,7 @@
-import mock
+import unittest.mock as mock
 import LVHDoHBASR
 import unittest
-import xmlrpclib
+import xmlrpc.client
 import SR
 import SRCommand
 
@@ -35,8 +35,8 @@ class TestLVHDoHBAVDI(unittest.TestCase):
         vdi.path = "blahblah"
         stuff = vdi.generate_config(sr_uuid, vdi_uuid)
 
-        load_object = xmlrpclib.loads(stuff)
-        load_object = xmlrpclib.loads(load_object[0][0])
+        load_object = xmlrpc.client.loads(stuff)
+        load_object = xmlrpc.client.loads(load_object[0][0])
 
         self.assertEqual(load_object[0][0]["sr_uuid"], sr_uuid)
         self.assertEqual(load_object[0][0]["vdi_uuid"], vdi_uuid)

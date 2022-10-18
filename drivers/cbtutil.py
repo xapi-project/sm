@@ -1,6 +1,4 @@
 """Utility for CBT log file operations"""
-#!/usr/bin/python
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify

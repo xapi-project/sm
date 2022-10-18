@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # Copyright (C) Citrix Systems Inc.
 #
@@ -15,7 +15,6 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-from __future__ import print_function
 import util
 import time
 import os
@@ -46,7 +45,7 @@ def get_dm_major():
     global cached_DM_maj
     if not cached_DM_maj:
         try:
-            line = filter(lambda x: x.endswith('device-mapper\n'), open('/proc/devices').readlines())
+            line = [x for x in open('/proc/devices').readlines() if x.endswith('device-mapper\n')]
             cached_DM_maj = int(line[0].split()[0])
         except:
             pass

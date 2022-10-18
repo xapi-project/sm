@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -20,6 +20,8 @@
 
 import sys
 import XenAPIPlugin
+from functools import reduce
+
 sys.path.append("/opt/xensource/sm/")
 sys.path.insert(0, "/opt/xensource/sm")
 import getopt
@@ -29,7 +31,7 @@ import util
 import atexit
 
 USAGE_STRING = \
-"""Usage: %s -u/--uuid <UUID of VM whose VDIs should be leaf-coalesced>
+    """Usage: %s -u/--uuid <UUID of VM whose VDIs should be leaf-coalesced>
 This will coalesce each VDI attached to the given VM that consists of a pair
 of VHD files into a single VHD file.
 Only LVM SRs will be considered, and only VDIs whose VHD chain length equals 2.
@@ -44,22 +46,25 @@ RET_ERROR_XAPI = 4
 RET_ERROR_OTHER = 5
 
 RET_MSG = {
-        RET_SUCCESS:          "Success",
-        RET_NOTHING_TODO:     "VM has no leaf-coalesceable VDIs",
-        RET_ERROR_NO_SUCH_VM: "VM not found",
-        RET_ERROR_VM:         "Failed to suspend the VM",
-        RET_ERROR_XAPI:       "XAPI error",
-        RET_ERROR_OTHER:      "Error"
+    RET_SUCCESS: "Success",
+    RET_NOTHING_TODO: "VM has no leaf-coalesceable VDIs",
+    RET_ERROR_NO_SUCH_VM: "VM not found",
+    RET_ERROR_VM: "Failed to suspend the VM",
+    RET_ERROR_XAPI: "XAPI error",
+    RET_ERROR_OTHER: "Error"
 }
+
 
 def log_msg(msg):
     cleanup.Util.log(msg)
+
 
 def get_pool_master_rec(session):
     master_ref = session.xenapi.pool.get_all_records().values()[0]["master"]
     master_rec = session.xenapi.host.get_record(master_ref)
     master_rec["opaque_ref"] = master_ref
     return master_rec
+
 
 def get_sr_master(session, sr_rec):
     pool_master_rec = None
@@ -79,19 +84,20 @@ def get_sr_master(session, sr_rec):
             sr_master_ref = pbd_rec["host"]
             attached = pbd_rec["currently_attached"]
             break
-    
+
     if not sr_master_ref:
-        return (None, False)
+        return None, False
 
     if sr_rec["shared"]:
         sr_master = pool_master_rec["uuid"]
     else:
         sr_master = session.xenapi.host.get_record(sr_master_ref)["uuid"]
 
-    return (sr_master, attached)
+    return sr_master, attached
+
 
 def leaf_coalesce(session, coalesceable_vdis):
-    for sr_uuid, vdi_uuids in coalesceable_vdis.iteritems():
+    for sr_uuid, vdi_uuids in coalesceable_vdis.items():
         log_msg("Processing VDIs: %s" % vdi_uuids)
         for vdi_uuid in vdi_uuids:
             try:
@@ -99,9 +105,10 @@ def leaf_coalesce(session, coalesceable_vdis):
                 other_config = session.xenapi.VDI.get_other_config(vdi_ref)
                 if other_config.get(cleanup.VDI.DB_LEAFCLSC):
                     continue
-                session.xenapi.VDI.add_to_other_config(vdi_ref, \
-                        cleanup.VDI.DB_LEAFCLSC, cleanup.VDI.LEAFCLSC_FORCE)
-            except XenAPI.Failure, e:
+                session.xenapi.VDI.add_to_other_config(
+                    vdi_ref,
+                    cleanup.VDI.DB_LEAFCLSC, cleanup.VDI.LEAFCLSC_FORCE)
+            except XenAPI.Failure as e:
                 log_msg("Error adding to VDI record for %s: %s" % (vdi_uuid, e))
                 cleanup.Util.logException("leaf_coalesce")
                 return RET_ERROR_XAPI
@@ -109,8 +116,8 @@ def leaf_coalesce(session, coalesceable_vdis):
         cleanup.gc(session, sr_uuid, False)
     return RET_SUCCESS
 
-def vm_leaf_coalesce(session, vm_uuid):
 
+def vm_leaf_coalesce(session, vm_uuid):
     messages = []
     vdis = {}
     sr_recs = {}
@@ -119,10 +126,10 @@ def vm_leaf_coalesce(session, vm_uuid):
         vm_ref = session.xenapi.VM.get_by_uuid(vm_uuid)
     except XenAPI.Failure:
         log_msg("Error: VM %s not found" % vm_uuid)
-        return (RET_ERROR_NO_SUCH_VM, messages)
+        return RET_ERROR_NO_SUCH_VM, messages
     vm_rec = session.xenapi.VM.get_record(vm_ref)
     vbd_recs = session.xenapi.VBD.get_all_records()
-    for vbd_ref, vbd_rec in vbd_recs.iteritems():
+    for vbd_ref, vbd_rec in vbd_recs.items():
         if vbd_rec["VM"] != vm_ref:
             continue
         vdi_ref = vbd_rec["VDI"]
@@ -148,20 +155,20 @@ def vm_leaf_coalesce(session, vm_uuid):
 
     ret = RET_SUCCESS
     coalesceable_vdis = {}
-    for sr_uuid, vdi_uuids in vdis.iteritems():
+    for sr_uuid, vdi_uuids in vdis.items():
         (sr_master, attached) = get_sr_master(session, sr_recs[sr_uuid])
         msg = "Unable to check VDIs on SR %s because " % sr_uuid
         if not attached:
             messages.append(msg + "it is not attached")
             continue
         elif sr_master != this_host:
-            messages.append(msg + "this host is not its master. " + \
-                    "Run on host %s to check that SR" % sr_master)
+            messages.append(msg + "this host is not its master. " +
+                            "Run on host %s to check that SR" % sr_master)
             continue
         try:
             vdi_list = cleanup.get_coalesceable_leaves(session, sr_uuid,
-                    vdi_uuids)
-        except Exception, e:
+                                                       vdi_uuids)
+        except Exception as e:
             msg = "Error: %s, skipping SR %s" % (e, sr_uuid)
             log_msg(msg)
             messages.append(msg)
@@ -172,9 +179,9 @@ def vm_leaf_coalesce(session, vm_uuid):
 
     if len(coalesceable_vdis) == 0:
         log_msg("The VM has no VDIs that could be leaf-coalesced")
-        return (RET_NOTHING_TODO, messages)
+        return RET_NOTHING_TODO, messages
 
-    for sr_uuid in coalesceable_vdis.keys():
+    for sr_uuid in coalesceable_vdis:
         # do regular GC now to minimize downtime
         cleanup.gc(session, sr_uuid, False)
 
@@ -185,7 +192,7 @@ def vm_leaf_coalesce(session, vm_uuid):
             session.xenapi.VM.suspend(vm_ref)
         except XenAPI.Failure:
             log_msg("Failed to suspend the VM")
-            return (RET_ERROR_VM, messages)
+            return RET_ERROR_VM, messages
         suspended = True
     try:
         leaf_coalesce(session, coalesceable_vdis)
@@ -193,20 +200,20 @@ def vm_leaf_coalesce(session, vm_uuid):
         if suspended:
             log_msg("Resuming VM %s" % vm_rec["uuid"])
             session.xenapi.VM.resume(vm_ref, False, False)
-        for sr_uuid in coalesceable_vdis.keys():
+        for sr_uuid in list(coalesceable_vdis.keys()):
             # cleans up any potential failures
             cleanup.gc(session, sr_uuid, True)
-    return (ret, messages)
+    return ret, messages
 
 
 def main():
-    shortArgs  = "u:"
-    longArgs   = ["uuid"]
+    shortArgs = "u:"
+    longArgs = ["uuid"]
 
     try:
         opts, args = getopt.getopt(sys.argv[1:], shortArgs, longArgs)
     except getopt.GetoptError:
-        print USAGE_STRING % sys.argv[0]
+        print(USAGE_STRING % sys.argv[0])
         sys.exit(-1)
 
     uuid = None
@@ -215,7 +222,7 @@ def main():
             uuid = a
 
     if not uuid:
-        print USAGE_STRING % sys.argv[0]
+        print(USAGE_STRING % sys.argv[0])
         sys.exit(-1)
 
     session = XenAPI.xapi_local()
@@ -224,8 +231,9 @@ def main():
 
     ret, messages = vm_leaf_coalesce(session, uuid)
     if len(messages):
-        print reduce(lambda x, y: x + "\n" + y, messages)
+        print("\n".join(messages))
     sys.exit(ret)
+
 
 def do_vm_leaf_coalesce(session, args):
     vm_uuid = args["vm_uuid"]
@@ -240,6 +248,7 @@ def do_vm_leaf_coalesce(session, args):
         raise Exception(msg)
     return msg
 
+
 def do_leaf_coalesce(session, args):
     """For testing: bypass the VM"""
     sr_uuid = args["sr_uuid"]
@@ -249,8 +258,9 @@ def do_leaf_coalesce(session, args):
         raise Exception(RET_MSG[ret])
     return RET_MSG[ret]
 
+
 if __name__ == '__main__':
-    #main()
+    # main()
     XenAPIPlugin.dispatch({
-        "leaf-coalesce": do_vm_leaf_coalesce, 
-        "test": do_leaf_coalesce })
+        "leaf-coalesce": do_vm_leaf_coalesce,
+        "test": do_leaf_coalesce})

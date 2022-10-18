@@ -1,9 +1,7 @@
-import mock
+import unittest.mock as mock
 import LVHDoFCoESR
-import lvhdutil
 import SR
 import unittest
-import xs_errors
 import testlib
 
 

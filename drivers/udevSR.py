@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -165,7 +165,7 @@ class udevVDI(VDI.VDI):
             if usb_path:
                 self.sm_config["usb_path"] = info["usb_path"]
                 pusbs = self.session.xenapi.PUSB.get_all_records()
-                for pusb in pusbs.itervalues():
+                for pusb in pusbs.values():
                     if usb_path == pusb.get("path"):
                         if pusb.get("passthrough_enabled"):
                             raise xs_errors.XenError('VDIUnavailable')

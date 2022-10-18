@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -18,7 +18,6 @@
 # Miscellaneous scsi utility functions
 #
 
-from __future__ import print_function
 import util
 import os
 import re
@@ -66,7 +65,7 @@ def getsize(path):
     if os.path.exists(sysfs):
         try:
             f = open(sysfs, 'r')
-            size = (long(f.readline()) << SECTOR_SHIFT)
+            size = (int(f.readline()) << SECTOR_SHIFT)
             f.close()
         except:
             pass
@@ -83,10 +82,14 @@ def getuniqueserial(path):
         return ''
 
 
-def gen_uuid_from_string(str):
-    if len(str) < (PREFIX_LEN + SUFFIX_LEN):
+def gen_uuid_from_string(src_string):
+    if len(src_string) < (PREFIX_LEN + SUFFIX_LEN):
         raise util.CommandException(1)
-    return str[0:8] + '-' + str[8:12] + '-' + str[12:16] + '-' + str[16:20] + '-' + str[20:32]
+    return (src_string[0:8] + '-' +
+            src_string[8:12] + '-' +
+            src_string[12:16] + '-' +
+            src_string[16:20] + '-' +
+            src_string[20:32])
 
 
 def SCSIid_sanitise(str):
@@ -303,7 +306,8 @@ def gen_synthetic_page_data(uuid):
     page83 += "XENSRC  "
     page83 += uuid
     page83 += " "
-    return ["", base64.b64encode(page80), base64.b64encode(page83)]
+    return ["", base64.b64encode(str.encode(page80)).decode(),
+            base64.b64encode(str.encode(page83)).decode()]
 
 
 def gen_raw_page_data(path):
@@ -540,9 +544,8 @@ def refreshdev(pathlist):
         sysfs = os.path.join('/sys/block', dev, 'device/rescan')
         if os.path.exists(sysfs):
             try:
-                f = os.open(sysfs, os.O_WRONLY)
-                os.write(f, '1')
-                os.close(f)
+                with open(sysfs, 'w') as f:
+                    f.write('1')
             except:
                 pass
 

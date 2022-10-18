@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -38,7 +38,7 @@ def clean(session, hours_old, sr_uuid = None):
     else:
         sr_recs = session.xenapi.SR.get_all_records_where(
                 'field "type" = "ext"')
-        for sr_ref, sr_rec in sr_recs.iteritems():
+        for sr_ref, sr_rec in sr_recs.items():
             sr_uuids.append(sr_rec["uuid"])
 
     ret = ""

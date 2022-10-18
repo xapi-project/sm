@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -15,11 +15,9 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-from __future__ import print_function
 import os
 import blktap2
 import glob
-import SR
 from stat import *  # S_ISBLK(), ...
 
 SECTOR_SHIFT = 9
@@ -379,7 +377,7 @@ if __name__ == '__main__':
         if method == 'stats':
 
             d = cache_sr.xapi_stats()
-            for item in d.iteritems():
+            for item in d.items():
                 print("%s=%s" % item)
 
         elif method == 'topology':

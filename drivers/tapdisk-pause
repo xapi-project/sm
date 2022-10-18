@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -44,7 +44,7 @@ def locking(excType, override=True):
             try:
                 try:
                     ret = op(self, *args)
-                except (util.SMException, XenAPI.Failure), e:
+                except (util.SMException, XenAPI.Failure) as e:
                     util.logException("TAP-PAUSE:%s" % op)
                     msg = str(e)
                     if isinstance(e, util.CommandException):
@@ -104,7 +104,7 @@ class Tapdisk:
         self.realpath = None
         self.vdi_type = None
         self.secondary = None
-        if args.has_key("secondary"):
+        if "secondary" in args:
             self.secondary = args["secondary"]
         self.activate_parents = False
         if args.get("activate_parents") == "true":
@@ -114,7 +114,7 @@ class Tapdisk:
         # LVM rename check
         try:
             realpath = os.readlink(self.phypath)
-        except OSError, e:
+        except OSError as e:
             util.SMlog("Phypath %s does not exist" % self.phypath)
             return            
         util.SMlog("Realpath: %s" % realpath)
@@ -166,7 +166,7 @@ class Tapdisk:
             lv_name = lvhdutil.LV_PREFIX[vhdutil.VDI_TYPE_VHD] + self.vdi_uuid
             vdi_list = vhdutil.getParentChain(lv_name,
                     lvhdutil.extractUuid, vg_name)
-            for uuid, lv_name in vdi_list.iteritems():
+            for uuid, lv_name in vdi_list.items():
                 if uuid == self.vdi_uuid:
                     continue
                 lvm_cache.activate(ns, uuid, lv_name, False)

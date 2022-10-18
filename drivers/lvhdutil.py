@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -17,8 +17,6 @@
 
 """Helper functions for LVHD SR. This module knows about RAW and VHD VDI's 
 that live in LV's."""
-from __future__ import print_function
-
 import os
 import sys
 import time
@@ -29,7 +27,7 @@ from lock import Lock
 from refcounter import RefCounter
 
 MSIZE_MB = 2 * 1024 * 1024  # max virt size for fast resize
-MSIZE = long(MSIZE_MB * 1024 * 1024)
+MSIZE = int(MSIZE_MB * 1024 * 1024)
 
 VG_LOCATION = "/dev"
 VG_PREFIX = "VG_XenStorage-"
@@ -113,7 +111,7 @@ def getLVInfo(lvmCache, lvName=None):
     allLVs = lvmCache.getLVInfo(lvName)
 
     lvs = dict()
-    for lvName, lv in allLVs.iteritems():
+    for lvName, lv in allLVs.items():
         vdiType, uuid = matchLV(lvName)
         if not vdiType:
             continue
@@ -128,7 +126,7 @@ def getVDIInfo(lvmCache):
     lvs = getLVInfo(lvmCache)
 
     haveVHDs = False
-    for uuid, lvInfo in lvs.iteritems():
+    for uuid, lvInfo in lvs.items():
         if lvInfo.vdiType == vhdutil.VDI_TYPE_VHD:
             haveVHDs = True
         vdiInfo = VDIInfo(uuid)
@@ -330,11 +328,11 @@ def setInnerNodeRefcounts(lvmCache, srUuid):
     Return all LVs (paths) that are active but not in use (i.e. that should
     be deactivated)"""
     vdiInfo = getVDIInfo(lvmCache)
-    for uuid, vdi in vdiInfo.iteritems():
+    for uuid, vdi in vdiInfo.items():
         vdi.refcount = 0
 
     ns = NS_PREFIX_LVM + srUuid
-    for uuid, vdi in vdiInfo.iteritems():
+    for uuid, vdi in vdiInfo.items():
         if vdi.hidden:
             continue  # only read leaf refcounts
         refcount = RefCounter.check(uuid, ns)
@@ -346,7 +344,7 @@ def setInnerNodeRefcounts(lvmCache, srUuid):
                 vdi.refcount += 1
 
     pathsNotInUse = []
-    for uuid, vdi in vdiInfo.iteritems():
+    for uuid, vdi in vdiInfo.items():
         if vdi.hidden:
             util.SMlog("Setting refcount for %s to %d" % (uuid, vdi.refcount))
             RefCounter.set(uuid, vdi.refcount, 0, ns)

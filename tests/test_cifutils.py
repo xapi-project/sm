@@ -1,8 +1,6 @@
 import unittest
-import testlib
-import mock
+import unittest.mock as mock
 
-import os
 import cifutils
 
 

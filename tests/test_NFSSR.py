@@ -1,4 +1,4 @@
-import mock
+import unittest.mock as mock
 import nfs
 import NFSSR
 import SR

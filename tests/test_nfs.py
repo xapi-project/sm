@@ -1,7 +1,6 @@
 import errno
-import mock
+import unittest.mock as mock
 import nfs
-import sys
 import unittest
 import util
 

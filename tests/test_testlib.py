@@ -1,6 +1,6 @@
 import unittest
 import os
-import mock
+import unittest.mock as mock
 import errno
 
 import testlib

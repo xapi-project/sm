@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -18,16 +18,14 @@
 # blktap2: blktap/tapdisk management layer
 #
 
-from __future__ import print_function
 import os
-import sys
 import re
 import time
 import copy
 from lock import Lock
 import util
-import xmlrpclib
-import httplib
+import xmlrpc.client
+import http.client
 import errno
 import signal
 import subprocess
@@ -48,9 +46,8 @@ import lvhdutil
 import VDI as sm
 
 # For RRDD Plugin Registration
-from xmlrpclib import ServerProxy, Transport
+from xmlrpc.client import ServerProxy, Transport
 from socket import socket, AF_UNIX, SOCK_STREAM
-from httplib import HTTP, HTTPConnection
 
 PLUGIN_TAP_PAUSE = "tapdisk-pause"
 
@@ -63,21 +60,6 @@ POOL_SIZE_KEY = "mem-pool-size-rings"
 
 ENABLE_MULTIPLE_ATTACH = "/etc/xensource/allow_multiple_vdi_attach"
 NO_MULTIPLE_ATTACH = not (os.path.exists(ENABLE_MULTIPLE_ATTACH))
-
-
-class UnixStreamHTTPConnection(HTTPConnection):
-    def connect(self):
-        self.sock = socket(AF_UNIX, SOCK_STREAM)
-        self.sock.connect(SOCKPATH)
-
-
-class UnixStreamHTTP(HTTP):
-    _connection_class = UnixStreamHTTPConnection
-
-
-class UnixStreamTransport(Transport):
-    def make_connection(self, host):
-        return UnixStreamHTTP(SOCKPATH)  # overridden, but prevents IndexError
 
 
 def locking(excType, override=True):
@@ -161,9 +143,9 @@ class TapCtl(object):
             self.info = info
 
         def __str__(self):
-            items = self.info.iteritems()
+            items = self.info.items()
             info = ", ".join("%s=%s" % item
-                              for item in items)
+                             for item in items)
             return "%s failed: %s" % (self.cmd, info)
 
         # Trying to get a non-existent attribute throws an AttributeError
@@ -192,7 +174,7 @@ class TapCtl(object):
 
     @classmethod
     def __mkcmd_real(cls, args):
-        return [cls.PATH] + map(str, args)
+        return [cls.PATH] + [str(x) for x in args]
 
     __next_mkcmd = __mkcmd_real
 
@@ -264,7 +246,7 @@ class TapCtl(object):
         output = tapctl.stdout.readline().rstrip()
 
         tapctl._wait(quiet)
-        return output
+        return output.decode()
 
     @staticmethod
     def _maybe(opt, parm):
@@ -282,16 +264,17 @@ class TapCtl(object):
 
         tapctl = cls._call(args, True)
 
-        for line in tapctl.stdout:
+        for stdout_line in tapctl.stdout:
+            decoded_line = stdout_line.decode()
             # FIXME: tap-ctl writes error messages to stdout and
             # confuses this parser
-            if line == "blktap kernel module not installed\n":
+            if decoded_line == "blktap kernel module not installed\n":
                 # This isn't pretty but (a) neither is confusing stdout/stderr
                 # and at least causes the error to describe the fix
                 raise Exception("blktap kernel module not installed: try 'modprobe blktap'")
             row = {}
 
-            for field in line.rstrip().split(' ', 3):
+            for field in decoded_line.rstrip().split(' ', 3):
                 bits = field.split('=')
                 if len(bits) == 2:
                     key, val = field.split('=')
@@ -462,7 +445,7 @@ class TapdiskNotRunning(Exception):
         self.attrs = attrs
 
     def __str__(self):
-        items = self.attrs.iteritems()
+        items = iter(self.attrs.items())
         attrs = ", ".join("%s=%s" % attr
                           for attr in items)
         return "No such Tapdisk(%s)" % attrs
@@ -546,7 +529,7 @@ class Attribute(object):
 
     def _open(self, mode='r'):
         try:
-            return file(self.path, mode)
+            return open(self.path, mode)
         except IOError as e:
             if e.errno == errno.ENOENT:
                 raise self.NoSuchAttribute(self)
@@ -685,7 +668,7 @@ class Tapdisk(object):
                       '_type': None,
                       'path': None}
 
-            for key, val in row.iteritems():
+            for key, val in row.items():
                 if key in args:
                     args[key] = val
 
@@ -958,7 +941,6 @@ class Tapdisk(object):
 
     @staticmethod
     def _parse_minor(devpath):
-
         regex = '%s/(blktap|tapdev)(\d+)$' % Blktap.DEV_BASEDIR
         pattern = re.compile(regex)
         groups = pattern.search(devpath)
@@ -975,7 +957,7 @@ class Tapdisk(object):
         if cls._major:
             return cls._major
 
-        devices = file("/proc/devices")
+        devices = open("/proc/devices")
         for line in devices:
 
             row = line.rstrip().split(' ')
@@ -1375,7 +1357,7 @@ class VDI(object):
         vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
         session.xenapi.VDI.add_to_sm_config(vdi_ref, 'paused', 'true')
         sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
-        for key in filter(lambda x: x.startswith('host_'), sm_config.keys()):
+        for key in [x for x in sm_config.keys() if x.startswith('host_')]:
             host_ref = key[len('host_'):]
             util.SMlog("Calling tap-pause on host %s" % host_ref)
             if not cls.call_pluginhandler(session, host_ref,
@@ -1391,7 +1373,7 @@ class VDI(object):
         util.SMlog("Unpause request for %s secondary=%s" % (vdi_uuid, secondary))
         vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
         sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
-        for key in filter(lambda x: x.startswith('host_'), sm_config.keys()):
+        for key in [x for x in sm_config.keys() if x.startswith('host_')]:
             host_ref = key[len('host_'):]
             util.SMlog("Calling tap-unpause on host %s" % host_ref)
             if not cls.call_pluginhandler(session, host_ref,
@@ -1406,7 +1388,7 @@ class VDI(object):
         util.SMlog("Refresh request for %s" % vdi_uuid)
         vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
         sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
-        for key in filter(lambda x: x.startswith('host_'), sm_config.keys()):
+        for key in [x for x in sm_config.keys() if x.startswith('host_')]:
             host_ref = key[len('host_'):]
             util.SMlog("Calling tap-refresh on host %s" % host_ref)
             if not cls.call_pluginhandler(session, host_ref,
@@ -1422,7 +1404,7 @@ class VDI(object):
         util.SMlog("Disk status request for %s" % vdi_uuid)
         vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
         sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
-        for key in filter(lambda x: x.startswith('host_'), sm_config.keys()):
+        for key in [x for x in sm_config.keys() if x.startswith('host_')]:
             return True
         return False
 
@@ -1576,12 +1558,12 @@ class VDI(object):
 
         try:
             f = open("%s.attach_info" % back_path, 'a')
-            f.write(xmlrpclib.dumps((struct, ), "", True))
+            f.write(xmlrpc.client.dumps((struct, ), "", True))
             f.close()
         except:
             pass
 
-        return xmlrpclib.dumps((struct, ), "", True)
+        return xmlrpc.client.dumps((struct, ), "", True)
 
     def activate(self, sr_uuid, vdi_uuid, writable, caching_params):
         util.SMlog("blktap2.activate")
@@ -1672,9 +1654,9 @@ class VDI(object):
                     try:
                         self._remove_tag(vdi_uuid)
                         break
-                    except xmlrpclib.ProtocolError as e:
+                    except xmlrpc.client.ProtocolError as e:
                         # If there's a connection error, keep trying forever.
-                        if e.errcode == httplib.INTERNAL_SERVER_ERROR:
+                        if e.errcode == http.HTTPStatus.INTERNAL_SERVER_ERROR.value:
                             continue
                         else:
                             util.SMlog('failed to remove tag: %s' % e)
@@ -1715,7 +1697,7 @@ class VDI(object):
         return dev_path
 
     def _attach(self, sr_uuid, vdi_uuid):
-        attach_info = xmlrpclib.loads(self.target.attach(sr_uuid, vdi_uuid))[0][0]
+        attach_info = xmlrpc.client.loads(self.target.attach(sr_uuid, vdi_uuid))[0][0]
         params = attach_info['params']
         xenstore_data = attach_info['xenstore_data']
         phy_path = util.to_plain_string(params)
@@ -1944,7 +1926,7 @@ class VDI(object):
             os.unlink(local_leaf_path)
         try:
             vhdutil.snapshot(local_leaf_path, read_cache_path, False,
-                    msize=leaf_size / 1024 / 1024, checkEmpty=False)
+                    msize=leaf_size // 1024 // 1024, checkEmpty=False)
         except util.CommandException as e:
             util.SMlog("Error creating leaf cache: %s" % e)
             self.alert_no_cache(session, vdi_uuid, local_sr_uuid, e.code)

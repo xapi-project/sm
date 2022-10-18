@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -276,7 +276,7 @@ class ISOSR(SR.SR):
         if 'options' in self.dconf:
             options = self.dconf['options'].split(' ')
             if protocol == 'cifs':
-                options = filter(lambda x: x != "", options)
+                options = [x for x in options if x != ""]
             else:
                 options = self.getNFSOptions(options)
 
@@ -587,8 +587,8 @@ class ISOVDI(VDI.VDI):
         self.vdi_type = "iso"
         try:
             stat = os.stat(self.path)
-            self.utilisation = long(stat.st_size)
-            self.size = long(stat.st_size)
+            self.utilisation = int(stat.st_size)
+            self.size = int(stat.st_size)
             self.label = self.filename
         except:
             pass

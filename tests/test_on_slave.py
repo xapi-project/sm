@@ -1,12 +1,10 @@
-from __future__ import print_function
 import errno
 import unittest
-import mock
+import unittest.mock as mock
 import uuid
 
 import lvhdutil
 import lvmcache
-import refcounter
 import util
 import vhdutil
 

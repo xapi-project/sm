@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -275,7 +273,7 @@ def get_supported_nfs_versions(server):
                 cvi = ns[i].split()[1].split(",")
                 for j in range(len(cvi)):
                     cv.add(cvi[j])
-        return list(cv & valid_versions)
+        return sorted(cv & valid_versions)
     except:
         util.SMlog("Unable to obtain list of valid nfs versions")
         raise NfsException('Failed to read supported NFS version from server %s' %

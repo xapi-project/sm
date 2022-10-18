@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -85,7 +83,7 @@ def stat(device):
     device = os.path.join(sys, "device")
 
     try:
-        results["size"] = long(read_whole_file(os.path.join(sys, "size"))[0]) * 512
+        results["size"] = int(read_whole_file(os.path.join(sys, "size"))[0]) * 512
     except:
         pass
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -23,7 +23,7 @@ import FileSR
 import util
 import errno
 import os
-import xmlrpclib
+import xmlrpc.client
 import xs_errors
 import vhdutil
 from lock import Lock
@@ -314,8 +314,8 @@ class SMBFileVDI(FileSR.FileVDI):
         resp['command'] = 'vdi_attach_from_config'
         # Return the 'config' encoded within a normal XMLRPC response so that
         # we can use the regular response/error parsing code.
-        config = xmlrpclib.dumps(tuple([resp]), "vdi_attach_from_config")
-        return xmlrpclib.dumps((config, ), "", True)
+        config = xmlrpc.client.dumps(tuple([resp]), "vdi_attach_from_config")
+        return xmlrpc.client.dumps((config, ), "", True)
 
     def attach_from_config(self, sr_uuid, vdi_uuid):
         """Used for HA State-file only. Will not just attach the VDI but

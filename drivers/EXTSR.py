@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -185,13 +185,13 @@ class EXTSR(FileSR.FileSR):
                     stats = lvutil._getPVstats(dev)
                     if lowest < 0  or stats['freespace'] < lowest:
                         lowest = stats['freespace']
-                size_mb = (lowest / (1024 * 1024)) * numdevs
+                size_mb = (lowest // (1024 * 1024)) * numdevs
 
                 # Add stripe parameter to command
                 cmd += ["-i", str(numdevs), "-I", "2048"]
             else:
                 stats = lvutil._getVGstats(self.vgname)
-                size_mb = stats['freespace'] / (1024 * 1024)
+                size_mb = stats['freespace'] // (1024 * 1024)
             assert(size_mb > 0)
             cmd += ["-L", str(size_mb), self.vgname]
             text = util.pread(cmd)

@@ -1,16 +1,16 @@
 import errno
-import mock
-import nfs
-import NFSSR  # Without this the FileSR won't import
+import os
+import stat
+import unittest
+import unittest.mock as mock
+import uuid
+from builtins import str
+from xml.dom.minidom import parseString
+
 import FileSR
 import SR
 import util
 import vhdutil
-from xml.dom.minidom import parseString
-import os
-import stat
-import unittest
-import uuid
 from XenAPI import Failure
 
 
@@ -383,7 +383,7 @@ class TestShareFileSR(unittest.TestCase):
         """
         test_sr = self.create_test_sr()
 
-        with mock.patch('__builtin__.open'):
+        with mock.patch('FileSR.open'):
             test_sr.attach(self.sr_uuid)
 
         # Assert
@@ -399,7 +399,7 @@ class TestShareFileSR(unittest.TestCase):
         self.mock_link.side_effect = OSError(524, TestShareFileSR.ERROR_524)
 
         # Act
-        with mock.patch('__builtin__.open'):
+        with mock.patch('FileSR.open'):
             test_sr.attach(self.sr_uuid)
 
         # Assert
@@ -421,7 +421,7 @@ class TestShareFileSR(unittest.TestCase):
              TestShareFileSR.NO_HARDLINKS])
 
         # Act
-        with mock.patch('__builtin__.open'):
+        with mock.patch('FileSR.open'):
             test_sr.attach(self.sr_uuid)
 
         # Assert
@@ -439,7 +439,7 @@ class TestShareFileSR(unittest.TestCase):
         self.mock_link.side_effect = OSError(524, TestShareFileSR.ERROR_524)
 
         # Act
-        with mock.patch('__builtin__.open'):
+        with mock.patch('FileSR.open'):
             test_sr.attach(self.sr_uuid)
 
         # Assert

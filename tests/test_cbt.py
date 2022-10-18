@@ -1,4 +1,4 @@
-import mock
+import unittest.mock as mock
 import SR
 import testlib
 import unittest
@@ -11,7 +11,7 @@ import errno
 import cbtutil
 from bitarray import bitarray
 import base64
-import xmlrpclib
+import xmlrpc.client
 
 
 class TestVDI(VDI.VDI):
@@ -680,7 +680,7 @@ class TestCBT(unittest.TestCase):
         bitmap1.bytereverse()
         bitmap2.bytereverse()
         expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
-        expected_result = xmlrpclib.dumps((expected_string, ), "", True)
+        expected_result = xmlrpc.client.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()
         # Assert that bitmap is only read for VDIs from source + 1 to target
@@ -716,7 +716,7 @@ class TestCBT(unittest.TestCase):
         bitmap1 += 80 * bitarray('0')
         bitmap2.bytereverse()
         expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
-        expected_result = xmlrpclib.dumps((expected_string, ), "", True)
+        expected_result = xmlrpc.client.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()
         self.assertEquals(result, expected_result)
@@ -798,7 +798,7 @@ class TestCBT(unittest.TestCase):
         # Trim bitmap to the expected size
         bitmap2 = bitmap2[:80]
         expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
-        expected_result = xmlrpclib.dumps((expected_string, ), "", True)
+        expected_result = xmlrpc.client.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()
         self.assertEquals(result, expected_result)
@@ -834,7 +834,7 @@ class TestCBT(unittest.TestCase):
         bitmap1.bytereverse()
         bitmap2.bytereverse()
         expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
-        expected_result = xmlrpclib.dumps((expected_string, ), "", True)
+        expected_result = xmlrpc.client.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()
         self.assertEquals(result, expected_result)

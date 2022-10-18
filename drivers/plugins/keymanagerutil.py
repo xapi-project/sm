@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """
 Helper module used for XenRT testing of the VDI encryption feature (REQ-718).
@@ -7,8 +7,6 @@ installed, SM will use it to retrieve keys based on their hashes.
 This key store is backed by a file stored on disk in dom0, and helper
 functions are provided to manipulate it.
 """
-from __future__ import print_function
-
 import base64
 import os
 import os.path
@@ -22,6 +20,7 @@ import XenAPI
 
 PROGRAM_NAME = 'keymanagerutil'
 
+
 def load_key(key_hash, vdi_uuid):
     """
     load_key is called by SM plugin when it needs to find the key for
@@ -33,6 +32,7 @@ def load_key(key_hash, vdi_uuid):
         return key
     except KeyLookUpError:
         return None
+
 
 def _check_key(key_hash, vdi_uuid):
     session = XenAPI.xapi_local()
@@ -61,6 +61,7 @@ class InputError(Exception):
 
 class KeyLookUpError(Exception):
     """Raised when the key / key hash we've requested is not in the keystore"""
+
     def __init__(self, message):
         super(KeyLookUpError, self).__init__(message)
 
@@ -72,12 +73,14 @@ def _print_key_info(key=None, key_hash=None):
     """
     data = {}
     if key:
-        data['key_base64'] = base64.b64encode(key)
+        data['key_base64'] = base64.b64encode(key).decode()
     if key_hash:
         data['key_hash'] = key_hash
     print(json.dumps(data))
 
+
 KEYSTORE_PATH = '/tmp/keystore.json'
+
 
 def _read_keystore():
     """If the keystore file exists, returns its contents, otherwise returns an empty dictionary."""
@@ -92,6 +95,7 @@ def _read_keystore():
     else:
         return {}
 
+
 def _write_keystore(key_store):
     """
     Write the given key store contents to the key store file, which will be
@@ -99,7 +103,7 @@ def _write_keystore(key_store):
     """
     for key_hash in key_store:
         key = key_store[key_hash]
-        key_base64 = base64.b64encode(key)
+        key_base64 = base64.b64encode(key).decode()
         key_store[key_hash] = key_base64
     with open(KEYSTORE_PATH, "w+") as key_store_file:
         json.dump(key_store, key_store_file)
@@ -107,7 +111,6 @@ def _write_keystore(key_store):
 
 
 class KeyManager(object):
-
     """
      KeyManager is a python utility tool for generating and managing the keys in the jey store.
      One can request KeyManager to generate the keys, passing just the type of
@@ -117,6 +120,7 @@ class KeyManager(object):
      KeyManager maintains the keystore(json record) under /tmp/keystore.json.
 
      """
+
     def __init__(self, key_type=None, key_length=None, key=None, key_hash=None):
         self.key_type = key_type
         self.key_length = key_length
@@ -136,7 +140,7 @@ class KeyManager(object):
 
     def __hash_key(self):
 
-        #hash the given key - requires key
+        # hash the given key - requires key
         if not self.key:
             raise InputError("Need key to hash")
 
@@ -210,6 +214,7 @@ def _get_key_generator(key_length=None, key_type=None):
         raise InputError("Either key_length in byte or key_type(\"strong OR weak\")"
                          " should be specified to generate the key")
 
+
 class RandomKeyGenerator(object):
     """Generates a completely random key of the specified length"""
 
@@ -234,6 +239,7 @@ class WeakKeyGenerator(RandomKeyGenerator):
     def __init__(self):
         super(WeakKeyGenerator, self).__init__(key_length=32)
 
+
 class AlphaNumericKeyGenerator(object):
     """Generates alphanumeric keys"""
 
@@ -243,14 +249,16 @@ class AlphaNumericKeyGenerator(object):
     def generate(self):
         """Generate a completely random alphanumeric sequence"""
         keys_from = string.ascii_letters + string.digits
-        return "".join([SystemRandom().choice(keys_from) for _ in range(self.key_length)])
+        return ("".join([SystemRandom().choice(keys_from) for _ in range(self.key_length)])).encode("utf-8")
+
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--generatekey', action='store_true', dest='generate',
-                        default=False, help="Generates the encryption key based on the given either keytype or keylength")
+                        default=False,
+                        help="Generates the encryption key based on the given either keytype or keylength")
 
     parser.add_argument('--getkey', action='store_true', dest='get_key',
                         default=False, help="To get the key from the keystore based on the given key hash")
@@ -259,7 +267,8 @@ if __name__ == '__main__':
                         default=False, help="To get the key hash from the keystore based on the given key")
 
     parser.add_argument('--updatekeystore', action='store_true', dest='update_keystore',
-                        default=False, help="If needs to update the already existing key in the keystore pass the keyHash and new key")
+                        default=False,
+                        help="If needs to update the already existing key in the keystore pass the keyHash and new key")
 
     parser.add_argument('--keytype', action='store', dest='key_type', default=None,
                         help='Type of the key: values expected weak or strong')
@@ -287,4 +296,3 @@ if __name__ == '__main__':
         KeyManager(key=parser_input.key).get_keyhash()
     elif parser_input.update_keystore:
         KeyManager(key_hash=parser_input.key_hash, key=parser_input.key).update_keystore()
-

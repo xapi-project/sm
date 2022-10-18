@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-
-import xmlrpclib
+import xmlrpc.client
 import xml
 
 

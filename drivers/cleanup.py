@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -18,7 +18,6 @@
 # Script to coalesce and garbage collect VHD-based SR's in the background
 #
 
-from __future__ import print_function
 import os
 import os.path
 import sys
@@ -27,7 +26,6 @@ import signal
 import subprocess
 import getopt
 import datetime
-import exceptions
 import traceback
 import base64
 import zlib
@@ -50,7 +48,7 @@ from ipc import IPCFlag
 from lvmanager import LVActivator
 from srmetadata import LVMMetadataHandler
 from functools import reduce
-from monotonic import monotonic as _time
+from time import monotonic as _time
 
 # Disable automatic leaf-coalescing. Online leaf-coalesce is currently not
 # possible due to lvhd_stop_using_() not working correctly. However, we leave
@@ -109,7 +107,7 @@ class Util:
 
     def logException(tag):
         info = sys.exc_info()
-        if info[0] == exceptions.SystemExit:
+        if info[0] == SystemExit:
             # this should not be happening when catching "Exception", but it is
             sys.exit(0)
         tb = reduce(lambda a, b: "%s%s" % (a, b), traceback.format_tb(info[2]))
@@ -233,11 +231,11 @@ class Util:
 
         count = 0
         for i in range(lenShort):
-            val = ord(bitmap1[i]) | ord(bitmap2[i])
+            val = bitmap1[i] | bitmap2[i]
             count += Util.numBits(val)
 
         for i in range(i + 1, lenLong):
-            val = ord(bitmapLong[i])
+            val = bitmapLong[i]
             count += Util.numBits(val)
         return count
     countBits = staticmethod(countBits)
@@ -305,7 +303,7 @@ class XAPI:
 
     def poolOK(self):
         host_recs = self.session.xenapi.host.get_all_records()
-        for host_ref, host_rec in host_recs.iteritems():
+        for host_ref, host_rec in host_recs.items():
             if not host_rec["enabled"]:
                 Util.log("Host %s not enabled" % host_rec["uuid"])
                 return False
@@ -654,7 +652,7 @@ class VDI:
                 self.TIMEOUT_SAFETY_MARGIN * self.LIVE_LEAF_COALESCE_TIMEOUT
         if speed:
             feasibleSize = \
-                self.getSizeVHD() / speed < allowedDownTime
+                self.getSizeVHD() // speed < allowedDownTime
         else:
             feasibleSize = \
                 self.getSizeVHD() < self.LIVE_LEAF_COALESCE_MAX_SIZE
@@ -720,7 +718,7 @@ class VDI:
         return leaves
 
     def updateBlockInfo(self):
-        val = base64.b64encode(self._queryVHDBlocks())
+        val = base64.b64encode(self._queryVHDBlocks()).decode()
         self.setConfig(VDI.DB_VHD_BLOCKS, val)
         return val
 
@@ -731,7 +729,7 @@ class VDI:
         oldUuid = self.uuid
         self.uuid = uuid
         self.children = []
-        # updating the children themselves is the responsiblity of the caller
+        # updating the children themselves is the responsibility of the caller
         del self.sr.vdis[oldUuid]
         self.sr.vdis[self.uuid] = self
 
@@ -1455,7 +1453,7 @@ class SR:
                         self.prevState[vdi.uuid] != self.currState[vdi.uuid]:
                     changes += self.currState[vdi.uuid]
 
-            for uuid in self.prevState.iterkeys():
+            for uuid in self.prevState:
                 if not self.currState.get(uuid):
                     changes += "Tree %s gone\n" % uuid
 
@@ -1472,7 +1470,7 @@ class SR:
             for line in result.split("\n"):
                 Util.log("%s" % line)
             self.prevState.clear()
-            for key, val in self.currState.iteritems():
+            for key, val in self.currState.items():
                 self.prevState[key] = val
             self.stateLogged = True
 
@@ -1527,7 +1525,7 @@ class SR:
             self._srLock = lock.Lock(vhdutil.LOCK_TYPE_SR, self.uuid)
         else:
             Util.log("Requested no SR locking")
-        self.name = unicode(self.xapi.srRecord["name_label"]).encode("utf-8", "replace")
+        self.name = self.xapi.srRecord["name_label"]
         self._failedCoalesceTargets = []
 
         if not self.xapi.isPluggedHere():
@@ -1590,7 +1588,7 @@ class SR:
 
         # finish any VDI for which a relink journal entry exists first
         journals = self.journaler.getAll(VDI.JRN_RELINK)
-        for uuid in journals.iterkeys():
+        for uuid in journals:
             vdi = self.getVDI(uuid)
             if vdi and vdi not in self._failedCoalesceTargets:
                 return vdi
@@ -1612,7 +1610,7 @@ class SR:
                 treeHeight[height] = [c]
 
         freeSpace = self.getFreeSpace()
-        heights = treeHeight.keys()
+        heights = list(treeHeight.keys())
         heights.sort(reverse=True)
         for h in heights:
             for c in treeHeight[h]:
@@ -1702,7 +1700,7 @@ class SR:
                 continue
             candidates.append(vdi)
 
-    def coalesce(self, vdi, dryRun):
+    def coalesce(self, vdi, dryRun=False):
         """Coalesce vdi onto parent"""
         Util.log("Coalescing %s -> %s" % (vdi, vdi.parent))
         if dryRun:
@@ -1720,7 +1718,7 @@ class SR:
                 Util.log("Coalesce failed, skipping")
         self.cleanup()
 
-    def coalesceLeaf(self, vdi, dryRun):
+    def coalesceLeaf(self, vdi, dryRun=False):
         """Leaf-coalesce vdi onto parent"""
         Util.log("Leaf-coalescing %s -> %s" % (vdi, vdi.parent))
         if dryRun:
@@ -1865,14 +1863,14 @@ class SR:
     def cleanupCoalesceJournals(self):
         """Remove stale coalesce VDI indicators"""
         entries = self.journaler.getAll(VDI.JRN_COALESCE)
-        for uuid, jval in entries.iteritems():
+        for uuid, jval in entries.items():
             self.journaler.remove(VDI.JRN_COALESCE, uuid)
 
-    def cleanupJournals(self, dryRun):
+    def cleanupJournals(self, dryRun=False):
         """delete journal entries for non-existing VDIs"""
         for t in [LVHDVDI.JRN_ZERO, VDI.JRN_RELINK, SR.JRN_CLONE]:
             entries = self.journaler.getAll(t)
-            for uuid, jval in entries.iteritems():
+            for uuid, jval in entries.items():
                 if self.getVDI(uuid):
                     continue
                 if t == SR.JRN_CLONE:
@@ -2064,7 +2062,7 @@ class SR:
                 content = speedFile.readlines()
                 try:
                     content = [float(i) for i in content]
-                except exceptions.ValueError:
+                except ValueError:
                     Util.log("Something bad in the speed log:{log}".
                              format(log=speedFile.readlines()))
                     return speed
@@ -2244,7 +2242,7 @@ class SR:
         pass
 
     def _removeStaleVDIs(self, uuidsPresent):
-        for uuid in self.vdis.keys():
+        for uuid in list(self.vdis.keys()):
             if not uuid in uuidsPresent:
                 Util.log("VDI %s disappeared since last scan" % \
                         self.vdis[uuid])
@@ -2298,16 +2296,15 @@ class FileSR(SR):
         if not util.pathexists(self.path):
             raise util.SMException("directory %s not found!" % self.uuid)
         vhds = self._scan(force)
-        for uuid, vhdInfo in vhds.iteritems():
+        for uuid, vhdInfo in vhds.items():
             vdi = self.getVDI(uuid)
             if not vdi:
                 self.logFilter.logNewVDI(uuid)
                 vdi = FileVDI(self, uuid, False)
                 self.vdis[uuid] = vdi
             vdi.load(vhdInfo)
-        uuidsPresent = vhds.keys()
-        rawList = filter(lambda x: x.endswith(vhdutil.FILE_EXTN_RAW),
-                os.listdir(self.path))
+        uuidsPresent = list(vhds.keys())
+        rawList = [x for x in os.listdir(self.path) if x.endswith(vhdutil.FILE_EXTN_RAW)]
         for rawName in rawList:
             uuid = FileVDI.extractUuid(rawName)
             uuidsPresent.append(uuid)
@@ -2343,7 +2340,7 @@ class FileSR(SR):
         Return number of caches removed.
         """
         numRemoved = 0
-        cacheFiles = filter(self._isCacheFileName, os.listdir(self.path))
+        cacheFiles = [x for x in os.listdir(self.path) if self._isCacheFileName(x)]
         Util.log("Found %d cache files" % len(cacheFiles))
         cutoff = datetime.datetime.now() - datetime.timedelta(hours=maxAge)
         for cacheFile in cacheFiles:
@@ -2412,7 +2409,7 @@ class FileSR(SR):
             error = False
             pattern = os.path.join(self.path, "*%s" % vhdutil.FILE_EXTN_VHD)
             vhds = vhdutil.getAllVHDs(pattern, FileVDI.extractUuid)
-            for uuid, vhdInfo in vhds.iteritems():
+            for uuid, vhdInfo in vhds.items():
                 if vhdInfo.error:
                     error = True
                     break
@@ -2450,7 +2447,7 @@ class FileSR(SR):
 
     def _handleInterruptedCoalesceLeaf(self):
         entries = self.journaler.getAll(VDI.JRN_LEAF)
-        for uuid, parentUuid in entries.iteritems():
+        for uuid, parentUuid in entries.items():
             fileList = os.listdir(self.path)
             childName = uuid + vhdutil.FILE_EXTN_VHD
             tmpChildName = self.TMP_RENAME_PREFIX + uuid + vhdutil.FILE_EXTN_VHD
@@ -2571,7 +2568,7 @@ class LVHDSR(SR):
 
     def scan(self, force=False):
         vdis = self._scan(force)
-        for uuid, vdiInfo in vdis.iteritems():
+        for uuid, vdiInfo in vdis.items():
             vdi = self.getVDI(uuid)
             if not vdi:
                 self.logFilter.logNewVDI(uuid)
@@ -2589,7 +2586,7 @@ class LVHDSR(SR):
             error = False
             self.lvmCache.refresh()
             vdis = lvhdutil.getVDIInfo(self.lvmCache)
-            for uuid, vdiInfo in vdis.iteritems():
+            for uuid, vdiInfo in vdis.items():
                 if vdiInfo.scanError:
                     error = True
                     break
@@ -2601,7 +2598,7 @@ class LVHDSR(SR):
         raise util.SMException("Scan error")
 
     def _removeStaleVDIs(self, uuidsPresent):
-        for uuid in self.vdis.keys():
+        for uuid in list(self.vdis.keys()):
             if not uuid in uuidsPresent:
                 Util.log("VDI %s disappeared since last scan" % \
                         self.vdis[uuid])
@@ -2651,7 +2648,7 @@ class LVHDSR(SR):
 
     def _handleInterruptedCoalesceLeaf(self):
         entries = self.journaler.getAll(VDI.JRN_LEAF)
-        for uuid, parentUuid in entries.iteritems():
+        for uuid, parentUuid in entries.items():
             childLV = lvhdutil.LV_PREFIX[vhdutil.VDI_TYPE_VHD] + uuid
             tmpChildLV = lvhdutil.LV_PREFIX[vhdutil.VDI_TYPE_VHD] + \
                     self.TMP_RENAME_PREFIX + uuid
@@ -2809,7 +2806,7 @@ class LVHDSR(SR):
             Util.log("call-plugin returned: '%s'" % text)
 
     def _updateSlavesOnResize(self, vdi):
-        uuids = map(lambda x: x.uuid, vdi.getAllLeaves())
+        uuids = [x.uuid for x in vdi.getAllLeaves()]
         slaves = util.get_slaves_attached_on(self.xapi.session, uuids)
         if not slaves:
             util.SMlog("Update-on-resize: %s not attached on any slave" % vdi)
@@ -2874,7 +2871,7 @@ def _create_init_file(sr_uuid):
         f.write('1')
 
 
-def _gcLoopPause(sr, dryRun, immediate=False):
+def _gcLoopPause(sr, dryRun=False, immediate=False):
     if immediate:
         return
 
@@ -2899,7 +2896,7 @@ def _gcLoopPause(sr, dryRun, immediate=False):
         Util.log("GC active, quiet period ended")
 
 
-def _gcLoop(sr, dryRun, immediate=False):
+def _gcLoop(sr, dryRun=False, immediate=False):
     if not lockActive.acquireNoblock():
         Util.log("Another GC instance already active, exiting")
         return
@@ -3001,7 +2998,7 @@ def _ensure_xapi_initialised(session):
         if local_session is not None:
             local_session.logout()
 
-def _gc(session, srUuid, dryRun, immediate=False):
+def _gc(session, srUuid, dryRun=False, immediate=False):
     init(srUuid)
     _ensure_xapi_initialised(session)
     sr = SR.getInstance(srUuid, session)
@@ -3249,7 +3246,7 @@ def debug(sr_uuid, cmd, vdi_uuid):
 def abort_optional_reenable(uuid):
     print("Disabling GC/coalesce for %s" % uuid)
     ret = _abort(uuid)
-    raw_input("Press enter to re-enable...")
+    input("Press enter to re-enable...")
     print("GC/coalesce re-enabled")
     lockRunning.release()
     if ret:

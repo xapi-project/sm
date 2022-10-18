@@ -1,8 +1,7 @@
 import unittest
-import mock
+import unittest.mock as mock
 
 import SRCommand
-import SR
 
 
 class SomeException(Exception):
@@ -67,7 +66,7 @@ class TestStandaloneFunctions(unittest.TestCase):
         """
 
         import sys
-        from StringIO import StringIO
+        from io import StringIO
         from SR import SRException
         from DummySR import DRIVER_INFO
 

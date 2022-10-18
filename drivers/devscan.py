@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -291,16 +289,7 @@ def match_dev(s):
 
 def _extract_dev_name(device_dir):
     """Returns the name of the block device from sysfs e.g. 'sda'"""
-    kernel_version = os.uname()[2]
-
-    if kernel_version.startswith('2.6'):
-        # sub-directory of form block:sdx/
-        dev = filter(match_dev, os.listdir(device_dir))[0]
-        # remove 'block:' from entry and return
-        return dev.lstrip('block:')
-    else:
-        # Anything 3.0 and later should have the same ABI.
-        return _get_block_device_name_with_kernel_3x(device_dir)
+    return _get_block_device_name_with_kernel_3x(device_dir)
 
 
 def _get_block_device_name_with_kernel_3x(device_dir):
@@ -425,7 +414,7 @@ def scan(srobj):
             textnode = dom.createTextNode(str(aval))
             entry.appendChild(textnode)
 
-    for key in hbas.iterkeys():
+    for key in hbas:
         a = dom.createElement("Adapter")
         e.appendChild(a)
         entry = dom.createElement('host')

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -23,7 +23,7 @@ import xml.dom.minidom
 import errno
 import xs_errors
 import XenAPI
-import xmlrpclib
+import xmlrpc.client
 import util
 import copy
 import os
@@ -46,7 +46,7 @@ class SRException(Exception):
         Exception.__init__(self, reason)
 
     def toxml(self):
-        return xmlrpclib.dumps(xmlrpclib.Fault(int(self.errno), str(self)), "", True)
+        return xmlrpc.client.dumps(xmlrpc.client.Fault(int(self.errno), str(self)), "", True)
 
 
 class SROSError(SRException):
@@ -366,7 +366,7 @@ class SR(object):
 
     def content_type(self, uuid):
         """Returns the 'content_type' of an SR as a string"""
-        return xmlrpclib.dumps((str(self.sr_vditype), ), "", True)
+        return xmlrpc.client.dumps((str(self.sr_vditype), ), "", True)
 
     def load(self, sr_uuid):
         """Post-init hook"""
@@ -535,10 +535,10 @@ class ScanRecord:
         self.sr = sr
         self.__xenapi_locations = {}
         self.__xenapi_records = util.list_VDI_records_in_sr(sr)
-        for vdi in self.__xenapi_records.keys():
+        for vdi in list(self.__xenapi_records.keys()):
             self.__xenapi_locations[util.to_plain_string(self.__xenapi_records[vdi]['location'])] = vdi
         self.__sm_records = {}
-        for vdi in sr.vdis.values():
+        for vdi in list(sr.vdis.values()):
             # We initialise the sm_config field with the values from the database
             # The sm_config_overrides contains any new fields we want to add to
             # sm_config, and also any field to delete (by virtue of having
@@ -572,7 +572,7 @@ class ScanRecord:
             sm_vdi.uuid = util.default(sm_vdi, "uuid", lambda: xenapi_vdi['uuid'])
 
         # Only consider those whose configuration looks different
-        self.existing = filter(lambda x: not(self.get_sm_vdi(x).in_sync_with_xenapi_record(self.get_xenapi_vdi(x))), existing)
+        self.existing = [x for x in existing if not(self.get_sm_vdi(x).in_sync_with_xenapi_record(self.get_xenapi_vdi(x)))]
 
         if len(self.new) != 0:
             util.SMlog("new VDIs on disk: " + repr(self.new))

@@ -1,7 +1,7 @@
 import unittest
 import udevSR
 import SRCommand
-import mock
+import unittest.mock as mock
 
 VDI_LOCATION = '/path/to/vdi'
 

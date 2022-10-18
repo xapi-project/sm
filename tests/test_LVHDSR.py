@@ -1,6 +1,7 @@
 from __future__ import print_function
+from builtins import object
 import unittest
-import mock
+import unittest.mock as mock
 import lvutil
 import LVHDSR
 import journaler
@@ -52,7 +53,7 @@ class TestLVHDSR(unittest.TestCase, Stubs):
 
         sr._loadvdis()
 
-        self.assertEquals([vdi_uuid], sr.allVDIs.keys())
+        self.assertEquals([vdi_uuid], list(sr.allVDIs.keys()))
 
     @mock.patch('lvhdutil.lvRefreshOnAllSlaves', autospec=True)
     @mock.patch('lvhdutil.getVDIInfo', autospec=True)

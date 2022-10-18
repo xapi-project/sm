@@ -2,7 +2,7 @@ import unittest
 import trim_util
 import testlib
 
-import mock
+import unittest.mock as mock
 
 EMPTY_VG_SPACE = 4 * 1024 * 1024
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -18,7 +18,6 @@
 # LVHDoFCoESR: LVHD over Fibre Channel over Ethernet driver
 #
 
-from __future__ import print_function
 import SR
 import LVHDoHBASR
 import LVHDSR

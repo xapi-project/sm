@@ -1,15 +1,9 @@
 """
 Unit tests for mpathcount
 """
-from __future__ import print_function
-import errno
-import os
 import unittest
-import mock
-import testlib
+import unittest.mock as mock
 import mpathcount
-import SR
-import util
 
 
 # pylint: disable=W0613; mocks don't need to be accessed

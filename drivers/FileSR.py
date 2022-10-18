@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -17,7 +17,6 @@
 #
 # FileSR: local-file storage repository
 
-from __future__ import print_function
 import SR
 import VDI
 import SRCommand
@@ -33,7 +32,7 @@ import time
 import glob
 from uuid import uuid4
 from lock import Lock
-import xmlrpclib
+import xmlrpc.client
 import XenAPI
 from constants import CBTLOG_TAG
 
@@ -198,7 +197,7 @@ class FileSR(SR.SR):
             self.physical_size = self._getsize()
             self.physical_utilisation = self._getutilisation()
 
-        for uuid in self.vdis.keys():
+        for uuid in list(self.vdis.keys()):
             if self.vdis[uuid].deleted:
                 del self.vdis[uuid]
 
@@ -268,11 +267,11 @@ class FileSR(SR.SR):
         try:
             list_vhds = [FileVDI.extractUuid(v) for v in util.ioretry(lambda: glob.glob(pattern))]
             if len(self.vhds) != len(list_vhds):
-                util.SMlog("VHD scan returns %d VHDs: %s" % (len(self.vhds), sorted(list(self.vhds))))
+                util.SMlog("VHD scan returns %d VHDs: %s" % (len(self.vhds), sorted(self.vhds)))
                 util.SMlog("VHD list returns %d VHDs: %s" % (len(list_vhds), sorted(list_vhds)))
         except:
             pass
-        for uuid in self.vhds.iterkeys():
+        for uuid in self.vhds.keys():
             if self.vhds[uuid].error:
                 raise xs_errors.XenError('SRScan', opterr='uuid=%s' % uuid)
             self.vdis[uuid] = self.vdi(uuid, True)
@@ -301,7 +300,7 @@ class FileSR(SR.SR):
 
         # Mark parent VDIs as Read-only and generate virtual allocation
         self.virtual_allocation = 0
-        for uuid, vdi in self.vdis.iteritems():
+        for uuid, vdi in self.vdis.items():
             if vdi.parent:
                 if vdi.parent in self.vdis:
                     self.vdis[vdi.parent].read_only = True
@@ -317,7 +316,7 @@ class FileSR(SR.SR):
         # asynchronous GC, a deleted VDI might stay around until the next
         # SR.scan, so if we don't ignore hidden leaves we would pick up
         # freshly-deleted VDIs as newly-added VDIs
-        for uuid in self.vdis.keys():
+        for uuid in list(self.vdis.keys()):
             if uuid not in geneology and self.vdis[uuid].hidden:
                 util.SMlog("Scan found hidden leaf (%s), ignoring" % uuid)
                 del self.vdis[uuid]
@@ -477,8 +476,8 @@ class FileVDI(VDI.VDI):
                         raise xs_errors.XenError('VDIType',
                                 opterr='Invalid VDI type %s' % vdi_type)
                     self.vdi_type = self.VDI_TYPE[vdi_type]
-            self.path = os.path.join(self.sr.path, "%s%s" % \
-                    (vdi_uuid, vhdutil.FILE_EXTN[self.vdi_type]))
+            self.path = os.path.join(self.sr.path, "%s%s" %
+                (vdi_uuid, vhdutil.FILE_EXTN[self.vdi_type]))
         else:
             found = self._find_path_with_retries(vdi_uuid)
             if not found:
@@ -524,7 +523,7 @@ class FileVDI(VDI.VDI):
             try:
                 st = util.ioretry(lambda: os.stat(self.path),
                                   errlist=[errno.EIO, errno.ENOENT])
-                self.utilisation = long(st.st_size)
+                self.utilisation = int(st.st_size)
             except util.CommandException as inst:
                 if inst.code == errno.EIO:
                     raise xs_errors.XenError('VDILoad', \
@@ -559,8 +558,8 @@ class FileVDI(VDI.VDI):
                 else:
                     self.sm_config_override = {'vhd-parent': None}
                     self.parent = ''
-                self.size = long(diskinfo['size']) * 1024 * 1024
-                self.hidden = long(diskinfo['hidden'])
+                self.size = int(diskinfo['size']) * 1024 * 1024
+                self.hidden = int(diskinfo['hidden'])
                 if self.hidden:
                     self.managed = False
                 self.exists = True
@@ -580,21 +579,21 @@ class FileVDI(VDI.VDI):
 
         overhead = 0
         if self.vdi_type == vhdutil.VDI_TYPE_VHD:
-            overhead = vhdutil.calcOverheadFull(long(size))
+            overhead = vhdutil.calcOverheadFull(int(size))
 
         # Test the amount of actual disk space
         if ENFORCE_VIRT_ALLOC:
             self.sr._loadvdis()
             reserved = self.sr.virtual_allocation
             sr_size = self.sr._getsize()
-            if (sr_size - reserved) < (long(size) + overhead):
+            if (sr_size - reserved) < (int(size) + overhead):
                 raise xs_errors.XenError('SRNoSpace')
 
         if self.vdi_type == vhdutil.VDI_TYPE_VHD:
             try:
-                size = vhdutil.validate_and_round_vhd_size(long(size))
+                size = vhdutil.validate_and_round_vhd_size(int(size))
                 mb = 1024 * 1024
-                size_mb = long(size) / mb
+                size_mb = size // mb
                 util.ioretry(lambda: self._create(str(size_mb), self.path))
                 self.size = util.ioretry(lambda: self._query_v(self.path))
             except util.CommandException as inst:
@@ -602,14 +601,14 @@ class FileVDI(VDI.VDI):
                         opterr='error %d' % inst.code)
         else:
             f = open(self.path, 'w')
-            f.truncate(long(size))
+            f.truncate(int(size))
             f.close()
             self.size = size
 
         self.sr.added_vdi(self)
 
         st = util.ioretry(lambda: os.stat(self.path))
-        self.utilisation = long(st.st_size)
+        self.utilisation = int(st.st_size)
         if self.vdi_type == vhdutil.VDI_TYPE_RAW:
             self.sm_config = {"type": self.PARAM_RAW}
 
@@ -668,9 +667,6 @@ class FileVDI(VDI.VDI):
         self.attached = False
 
     def resize(self, sr_uuid, vdi_uuid, size):
-        return self.resize_online(sr_uuid, vdi_uuid, size)
-
-    def resize_online(self, sr_uuid, vdi_uuid, size):
         if not self.exists:
             raise xs_errors.XenError('VDIUnavailable', \
                   opterr='VDI %s unavailable %s' % (vdi_uuid, self.path))
@@ -690,15 +686,15 @@ class FileVDI(VDI.VDI):
             return VDI.VDI.get_params(self)
 
         # We already checked it is a VDI_TYPE_VHD
-        size = vhdutil.validate_and_round_vhd_size(long(size))
-        overhead = vhdutil.calcOverheadFull(long(size))
+        size = vhdutil.validate_and_round_vhd_size(int(size))
+        overhead = vhdutil.calcOverheadFull(int(size))
 
         # Test the amount of actual disk space
         if ENFORCE_VIRT_ALLOC:
             self.sr._loadvdis()
             reserved = self.sr.virtual_allocation
             sr_size = self.sr._getsize()
-            delta = long(size - self.size)
+            delta = int(size - self.size)
             if (sr_size - reserved) < delta:
                 raise xs_errors.XenError('SRNoSpace')
         jFile = JOURNAL_FILE_PREFIX + self.uuid
@@ -712,7 +708,7 @@ class FileVDI(VDI.VDI):
         old_size = self.size
         self.size = vhdutil.getSizeVirt(self.path)
         st = util.ioretry(lambda: os.stat(self.path))
-        self.utilisation = long(st.st_size)
+        self.utilisation = int(st.st_size)
 
         self._db_update()
         self.sr._update(self.sr.uuid, self.size - old_size)
@@ -1004,7 +1000,7 @@ class FileVDI(VDI.VDI):
 
     def _query_v(self, path):
         cmd = [SR.TAPDISK_UTIL, "query", vhdutil.VDI_TYPE_VHD, "-v", path]
-        return long(util.pread(cmd)) * 1024 * 1024
+        return int(util.pread(cmd)) * 1024 * 1024
 
     def _query_p_uuid(self, path):
         cmd = [SR.TAPDISK_UTIL, "query", vhdutil.VDI_TYPE_VHD, "-p", path]
@@ -1062,8 +1058,8 @@ class FileVDI(VDI.VDI):
         resp['command'] = 'vdi_attach_from_config'
         # Return the 'config' encoded within a normal XMLRPC response so that
         # we can use the regular response/error parsing code.
-        config = xmlrpclib.dumps(tuple([resp]), "vdi_attach_from_config")
-        return xmlrpclib.dumps((config, ), "", True)
+        config = xmlrpc.client.dumps(tuple([resp]), "vdi_attach_from_config")
+        return xmlrpc.client.dumps((config, ), "", True)
 
     def attach_from_config(self, sr_uuid, vdi_uuid):
         """

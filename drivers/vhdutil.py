@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -67,24 +65,24 @@ def calcOverheadEmpty(virtual_size):
     """Calculate the VHD space overhead (metadata size) for an empty VDI of
     size virtual_size"""
     overhead = 0
-    size_mb = virtual_size / (1024 * 1024)
+    size_mb = virtual_size // (1024 * 1024)
 
     # Footer + footer copy + header + possible CoW parent locator fields
     overhead = 3 * 1024
 
     # BAT 4 Bytes per block segment
-    overhead += (size_mb / 2) * 4
+    overhead += (size_mb // 2) * 4
     overhead = util.roundup(512, overhead)
 
     # BATMAP 1 bit per block segment
-    overhead += (size_mb / 2) / 8
+    overhead += (size_mb // 2) // 8
     overhead = util.roundup(4096, overhead)
 
     return overhead
 
 
 def calcOverheadBitmap(virtual_size):
-    num_blocks = virtual_size / VHD_BLOCK_SIZE
+    num_blocks = virtual_size // VHD_BLOCK_SIZE
     if virtual_size % VHD_BLOCK_SIZE:
         num_blocks += 1
     return num_blocks * 4096
@@ -100,9 +98,9 @@ def fullSizeVHD(virtual_size):
     return virtual_size + calcOverheadFull(virtual_size)
 
 
-def ioretry(cmd):
-    return util.ioretry(lambda: util.pread2(cmd),
-            errlist=[errno.EIO, errno.EAGAIN])
+def ioretry(cmd, text=True):
+    return util.ioretry(lambda: util.pread2(cmd, text=text),
+                        errlist=[errno.EIO, errno.EAGAIN])
 
 
 def getVHDInfo(path, extractUuidFunction, includeParent=True):
@@ -185,7 +183,7 @@ def getParentChain(lvName, extractUuidFunction, vgName):
         if (not vdis):
             retries = retries + 1
             time.sleep(1)
-    for uuid, vdi in vdis.iteritems():
+    for uuid, vdi in vdis.items():
         chain[uuid] = vdi.path
     #util.SMlog("Parent chain for %s: %s" % (lvName, chain))
     return chain
@@ -239,13 +237,13 @@ def setHidden(path, hidden=True):
 def getSizeVirt(path):
     cmd = [VHD_UTIL, "query", OPT_LOG_ERR, "-v", "-n", path]
     ret = ioretry(cmd)
-    size = long(ret) * 1024 * 1024
+    size = int(ret) * 1024 * 1024
     return size
 
 
 def setSizeVirt(path, size, jFile):
     "resize VHD offline"
-    size_mb = size / 1024 / 1024
+    size_mb = size // (1024 * 1024)
     cmd = [VHD_UTIL, "resize", OPT_LOG_ERR, "-s", str(size_mb), "-n", path,
             "-j", jFile]
     ioretry(cmd)
@@ -253,7 +251,7 @@ def setSizeVirt(path, size, jFile):
 
 def setSizeVirtFast(path, size):
     "resize VHD online"
-    size_mb = size / 1024 / 1024
+    size_mb = size // (1024 * 1024)
     cmd = [VHD_UTIL, "resize", OPT_LOG_ERR, "-s", str(size_mb), "-n", path, "-f"]
     ioretry(cmd)
 
@@ -298,7 +296,7 @@ def getDepth(path):
 
 def getBlockBitmap(path):
     cmd = [VHD_UTIL, "read", OPT_LOG_ERR, "-B", "-n", path]
-    text = ioretry(cmd)
+    text = ioretry(cmd, text=False)
     return zlib.compress(text)
 
 
@@ -308,7 +306,7 @@ def coalesce(path):
 
 
 def create(path, size, static, msize=0):
-    size_mb = size / 1024 / 1024
+    size_mb = size // (1024 * 1024)
     cmd = [VHD_UTIL, "create", OPT_LOG_ERR, "-n", path, "-s", str(size_mb)]
     if static:
         cmd.append("-r")
@@ -327,7 +325,7 @@ def snapshot(path, parent, parentRaw, msize=0, checkEmpty=True):
         cmd.append(str(msize))
     if not checkEmpty:
         cmd.append("-e")
-    text = ioretry(cmd)
+    ioretry(cmd)
 
 
 def check(path, ignoreMissingFooter=False, fast=False):
@@ -401,12 +399,13 @@ def validate_and_round_vhd_size(size):
     """ Take the supplied vhd size, in bytes, and check it is positive and less
     that the maximum supported size, rounding up to the next block boundary
     """
-    if (size < 0 or size > MAX_VHD_SIZE):
-        raise xs_errors.XenError('VDISize', opterr='VDI size ' + \
-                                     'must be between 1 MB and %d MB' % \
-                                     (MAX_VHD_SIZE / 1024 / 1024))
+    if size < 0 or size > MAX_VHD_SIZE:
+        raise xs_errors.XenError(
+            'VDISize', opterr='VDI size ' +
+                              'must be between 1 MB and %d MB' %
+                              (MAX_VHD_SIZE // (1024 * 1024)))
 
-    if (size < MIN_VHD_SIZE):
+    if size < MIN_VHD_SIZE:
         size = MIN_VHD_SIZE
 
     size = util.roundup(VHD_BLOCK_SIZE, size)

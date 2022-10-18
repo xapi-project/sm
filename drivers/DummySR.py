@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -114,21 +114,21 @@ class DummySR(SR.SR):
             util.SMlog("%s param %s: [%s]" % (self.cmd, attr, self.srcmd.params[attr]))
 
         # Iterate through the device_config dictionary
-        for key in self.dconf.iterkeys():
+        for key in self.dconf.keys():
             util.SMlog("\tdevice_config: [%s:%s]" % (key, self.dconf[key]))
 
         # Query the sm_config; parameters can be set at Create time. Iterate through keys
         self.sm_config = self.session.xenapi.SR.get_sm_config(self.sr_ref)
-        for key in self.sm_config.iterkeys():
+        for key in self.sm_config.keys():
             util.SMlog("\tsm_config: [%s:%s]" % (key, self.sm_config[key]))
 
     def _getallVDIrecords(self):
         """Helper function which returns a list of all VDI records for this SR
         stored in the XenAPI server"""
         # Returns a list of (reference, record) pairs: we only need the records
-        vdis = self.session.VDI.get_all_records(self.session_ref)['Value'].values()
+        vdis = list(self.session.VDI.get_all_records(self.session_ref)['Value'].values())
         # We only need the VDIs corresponding to this SR
-        return filter(lambda v: v['SR'] == self.sr_ref, vdis)
+        return [v for v in vdis if v['SR'] == self.sr_ref]
 
 
 class DummyVDI(VDI.VDI):
@@ -145,7 +145,7 @@ class DummyVDI(VDI.VDI):
         assert(len(self.sr.srcmd.params['args']) == 8)
 
         self.vdi_sm_config = self.sr.srcmd.params['vdi_sm_config']
-        for key in self.vdi_sm_config.iterkeys():
+        for key in self.vdi_sm_config.keys():
             util.SMlog("\tvdi_sm_config: [%s:%s]" % (key, self.vdi_sm_config[key]))
 
         for v in self.sr._getallVDIrecords():
@@ -172,7 +172,7 @@ class DummyVDI(VDI.VDI):
         self.sr._assertValues(['sr_uuid', 'args', 'host_ref', 'device_config', 'command', 'sr_ref', 'vdi_sm_config', 'new_uuid'])
         assert(len(self.sr.srcmd.params['args']) == 0)
         self.vdi_sm_config = self.sr.srcmd.params['vdi_sm_config']
-        for key in self.vdi_sm_config.iterkeys():
+        for key in self.vdi_sm_config.keys():
             util.SMlog("\tvdi_sm_config: [%s:%s]" % (key, self.vdi_sm_config[key]))
 
         for v in self.sr._getallVDIrecords():
@@ -202,7 +202,7 @@ class DummyVDI(VDI.VDI):
         self.vdi_ref = self.sr.srcmd.params['vdi_ref']
         self.other_config = self.session.xenapi.VDI.get_other_config(self.vdi_ref)
         self.run_corner_cases_tests()
-        for key in self.other_config.iterkeys():
+        for key in self.other_config.keys():
             util.SMlog("\tvdi_other_config: [%s:%s]" % (key, self.other_config[key]))
 
     def deactivate(self, sr_uuid, vdi_uuid):
@@ -252,7 +252,7 @@ class DummyVDI(VDI.VDI):
         vdis = util.list_VDI_records_in_sr(self.sr)
         vdi_ref = self.session.xenapi.VDI.get_by_uuid(self.uuid)
         del vdis[vdi_ref]
-        active_vdis = filter(lambda v: v['current_operations'] != {}, vdis.values())
+        active_vdis = [v for v in list(vdis.values()) if v['current_operations'] != {}]
         if len(active_vdis) != 0:
             msg = "LVHDRT: found other operations in progress for VDI: %s" % active_vdis[0]['uuid']
             util.SMlog(msg)
@@ -261,7 +261,7 @@ class DummyVDI(VDI.VDI):
     def get_attached_vbds(self):
         vdi_ref = self.session.xenapi.VDI.get_by_uuid(self.uuid)
         vbds = self.session.xenapi.VBD.get_all_records_where("field \"VDI\" = \"%s\"" % vdi_ref)
-        return filter(lambda v: v['currently_attached'] == "true", vbds.values())
+        return [v for v in list(vbds.values()) if v['currently_attached'] == "true"]
 
     def check_vbd_list_is_stable(self, attached_vbds):
         newly_attached_vbds = self.get_attached_vbds()

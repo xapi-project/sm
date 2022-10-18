@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -25,7 +25,7 @@ import os
 import time
 import glob
 from datetime import datetime
-from xmlrpclib import DateTime
+from xmlrpc.client import DateTime
 
 HOST_LOCK_NAME_FORMAT = 'host%s'
 RESCAN_LOCK_NAME = 'rescan'

@@ -1,11 +1,8 @@
 import unittest
-import mock
+import unittest.mock as mock
 import SR
 import SMBSR
 import testlib
-import xs_errors
-import XenAPI
-import vhdutil
 import util
 import errno
 

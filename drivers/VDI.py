@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -19,7 +17,7 @@
 #
 
 import SR
-import xmlrpclib
+import xmlrpc.client
 import xs_errors
 import util
 import vhdutil
@@ -41,20 +39,20 @@ CBT_BLOCK_SIZE = (64 * 1024)
 def VDIMetadataSize(type, virtualsize):
     size = 0
     if type == 'vhd':
-        size_mb = virtualsize / (1024 * 1024)
+        size_mb = virtualsize // (1024 * 1024)
         #Footer + footer copy + header + possible CoW parent locator fields
         size = 3 * 1024
 
         # BAT 4 Bytes per block segment
-        size += (size_mb / 2) * 4
+        size += (size_mb // 2) * 4
         size = util.roundup(512, size)
 
         # BATMAP 1 bit per block segment
-        size += (size_mb / 2) / 8
+        size += (size_mb // 2) // 8
         size = util.roundup(4096, size)
 
         # Segment bitmaps + Page align offsets
-        size += (size_mb / 2) * 4096
+        size += (size_mb // 2) * 4096
 
     return size
 
@@ -178,7 +176,7 @@ class VDI(object):
         """
         struct = {'params': self.path,
                    'xenstore_data': (self.xenstore_data or {})}
-        return xmlrpclib.dumps((struct, ), "", True)
+        return xmlrpc.client.dumps((struct, ), "", True)
 
     def detach(self, sr_uuid, vdi_uuid):
         """Remove local access to the VDI. Destroys any device 
@@ -467,7 +465,7 @@ class VDI(object):
         """
         struct = {'location': self.location,
                    'uuid': self.uuid}
-        return xmlrpclib.dumps((struct, ), "", True)
+        return xmlrpc.client.dumps((struct, ), "", True)
 
     def load(self, vdi_uuid):
         """Post-init hook"""
@@ -487,14 +485,14 @@ class VDI(object):
         snapshot_time = util.default(self, "snapshot_time", lambda: "19700101T00:00:00Z")
         snapshot_of = util.default(self, "snapshot_of", lambda: "OpaqueRef:NULL")
         cbt_enabled = util.default(self, "cbt_enabled", lambda: False)
-        vdi = self.sr.session.xenapi.VDI.db_introduce(uuid, self.label, self.description, self.sr.sr_ref, ty, self.shareable, self.read_only, {}, self.location, {}, sm_config, self.managed, str(self.size), str(self.utilisation), metadata_of_pool, is_a_snapshot, xmlrpclib.DateTime(snapshot_time), snapshot_of, cbt_enabled)
+        vdi = self.sr.session.xenapi.VDI.db_introduce(uuid, self.label, self.description, self.sr.sr_ref, ty, self.shareable, self.read_only, {}, self.location, {}, sm_config, self.managed, str(self.size), str(self.utilisation), metadata_of_pool, is_a_snapshot, xmlrpc.client.DateTime(snapshot_time), snapshot_of, cbt_enabled)
         return vdi
 
     def _db_forget(self):
         self.sr.forget_vdi(self.uuid)
 
     def _override_sm_config(self, sm_config):
-        for key, val in self.sm_config_override.iteritems():
+        for key, val in self.sm_config_override.items():
             if val == sm_config.get(key):
                 continue
             if val:
@@ -515,7 +513,7 @@ class VDI(object):
             cleanup.VDI.DB_VDI_ACTIVATING]
 
         current_sm_config = self.sr.session.xenapi.VDI.get_sm_config(ref)
-        for key, val in sm_config.iteritems():
+        for key, val in sm_config.items():
             if (key.startswith("host_") or
                 key in smconfig_protected_keys):
                 continue
@@ -748,7 +746,7 @@ class VDI(object):
                 # Check if we have reached "vdi_to"
                 if curr_vdi == vdi_to:
                     encoded_string = base64.b64encode(merged_bitmap.tobytes())
-                    return xmlrpclib.dumps((encoded_string, ), "", True)
+                    return xmlrpc.client.dumps((encoded_string, ), "", True)
         # TODO: Check 2: If both VDIs still exist,
         # find common ancestor and find difference
 

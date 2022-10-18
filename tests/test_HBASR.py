@@ -1,9 +1,6 @@
-import mock
+import unittest.mock as mock
 import HBASR
 import unittest
-import xmlrpclib
-import xs_errors
-import os
 import SR
 import xml.dom.minidom
 import util

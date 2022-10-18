@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -19,7 +19,6 @@
 # hardware based iSCSI
 #
 
-from __future__ import print_function
 import SR
 import LVHDSR
 import SRCommand
@@ -29,7 +28,7 @@ import os
 import re
 import sys
 import xs_errors
-import xmlrpclib
+import xmlrpc.client
 import util
 import scsiutil
 import mpath_cli
@@ -233,8 +232,8 @@ class LVHDoHBAVDI(LVHDSR.LVHDVDI):
         dict['command'] = 'vdi_attach_from_config'
         # Return the 'config' encoded within a normal XMLRPC response so that
         # we can use the regular response/error parsing code.
-        config = xmlrpclib.dumps(tuple([dict]), "vdi_attach_from_config")
-        return xmlrpclib.dumps((config, ), "", True)
+        config = xmlrpc.client.dumps(tuple([dict]), "vdi_attach_from_config")
+        return xmlrpc.client.dumps((config, ), "", True)
 
     def attach_from_config(self, sr_uuid, vdi_uuid):
         util.SMlog("LVHDoHBAVDI.attach_from_config")

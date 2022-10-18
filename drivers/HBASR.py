@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -238,7 +238,7 @@ class HBASR(SR.SR):
             time.sleep(2)
             self._loadvdis()
             self.physical_utilisation = self.physical_size
-            for uuid, vdi in self.vdis.iteritems():
+            for uuid, vdi in self.vdis.items():
                 if vdi.managed:
                     self.physical_utilisation += vdi.size
             self.virtual_allocation = self.physical_utilisation
@@ -256,7 +256,7 @@ class HBASR(SR.SR):
 
         self._init_hbadict()
         count = 0
-        for key in self.hbadict.iterkeys():
+        for key in self.hbadict.keys():
             vdi_path = os.path.join("/dev", key)
             if vdi_path not in self.devs:
                 continue

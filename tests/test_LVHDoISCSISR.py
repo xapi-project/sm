@@ -1,5 +1,5 @@
 import unittest
-import mock
+import unittest.mock as mock
 
 import SR
 import LVHDoISCSISR
@@ -60,8 +60,8 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
             mock.patch('SR.driver'),
         ]
 
-        map(lambda patcher: patcher.start(), patchers)
-        map(lambda patcher: self.addCleanup(patcher.stop), patchers)
+        for patcher in patchers:
+            patcher.start()
 
         self.lvhd_o_iscsi_sr = NonInitingLVHDoISCSISR(
             {'targetIQN': '*'},
@@ -69,6 +69,8 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
         )
 
         self.fake_uuid = 'deadbeef'
+
+        self.addCleanup(mock.patch.stopall)
 
     @mock.patch('iscsilib.ensure_daemon_running_ok')
     @testlib.with_context

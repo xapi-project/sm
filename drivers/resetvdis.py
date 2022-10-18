@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -18,7 +18,6 @@
 # Clear the attach status for all VDIs in the given SR on this host.
 # Additionally, reset the paused state if this host is the master.
 
-from __future__ import print_function
 import cleanup
 import util
 import lock
@@ -46,7 +45,7 @@ def reset_sr(session, host_uuid, sr_uuid, is_sr_master):
     vdi_recs = session.xenapi.VDI.get_all_records_where( \
             "field \"SR\" = \"%s\"" % sr_ref)
 
-    for vdi_ref, vdi_rec in vdi_recs.iteritems():
+    for vdi_ref, vdi_rec in vdi_recs.items():
         vdi_uuid = vdi_rec["uuid"]
         sm_config = vdi_rec["sm_config"]
         if sm_config.get(host_key):
@@ -66,7 +65,7 @@ def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True):
     sm_config = vdi_rec["sm_config"]
     host_ref = None
     clean = True
-    for key, val in sm_config.iteritems():
+    for key, val in sm_config.items():
         if key.startswith("host_"):
             host_ref = key[len("host_"):]
             host_uuid = None

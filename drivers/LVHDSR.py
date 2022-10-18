@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -48,7 +48,7 @@ from srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, \
     requiresUpgrade, LVMMetadataHandler, METADATA_OBJECT_TYPE_VDI, \
     METADATA_OBJECT_TYPE_SR, METADATA_UPDATE_OBJECT_TYPE_TAG
 from metadata import retrieveXMLfromFile, _parseXML
-from xmlrpclib import DateTime
+from xmlrpc.client import DateTime
 import glob
 from constants import CBTLOG_TAG
 DEV_MAPPER_ROOT = os.path.join('/dev/mapper', lvhdutil.VG_PREFIX)
@@ -279,7 +279,7 @@ class LVHDSR(SR.SR):
             # if a VDI is present in the metadata but not in the storage
             # then delete it from the metadata
             vdi_info = LVMMetadataHandler(self.mdpath, False).getMetadata()[1]
-            for vdi in vdi_info.keys():
+            for vdi in list(vdi_info.keys()):
                 update_map = {}
                 if not vdi_info[vdi][UUID_TAG] in set(self.storageVDIs.keys()):
                     # delete this from metadata
@@ -415,7 +415,7 @@ class LVHDSR(SR.SR):
     def _introduceMetaDataVolume(self):
         util.SMlog("Creating Metadata volume")
         try:
-            map = {}
+            config = {}
             self.lvmCache.create(self.MDVOLUME_NAME, 4 * 1024 * 1024)
 
             # activate the management volume, will be deactivated at detach time
@@ -425,9 +425,9 @@ class LVHDSR(SR.SR):
                             self.session.xenapi.SR.get_name_label(self.sr_ref))
             name_description = util.to_plain_string( \
                     self.session.xenapi.SR.get_name_description(self.sr_ref))
-            map[self.FLAG_USE_VHD] = "true"
-            map['allocation'] = self.provision
-            self.session.xenapi.SR.set_sm_config(self.sr_ref, map)
+            config[self.FLAG_USE_VHD] = "true"
+            config['allocation'] = self.provision
+            self.session.xenapi.SR.set_sm_config(self.sr_ref, config)
 
             # Add the SR metadata
             self.updateSRMetadata(self.provision)
@@ -520,9 +520,10 @@ class LVHDSR(SR.SR):
         cleanup.gc_force(self.session, self.uuid)
 
         success = True
-        for fileName in \
-            filter(lambda x: util.extractSRFromDevMapper(x) == self.uuid, \
-                glob.glob(DEV_MAPPER_ROOT + '*')):
+        for fileName in glob.glob(DEV_MAPPER_ROOT + '*'):
+            if util.extractSRFromDevMapper(fileName) != self.uuid:
+                continue
+
             if util.doesFileHaveOpenHandles(fileName):
                 util.SMlog("LVHDSR.delete: The dev mapper entry %s has open " \
                            "handles" % fileName)
@@ -583,15 +584,17 @@ class LVHDSR(SR.SR):
         if self.isMaster:
             if refreshsizeok:
                 self._expand_size()
-            #Update SCSIid string
+
+            # Update SCSIid string
             util.SMlog("Calling devlist_to_serial")
-            scsiutil.add_serial_record(self.session, self.sr_ref, \
-                    scsiutil.devlist_to_serialstring(self.dconf['device'].split(',')))
+            scsiutil.add_serial_record(
+                self.session, self.sr_ref,
+                scsiutil.devlist_to_serialstring(self.dconf['device'].split(',')))
 
         # Test Legacy Mode Flag and update if VHD volumes exist
         if self.isMaster and self.legacyMode:
             vdiInfo = lvhdutil.getVDIInfo(self.lvmCache)
-            for uuid, info in vdiInfo.iteritems():
+            for uuid, info in vdiInfo.items():
                 if info.vdiType == vhdutil.VDI_TYPE_VHD:
                     self.legacyMode = False
                     map = self.session.xenapi.SR.get_sm_config(self.sr_ref)
@@ -609,9 +612,10 @@ class LVHDSR(SR.SR):
         # Do a best effort cleanup of the dev mapper entries
         # go through all devmapper entries for this VG
         success = True
-        for fileName in \
-            filter(lambda x: util.extractSRFromDevMapper(x) == self.uuid, \
-                glob.glob(DEV_MAPPER_ROOT + '*')):
+        for fileName in glob.glob(DEV_MAPPER_ROOT + '*'):
+            if util.extractSRFromDevMapper(fileName) != self.uuid:
+                continue
+
             #   check if any file has open handles
             if util.doesFileHaveOpenHandles(fileName):
                 #   if yes, log this and signal failure
@@ -692,7 +696,7 @@ class LVHDSR(SR.SR):
 
                 Dict = LVMMetadataHandler(self.mdpath, False).getMetadata()[1]
 
-                for vdi in Dict.keys():
+                for vdi in list(Dict.keys()):
                     vdi_uuid = Dict[vdi][UUID_TAG]
                     if bool(int(Dict[vdi][IS_A_SNAPSHOT_TAG])):
                         if Dict[vdi][SNAPSHOT_OF_TAG] in vdiToSnaps:
@@ -717,7 +721,7 @@ class LVHDSR(SR.SR):
                                     vdi_uuid)
                             utilisation = \
                                         util.roundup(lvutil.LVM_SIZE_INCREMENT,
-                                                       long(size))
+                                                       int(size))
                         else:
                             parent = \
                                 vhdutil._getVHDParentNoCheck(lvPath)
@@ -731,7 +735,7 @@ class LVHDSR(SR.SR):
                                     util.roundup(lvutil.LVM_SIZE_INCREMENT,
                                       vhdutil.calcOverheadEmpty(lvhdutil.MSIZE))
                             else:
-                                utilisation = lvhdutil.calcSizeVHDLV(long(size))
+                                utilisation = lvhdutil.calcSizeVHDLV(int(size))
 
                         vdi_ref = self.session.xenapi.VDI.db_introduce(
                                         vdi_uuid,
@@ -856,7 +860,7 @@ class LVHDSR(SR.SR):
         self.vdiInfo = lvhdutil.getVDIInfo(self.lvmCache)
         self.allVDIs = {}
 
-        for uuid, info in self.vdiInfo.iteritems():
+        for uuid, info in self.vdiInfo.items():
             if uuid.startswith(cleanup.SR.TMP_RENAME_PREFIX):
                 continue
             if info.scanError:
@@ -866,7 +870,7 @@ class LVHDSR(SR.SR):
             if not self.vdis[uuid].hidden:
                 self.virtual_allocation += self.vdis[uuid].utilisation
 
-        for uuid, vdi in self.vdis.iteritems():
+        for uuid, vdi in self.vdis.items():
             if vdi.parent:
                 if vdi.parent in self.vdis:
                     self.vdis[vdi.parent].read_only = True
@@ -877,7 +881,7 @@ class LVHDSR(SR.SR):
 
         # Now remove all hidden leaf nodes to avoid introducing records that
         # will be GC'ed
-        for uuid in self.vdis.keys():
+        for uuid in list(self.vdis.keys()):
             if uuid not in geneology and self.vdis[uuid].hidden:
                 util.SMlog("Scan found hidden leaf (%s), ignoring" % uuid)
                 del self.vdis[uuid]
@@ -891,7 +895,7 @@ class LVHDSR(SR.SR):
 
     def _handleInterruptedCloneOps(self):
         entries = self.journaler.getAll(LVHDVDI.JRN_CLONE)
-        for uuid, val in entries.iteritems():
+        for uuid, val in entries.items():
             util.fistpoint.activate("LVHDRT_clone_vdi_before_undo_clone", self.uuid)
             self._handleInterruptedCloneOp(uuid, val)
             util.fistpoint.activate("LVHDRT_clone_vdi_after_undo_clone", self.uuid)
@@ -1155,7 +1159,7 @@ class LVHDSR(SR.SR):
         if len(entries) == 0:
             return
         self._loadvdis()
-        for uuid, val in entries.iteritems():
+        for uuid, val in entries.items():
             vdi = self.vdis.get(uuid)
             if vdi:
                 util.SMlog("Found inflate journal %s, deflating %s to %s" % \
@@ -1378,20 +1382,20 @@ class LVHDVDI(VDI.VDI):
         if self.exists:
             raise xs_errors.XenError('VDIExists')
 
-        size = vhdutil.validate_and_round_vhd_size(long(size))
+        size = vhdutil.validate_and_round_vhd_size(int(size))
 
         util.SMlog("LVHDVDI.create: type = %s, %s (size=%s)" % \
                 (self.vdi_type, self.path, size))
         lvSize = 0
         self.sm_config = self.sr.srcmd.params["vdi_sm_config"]
         if self.vdi_type == vhdutil.VDI_TYPE_RAW:
-            lvSize = util.roundup(lvutil.LVM_SIZE_INCREMENT, long(size))
+            lvSize = util.roundup(lvutil.LVM_SIZE_INCREMENT, int(size))
         else:
             if self.sr.provision == "thin":
                 lvSize = util.roundup(lvutil.LVM_SIZE_INCREMENT,
                         vhdutil.calcOverheadEmpty(lvhdutil.MSIZE))
             elif self.sr.provision == "thick":
-                lvSize = lvhdutil.calcSizeVHDLV(long(size))
+                lvSize = lvhdutil.calcSizeVHDLV(int(size))
 
         self.sr._ensureSpaceAvailable(lvSize)
 
@@ -1400,7 +1404,7 @@ class LVHDVDI(VDI.VDI):
             if self.vdi_type == vhdutil.VDI_TYPE_RAW:
                 self.size = self.sr.lvmCache.getSize(self.lvname)
             else:
-                vhdutil.create(self.path, long(size), False, lvhdutil.MSIZE_MB)
+                vhdutil.create(self.path, int(size), False, lvhdutil.MSIZE_MB)
                 self.size = vhdutil.getSizeVirt(self.path)
             self.sr.lvmCache.deactivateNoRefcount(self.lvname)
         except util.CommandException as e:
@@ -1554,7 +1558,7 @@ class LVHDVDI(VDI.VDI):
                     '(current size: %d, new size: %d)' % (self.size, size))
             raise xs_errors.XenError('VDISize', opterr='shrinking not allowed')
 
-        size = vhdutil.validate_and_round_vhd_size(long(size))
+        size = vhdutil.validate_and_round_vhd_size(int(size))
 
         if size == self.size:
             return VDI.VDI.get_params(self)
@@ -1856,7 +1860,7 @@ class LVHDVDI(VDI.VDI):
         """Snapshot self and return the snapshot VDI object"""
         snapLV = lvhdutil.LV_PREFIX[vhdutil.VDI_TYPE_VHD] + snapUuid
         snapPath = os.path.join(self.sr.path, snapLV)
-        self.sr.lvmCache.create(snapLV, long(snapSizeLV))
+        self.sr.lvmCache.create(snapLV, int(snapSizeLV))
         util.fistpoint.activate("LVHDRT_clone_vdi_after_lvcreate", self.sr.uuid)
         if isNew:
             RefCounter.set(snapUuid, 1, 0, lvhdutil.NS_PREFIX_LVM + self.sr.uuid)
@@ -1871,7 +1875,7 @@ class LVHDVDI(VDI.VDI):
         snapVDI.size = self.size
         snapVDI.utilisation = snapSizeLV
         snapVDI.sm_config = dict()
-        for key, val in self.sm_config.iteritems():
+        for key, val in self.sm_config.items():
             if key not in [
                     "type", "vdi_type", "vhd-parent", "paused", "relinking", "activating"] and \
                     not key.startswith("host_"):
@@ -1925,8 +1929,7 @@ class LVHDVDI(VDI.VDI):
 
         # the "paused" and "host_*" sm-config keys are special and must stay on
         # the leaf without being inherited by anyone else
-        for key in filter(lambda x: x == "paused" or x.startswith("host_"),
-                self.sm_config.keys()):
+        for key in [x for x in self.sm_config.keys() if x == "paused" or x.startswith("host_")]:
             snapVDI.sm_config[key] = self.sm_config[key]
             del self.sm_config[key]
 
@@ -2131,7 +2134,7 @@ class LVHDVDI(VDI.VDI):
         if self.vdi_type == vhdutil.VDI_TYPE_VHD:
             vdiList = vhdutil.getParentChain(self.lvname,
                     lvhdutil.extractUuid, self.sr.vgname)
-        for uuid, lvName in vdiList.iteritems():
+        for uuid, lvName in vdiList.items():
             binaryParam = binary
             if uuid != self.uuid:
                 binaryParam = False  # binary param only applies to leaf nodes

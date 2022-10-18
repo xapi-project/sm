@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -263,7 +261,7 @@ def _checkLV(path):
 def _getLVsize(path):
     try:
         lines = cmd_lvm([CMD_LVDISPLAY, "-c", path]).split(':')
-        return long(lines[6]) * 512
+        return int(lines[6]) * 512
     except:
         raise xs_errors.XenError('VDIUnavailable', \
               opterr='no such VDI %s' % path)
@@ -274,8 +272,8 @@ def _getVGstats(vgname):
         text = cmd_lvm([CMD_VGS, "--noheadings", "--nosuffix",
                         "--units", "b", vgname],
                         pread_func=util.pread).split()
-        size = long(text[5])
-        freespace = long(text[6])
+        size = int(text[5])
+        freespace = int(text[6])
         utilisation = size - freespace
         stats = {}
         stats['physical_size'] = size
@@ -294,8 +292,8 @@ def _getPVstats(dev):
         text = cmd_lvm([CMD_PVS, "--noheadings", "--nosuffix",
                         "--units", "b", dev],
                         pread_func=util.pread).split()
-        size = long(text[4])
-        freespace = long(text[5])
+        size = int(text[4])
+        freespace = int(text[5])
         utilisation = size - freespace
         stats = {}
         stats['physical_size'] = size
@@ -598,7 +596,7 @@ def create(name, size, vgname, tag=None, size_in_percentage=None):
     if size_in_percentage:
         cmd = [CMD_LVCREATE, "-n", name, "-l", size_in_percentage, vgname]
     else:
-        size_mb = size / 1024 / 1024
+        size_mb = size // (1024 * 1024)
         cmd = [CMD_LVCREATE, "-n", name, "-L", str(size_mb), vgname]
     if tag:
         cmd.extend(["--addtag", tag])
@@ -649,7 +647,7 @@ def exists(path):
 
 @lvmretry
 def setSize(path, size, confirm):
-    sizeMB = size / (1024 * 1024)
+    sizeMB = size // (1024 * 1024)
     if confirm:
         cmd_lvm([CMD_LVRESIZE, "-L", str(sizeMB), path], util.pread3, "y\n")
     else:

@@ -1,7 +1,7 @@
 import re
-import mock
+import unittest.mock as mock
 import os
-import StringIO
+import io
 import fnmatch
 import string
 import random
@@ -119,8 +119,8 @@ class TestContext(object):
 
     def start(self):
         self.patchers = [
-            mock.patch('__builtin__.open', new=self.fake_open),
-            mock.patch('__builtin__.file', new=self.fake_open),
+            # mock.patch('open', new=self.fake_open),
+            # mock.patch('file', new=self.fake_open),
             mock.patch('fcntl.fcntl', new=self.fake_fcntl),
             mock.patch('os.path.exists', new=self.fake_exists),
             mock.patch('os.makedirs', new=self.fake_makedirs),
@@ -131,7 +131,9 @@ class TestContext(object):
             mock.patch('os.rmdir', new=self.fake_rmdir),
             mock.patch('os.stat', new=self.fake_stat)
         ]
-        map(lambda patcher: patcher.start(), self.patchers)
+        for patcher in self.patchers:
+            patcher.start()
+
         self.setup_modinfo()
 
     def fake_fcntl(self, fd, cmd, arg):
@@ -201,11 +203,11 @@ class TestContext(object):
 
     def fake_open(self, fname, mode='r'):
         if fname == '/etc/xensource-inventory':
-            return StringIO.StringIO(self.generate_inventory_contents())
+            return io.StringIO(self.generate_inventory_contents())
 
         for fpath, contents in self.generate_path_content():
             if fpath == fname:
-                return StringIO.StringIO(contents)
+                return io.StringIO(contents)
 
         if 'w' in mode:
             if os.path.dirname(fname) in self.get_created_directories():
@@ -257,12 +259,12 @@ class TestContext(object):
     def generate_path_content(self):
         for host_id, adapter in enumerate(self.scsi_adapters):
             for host_class, values in adapter.parameters:
-                for key, value in values.iteritems():
+                for key, value in values.items():
                     path = '/sys/class/%s/host%s/%s' % (
                         host_class, host_id, key)
                     yield (path, value)
 
-        for path, value in self._path_content.iteritems():
+        for path, value in self._path_content.items():
             yield (path, value)
 
     def generate_device_paths(self):
@@ -309,7 +311,7 @@ class TestContext(object):
             + '\n')
 
     def stop(self):
-        map(lambda patcher: patcher.stop(), self.patchers)
+        list(map(lambda patcher: patcher.stop(), self.patchers))
 
     def add_adapter(self, adapter):
         self.scsi_adapters.append(adapter)
@@ -380,7 +382,7 @@ class WriteableFile(object):
     def __init__(self, context, fname, fileno, data=None):
         self._context = context
         self._fname = fname
-        self._file = StringIO.StringIO(data)
+        self._file = io.StringIO(data)
         self._fileno = fileno
 
     def fileno(self):

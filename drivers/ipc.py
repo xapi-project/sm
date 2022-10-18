@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -16,7 +16,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 """Communication for processes"""
-from __future__ import print_function
 
 import os
 import util

@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -93,7 +91,7 @@ class LVActivator:
         success = True
         for persistent in [self.TEMPORARY, self.PERSISTENT]:
             for binary in [self.NORMAL, self.BINARY]:
-                uuids = self.lvActivations[persistent][binary].keys()
+                uuids = list(self.lvActivations[persistent][binary].keys())
                 for uuid in uuids:
                     try:
                         self.deactivate(uuid, binary, persistent)

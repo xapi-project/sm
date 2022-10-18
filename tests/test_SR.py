@@ -1,10 +1,7 @@
-from __future__ import print_function
 import unittest
-import mock
+import unittest.mock as mock
 import SR
 from SR import deviceCheck
-import EXTSR
-import xs_errors
 
 
 class TestSR(unittest.TestCase):

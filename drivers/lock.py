@@ -194,7 +194,7 @@ class LockImplementation(object):
     def _open_lockfile(self):
         """Provide a seam, so extreme situations could be tested"""
         util.SMlog("lock: opening lock file %s" % self.lockpath)
-        self.lockfile = file(self.lockpath, "w+")
+        self.lockfile = open(self.lockpath, "w+")
 
     def _close(self):
         """Close the lock, which implies releasing the lock."""

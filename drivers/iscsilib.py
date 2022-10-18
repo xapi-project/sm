@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -21,7 +19,6 @@ import util
 import os
 import scsiutil
 import time
-import xs_errors
 import socket
 import re
 import shutil
@@ -30,8 +27,8 @@ import lock
 import glob
 import tempfile
 from cleanup import LOCK_TYPE_RUNNING
-from ConfigParser import RawConfigParser
-import StringIO
+from configparser import RawConfigParser
+import io
 
 # The 3.x kernel brings with it some iSCSI path changes in sysfs
 _KERNEL_VERSION = os.uname()[2]
@@ -54,12 +51,12 @@ _ISCSI_DB_PATH = '/var/lib/iscsi'
 
 
 def doexec_locked(cmd):
-    '''Executes via util.doexec the command specified whilst holding lock'''
+    """Executes via util.doexec the command specified whilst holding lock"""
     _lock = None
     if os.path.basename(cmd[0]) == 'iscsiadm':
         _lock = lock.Lock(LOCK_TYPE_RUNNING, 'iscsiadm')
         _lock.acquire()
-    #util.SMlog("%s" % (cmd))
+    # util.SMlog("%s" % cmd)
     (rc, stdout, stderr) = util.doexec(cmd)
     if _lock is not None and _lock.held():
         _lock.release()
@@ -67,14 +64,14 @@ def doexec_locked(cmd):
 
 
 def noexn_on_failure(cmd):
-    '''Executes via util.doexec the command specified as best effort.'''
+    """Executes via util.doexec the command specified as best effort."""
     (rc, stdout, stderr) = doexec_locked(cmd)
     return (stdout, stderr)
 
 
 def exn_on_failure(cmd, message):
-    '''Executes via util.doexec the command specified. If the return code is 
-    non-zero, raises an ISCSIError with the given message'''
+    """Executes via util.doexec the command specified. If the return code is
+    non-zero, raises an ISCSIError with the given message"""
     (rc, stdout, stderr) = doexec_locked(cmd)
     if rc == 0:
         return (stdout, stderr)
@@ -91,8 +88,8 @@ def parse_node_output(text, targetIQN):
         (rec, iqn) = x.split()
         (portal, tpgt) = rec.split(',')
         return (portal, tpgt, iqn)
-    unfiltered_map = map(dotrans, (filter(lambda x: match_targetIQN(targetIQN, x),
-                                       text.split('\n'))))
+    unfiltered_map = [dotrans(x) for x in text.split('\n') if
+                      match_targetIQN(targetIQN, x)]
     # We need to filter duplicates orignating from doing the discovery using
     # multiple interfaces
     filtered_map = []
@@ -122,15 +119,14 @@ def parse_IP_port(portal):
 def save_rootdisk_nodes(tmpdirname):
     root_iqns = get_rootdisk_IQNs()
     if root_iqns:
-        srcdirs = map(lambda iqn: os.path.join(_ISCSI_DB_PATH, 'nodes', iqn),
-                      root_iqns)
+        srcdirs = [os.path.join(_ISCSI_DB_PATH, 'nodes', iqn) for iqn in root_iqns]
         util.doexec(['/bin/cp', '-a'] + srcdirs + [tmpdirname])
 
 
 def restore_rootdisk_nodes(tmpdirname):
     root_iqns = get_rootdisk_IQNs()
     if root_iqns:
-        srcdirs = map(lambda iqn: os.path.join(tmpdirname, iqn), root_iqns)
+        srcdirs = [os.path.join(tmpdirname, iqn) for iqn in root_iqns]
         util.doexec(['/bin/cp', '-a'] + srcdirs +
                     [os.path.join(_ISCSI_DB_PATH, 'nodes')])
 
@@ -245,13 +241,13 @@ def remove_chap_settings(portal, targetIQN):
 
 
 def get_node_config (portal, targetIQN):
-    ''' Using iscsadm to get the current configuration of a iscsi node.
-    The output is parsed in ini format, and returned as a dictionary.'''
+    """ Using iscsadm to get the current configuration of a iscsi node.
+    The output is parsed in ini format, and returned as a dictionary."""
     failuremessage = "Failed to get node configurations"
     cmd = ["iscsiadm", "-m", "node", "-p", portal, "-T", targetIQN, "-S"]
     (stdout, stderr) = exn_on_failure(cmd, failuremessage)
     ini_sec = "root"
-    str_fp = StringIO.StringIO("[%s]\n%s" % (ini_sec, stdout))
+    str_fp = io.StringIO("[%s]\n%s" % (ini_sec, stdout))
     parser = RawConfigParser()
     parser.readfp(str_fp)
     str_fp.close()
@@ -519,8 +515,8 @@ def get_rootdisk_IQNs():
     """Return the list of IQNs for targets required by root filesystem"""
     if not os.path.isdir('/sys/firmware/ibft/'):
         return []
-    dirs = filter(lambda x: x.startswith('target'), os.listdir('/sys/firmware/ibft/'))
-    return map(lambda d: open('/sys/firmware/ibft/%s/target-name' % d).read().strip(), dirs)
+    dirs = [x for x in os.listdir('/sys/firmware/ibft/') if x.startswith('target')]
+    return [open('/sys/firmware/ibft/%s/target-name' % d).read().strip() for d in dirs]
 
 
 def _checkAnyTGT():

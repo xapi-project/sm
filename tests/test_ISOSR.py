@@ -1,8 +1,7 @@
-import mock
+import unittest.mock as mock
 import nfs
 import ISOSR
 import unittest
-import xs_errors
 import util
 import SR
 import errno

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -104,8 +104,8 @@ class SHMVDI(VDI.VDI):
     def load(self, vdi_uuid):
         try:
             stat = os.stat(self.path)
-            self.utilisation = long(stat.st_size)
-            self.size = long(stat.st_size)
+            self.utilisation = int(stat.st_size)
+            self.size = int(stat.st_size)
         except:
             pass
 

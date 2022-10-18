@@ -1,10 +1,10 @@
 import testlib
 import unittest
-import mock
+import unittest.mock as mock
 
 import SRCommand
 import HBASR
-import xmlrpclib
+import xmlrpc.client
 
 import devscan
 
@@ -18,7 +18,7 @@ def create_hba_sr():
         },
         'irrelevant_method'
     )
-    xmlrpc_arg = xmlrpclib.dumps(command_parameter)
+    xmlrpc_arg = xmlrpc.client.dumps(command_parameter)
 
     argv_patcher = mock.patch('sys.argv', new=[None, xmlrpc_arg])
     argv_patcher.start()

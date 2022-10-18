@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -18,7 +16,6 @@
 # Miscellaneous utility functions
 #
 
-from __future__ import print_function
 import os
 import re
 import sys
@@ -32,15 +29,13 @@ import errno
 import socket
 import xml.dom.minidom
 import scsiutil
-import statvfs
 import stat
 import xs_errors
 import XenAPI
-import xmlrpclib
+import xmlrpc.client
 import base64
 import syslog
 import resource
-import exceptions
 import traceback
 import glob
 import copy
@@ -99,7 +94,7 @@ class SRBusyException(SMException):
 
 def logException(tag):
     info = sys.exc_info()
-    if info[0] == exceptions.SystemExit:
+    if info[0] == SystemExit:
         # this should not be happening when catching "Exception", but it is
         sys.exit(0)
     tb = reduce(lambda a, b: "%s%s" % (a, b), traceback.format_tb(info[2]))
@@ -113,7 +108,7 @@ def roundup(divisor, value):
     if value == 0:
         value = 1
     if value % divisor != 0:
-        return ((int(value) / divisor) + 1) * divisor
+        return ((int(value) // divisor) + 1) * divisor
     return value
 
 
@@ -122,8 +117,6 @@ def to_plain_string(obj):
         return None
     if type(obj) == str:
         return obj
-    if type(obj) == unicode:
-        return obj.encode("utf-8")
     return str(obj)
 
 
@@ -162,7 +155,7 @@ def _getDateString():
           (t[0], t[1], t[2], t[3], t[4], t[5])
 
 
-def doexec(args, inputtext=None, new_env=None):
+def doexec(args, inputtext=None, new_env=None, text=True):
     """Execute a subprocess, then return its return code, stdout and stderr"""
     env = None
     if new_env:
@@ -171,18 +164,20 @@ def doexec(args, inputtext=None, new_env=None):
     proc = subprocess.Popen(args, stdin=subprocess.PIPE,
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE,
-                            close_fds=True, env=env)
+                            close_fds=True, env=env,
+                            universal_newlines=text)
+
+    if not text and inputtext is not None:
+        inputtext = inputtext.encode()
+
     (stdout, stderr) = proc.communicate(inputtext)
-    # Workaround for a pylint bug, can be removed after upgrade to
-    # python 3.x or maybe a newer version of pylint in the future
-    stdout = str(stdout)
-    stderr = str(stderr)
+
     rc = proc.returncode
-    return (rc, stdout, stderr)
+    return rc, stdout, stderr
 
 
 def is_string(value):
-    return isinstance(value, basestring)
+    return isinstance(value, str)
 
 
 # These are partially tested functions that replicate the behaviour of
@@ -193,7 +188,7 @@ def is_string(value):
 # each pair, the first component is passed to exec while the second is
 # written to the logs.
 def pread(cmdlist, close_stdin=False, scramble=None, expect_rc=0,
-          quiet=False, new_env=None):
+          quiet=False, new_env=None, text=True):
     cmdlist_for_exec = []
     cmdlist_for_log = []
     for item in cmdlist:
@@ -212,7 +207,7 @@ def pread(cmdlist, close_stdin=False, scramble=None, expect_rc=0,
 
     if not quiet:
         SMlog(cmdlist_for_log)
-    (rc, stdout, stderr) = doexec(cmdlist_for_exec, new_env=new_env)
+    (rc, stdout, stderr) = doexec(cmdlist_for_exec, new_env=new_env, text=text)
     if rc != expect_rc:
         SMlog("FAILED in util.pread: (rc %d) stdout: '%s', stderr: '%s'" % \
                 (rc, stdout, stderr))
@@ -257,8 +252,8 @@ def atomicFileWrite(targetFile, directory, text):
 
 
 #Read STDOUT from cmdlist and discard STDERR output
-def pread2(cmdlist, quiet=False):
-    return pread(cmdlist, quiet=quiet)
+def pread2(cmdlist, quiet=False, text=True):
+    return pread(cmdlist, quiet=quiet, text=text)
 
 
 #Read STDOUT from cmdlist, feeding 'text' to STDIN
@@ -351,13 +346,12 @@ def ioretry(f, errlist=[errno.EIO], maxretry=IORETRY_MAX, period=IORETRY_PERIOD,
     while True:
         try:
             return f()
-        except OSError as inst:
-            err = int(inst.errno)
-            inst = CommandException(err, str(f), "OSError")
+        except OSError as ose:
+            err = int(ose.errno)
             if not err in errlist:
-                raise inst
-        except CommandException as inst:
-            if not int(inst.code) in errlist:
+                raise CommandException(err, str(f), "OSError")
+        except CommandException as ce:
+            if not int(ce.code) in errlist:
                 raise
 
         retries += 1
@@ -366,20 +360,20 @@ def ioretry(f, errlist=[errno.EIO], maxretry=IORETRY_MAX, period=IORETRY_PERIOD,
 
         time.sleep(period)
 
-    raise inst
+    raise CommandException(errno.ETIMEDOUT, str(f), "Timeout")
 
 
-def ioretry_stat(f, maxretry=IORETRY_MAX):
+def ioretry_stat(path, maxretry=IORETRY_MAX):
     # this ioretry is similar to the previous method, but
     # stat does not raise an error -- so check its return
     retries = 0
     while retries < maxretry:
-        stat = f()
-        if stat[statvfs.F_BLOCKS] != -1:
+        stat = os.statvfs(path)
+        if stat.f_blocks != -1:
             return stat
         time.sleep(1)
         retries += 1
-    raise CommandException(errno.EIO, str(f))
+    raise CommandException(errno.EIO, "os.statvfs")
 
 
 def sr_get_capability(sr_uuid):
@@ -420,11 +414,11 @@ def sr_get_driver_info(driver_info):
     for option in driver_info['configuration']:
         options.append({'key': option[0], 'description': option[1]})
     results['configuration'] = options
-    return xmlrpclib.dumps((results, ), "", True)
+    return xmlrpc.client.dumps((results, ), "", True)
 
 
 def return_nil():
-    return xmlrpclib.dumps((None, ), "", True, allow_none=True)
+    return xmlrpc.client.dumps((None, ), "", True, allow_none=True)
 
 
 def SRtoXML(SRlist):
@@ -557,14 +551,14 @@ def get_single_entry(path):
 
 
 def get_fs_size(path):
-    st = ioretry_stat(lambda: os.statvfs(path))
-    return st[statvfs.F_BLOCKS] * st[statvfs.F_FRSIZE]
+    st = ioretry_stat(path)
+    return st.f_blocks * st.f_frsize
 
 
 def get_fs_utilisation(path):
-    st = ioretry_stat(lambda: os.statvfs(path))
-    return (st[statvfs.F_BLOCKS] - st[statvfs.F_BFREE]) * \
-            st[statvfs.F_FRSIZE]
+    st = ioretry_stat(path)
+    return (st.f_blocks - st.f_bfree) * \
+            st.f_frsize
 
 
 def ismount(path):
@@ -608,36 +602,36 @@ def zeroOut(path, fromByte, bytes):
     """write 'bytes' zeros to 'path' starting from fromByte (inclusive)"""
     blockSize = 4096
 
-    fromBlock = fromByte / blockSize
+    fromBlock = fromByte // blockSize
     if fromByte % blockSize:
         fromBlock += 1
         bytesBefore = fromBlock * blockSize - fromByte
         if bytesBefore > bytes:
             bytesBefore = bytes
         bytes -= bytesBefore
-        cmd = [CMD_DD, "if=/dev/zero", "of=%s" % path, "bs=1", \
-                "seek=%s" % fromByte, "count=%s" % bytesBefore]
+        cmd = [CMD_DD, "if=/dev/zero", "of=%s" % path, "bs=1",
+               "seek=%s" % fromByte, "count=%s" % bytesBefore]
         try:
-            text = pread2(cmd)
+            pread2(cmd)
         except CommandException:
             return False
 
-    blocks = bytes / blockSize
+    blocks = bytes // blockSize
     bytes -= blocks * blockSize
     fromByte = (fromBlock + blocks) * blockSize
     if blocks:
-        cmd = [CMD_DD, "if=/dev/zero", "of=%s" % path, "bs=%s" % blockSize, \
-                "seek=%s" % fromBlock, "count=%s" % blocks]
+        cmd = [CMD_DD, "if=/dev/zero", "of=%s" % path, "bs=%s" % blockSize,
+               "seek=%s" % fromBlock, "count=%s" % blocks]
         try:
-            text = pread2(cmd)
+            pread2(cmd)
         except CommandException:
             return False
 
     if bytes:
-        cmd = [CMD_DD, "if=/dev/zero", "of=%s" % path, "bs=1", \
-                "seek=%s" % fromByte, "count=%s" % bytes]
+        cmd = [CMD_DD, "if=/dev/zero", "of=%s" % path, "bs=1",
+               "seek=%s" % fromByte, "count=%s" % bytes]
         try:
-            text = pread2(cmd)
+            pread2(cmd)
         except CommandException:
             return False
 
@@ -743,7 +737,7 @@ def get_hosts_attached_on(session, vdi_uuids):
             SMlog("VDI %s not in db, ignoring" % vdi_uuid)
             continue
         sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
-        for key in filter(lambda x: x.startswith('host_'), sm_config.keys()):
+        for key in [x for x in sm_config.keys() if x.startswith('host_')]:
             host_refs[key[len('host_'):]] = True
     return host_refs.keys()
 
@@ -758,13 +752,13 @@ def get_slaves_attached_on(session, vdi_uuids):
     "assume this host is the SR master"
     host_refs = get_hosts_attached_on(session, vdi_uuids)
     master_ref = get_this_host_ref(session)
-    return filter(lambda x: x != master_ref, host_refs)
+    return [x for x in host_refs if x != master_ref]
 
 
 def get_online_hosts(session):
     online_hosts = []
     hosts = session.xenapi.host.get_all_records()
-    for host_ref, host_rec in hosts.iteritems():
+    for host_ref, host_rec in hosts.items():
         metricsRef = host_rec["metrics"]
         metrics = session.xenapi.host_metrics.get_record(metricsRef)
         if metrics["live"]:
@@ -776,18 +770,18 @@ def get_all_slaves(session):
     "assume this host is the SR master"
     host_refs = get_online_hosts(session)
     master_ref = get_this_host_ref(session)
-    return filter(lambda x: x != master_ref, host_refs)
+    return [x for x in host_refs if x != master_ref]
 
 
 def is_attached_rw(sm_config):
-    for key, val in sm_config.iteritems():
+    for key, val in sm_config.items():
         if key.startswith("host_") and val == "RW":
             return True
     return False
 
 
 def attached_as(sm_config):
-    for key, val in sm_config.iteritems():
+    for key, val in sm_config.items():
         if key.startswith("host_") and (val == "RW" or val == "RO"):
             return val
 
@@ -901,6 +895,7 @@ def _incr_iscsiSR_refcount(targetIQN, uuid):
         raise xs_errors.XenError('LVMRefCount', \
                                  opterr='file %s' % filename)
 
+    f.seek(0)
     found = False
     refcount = 0
     for line in filter(match_uuid, f.readlines()):
@@ -923,11 +918,13 @@ def _decr_iscsiSR_refcount(targetIQN, uuid):
     except:
         raise xs_errors.XenError('LVMRefCount', \
                                  opterr='file %s' % filename)
+
+    f.seek(0)
     output = []
     refcount = 0
     for line in filter(match_uuid, f.readlines()):
         if line.find(uuid) == -1:
-            output.append(line[:-1])
+            output.append(line.rstrip())
             refcount += 1
     if not refcount:
         os.unlink(filename)
@@ -984,7 +981,7 @@ def _testHost(hostname, port, errstring):
     try:
         sock.connect(sockinfo[4])
         # Fix for MS storage server bug
-        sock.send('\n')
+        sock.send(b'\n')
         sock.close()
     except socket.error as reason:
         SMlog("_testHost: Connect failed after %d seconds (%s) - %s" \
@@ -1125,7 +1122,7 @@ def set_scheduler(dev, str):
         devices.append(diskFromPartition(dev).replace('/', '!'))
     else:
         rawdev = diskFromPartition(dev)
-        devices = map(lambda x: os.path.realpath(x)[5:], scsiutil._genReverseSCSIidmap(rawdev.split('/')[-1]))
+        devices = [os.path.realpath(x)[5:] for x in scsiutil._genReverseSCSIidmap(rawdev.split('/')[-1])]
 
     for d in devices:
         set_scheduler_sysfs_node("/sys/block/%s" % d, str)
@@ -1422,7 +1419,7 @@ def findRunningProcessOrOpenFile(name, process=True):
             try:
                 try:
                     f = None
-                    f = open(os.path.join('/proc', pid, 'cmdline'), 'rb')
+                    f = open(os.path.join('/proc', pid, 'cmdline'), 'r')
                     prog = f.read()[:-1]
                     if prog:
                         # Just want the process name
@@ -1664,7 +1661,7 @@ illegal_xml_chars = [(0x00, 0x08), (0x0B, 0x1F), (0x7F, 0x84), (0x86, 0x9F),
                 (0xDFFFE, 0xDFFFF), (0xEFFFE, 0xEFFFF), (0xFFFFE, 0xFFFFF),
                 (0x10FFFE, 0x10FFFF)]
 
-illegal_ranges = ["%s-%s" % (unichr(low), unichr(high))
+illegal_ranges = ["%s-%s" % (chr(low), chr(high))
         for (low, high) in illegal_xml_chars
         if low < sys.maxunicode]
 

@@ -1,19 +1,15 @@
-from __future__ import print_function
 import errno
 import json
-from StringIO import StringIO
-import subprocess
+from io import StringIO
 import unittest
-import mock
+import unittest.mock as mock
 import os
 import sys
 import syslog
 import uuid
 
 import blktap2
-import testlib
 import util
-import XenAPI
 
 
 class BogusException(Exception):

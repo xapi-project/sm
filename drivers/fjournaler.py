@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -17,7 +15,6 @@
 #
 # File-based journaling
 
-from __future__ import print_function
 import os
 import errno
 

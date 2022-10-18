@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -23,7 +23,6 @@
 # Synchronization must be done at a higher level, by the users of this module
 #
 
-from __future__ import print_function
 import os
 import util
 from lock import Lock

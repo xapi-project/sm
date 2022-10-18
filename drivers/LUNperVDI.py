@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -84,13 +84,13 @@ class RAWVDI(VDI.VDI):
         smallest = 0
         for vdi in VDIs:
             if not vdi['managed'] \
-                   and long(vdi['virtual_size']) >= long(size) \
+                   and int(vdi['virtual_size']) >= int(size) \
                    and vdi['uuid'] in self.sr.vdis:
                 if not smallest:
-                    smallest = long(vdi['virtual_size'])
+                    smallest = int(vdi['virtual_size'])
                     v = vdi
-                elif long(vdi['virtual_size']) < smallest:
-                    smallest = long(vdi['virtual_size'])
+                elif int(vdi['virtual_size']) < smallest:
+                    smallest = int(vdi['virtual_size'])
                     v = vdi
         if smallest > 0:
             self.managed = True

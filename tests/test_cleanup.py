@@ -1,7 +1,6 @@
 import errno
 import unittest
-import mock
-import __builtin__
+import unittest.mock as mock
 
 from uuid import uuid4
 

@@ -1,6 +1,6 @@
 import unittest
 import BaseISCSI
-import mock
+import unittest.mock as mock
 import xs_errors
 import os
 

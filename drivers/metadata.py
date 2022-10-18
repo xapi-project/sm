@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -18,7 +18,6 @@
 # Metadata VDI format
 #
 
-from __future__ import print_function
 from xml.dom import minidom, Node
 import struct
 import sys
@@ -95,7 +94,7 @@ def _walkXML(parent):
                        child.nodeValue.strip():
                     content.append(child.nodeValue.strip())
             if content:
-                strContent = string.join(content)
+                strContent = ''.join(content)
                 Dict[util.to_plain_string(node.nodeName)] = util.to_plain_string(strContent)
             else:
                 # Walk the child nodes

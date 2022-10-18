@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -18,7 +18,6 @@
 # ISCSISR: ISCSI software initiator SR driver
 #
 
-from __future__ import print_function
 import SR
 import util
 import time
@@ -197,7 +196,7 @@ class BaseISCSISR(SR.SR):
         self.port = DEFAULT_PORT
         if 'port' in self.dconf and self.dconf['port']:
             try:
-                self.port = long(self.dconf['port'])
+                self.port = int(self.dconf['port'])
             except:
                 raise xs_errors.XenError('ISCSIPort')
         if self.port > MAXPORT or self.port < 1:
@@ -218,7 +217,7 @@ class BaseISCSISR(SR.SR):
             self._scan_IQNs()
             raise xs_errors.XenError('ConfigTargetIQNMissing')
 
-        self.targetIQN = unicode(self.dconf['targetIQN']).encode('utf-8')
+        self.targetIQN = self.dconf['targetIQN']
 
         self._attached = None
         self._pathdict = None
@@ -258,7 +257,7 @@ class BaseISCSISR(SR.SR):
                     key = "%s:%s" % (ipaddr, port)
                     rec = {}
                     rec['ipaddr'] = ipaddr
-                    rec['port'] = long(port)
+                    rec['port'] = int(port)
                     rec['path'] = os.path.join("/dev/iscsi", self.targetIQN, \
                                    key)
                     self._pathdict[key] = rec
@@ -318,9 +317,9 @@ class BaseISCSISR(SR.SR):
             for val in targetlist:
                 (target, port) = iscsilib.parse_IP_port(val)
                 try:
-                    util._testHost(target, long(port), 'ISCSITarget')
+                    util._testHost(target, int(port), 'ISCSITarget')
                     self.target = target
-                    self.port = long(port)
+                    self.port = int(port)
                     conn = True
                     break
                 except:
@@ -334,30 +333,30 @@ class BaseISCSISR(SR.SR):
             # Check to see if auto attach was set
             if not iscsilib._checkTGT(self.targetIQN) or multiTargets:
                 try:
-                    map = []
+                    iqn_map = []
                     if 'any' != self.targetIQN:
                         try:
-                            map = iscsilib.get_node_records(self.targetIQN)
+                            iqn_map = iscsilib.get_node_records(self.targetIQN)
                         except:
                             # Pass the exception that is thrown, when there
                             # are no nodes
                             pass
-                    if len(map) == 0:
-                        map = iscsilib.discovery(self.target, self.port,
+                    if len(iqn_map) == 0:
+                        iqn_map = iscsilib.discovery(self.target, self.port,
                                                   self.chapuser, self.chappassword,
                                                   self.targetIQN,
                                                   iscsilib.get_iscsi_interfaces())
-                    if len(map) == 0:
+                    if len(iqn_map) == 0:
                         self._scan_IQNs()
                         raise xs_errors.XenError('ISCSIDiscovery',
                                                  opterr='check target settings')
-                    for i in range(0, len(map)):
-                        (portal, tpgt, iqn) = map[i]
+                    for i in range(0, len(iqn_map)):
+                        (portal, tpgt, iqn) = iqn_map[i]
                         try:
                             (ipaddr, port) = iscsilib.parse_IP_port(portal)
                             if not self.multihomed and ipaddr != self.target:
                                 continue
-                            util._testHost(ipaddr, long(port), 'ISCSITarget')
+                            util._testHost(ipaddr, int(port), 'ISCSITarget')
                             util.SMlog("Logging in to [%s:%s]" % (ipaddr, port))
                             iscsilib.login(portal, iqn, self.chapuser,
                                            self.chappassword,
@@ -515,7 +514,7 @@ class BaseISCSISR(SR.SR):
             time.sleep(2)  # it seems impossible to tell when a scan's finished
             self._loadvdis()
             self.physical_utilisation = self.physical_size
-            for uuid, vdi in self.vdis.iteritems():
+            for uuid, vdi in self.vdis.items():
                 if vdi.managed:
                     self.physical_utilisation += vdi.size
             self.virtual_allocation = self.physical_utilisation
@@ -661,7 +660,7 @@ class BaseISCSISR(SR.SR):
     def _getLUNbySMconfig(self, sm_config):
         if 'LUNid' not in sm_config:
             raise xs_errors.XenError('VDIUnavailable')
-        LUNid = long(sm_config['LUNid'])
+        LUNid = int(sm_config['LUNid'])
         if not len(self._attach_LUN_bylunid(LUNid)):
             raise xs_errors.XenError('VDIUnavailable')
         return os.path.join(self.path, "LUN%d" % LUNid)

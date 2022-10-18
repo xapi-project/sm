@@ -1,8 +1,7 @@
 import fcntl
 import unittest
-import mock
+import unittest.mock as mock
 import os
-import gc
 import errno
 import struct
 

@@ -1,5 +1,5 @@
 import iscsilib
-import mock
+import unittest.mock as mock
 import unittest
 
 

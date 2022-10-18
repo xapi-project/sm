@@ -1,7 +1,7 @@
 import unittest
 import testlib
 import os
-import mock
+import unittest.mock as mock
 import errno
 
 import refcounter

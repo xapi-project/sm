@@ -1,5 +1,5 @@
 import cbtutil
-import mock
+import unittest.mock as mock
 import unittest
 import uuid
 

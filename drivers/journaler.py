@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -17,7 +17,6 @@
 #
 # LVM-based journaling
 
-from __future__ import print_function
 import util
 from srmetadata import open_file, close, get_min_blk_size_wrapper, \
     file_read_wrapper, file_write_wrapper
@@ -129,7 +128,7 @@ class Journaler:
         """Return True if there any journals for "id", False otherwise"""
         # Pass False as an argument to skip opening journal files
         entries = self._getAllEntries(False)
-        for type, ids in entries.iteritems():
+        for type, ids in entries.items():
             if ids.get(id):
                 return True
         return False

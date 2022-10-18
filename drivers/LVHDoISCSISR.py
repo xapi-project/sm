@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -18,7 +18,6 @@
 # LVHDoISCSISR: LVHD over ISCSI software initiator SR driver
 #
 
-from __future__ import print_function
 import SR
 import LVHDSR
 import BaseISCSI
@@ -30,7 +29,7 @@ import time
 import os
 import sys
 import xs_errors
-import xmlrpclib
+import xmlrpc.client
 import mpath_cli
 import iscsilib
 import glob
@@ -138,7 +137,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                                 (portal, tpgt, iqn) = map[i]
                                 (ipaddr, port) = iscsilib.parse_IP_port(portal)
                                 try:
-                                    util._testHost(ipaddr, long(port), 'ISCSITarget')
+                                    util._testHost(ipaddr, int(port), 'ISCSITarget')
                                 except:
                                     util.SMlog("Target Not reachable: (%s:%s)" % (ipaddr, port))
                                     continue
@@ -147,10 +146,10 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                     # Again, do not mess up with IQNs order. Dual controllers will benefit from that
                     if IQNstring == "":
                         # Compose the IQNstring first
-                        for key in dict.iterkeys():
+                        for key in dict.keys():
                             IQNstring += "%s|" % key
                         # Reinitialize and store iterator
-                        key_iterator = dict.iterkeys()
+                        key_iterator = iter(dict.keys())
                     else:
                         key_iterator = IQNs
 
@@ -302,7 +301,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                         IQNs = {}
                         IQNstring = ""
                         # iscsiSRs can be seen as a circular buffer: the head now is the matching one
-                        for kkk in range(iii, len(self.iscsiSRs)) + range(0, iii):
+                        for kkk in list(range(iii, len(self.iscsiSRs))) + list(range(0, iii)):
                             new_iscsiSRs.append(self.iscsiSRs[kkk])
                             ipaddr = self.iscsiSRs[kkk].target
                             port = self.iscsiSRs[kkk].port
@@ -412,7 +411,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 # make sure we've got that many sg devices present
                 for i in range(0, 30):
                     luns = scsiutil._dosgscan()
-                    sgdevs = filter(lambda r: r[1] == adapter, luns)
+                    sgdevs = [r for r in luns if r[1] == adapter]
                     if len(sgdevs) >= nluns:
                         util.SMlog("Got all %d sg devices" % nluns)
                         break
@@ -590,8 +589,8 @@ class LVHDoISCSIVDI(LVHDSR.LVHDVDI):
         dict['command'] = 'vdi_attach_from_config'
         # Return the 'config' encoded within a normal XMLRPC response so that
         # we can use the regular response/error parsing code.
-        config = xmlrpclib.dumps(tuple([dict]), "vdi_attach_from_config")
-        return xmlrpclib.dumps((config, ), "", True)
+        config = xmlrpc.client.dumps(tuple([dict]), "vdi_attach_from_config")
+        return xmlrpc.client.dumps((config, ), "", True)
 
     def attach_from_config(self, sr_uuid, vdi_uuid):
         util.SMlog("LVHDoISCSIVDI.attach_from_config")

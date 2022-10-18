@@ -1,7 +1,7 @@
 from io import BytesIO as StringIO
 import os
 import unittest
-import mock
+import unittest.mock as mock
 
 import fjournaler
 import journaler
@@ -78,7 +78,7 @@ class TestFjournaler(unittest.TestCase):
 
     def __fake_listdir(self, path):
         assert(path == TEST_DIR_PATH)
-        return [os.path.basename(x) for x in self.files.keys()]
+        return [os.path.basename(x) for x in list(self.files.keys())]
 
     def test_non_existing(self):
         self.assertIsNone(self.subject.get('clone', '1'))

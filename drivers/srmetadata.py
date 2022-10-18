@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -98,7 +96,8 @@ def file_write_wrapper(fd, offset, blocksize, data, length):
         if length % blocksize:
             newlength = length + (blocksize - length % blocksize)
         os.lseek(fd, offset, os.SEEK_SET)
-        result = os.write(fd, data + ' ' * (newlength - length))
+        to_write = data + ' ' * (newlength - length)
+        result = os.write(fd, to_write.encode())
     except OSError as e:
         raise OSError("Failed to write file with params %s. Error: %s" % \
                           ([fd, offset, blocksize, data, length], \
@@ -114,7 +113,7 @@ def file_read_wrapper(fd, offset, bytesToRead, min_block_size):
         raise OSError("Failed to read file with params %s. Error: %s" % \
                           ([fd, offset, min_block_size, bytesToRead], \
                             (e.errno)))
-    return result
+    return result.decode()
 
 
 def close(fd):
@@ -152,11 +151,11 @@ def buildHeader(len, major=metadata.MD_MAJOR, minor=metadata.MD_MINOR):
     return output
 
 
-def unpackHeader(input):
-    vals = input.split(HEADER_SEP)
+def unpackHeader(header):
+    vals = header.split(HEADER_SEP)
     if len(vals) != 4 or vals[0] != metadata.HDR_STRING:
         util.SMlog("Exception unpacking metadata header: "
-                   "Error: Bad header '%s'" % (input))
+                   "Error: Bad header '%s'" % (header))
         raise xs_errors.XenError('MetadataError', \
                         opterr='Bad header')
     return (vals[0], vals[1], vals[2], vals[3])
@@ -587,10 +586,10 @@ class MetadataHandler:
             if lower < SR_INFO_SIZE_IN_SECTORS * SECTOR_SIZE:
                 # if upper is less than SR header size
                 if upper <= SR_INFO_SIZE_IN_SECTORS * SECTOR_SIZE:
-                    for i in range(lower / SECTOR_SIZE, upper / SECTOR_SIZE):
+                    for i in range(lower // SECTOR_SIZE, upper // SECTOR_SIZE):
                         value += self.getSRInfoForSectors(sr_info, range(i, i + 1))
                 else:
-                    for i in range(lower / SECTOR_SIZE, SR_INFO_SIZE_IN_SECTORS):
+                    for i in range(lower // SECTOR_SIZE, SR_INFO_SIZE_IN_SECTORS):
                         value += self.getSRInfoForSectors(sr_info, range(i, i + 1))
 
                     # generate the remaining VDI
@@ -659,7 +658,7 @@ class MetadataHandler:
             # if lower is less than SR info
             if lower < SECTOR_SIZE * SR_INFO_SIZE_IN_SECTORS:
                 # generate SR info
-                for i in range(lower / SECTOR_SIZE, SR_INFO_SIZE_IN_SECTORS):
+                for i in range(lower // SECTOR_SIZE, SR_INFO_SIZE_IN_SECTORS):
                     value += self.getSRInfoForSectors(sr_info, range(i, i + 1))
 
                 # generate the rest of the VDIs till upper
@@ -739,26 +738,27 @@ class LVMMetadataHandler(MetadataHandler):
                 Dict[NAME_DESCRIPTION_TAG] = \
                         xml.sax.saxutils.escape(Dict[NAME_DESCRIPTION_TAG])
                 if len(Dict[NAME_LABEL_TAG]) + len(Dict[NAME_DESCRIPTION_TAG]) > \
-                    MAX_VDI_NAME_LABEL_DESC_LENGTH:
-                    if len(Dict[NAME_LABEL_TAG]) > MAX_VDI_NAME_LABEL_DESC_LENGTH / 2:
-                        length = util.unictrunc(Dict[NAME_LABEL_TAG], \
-                                MAX_VDI_NAME_LABEL_DESC_LENGTH / 2)
+                        MAX_VDI_NAME_LABEL_DESC_LENGTH:
+                    if len(Dict[NAME_LABEL_TAG]) > MAX_VDI_NAME_LABEL_DESC_LENGTH // 2:
+                        length = util.unictrunc(
+                            Dict[NAME_LABEL_TAG],
+                            MAX_VDI_NAME_LABEL_DESC_LENGTH // 2)
 
-                        util.SMlog('warning: name-label truncated from ' \
-                                + str(len(Dict[NAME_LABEL_TAG])) + ' to ' \
-                                + str(length) + ' bytes')
+                        util.SMlog('warning: name-label truncated from ' +
+                                   str(len(Dict[NAME_LABEL_TAG])) + ' to ' +
+                                   str(length) + ' bytes')
 
                         Dict[NAME_LABEL_TAG] = Dict[NAME_LABEL_TAG][:length]
 
-                    if len(Dict[NAME_DESCRIPTION_TAG]) > \
-                        MAX_VDI_NAME_LABEL_DESC_LENGTH / 2: \
-                    
-                        length = util.unictrunc(Dict[NAME_DESCRIPTION_TAG], \
-                                MAX_VDI_NAME_LABEL_DESC_LENGTH / 2)
+                    if (len(Dict[NAME_DESCRIPTION_TAG]) >
+                            MAX_VDI_NAME_LABEL_DESC_LENGTH // 2):
+                        length = util.unictrunc(
+                            Dict[NAME_DESCRIPTION_TAG],
+                            MAX_VDI_NAME_LABEL_DESC_LENGTH // 2)
 
-                        util.SMlog('warning: description truncated from ' \
-                            + str(len(Dict[NAME_DESCRIPTION_TAG])) + \
-                            ' to ' + str(length) + ' bytes')
+                        util.SMlog('warning: description truncated from ' +
+                                   str(len(Dict[NAME_DESCRIPTION_TAG])) +
+                                   ' to ' + str(length) + ' bytes')
 
                         Dict[NAME_DESCRIPTION_TAG] = \
                                 Dict[NAME_DESCRIPTION_TAG][:length]

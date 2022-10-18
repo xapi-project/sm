@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -20,7 +20,6 @@
 # on a VHD based SR. (FC or iSCSI)
 #
 
-from __future__ import print_function
 import os
 import sys
 import util

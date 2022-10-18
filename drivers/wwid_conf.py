@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -18,7 +18,6 @@
 # Manipulation utilities for multipath.conf
 #
 
-from __future__ import print_function
 import fileinput
 import shutil
 import sys

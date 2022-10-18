@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -89,7 +87,7 @@ class LVMCache:
             fields = line.split()
             lvName = fields[0]
             lvInfo = LVInfo(lvName)
-            lvInfo.size = long(fields[3].replace("B", ""))
+            lvInfo.size = int(fields[3].replace("B", ""))
             lvInfo.active = (fields[2][4] == 'a')
             if (fields[2][5] == 'o'):
                 lvInfo.open = 1
@@ -306,6 +304,6 @@ class LVMCache:
 
     def toString(self):
         result = "LVM Cache for %s: %d LVs" % (self.vgName, len(self.lvs))
-        for lvName, lvInfo in self.lvs.iteritems():
+        for lvName, lvInfo in self.lvs.items():
             result += "\n%s" % lvInfo.toString()
         return result

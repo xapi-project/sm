@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -17,8 +17,6 @@
 #
 # FileSR: local-file storage repository
 
-from __future__ import print_function
-
 import socket
 
 import SR
@@ -28,7 +26,7 @@ import util
 import errno
 import os
 import sys
-import xmlrpclib
+import xmlrpc.client
 import xs_errors
 import nfs
 import vhdutil
@@ -92,7 +90,7 @@ class NFSSR(FileSR.SharedFileSR):
         self.nosubdir = self.sm_config.get('nosubdir') == "true"
         if 'serverpath' in self.dconf:
             self.remotepath = os.path.join(self.dconf['serverpath'],
-                    not self.nosubdir and sr_uuid or "").encode('utf-8')
+                    not self.nosubdir and sr_uuid or "")
         self.path = os.path.join(SR.MOUNT_BASE, sr_uuid)
 
         # Handle optional dconf attributes
@@ -199,7 +197,7 @@ class NFSSR(FileSR.SharedFileSR):
 
         # Set the target path temporarily to the base dir
         # so that we can create the target SR directory
-        self.remotepath = self.dconf['serverpath'].encode('utf-8')
+        self.remotepath = self.dconf['serverpath']
         try:
             self.mount_remotepath(sr_uuid)
         except Exception as exn:
@@ -235,7 +233,7 @@ class NFSSR(FileSR.SharedFileSR):
 
             # Set the target path temporarily to the base dir
             # so that we can remove the target SR directory
-            self.remotepath = self.dconf['serverpath'].encode('utf-8')
+            self.remotepath = self.dconf['serverpath']
             self.mount_remotepath(sr_uuid)
             if not self.nosubdir:
                 newpath = os.path.join(self.path, sr_uuid)
@@ -297,8 +295,8 @@ class NFSFileVDI(FileSR.FileVDI):
         resp['command'] = 'vdi_attach_from_config'
         # Return the 'config' encoded within a normal XMLRPC response so that
         # we can use the regular response/error parsing code.
-        config = xmlrpclib.dumps(tuple([resp]), "vdi_attach_from_config")
-        return xmlrpclib.dumps((config, ), "", True)
+        config = xmlrpc.client.dumps(tuple([resp]), "vdi_attach_from_config")
+        return xmlrpc.client.dumps((config, ), "", True)
 
     def attach_from_config(self, sr_uuid, vdi_uuid):
         """Used for HA State-file only. Will not just attach the VDI but

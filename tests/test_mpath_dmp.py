@@ -1,11 +1,10 @@
 """
 Unit tests for mpath dmp
 """
-from __future__ import print_function
 import errno
 import os
 import unittest
-import mock
+import unittest.mock as mock
 import testlib
 import util
 
@@ -13,9 +12,7 @@ import mpath_dmp
 import SR
 from SR import SROSError
 
-from Queue import Queue
-
-import xs_errors
+from queue import Queue
 
 
 # pylint: disable=W0613; mocks don't need to be accessed
