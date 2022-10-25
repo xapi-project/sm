@@ -205,6 +205,7 @@ def hasParent(path):
     be present (e.g. the parent LV to be activated)."""
     cmd = [VHD_UTIL, "read", OPT_LOG_ERR, "-p", "-n", path]
     ret = ioretry(cmd)
+    # pylint: disable=no-member
     m = re.match(".*Disk type\s+: (\S+) hard disk.*", ret, flags=re.S)
     vhd_type = m.group(1)
     assert(vhd_type == "Differencing" or vhd_type == "Dynamic")

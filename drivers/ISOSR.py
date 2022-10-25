@@ -55,6 +55,7 @@ NFSPORT = 2049
 
 
 def is_image_utf8_compatible(s):
+    # pylint: disable=no-member
     regex = re.compile("\.iso$|\.img$", re.I)
     if regex.search(s) is None:
         return False
@@ -117,6 +118,7 @@ class ISOSR(SR.SR):
         except:
             raise xs_errors.XenError('DNSError')
 
+    # pylint: disable=no-member
     uuid_file_regex = re.compile(
         "([0-9a-f]{8}-(([0-9a-f]{4})-){3}[0-9a-f]{12})\.(iso|img)", re.I)
 
@@ -173,6 +175,7 @@ class ISOSR(SR.SR):
         """Returns the content_type XML"""
         return super(ISOSR, self).content_type(sr_uuid)
 
+    # pylint: disable=no-member
     vdi_path_regex = re.compile("[a-z0-9.-]+\.(iso|img)", re.I)
 
     def vdi(self, uuid):
