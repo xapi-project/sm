@@ -101,7 +101,7 @@ class TestSR(unittest.TestCase):
 
         sr.lock()
 
-        self.assertEquals(2, sr._locked)
+        self.assertEqual(2, sr._locked)
 
     def test_lock_if_no_locking_is_used(self):
         """
@@ -114,7 +114,7 @@ class TestSR(unittest.TestCase):
 
         sr.lock()
 
-        self.assertEquals(0, sr._locked)
+        self.assertEqual(0, sr._locked)
 
     @mock.patch('cleanup.IPCFlag', autospec=True)
     def test_lock_succeeds_if_lock_is_acquired(
@@ -130,7 +130,7 @@ class TestSR(unittest.TestCase):
 
         sr.lock()
 
-        self.assertEquals(1, sr._locked)
+        self.assertEqual(1, sr._locked)
 
     @mock.patch('cleanup.IPCFlag', autospec=True)
     def test_lock_raises_exception_if_abort_requested(
@@ -175,7 +175,7 @@ class TestSR(unittest.TestCase):
         with self.assertRaises(util.SMException):
             sr.lock()
 
-        self.assertEquals(0, sr._locked)
+        self.assertEqual(0, sr._locked)
 
     def test_gcPause_fist_point_legal(self):
         """
@@ -308,10 +308,10 @@ class TestSR(unittest.TestCase):
         ret = cleanup.abort(mock_sr, False)
 
         # Pass on the return from _abort.
-        self.assertEquals(True, ret)
+        self.assertEqual(True, ret)
 
         # We hold lockActive so make sure we release it.
-        self.assertEquals(cleanup.lockActive.release.call_count, 1)
+        self.assertEqual(cleanup.lockActive.release.call_count, 1)
 
     @mock.patch('cleanup.SR', autospec=True)
     @mock.patch('cleanup._abort')
@@ -335,56 +335,56 @@ class TestSR(unittest.TestCase):
         ret = cleanup.abort(mock_sr, False)
 
         # Make sure pass on False returned by _abort
-        self.assertEquals(False, ret)
+        self.assertEqual(False, ret)
 
         # Make sure we did not release the lock as we don't have it.
-        self.assertEquals(cleanup.lockActive.release.call_count, 0)
+        self.assertEqual(cleanup.lockActive.release.call_count, 0)
 
     @mock.patch('cleanup._abort')
-    @mock.patch.object(__builtin__, 'raw_input')
+    @mock.patch('cleanup.input')
     def test_abort_optional_renable_active_held(
             self,
-            mock_raw_input,
+            mock_input,
             mock_abort):
         """
         Cli has option to re enable gc make sure we release the locks
         correctly if _abort returns True.
         """
         mock_abort.return_value = True
-        mock_raw_input.return_value = None
+        mock_input.return_value = None
 
         self.mock_cleanup_locks()
 
         cleanup.abort_optional_reenable(None)
 
         # Make sure released lockActive
-        self.assertEquals(cleanup.lockActive.release.call_count, 1)
+        self.assertEqual(cleanup.lockActive.release.call_count, 1)
 
         # Make sure released lockRunning
-        self.assertEquals(cleanup.lockRunning.release.call_count, 1)
+        self.assertEqual(cleanup.lockRunning.release.call_count, 1)
 
     @mock.patch('cleanup._abort')
-    @mock.patch.object(__builtin__, 'raw_input')
+    @mock.patch('cleanup.input')
     def test_abort_optional_renable_active_not_held(
             self,
-            mock_raw_input,
+            mock_input,
             mock_abort):
         """
         Cli has option to reenable gc make sure we release the locks
         correctly if _abort return False.
         """
         mock_abort.return_value = False
-        mock_raw_input.return_value = None
+        mock_input.return_value = None
 
         self.mock_cleanup_locks()
 
         cleanup.abort_optional_reenable(None)
 
         # Don't release lockActive, we don't hold it.
-        self.assertEquals(cleanup.lockActive.release.call_count, 0)
+        self.assertEqual(cleanup.lockActive.release.call_count, 0)
 
         # Make sure released lockRunning
-        self.assertEquals(cleanup.lockRunning.release.call_count, 1)
+        self.assertEqual(cleanup.lockRunning.release.call_count, 1)
 
     @mock.patch('cleanup.init')
     def test__abort_returns_true_when_get_lock(
@@ -396,7 +396,7 @@ class TestSR(unittest.TestCase):
         """
         cleanup.lockActive = AlwaysFreeLock()
         ret = cleanup._abort(None)
-        self.assertEquals(ret, True)
+        self.assertEqual(ret, True)
 
     @mock.patch('cleanup.IPCFlag', autospec=True)
     @mock.patch('cleanup.init')
@@ -565,7 +565,7 @@ class TestSR(unittest.TestCase):
         vdi = cleanup.VDI(sr, str(vdi_uuid), False)
 
         res = sr._coalesceLeaf(vdi)
-        self.assertEquals(res, "This is a test")
+        self.assertEqual(res, "This is a test")
         self.assertEqual(sr._liveLeafCoalesce.call_count, 1)
         self.assertEqual(sr._snapshotCoalesce.call_count, 0)
 
@@ -609,9 +609,9 @@ class TestSR(unittest.TestCase):
         with self.assertRaises(util.SMException) as exc:
             sr._coalesceLeaf(vdi)
 
-        self.assertEqual("VDI {uuid} could not be"
-                         " coalesced".format(uuid=vdi_uuid),
-                         exc.exception.message)
+        self.assertIn("VDI {uuid} could not be"
+                      " coalesced".format(uuid=vdi_uuid),
+                      str(exc.exception))
 
     @mock.patch('cleanup.VDI.canLiveCoalesce', autospec=True,
                 return_value=False)
@@ -636,9 +636,9 @@ class TestSR(unittest.TestCase):
         with self.assertRaises(util.SMException) as exc:
             sr._coalesceLeaf(vdi)
 
-        self.assertEqual("VDI {uuid} could not be"
-                         " coalesced".format(uuid=vdi_uuid),
-                         exc.exception.message)
+        self.assertIn("VDI {uuid} could not be"
+                      " coalesced".format(uuid=vdi_uuid),
+                      str(exc.exception))
 
     @mock.patch('cleanup.VDI.canLiveCoalesce', autospec=True)
     @mock.patch('cleanup.VDI.getSizeVHD', autospec=True)
@@ -990,7 +990,7 @@ class TestSR(unittest.TestCase):
         self.assertEqual(mock_lock.call_count, 1)
         self.assertEqual(mock_unlock.call_count, 1)
 
-    @mock.patch("__builtin__.open", autospec=True)
+    @mock.patch("builtins.open", autospec=True)
     @mock.patch("os.path.isfile", autospec=True)
     @mock.patch("os.chmod", autospec=True)
     @mock.patch("cleanup.SR.lock", autospec=True)
@@ -1057,7 +1057,7 @@ class TestSR(unittest.TestCase):
         self.assertEqual(mock_lock.call_count, 1)
         self.assertEqual(mock_unlock.call_count, 1)
 
-    @mock.patch("__builtin__.open",
+    @mock.patch("builtins.open",
                 autospec=True)
     @mock.patch("os.path.isfile", autospec=True)
     @mock.patch("util.atomicFileWrite", autospec=True)
@@ -1452,20 +1452,25 @@ class TestSR(unittest.TestCase):
              mock.call(vdis['child'], 'vhd-parent'),
              mock.call(vdis['child'], 'relinking')])
 
+    @mock.patch('cleanup.os.unlink', autospec=True)
     @mock.patch('cleanup.util', autospec=True)
     @mock.patch('cleanup.vhdutil', autospec=True)
     @mock.patch('cleanup.journaler.Journaler', autospec=True)
     @mock.patch('cleanup.Util.runAbortable')
     def test_coalesce_error(
-            self, mock_abortable, mock_journaler, mock_vhdutil, mock_util):
+            self, mock_abortable, mock_journaler, mock_vhdutil, mock_util,
+            mock_unlink):
         """
         Handle errors in coalesce
         """
-        self.xapi_mock.getConfigVDI.return_value = {}
-        run_abortable = mock.MagicMock(spec=self.runAbortable)
-        mock_abortable.side_effect = run_abortable
+        mock_util.SMException = util.SMException
 
-        run_abortable.side_effect = util.SMException("Timed out")
+        self.xapi_mock.getConfigVDI.return_value = {}
+
+        def run_abortable(func, ret, ns, abortTest, pollInterval, timeOut):
+            raise util.SMException("Timed out")
+
+        mock_abortable.side_effect = run_abortable
 
         sr_uuid = uuid4()
         sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
@@ -1482,25 +1487,30 @@ class TestSR(unittest.TestCase):
         mock_vhdutil.FILE_EXTN_RAW = vhdutil.FILE_EXTN_RAW
         mock_vhdutil.getParent.return_value = vdis['parent'].path
 
-        with self.assertRaises(util.SMException):
-            sr.coalesce(vdis['vdi'], False)
+        sr.coalesce(vdis['vdi'], False)
 
+        self.assertIn(vdis['vdi'], sr._failedCoalesceTargets)
         mock_vhdutil.repair.assert_called_with(vdis['parent'].path)
 
+    @mock.patch('cleanup.os.unlink', autospec=True)
     @mock.patch('cleanup.util', autospec=True)
     @mock.patch('cleanup.vhdutil', autospec=True)
     @mock.patch('cleanup.journaler.Journaler', autospec=True)
     @mock.patch('cleanup.Util.runAbortable')
     def test_coalesce_error_raw_parent(
-            self, mock_abortable, mock_journaler, mock_vhdutil, mock_util):
+            self, mock_abortable, mock_journaler, mock_vhdutil, mock_util,
+            mock_unlink):
         """
         Handle errors in coalesce with raw parent
         """
-        self.xapi_mock.getConfigVDI.return_value = {}
-        run_abortable = mock.MagicMock(spec=self.runAbortable)
-        mock_abortable.side_effect = run_abortable
+        mock_util.SMException = util.SMException
 
-        run_abortable.side_effect = util.SMException("Timed out")
+        self.xapi_mock.getConfigVDI.return_value = {}
+
+        def run_abortable(func, ret, ns, abortTest, pollInterval, timeOut):
+            raise util.SMException("Timed out")
+
+        mock_abortable.side_effect = run_abortable
 
         sr_uuid = uuid4()
         sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
@@ -1518,9 +1528,9 @@ class TestSR(unittest.TestCase):
         mock_vhdutil.FILE_EXTN_RAW = vhdutil.FILE_EXTN_RAW
         mock_vhdutil.getParent.return_value = vdis['parent'].path
 
-        with self.assertRaises(util.SMException):
-            sr.coalesce(vdis['vdi'], False)
+        sr.coalesce(vdis['vdi'], False)
 
+        self.assertIn(vdis['vdi'], sr._failedCoalesceTargets)
         self.assertEqual(0, mock_vhdutil.repair.call_count)
 
     def test_tag_children_for_relink_activation(self):
@@ -1593,7 +1603,7 @@ class TestSR(unittest.TestCase):
         with self.assertRaises(util.SMException) as sme:
             vdis['parent']._tagChildrenForRelink()
 
-        self.assertIn('Failed to tag vdi', sme.exception.message)
+        self.assertIn('Failed to tag vdi', str(sme.exception))
 
         self.assertGreater(mock_sleep.call_count, 5)
 

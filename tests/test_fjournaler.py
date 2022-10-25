@@ -12,7 +12,7 @@ TEST_DIR_PATH = '/var/lib/sometest'
 class FakeFile(object):
 
     def __init__(self):
-        self.content = ''
+        self.content = b''
         self.data = None
 
     def open(self):
@@ -26,7 +26,7 @@ class FakeFile(object):
         self.data = None
 
     def write(self, val):
-        self.data.write(val)
+        self.data.write(str.encode(val))
 
     def readline(self):
         return self.data.readline()
@@ -41,7 +41,7 @@ class TestFjournaler(unittest.TestCase):
         self.subject = fjournaler.Journaler(TEST_DIR_PATH)
 
         self.real_open = open
-        open_patcher = mock.patch("__builtin__.open", autospec=True)
+        open_patcher = mock.patch("builtins.open", autospec=True)
         self.mock_open = open_patcher.start()
         self.mock_open.side_effect = self.__open_selector
 
@@ -87,7 +87,7 @@ class TestFjournaler(unittest.TestCase):
         self.subject.create('clone', '1', 'a')
 
         val = self.subject.get('clone', '1')
-        self.assertEqual('a', val)
+        self.assertEqual(b'a', val)
 
         self.subject.remove('clone', '1')
 
@@ -98,15 +98,15 @@ class TestFjournaler(unittest.TestCase):
         self.subject.create("modify", "Z", "831_4")
         self.subject.create("modify", "Y", "53_0")
 
-        self.assertEqual("831_3", self.subject.get("modify", "X"),
+        self.assertEqual(b"831_3", self.subject.get("modify", "X"),
                          msg="create underscore_val failed")
-        self.assertEqual("53_0", self.subject.get("modify", "Y"),
+        self.assertEqual(b"53_0", self.subject.get("modify", "Y"),
                          msg="create multiple id's failed")
 
         entries = self.subject.getAll('modify')
         self.assertSetEqual({'X', 'Y', 'Z'}, set(entries.keys()))
-        self.assertEqual("831_3", entries['X'])
-        self.assertEqual("53_0", entries['Y'])
+        self.assertEqual(b"831_3", entries['X'])
+        self.assertEqual(b"53_0", entries['Y'])
 
         # Check no extra returned
         self.subject.create('clone', '1', 'a')
@@ -126,7 +126,7 @@ class TestFjournaler(unittest.TestCase):
         self.subject.remove('modify', 'X')
         entries = self.subject.getAll('modify')
         self.assertSetEqual({'Y', 'Z'}, set(entries.keys()))
-        self.assertEqual("53_0", entries['Y'])
+        self.assertEqual(b"53_0", entries['Y'])
 
     def test_create_existing_error(self):
         self.subject.create('clone', '1', 'a')

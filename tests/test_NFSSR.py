@@ -56,7 +56,7 @@ class TestNFSSR(unittest.TestCase):
                                                  Lock):
         validate_nfsversion.return_value = 'aNfsversion'
 
-        self.assertEquals(self.create_nfssr().nfsversion, "aNfsversion")
+        self.assertEqual(self.create_nfssr().nfsversion, "aNfsversion")
 
     @mock.patch('NFSSR.Lock', autospec=True)
     @mock.patch('nfs.validate_nfsversion', autospec=True)

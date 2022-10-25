@@ -73,7 +73,7 @@ class Executable(object):
 
     def run(self, args, stdin):
         (return_code, stdout, stderr) = self.function_to_call(args, stdin)
-        return (return_code, stdout, stderr)
+        return (return_code, stdout.encode(), stderr.encode())
 
 
 class Subprocess(object):
@@ -119,8 +119,7 @@ class TestContext(object):
 
     def start(self):
         self.patchers = [
-            # mock.patch('open', new=self.fake_open),
-            # mock.patch('file', new=self.fake_open),
+            mock.patch('builtins.open', new=self.fake_open),
             mock.patch('fcntl.fcntl', new=self.fake_fcntl),
             mock.patch('os.path.exists', new=self.fake_exists),
             mock.patch('os.makedirs', new=self.fake_makedirs),
@@ -172,9 +171,9 @@ class TestContext(object):
     def fake_modinfo(self, args, stdin_data):
         assert len(args) == 3
         assert args[1] == '-d'
-        return (0, args[2] + '-description', '')
+        return 0, (args[2] + '-description'), ''
 
-    def fake_popen(self, args, stdin, stdout, stderr, close_fds, env=None):
+    def fake_popen(self, args, stdin, stdout, stderr, close_fds, env=None, universal_newlines=None):
         import subprocess
         assert stdin == subprocess.PIPE
         assert stdout == subprocess.PIPE
@@ -372,7 +371,7 @@ class XmlMixIn(object):
 
         actual_dom = xml.dom.minidom.parseString(actual)
 
-        self.assertEquals(
+        self.assertEqual(
             marshalled(expected_dom),
             marshalled(actual_dom)
         )

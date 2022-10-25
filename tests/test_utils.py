@@ -12,7 +12,7 @@ class fake_proc:
         self.returncode = 0
 
     def communicate(self, inputtext):
-        return "hello", "hello"
+        return b"hello", b"hello"
 
 
 class TestCreate(unittest.TestCase):
@@ -33,7 +33,8 @@ class TestCreate(unittest.TestCase):
             popen.assert_called_with(expected_cmd,
                                      close_fds=True, stdin=-1, stderr=-1,
                                      env={'hello': 'world', 'NewVar2': 'blah',
-                                          'NewVar1': 'yadayada'}, stdout=-1)
+                                          'NewVar1': 'yadayada'}, stdout=-1,
+                                     universal_newlines=True)
 
     @mock.patch("os.fsync", autospec=True)
     @mock.patch("os.rename", autospec=True)
@@ -48,7 +49,7 @@ class TestCreate(unittest.TestCase):
         mock_isfile.return_value = False
         mock_mtemp.return_value = ("im_ignored",
                                    "/var/run/random_temp.txt")
-        with mock.patch('__builtin__.open', opener_mock, create=True) as m:
+        with mock.patch('builtins.open', opener_mock, create=True) as m:
 
             m.return_value.fileno.return_value = 123
             util.atomicFileWrite("/var/run/test.txt", "var/run", "blah blah")
@@ -78,7 +79,7 @@ class TestCreate(unittest.TestCase):
         mock_isfile.return_value = True
         mock_mtemp.return_value = ("im_ignored",
                                    "/var/run/random_temp.txt")
-        with mock.patch('__builtin__.open', opener_mock, create=True) as m:
+        with mock.patch('builtins.open', opener_mock, create=True) as m:
             m.return_value.write.side_effect = OSError((errno.EPERM),
                                                        'Not Allowed')
             m.return_value.closed = False

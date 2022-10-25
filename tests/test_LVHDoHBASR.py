@@ -124,7 +124,7 @@ class TestLVHDoHBASR(unittest.TestCase):
 
     @mock.patch('LVHDoHBASR.xs_errors.XML_DEFS',
                 "drivers/XE_SR_ERRORCODES.xml")
-    @mock.patch("__builtin__.open", new_callable=mock.mock_open())
+    @mock.patch("builtins.open", new_callable=mock.mock_open())
     @mock.patch('LVHDoHBASR.glob.glob', autospec=True)
     def test_sr_delete_no_multipath(self, mock_glob, mock_open):
         # Arrange

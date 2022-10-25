@@ -11,13 +11,13 @@ class TestTestContext(unittest.TestCase):
         context = testlib.TestContext()
         context.inventory = dict(key='value')
 
-        self.assertEquals("key='value'", context.generate_inventory_contents())
+        self.assertEqual("key='value'", context.generate_inventory_contents())
 
     @testlib.with_context
     def test_adapter_adds_scsi_host_entry(self, context):
         context.add_adapter(testlib.SCSIAdapter())
 
-        self.assertEquals(['host0'], os.listdir('/sys/class/scsi_host'))
+        self.assertEqual(['host0'], os.listdir('/sys/class/scsi_host'))
 
     @testlib.with_context
     def test_add_disk_adds_scsi_disk_entry(self, context):
@@ -25,7 +25,7 @@ class TestTestContext(unittest.TestCase):
         adapter = context.add_adapter(testlib.SCSIAdapter())
         adapter.add_disk()
 
-        self.assertEquals(
+        self.assertEqual(
             ['/sys/class/scsi_disk/0:0:0:0'],
             glob.glob('/sys/class/scsi_disk/0*'))
 
@@ -36,7 +36,7 @@ class TestTestContext(unittest.TestCase):
         adapter.long_id = 'HELLO'
         adapter.add_disk()
 
-        self.assertEquals(
+        self.assertEqual(
             ['/dev/disk/by-scsibus/HELLO-0:0:0:0'],
             glob.glob('/dev/disk/by-scsibus/*'))
 
@@ -45,7 +45,7 @@ class TestTestContext(unittest.TestCase):
         adapter = context.add_adapter(testlib.SCSIAdapter())
         adapter.add_disk()
 
-        self.assertEquals(
+        self.assertEqual(
             ['sda'],
             os.listdir('/sys/class/scsi_disk/0:0:0:0/device/block'))
 
@@ -55,7 +55,7 @@ class TestTestContext(unittest.TestCase):
         disk = adapter.add_disk()
         disk.long_id = 'SOMEID'
 
-        self.assertEquals(['SOMEID'], os.listdir('/dev/disk/by-id'))
+        self.assertEqual(['SOMEID'], os.listdir('/dev/disk/by-id'))
 
     @testlib.with_context
     def test_add_disk_adds_glob(self, context):
@@ -63,7 +63,7 @@ class TestTestContext(unittest.TestCase):
         adapter = context.add_adapter(testlib.SCSIAdapter())
         disk = adapter.add_disk()
 
-        self.assertEquals(['/dev/disk/by-id'], glob.glob('/dev/disk/by-id'))
+        self.assertEqual(['/dev/disk/by-id'], glob.glob('/dev/disk/by-id'))
 
     @testlib.with_context
     def test_add_disk_path_exists(self, context):
@@ -90,7 +90,7 @@ class TestTestContext(unittest.TestCase):
         param_value = param_file.read()
         param_file.close()
 
-        self.assertEquals('value', param_value)
+        self.assertEqual('value', param_value)
 
     @testlib.with_context
     def test_uname_explicitly_defined(self, context):
@@ -99,7 +99,7 @@ class TestTestContext(unittest.TestCase):
 
         result = os.uname()
 
-        self.assertEquals('HELLO', result[2])
+        self.assertEqual('HELLO', result[2])
 
     @testlib.with_context
     def test_uname_default_kernel_version(self, context):
@@ -107,7 +107,7 @@ class TestTestContext(unittest.TestCase):
 
         result = os.uname()
 
-        self.assertEquals('3.1', result[2])
+        self.assertEqual('3.1', result[2])
 
     @testlib.with_context
     def test_inventory(self, context):
@@ -117,7 +117,7 @@ class TestTestContext(unittest.TestCase):
         inventory = inventory_file.read()
         inventory_file.close()
 
-        self.assertEquals('', inventory)
+        self.assertEqual('', inventory)
 
     @testlib.with_context
     def test_default_inventory(self, context):
@@ -125,7 +125,7 @@ class TestTestContext(unittest.TestCase):
         inventory = inventory_file.read()
         inventory_file.close()
 
-        self.assertEquals("PRIMARY_DISK='/dev/disk/by-id/primary'", inventory)
+        self.assertEqual("PRIMARY_DISK='/dev/disk/by-id/primary'", inventory)
 
     @testlib.with_context
     def test_exists_returns_false_for_non_existing(self, context):
@@ -179,9 +179,9 @@ class TestTestContext(unittest.TestCase):
         out, err = proc.communicate('in')
         rc = proc.returncode
 
-        self.assertEquals(1, rc)
-        self.assertEquals('in out', out)
-        self.assertEquals('something,a,b', err)
+        self.assertEqual(1, rc)
+        self.assertEqual(b'in out', out)
+        self.assertEqual(b'something,a,b', err)
 
     @testlib.with_context
     def test_modinfo(self, context):
@@ -197,9 +197,9 @@ class TestTestContext(unittest.TestCase):
         out, err = proc.communicate('in')
         rc = proc.returncode
 
-        self.assertEquals(0, rc)
-        self.assertEquals('somemodule-description', out)
-        self.assertEquals('', err)
+        self.assertEqual(0, rc)
+        self.assertEqual('somemodule-description', out)
+        self.assertEqual('', err)
 
     @testlib.with_context
     def test_makedirs_mocked_out(self, context):
@@ -242,11 +242,11 @@ class TestTestContext(unittest.TestCase):
     def test_write_a_file_in_non_existing_dir(self, context):
         with self.assertRaises(IOError) as cm:
             open('/blah/subdir/somefile', 'w')
-        self.assertEquals(errno.ENOENT, cm.exception.errno)
+        self.assertEqual(errno.ENOENT, cm.exception.errno)
 
     @testlib.with_context
     def test_file_returns_an_object_with_fileno_callable(self, context):
-        f = file('/file', 'w+')
+        f = open('/file', 'w+')
 
         self.assertTrue(hasattr(f, 'fileno'))
         self.assertTrue(callable(f.fileno))
@@ -257,10 +257,10 @@ class TestTestContext(unittest.TestCase):
 
         os.makedirs('/blah/subdir')
 
-        file_1 = file('/blah/subdir/somefile', 'w+')
+        file_1 = open('/blah/subdir/somefile', 'w+')
         fileno_1 = file_1.fileno()
 
-        file_2 = file('/blah/subdir/somefile2', 'w+')
+        file_2 = open('/blah/subdir/somefile2', 'w+')
         fileno_2 = file_2.fileno()
 
         self.assertTrue(fileno_1 != fileno_2)
@@ -270,7 +270,7 @@ class TestTestContext(unittest.TestCase):
 
         context.fake_makedirs('/some/path')
 
-        self.assertEquals([
+        self.assertEqual([
             '/',
             '/some',
             '/some/path'],
@@ -296,7 +296,7 @@ class TestTestContext(unittest.TestCase):
 
         context.fake_glob('/dir/*')
 
-        self.assertEquals(
+        self.assertEqual(
             [
                 mock.call('no glob', '/dir/*'),
             ],
@@ -312,7 +312,7 @@ class TestTestContext(unittest.TestCase):
         except:
             pass
 
-        self.assertEquals(
+        self.assertEqual(
             [
                 mock.call('tried to open file', '/nonexisting_file'),
             ],
@@ -331,18 +331,18 @@ class TestTestContext(unittest.TestCase):
         except:
             pass
 
-        self.assertEquals(original_open, os.open)
+        self.assertEqual(original_open, os.open)
 
     @testlib.with_context
     def test_rmdir_is_replaced_with_a_fake(self, context):
-        self.assertEquals(context.fake_rmdir, os.rmdir)
+        self.assertEqual(context.fake_rmdir, os.rmdir)
 
     def test_rmdir_raises_error_if_dir_not_found(self):
         context = testlib.TestContext()
 
         with self.assertRaises(OSError) as cm:
             context.fake_rmdir('nonexisting')
-        self.assertEquals(errno.ENOENT, cm.exception.errno)
+        self.assertEqual(errno.ENOENT, cm.exception.errno)
 
     def test_rmdir_removes_dir_if_found(self):
         context = testlib.TestContext()
@@ -360,19 +360,19 @@ class TestTestContext(unittest.TestCase):
 
         with self.assertRaises(OSError) as cm:
             context.fake_rmdir('/existing_dir')
-        self.assertEquals(errno.ENOTEMPTY, cm.exception.errno)
+        self.assertEqual(errno.ENOTEMPTY, cm.exception.errno)
 
 
 class TestFilesystemFor(unittest.TestCase):
     def test_returns_single_item_for_root(self):
         fs = testlib.filesystem_for('/')
 
-        self.assertEquals(['/'], fs)
+        self.assertEqual(['/'], fs)
 
     def test_returns_multiple_items_for_path(self):
         fs = testlib.filesystem_for('/somedir')
 
-        self.assertEquals(['/', '/somedir'], fs)
+        self.assertEqual(['/', '/somedir'], fs)
 
 
 class TestXmlMixIn(unittest.TestCase, testlib.XmlMixIn):

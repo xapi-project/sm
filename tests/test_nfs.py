@@ -11,13 +11,13 @@ class Test_nfs(unittest.TestCase):
     def test_check_server_tcp(self, pread):
         nfs.check_server_tcp('aServer')
 
-        pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-s', 'aServer'], quiet=False)
+        pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-s', 'aServer'], quiet=False, text=True)
 
     @mock.patch('util.pread', autospec=True)
     def test_check_server_tcp_nfsversion(self, pread):
         nfs.check_server_tcp('aServer', 'aNfsversion')
 
-        pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-s', 'aServer'], quiet=False)
+        pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-s', 'aServer'], quiet=False, text=True)
 
     @mock.patch('util.pread', autospec=True)
     def test_check_server_tcp_nfsversion_error(self, pread):
@@ -26,7 +26,7 @@ class Test_nfs(unittest.TestCase):
         with self.assertRaises(nfs.NfsException):
             nfs.check_server_tcp('aServer', 'aNfsversion')
 
-        pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-s', 'aServer'], quiet=False)
+        pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-s', 'aServer'], quiet=False, text=True)
 
     @mock.patch('time.sleep', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
@@ -38,8 +38,7 @@ class Test_nfs(unittest.TestCase):
         self.assertTrue(service_found)
         self.assertEqual(len(pread.mock_calls), 1)
         pread.assert_called_with(['/usr/sbin/rpcinfo', '-s', 'aServer'])
-        # Mock==1.0.1 (all that is available in Epel) doesn't suport this
-        #sleep.assert_not_called()
+        sleep.assert_not_called()
 
     @mock.patch('time.sleep', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
@@ -156,11 +155,11 @@ class Test_nfs(unittest.TestCase):
 
     def test_validate_nfsversion_default(self):
         for thenfsversion in ['', None]:
-            self.assertEquals(nfs.validate_nfsversion(thenfsversion), '3')
+            self.assertEqual(nfs.validate_nfsversion(thenfsversion), '3')
 
     def test_validate_nfsversion_valid(self):
         for thenfsversion in ['3', '4', '4.0', '4.1', '4.2']:
-            self.assertEquals(nfs.validate_nfsversion(thenfsversion),
+            self.assertEqual(nfs.validate_nfsversion(thenfsversion),
                               thenfsversion)
 
     # Can't use autospec due to http://bugs.python.org/issue17826

@@ -6,6 +6,7 @@ import lvutil
 import LVHDSR
 import journaler
 import lvhdutil
+import uuid
 import vhdutil
 
 class SMLog(object):
@@ -53,7 +54,7 @@ class TestLVHDSR(unittest.TestCase, Stubs):
 
         sr._loadvdis()
 
-        self.assertEquals([vdi_uuid], list(sr.allVDIs.keys()))
+        self.assertEqual([vdi_uuid], list(sr.allVDIs.keys()))
 
     @mock.patch('lvhdutil.lvRefreshOnAllSlaves', autospec=True)
     @mock.patch('lvhdutil.getVDIInfo', autospec=True)
@@ -83,7 +84,7 @@ class TestLVHDSR(unittest.TestCase, Stubs):
         sr = self.create_LVHDSR()
 
         sr._undoAllInflateJournals()
-        self.assertEquals(0, mock_lvhdutil_lvRefreshOnAllSlaves.call_count)
+        self.assertEqual(0, mock_lvhdutil_lvRefreshOnAllSlaves.call_count)
 
 class TestLVHDVDI(unittest.TestCase, Stubs):
 
@@ -92,15 +93,22 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
 
         lvhdutil_patcher = mock.patch('LVHDSR.lvhdutil', autospec=True)
         self.mock_lvhdutil = lvhdutil_patcher.start()
+        self.mock_lvhdutil.VG_LOCATION = lvhdutil.VG_LOCATION
+        self.mock_lvhdutil.VG_PREFIX = lvhdutil.VG_PREFIX
+        self.mock_lvhdutil.LV_PREFIX = lvhdutil.LV_PREFIX
         vhdutil_patcher = mock.patch('LVHDSR.vhdutil', autospec=True)
         self.mock_vhdutil = vhdutil_patcher.start()
+        self.mock_vhdutil.VDI_TYPE_VHD = vhdutil.VDI_TYPE_VHD
+        self.mock_vhdutil.VDI_TYPE_RAW = vhdutil.VDI_TYPE_RAW
+        self.mock_vhdutil.MAX_CHAIN_SIZE = vhdutil.MAX_CHAIN_SIZE
         lvutil_patcher = mock.patch('LVHDSR.lvutil', autospec=True)
         self.mock_lvutil = lvutil_patcher.start()
         vdi_util_patcher = mock.patch('VDI.util', autospec=True)
         self.mock_vdi_util = vdi_util_patcher.start()
         sr_util_patcher = mock.patch('LVHDSR.util', autospec=True)
         self.mock_sr_util = sr_util_patcher.start()
-        xmlrpclib_patcher = mock.patch('VDI.xmlrpclib', autospec=True)
+        self.mock_sr_util.gen_uuid.side_effect = str(uuid.uuid4())
+        xmlrpclib_patcher = mock.patch('VDI.xmlrpc.client', autospec=True)
         self.mock_xmlrpclib = xmlrpclib_patcher.start()
         cbtutil_patcher = mock.patch('VDI.cbtutil', autospec=True)
         self.mock_cbtutil = cbtutil_patcher.start()
@@ -156,7 +164,8 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         """
 
         # Arrange
-
+        xapi_session = mock_xenapi.xapi_local.return_value
+        xapi_session.xenapi.VDI.get_sm_config.return_value = {}
         vdi_uuid = 'some VDI UUID'
         mock_lv = self.get_dummy_vdi(vdi_uuid)
         self.get_dummy_vhd(vdi_uuid, False)
@@ -168,6 +177,8 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
 
         vdi = sr.vdi('some VDI UUID')
         self.mock_sr_util.pathexists.return_value = True
+
+        self.mock_vhdutil.getDepth.return_value = 1
 
         # Act
         clone = vdi.clone(sr.uuid, 'some VDI UUID')
@@ -184,6 +195,9 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         LVHDSR.snapshot, attached on host, no CBT
         """
         # Arrange
+        xapi_session = mock_xenapi.xapi_local.return_value
+        xapi_session.xenapi.VDI.get_sm_config.return_value = {}
+
         vdi_uuid = 'some VDI UUID'
         mock_lv = self.get_dummy_vdi(vdi_uuid)
         self.get_dummy_vhd(vdi_uuid, False)
@@ -203,6 +217,7 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         self.mock_sr_util.pathexists.return_value = True
         self.mock_sr_util.get_hosts_attached_on.return_value = ["hostref2"]
         self.mock_sr_util.get_this_host_ref.return_value = ["hostref1"]
+        self.mock_vhdutil.getDepth.return_value = 1
 
         # Act
         snap = vdi.snapshot(sr.uuid, "Dummy UUID")
@@ -219,6 +234,9 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         LVHDSR.snapshot, attached on host, with CBT
         """
         # Arrange
+        xapi_session = mock_xenapi.xapi_local.return_value
+        xapi_session.xenapi.VDI.get_sm_config.return_value = {}
+
         vdi_uuid = 'some VDI UUID'
         mock_lv = self.get_dummy_vdi(vdi_uuid)
         self.get_dummy_vhd(vdi_uuid, False)
@@ -240,6 +258,7 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         self.mock_sr_util.get_this_host_ref.return_value = ["hostref1"]
         self.mock_vdi_util.sr_get_capability.return_value = {
             'VDI_CONFIG_CBT'}
+        self.mock_vhdutil.getDepth.return_value = 1
 
         # Act
         with mock.patch('lock.Lock'):

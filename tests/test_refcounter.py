@@ -14,7 +14,7 @@ class TestRefCounter(unittest.TestCase):
 
         refcounter.RefCounter.get('not-important', False, 'somenamespace')
 
-        self.assertEquals(
+        self.assertEqual(
             ['somenamespace'],
             os.listdir(os.path.join(refcounter.RefCounter.BASE_DIR)))
 
@@ -25,7 +25,7 @@ class TestRefCounter(unittest.TestCase):
         result = refcounter.RefCounter.get(
             'not-important', False, 'somenamespace')
 
-        self.assertEquals(1, result)
+        self.assertEqual(1, result)
 
     @testlib.with_context
     def test_get_whencalled_creates_refcounter_file(self, context):
@@ -33,7 +33,7 @@ class TestRefCounter(unittest.TestCase):
 
         refcounter.RefCounter.get('someobject', False, 'somenamespace')
 
-        self.assertEquals(
+        self.assertEqual(
             ['someobject'],
             os.listdir(os.path.join(
                 refcounter.RefCounter.BASE_DIR, 'somenamespace')))
@@ -51,7 +51,7 @@ class TestRefCounter(unittest.TestCase):
         contents = refcounter_file.read()
         refcounter_file.close()
 
-        self.assertEquals('1 0\n', contents)
+        self.assertEqual('1 0\n', contents)
 
     @testlib.with_context
     def test_put_is_noop_if_already_zero(self, context):
@@ -60,7 +60,7 @@ class TestRefCounter(unittest.TestCase):
         result = refcounter.RefCounter.put(
             'someobject', False, 'somenamespace')
 
-        self.assertEquals(0, result)
+        self.assertEqual(0, result)
 
     @testlib.with_context
     def test_writeCount_returns_true_if_file_found(self, context):

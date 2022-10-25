@@ -9,7 +9,7 @@ class Test_sg_readcap(unittest.TestCase):
     def verify_sg_readcap(self, doexec, expected_result):
         result = scsiutil.sg_readcap('/dev/sda')
         doexec.assert_called_with(['/usr/bin/sg_readcap', '-b', '/dev/sda'])
-        self.assertEquals(result, expected_result)
+        self.assertEqual(result, expected_result)
 
     @mock.patch('util.doexec', autospec=True)
     def test_sg_readcap_10(self, doexec):

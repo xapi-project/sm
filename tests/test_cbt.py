@@ -72,6 +72,7 @@ class TestCBT(unittest.TestCase):
         self.xenapi.VDI = mock.MagicMock()
 
         self.sr.session = mock.MagicMock()
+        self.sr.path = '/run/sr-mount/test-sr'
 
         self.sr.session.xenapi = self.xenapi
 
@@ -323,7 +324,7 @@ class TestCBT(unittest.TestCase):
                            cbtutil.set_cbt_consistency, * args2)]
 
         mock_cbt.assert_has_calls(calls)
-        self.assertEquals({'cbtlog': expected_log_path}, log_path)
+        self.assertEqual({'cbtlog': expected_log_path}, log_path)
 
     @testlib.with_context
     @mock.patch('VDI.cbtutil', autospec=True)
@@ -341,7 +342,7 @@ class TestCBT(unittest.TestCase):
         # Check that one message is raised and return is None
         self._check_setting_state(self.vdi, False)
         self.xenapi.message.create.assert_called_once()
-        self.assertEquals(result, None)
+        self.assertEqual(result, None)
 
     @testlib.with_context
     @mock.patch('VDI.cbtutil', autospec=True)
@@ -627,7 +628,7 @@ class TestCBT(unittest.TestCase):
         with self.assertRaises(SR.SROSError) as exc:
             self.vdi.list_changed_blocks()
         # Test CBTChangedBlocksError is raised
-        self.assertEquals(exc.exception.errno, 460)
+        self.assertEqual(exc.exception.errno, 460)
 
     @testlib.with_context
     @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
@@ -642,7 +643,7 @@ class TestCBT(unittest.TestCase):
         with self.assertRaises(SR.SROSError) as exc:
             self.vdi.list_changed_blocks()
         # Test CBTChangedBlocksError is raised
-        self.assertEquals(exc.exception.errno, 460)
+        self.assertEqual(exc.exception.errno, 460)
 
     @testlib.with_context
     def test_list_changed_blocks_cbt_disabled(self, context):
@@ -655,7 +656,7 @@ class TestCBT(unittest.TestCase):
         with self.assertRaises(SR.SROSError) as exc:
             self.vdi.list_changed_blocks()
         # Test CBTChangedBlocksError is raised
-        self.assertEquals(exc.exception.errno, 460)
+        self.assertEqual(exc.exception.errno, 460)
 
     @testlib.with_context
     @mock.patch('VDI.cbtutil', autospec=True)
@@ -677,6 +678,7 @@ class TestCBT(unittest.TestCase):
         bitmap2 = bitarray(1024)
         mock_cbt.get_cbt_bitmap.side_effect = [bitmap1.tobytes(),
                                                bitmap2.tobytes()]
+        mock_cbt.get_cbt_size.return_value = 67108864
         bitmap1.bytereverse()
         bitmap2.bytereverse()
         expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
@@ -685,7 +687,7 @@ class TestCBT(unittest.TestCase):
         result = self.vdi.list_changed_blocks()
         # Assert that bitmap is only read for VDIs from source + 1 to target
         self.assertEqual(2, mock_cbt.get_cbt_bitmap.call_count)
-        self.assertEquals(result, expected_result)
+        self.assertEqual(result, expected_result)
 
     @testlib.with_context
     @mock.patch('VDI.cbtutil', autospec=True)
@@ -719,7 +721,7 @@ class TestCBT(unittest.TestCase):
         expected_result = xmlrpc.client.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()
-        self.assertEquals(result, expected_result)
+        self.assertEqual(result, expected_result)
 
     @testlib.with_context
     @mock.patch('VDI.cbtutil', autospec=True)
@@ -744,7 +746,7 @@ class TestCBT(unittest.TestCase):
         with self.assertRaises(SR.SROSError) as exc:
             self.vdi.list_changed_blocks()
         # Test CBTChangedBlocksError is raised
-        self.assertEquals(exc.exception.errno, 459)
+        self.assertEqual(exc.exception.errno, 459)
 
     @testlib.with_context
     @mock.patch('VDI.cbtutil', autospec=True)
@@ -763,11 +765,12 @@ class TestCBT(unittest.TestCase):
         bitmap2 = bitarray(80)
         mock_cbt.get_cbt_bitmap.side_effect = [bitmap1.tobytes(),
                                                bitmap2.tobytes()]
+        mock_cbt.get_cbt_size.return_value = 16777216
 
         with self.assertRaises(SR.SROSError) as exc:
             self.vdi.list_changed_blocks()
         # Test CBTChangedBlocksError is raised
-        self.assertEquals(exc.exception.errno, 459)
+        self.assertEqual(exc.exception.errno, 459)
 
     @testlib.with_context
     @mock.patch('VDI.cbtutil', autospec=True)
@@ -801,7 +804,7 @@ class TestCBT(unittest.TestCase):
         expected_result = xmlrpc.client.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()
-        self.assertEquals(result, expected_result)
+        self.assertEqual(result, expected_result)
 
     @testlib.with_context
     @mock.patch('VDI.cbtutil.get_cbt_size')
@@ -837,7 +840,7 @@ class TestCBT(unittest.TestCase):
         expected_result = xmlrpc.client.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()
-        self.assertEquals(result, expected_result)
+        self.assertEqual(result, expected_result)
 
     def _set_initial_state(self, vdi, cbt_enabled):
         self.xenapi.VDI.get_is_a_snapshot.return_value = False
@@ -854,7 +857,7 @@ class TestCBT(unittest.TestCase):
         return (parent_uuid, child_uuid)
 
     def _check_setting_state(self, vdi, cbt_enabled):
-        self.assertEquals(vdi._get_blocktracking_status(), cbt_enabled)
+        self.assertEqual(vdi._get_blocktracking_status(), cbt_enabled)
         if cbt_enabled:
             return vdi._get_cbt_logpath(self.vdi_uuid)
         else:

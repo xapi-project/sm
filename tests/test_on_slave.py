@@ -26,12 +26,12 @@ class Test_on_slave_is_open(unittest.TestCase):
             return self.real_import(name)
 
     def setUp(self):
+        self.addCleanup(mock.patch.stopall)
         self.mocks = {}
 
         self.real_import = __import__
 
-        import_patcher = mock.patch('__builtin__.__import__')
-        self.addCleanup(import_patcher.stop)
+        import_patcher = mock.patch('builtins.__import__')
         self.mock_import = import_patcher.start()
         self.mock_import.side_effect = self.fake_import
 

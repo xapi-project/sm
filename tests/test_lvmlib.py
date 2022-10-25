@@ -8,12 +8,12 @@ class ExecResultMixIn(object):
     def assertExecutionSucceeded(self, exec_result):
         returncode, stdout, stderr = exec_result
 
-        self.assertEquals(0, returncode)
+        self.assertEqual(0, returncode)
 
     def assertExecutionFailed(self, exec_result):
         returncode, stdout, stderr = exec_result
 
-        self.assertEquals(1, returncode)
+        self.assertEqual(1, returncode)
 
 
 class TestLVSubSystem(unittest.TestCase, ExecResultMixIn):
@@ -53,7 +53,7 @@ class TestLVSubSystem(unittest.TestCase, ExecResultMixIn):
         lvsubsystem.add_volume_group('vg')
         vg = lvsubsystem.get_volume_group('vg')
 
-        self.assertEquals('vg', vg.name)
+        self.assertEqual('vg', vg.name)
 
     def test_add_multiple_volume_groups(self):
         lvsubsystem = lvmlib.LVSubsystem(None, mock.Mock())
@@ -65,9 +65,9 @@ class TestLVSubSystem(unittest.TestCase, ExecResultMixIn):
         vg2 = lvsubsystem.get_volume_group('vg2')
         vg3 = lvsubsystem.get_volume_group('vg3')
 
-        self.assertEquals('vg1', vg1.name)
-        self.assertEquals('vg2', vg2.name)
-        self.assertEquals('vg3', vg3.name)
+        self.assertEqual('vg1', vg1.name)
+        self.assertEqual('vg2', vg2.name)
+        self.assertEqual('vg3', vg3.name)
 
     def test_fake_lvcreate_creates_volume(self):
         lvsubsystem = lvmlib.LVSubsystem(mock.Mock(), mock.Mock())
@@ -78,12 +78,12 @@ class TestLVSubSystem(unittest.TestCase, ExecResultMixIn):
 
         lv, = lvsubsystem.get_logical_volumes_with_name('name')
 
-        self.assertEquals('name', lv.name)
-        self.assertEquals(lvsubsystem.get_volume_group('vg'), lv.volume_group)
+        self.assertEqual('name', lv.name)
+        self.assertEqual(lvsubsystem.get_volume_group('vg'), lv.volume_group)
         self.assertTrue(lv.active)
         self.assertTrue(lv.zeroed)
-        self.assertEquals(None, lv.tag)
-        self.assertEquals(100, lv.size_mb)
+        self.assertEqual(None, lv.tag)
+        self.assertEqual(100, lv.size_mb)
 
     def test_fake_lvcreate_with_tags(self):
         lvsubsystem = lvmlib.LVSubsystem(mock.Mock(), mock.Mock())
@@ -93,7 +93,7 @@ class TestLVSubSystem(unittest.TestCase, ExecResultMixIn):
             "someprog -n name --addtag tagg -L 100 vg".split(), '')
 
         lv, = lvsubsystem.get_logical_volumes_with_name('name')
-        self.assertEquals('tagg', lv.tag)
+        self.assertEqual('tagg', lv.tag)
 
     def test_fake_lvcreate_inactive(self):
         lvsubsystem = lvmlib.LVSubsystem(mock.Mock(), mock.Mock())

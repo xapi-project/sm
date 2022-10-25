@@ -8,22 +8,16 @@ import xs_errors
 class TestXenError(unittest.TestCase):
     @testlib.with_context
     def test_without_xml_defs(self, context):
-        raised_exception = None
-        try:
+        with self.assertRaises(Exception) as e:
             xs_errors.XenError('blah')
-        except Exception as e:
-            raised_exception = e
 
-        self.assertTrue("No XML def file found" in str(e))
+        self.assertTrue("No XML def file found" in str(e.exception))
 
     @testlib.with_context
     def test_xml_defs(self, context):
         context.setup_error_codes()
 
-        raised_exception = None
-        try:
+        with self.assertRaises(Exception) as e:
             raise xs_errors.XenError('SRInUse')
-        except Exception as e:
-            raised_exception = e
 
-        self.assertTrue("The SR device is currently in use" in str(e))
+        self.assertTrue("The SR device is currently in use" in str(e.exception))

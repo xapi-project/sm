@@ -60,7 +60,7 @@ class Test_SMBSR(unittest.TestCase):
         with self.assertRaises(SR.SROSError) as cm:
             smbsr.attach('asr_uuid')
         # Check that we get the SMBMount error from XE_SR_ERRORCODES.xml
-        self.assertEquals(cm.exception.errno, 111)
+        self.assertEqual(cm.exception.errno, 111)
 
     @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
     @mock.patch('SMBSR.Lock', autospec=True)
@@ -137,7 +137,7 @@ class Test_SMBSR(unittest.TestCase):
         with self.assertRaises(SR.SROSError) as cm:
             smbsr.detach('asr_uuid')
         # Check that we get the SMBUnMount error from XE_SR_ERRORCODES.xml
-        self.assertEquals(cm.exception.errno, 112)
+        self.assertEqual(cm.exception.errno, 112)
 
     @mock.patch('SMBSR.SMBSR.checkmount', return_value=False, autospec=True)
     @mock.patch('SMBSR.Lock', autospec=True)

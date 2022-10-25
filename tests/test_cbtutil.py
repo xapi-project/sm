@@ -37,10 +37,10 @@ class TestCbtutil(unittest.TestCase):
     def test_getCBTConsistency_consistent(self, mock_util):
         mock_util.return_value = '1'
         consistent = cbtutil.get_cbt_consistency('testlog')
-        self.assertEquals(consistent, True)
+        self.assertEqual(consistent, True)
 
     @mock.patch('cbtutil._call_cbt_util', autospec=True)
     def test_getCBTConsistency_not_consistent(self, mock_util):
         mock_util.return_value = '0'
         consistent = cbtutil.get_cbt_consistency('testlog')
-        self.assertEquals(consistent, False)
+        self.assertEqual(consistent, False)

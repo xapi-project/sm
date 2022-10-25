@@ -38,7 +38,7 @@ class TestCreate(unittest.TestCase):
 
         created_lv, = lvsystem.get_logical_volumes_with_name('volume')
 
-        self.assertEquals(100, created_lv.size_mb)
+        self.assertEqual(100, created_lv.size_mb)
 
     @with_lvm_subsystem
     def test_create_volume_is_in_the_right_volume_group(self, lvsystem):
@@ -48,9 +48,9 @@ class TestCreate(unittest.TestCase):
 
         created_lv, = lvsystem.get_logical_volumes_with_name('volume')
 
-        self.assertEquals(100, created_lv.size_mb)
+        self.assertEqual(100, created_lv.size_mb)
 
-        self.assertEquals('VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7', created_lv.volume_group.name)
+        self.assertEqual('VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7', created_lv.volume_group.name)
         self.assertTrue(created_lv.active)
         self.assertTrue(created_lv.zeroed)
 
@@ -62,7 +62,7 @@ class TestCreate(unittest.TestCase):
 
         created_lv, = lvsystem.get_logical_volumes_with_name('volume')
 
-        self.assertEquals(100, created_lv.size_mb)
+        self.assertEqual(100, created_lv.size_mb)
 
         self.assertTrue(created_lv.active)
         self.assertTrue(created_lv.zeroed)
@@ -75,7 +75,7 @@ class TestCreate(unittest.TestCase):
 
         created_lv, = lvsystem.get_logical_volumes_with_name('volume')
 
-        self.assertEquals(100, created_lv.size_mb)
+        self.assertEqual(100, created_lv.size_mb)
 
         self.assertTrue(created_lv.zeroed)
 
@@ -86,7 +86,7 @@ class TestCreate(unittest.TestCase):
         lvutil.create('volume', ONE_MEGABYTE, 'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7', tag='hello')
 
         created_lv, = lvsystem.get_logical_volumes_with_name('volume')
-        self.assertEquals('hello', created_lv.tag)
+        self.assertEqual('hello', created_lv.tag)
 
     @mock.patch('util.pread', autospec=True)
     def test_create_percentage_has_precedence_over_size(self, mock_pread):
@@ -110,7 +110,7 @@ class TestRemove(unittest.TestCase):
 
         lvutil.remove('VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume')
 
-        self.assertEquals([], lvsystem.get_logical_volumes_with_name('volume'))
+        self.assertEqual([], lvsystem.get_logical_volumes_with_name('volume'))
 
     @mock.patch('lvutil._lvmBugCleanup', autospec=True)
     @mock.patch('util.pread', autospec=True)
@@ -119,7 +119,7 @@ class TestRemove(unittest.TestCase):
         mock_pread.assert_called_once_with(
             [os.path.join(lvutil.LVM_BIN, lvutil.CMD_LVREMOVE)]
             + "-f VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume --config devices{blah}".split(),
-           quiet=False)
+           quiet=False, text=True)
 
 
 class TestDeactivate(unittest.TestCase):

@@ -93,7 +93,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
 
         trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
-        self.assertEquals([
+        self.assertEqual([
                 mock.call(1),
                 mock.call(1),
                 mock.call(1)
@@ -185,7 +185,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
 
         trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
-        self.assertEquals([
+        self.assertEqual([
                 mock.call('/dev/VG_XenStorage-some-uuid/some-uuid_trim_lv'),
                 mock.call(
                     '/dev/VG_XenStorage-some-uuid/some-uuid_trim_lv')
@@ -266,7 +266,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
 
         result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
-        self.assertEquals('True', result)
+        self.assertEqual('True', result)
 
     @mock.patch('trim_util.time.time', autospec=True)
     def test_log_last_triggered_no_key(self, mock_time):

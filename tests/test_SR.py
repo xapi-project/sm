@@ -79,7 +79,7 @@ class TestSR(unittest.TestCase):
 
         mock_scan.assert_called_once_with(sr1, 'dummy uuid')
 
-        self.assertEquals(1, mock_log.call_count)
+        self.assertEqual(1, mock_log.call_count)
         self.assertIn("Error in SR.after_master_attach",
                       mock_log.call_args[0][0])
         mock_session.xenapi.message.create.assert_called_once_with(

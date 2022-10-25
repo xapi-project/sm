@@ -37,14 +37,14 @@ class TestForceTapDiskConfig(TestBase):
     def test_default_value(self):
         iscsi_sr = self._get_iscsi_sr()
 
-        self.assertEquals(False, iscsi_sr.force_tapdisk)
+        self.assertEqual(False, iscsi_sr.force_tapdisk)
 
     def test_set_to_true(self):
         iscsi_sr = self._get_iscsi_sr({
             'force_tapdisk': 'true'
         })
 
-        self.assertEquals(True, iscsi_sr.force_tapdisk)
+        self.assertEqual(True, iscsi_sr.force_tapdisk)
 
 
 class NonInitingISCSISR(BaseISCSI.BaseISCSISR):
@@ -104,14 +104,14 @@ class TestVdiTypeSetting(TestBase):
 
         self.load_iscsi_sr(iscsi_sr=iscsi_sr)
 
-        self.assertEquals('phy', iscsi_sr.sr_vditype)
+        self.assertEqual('phy', iscsi_sr.sr_vditype)
 
     def test_vdi_type_modified_by_force_tapdisk(self):
         iscsi_sr = NonInitingISCSISR(extra_dconf=dict(force_tapdisk='true'))
 
         self.load_iscsi_sr(iscsi_sr=iscsi_sr)
 
-        self.assertEquals('aio', iscsi_sr.sr_vditype)
+        self.assertEqual('aio', iscsi_sr.sr_vditype)
 
 
 class TestMultiLUNISCSISR(unittest.TestCase):
@@ -138,9 +138,9 @@ class TestMultiLUNISCSISR(unittest.TestCase):
         node_ip_port = "%s:%d" % (node['ip'], node['port'])
         node_path = '/dev/iscsi/%s/%s' % (node['iqn'], node_ip_port)
 
-        self.assertEquals(node_path, iscsi_sr.path)
-        self.assertEquals(node_ip_port, iscsi_sr.tgtidx)
-        self.assertEquals(node_ip_port, iscsi_sr.address)
+        self.assertEqual(node_path, iscsi_sr.path)
+        self.assertEqual(node_ip_port, iscsi_sr.tgtidx)
+        self.assertEqual(node_ip_port, iscsi_sr.address)
 
     @mock.patch('BaseISCSI.os.path.exists', autospec=True)
     @mock.patch('BaseISCSI.iscsilib.get_node_records', autospec=True)

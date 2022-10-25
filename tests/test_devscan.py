@@ -94,7 +94,7 @@ class TestAdapters(unittest.TestCase):
     def test_no_adapters(self, context):
         result = devscan.adapters()
 
-        self.assertEquals({'devs': {}, 'adt': {}}, result)
+        self.assertEqual({'devs': {}, 'adt': {}}, result)
 
     @mock.patch('devscan.match_hbadevs', autospec=True)
     @testlib.with_context
@@ -105,7 +105,7 @@ class TestAdapters(unittest.TestCase):
         match_hbadevs.return_value = 'lpfc'
         result = devscan.adapters()
 
-        self.assertEquals(
+        self.assertEqual(
             {
                 'devs': {},
                 'adt': {
@@ -121,7 +121,7 @@ class TestAdapters(unittest.TestCase):
 
         result = devscan.adapters()
 
-        self.assertEquals(
+        self.assertEqual(
             {
                 'devs': {
                     'sda': {
@@ -137,34 +137,6 @@ class TestAdapters(unittest.TestCase):
             result)
 
 
-class TestExtractDevName(unittest.TestCase):
-    @testlib.with_context
-    def test_26_kernel(self, context):
-        context.kernel_version = '2.6'
-        context.fake_makedirs('/somepath/block:sde')
-        result = devscan._extract_dev_name('/somepath')
-
-        self.assertEquals('sde', result)
-
-    @testlib.with_context
-    def test_3x_kernel(self, context):
-        context.kernel_version = '3.2'
-        context.fake_makedirs('/somepath/block/sde')
-        result = devscan._extract_dev_name('/somepath')
-
-        self.assertEquals('sde', result)
-
-    @testlib.with_context
-    def test_extract_dev_name_from_directory_without_block_device(
-            self,
-            context):
-        context.kernel_version = '3.10'
-
-        result = devscan._extract_dev_name('/nonexisting')
-
-        self.assertEquals(devscan.INVALID_DEVICE_NAME, result)
-
-
 class TestUpdateDevsDict(unittest.TestCase):
     def test_whencalled_updates_dict(self):
         devices = {}
@@ -173,7 +145,7 @@ class TestUpdateDevsDict(unittest.TestCase):
 
         devscan.update_devs_dict(devices, dev, entry)
 
-        self.assertEquals({'dev': 'entry'}, devices)
+        self.assertEqual({'dev': 'entry'}, devices)
 
     def test_whencalled_with_empty_key_does_not_update_dict(self):
         devices = {}
@@ -182,4 +154,4 @@ class TestUpdateDevsDict(unittest.TestCase):
 
         devscan.update_devs_dict(devices, dev, entry)
 
-        self.assertEquals({}, devices)
+        self.assertEqual({}, devices)

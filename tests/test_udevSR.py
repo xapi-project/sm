@@ -20,8 +20,8 @@ class TestVdi(unittest.TestCase):
         sr_uuid = 'sr_uuid'
         udev_sr = udevSR.udevSR(srcmd, sr_uuid)
 
-        self.assertEquals(None, udev_sr.srcmd.params.get('vdi_location'))
+        self.assertEqual(None, udev_sr.srcmd.params.get('vdi_location'))
 
         udev_vdi = udev_sr.vdi('vdi_uuid')
 
-        self.assertEquals(VDI_LOCATION, udev_vdi.location)
+        self.assertEqual(VDI_LOCATION, udev_vdi.location)

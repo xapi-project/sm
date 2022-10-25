@@ -12,7 +12,7 @@ class TestStandaloneFunctions(unittest.TestCase):
 
     @mock.patch("sys.exit", autospec=True)
     @mock.patch('util.SMlog', autospec=True)
-    @mock.patch('__builtin__.reduce', autospec=True)
+    @mock.patch('util.reduce', autospec=True)
     @mock.patch('SRCommand.SRCommand.run_statics', autospec=True)
     @mock.patch('SRCommand.SRCommand.parse', autospec=True)
     def test_run_correctly_log_all_exceptions(
