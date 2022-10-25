@@ -60,7 +60,7 @@ def log_msg(msg):
 
 
 def get_pool_master_rec(session):
-    master_ref = session.xenapi.pool.get_all_records().values()[0]["master"]
+    master_ref = list(session.xenapi.pool.get_all_records().values())[0]["master"]
     master_rec = session.xenapi.host.get_record(master_ref)
     master_rec["opaque_ref"] = master_ref
     return master_rec

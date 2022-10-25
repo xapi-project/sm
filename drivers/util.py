@@ -381,12 +381,12 @@ def sr_get_capability(sr_uuid):
     session = get_localAPI_session()
     sr_ref = session.xenapi.SR.get_by_uuid(sr_uuid)
     sm_type = session.xenapi.SR.get_record(sr_ref)['type']
-    sm_rec = session.xenapi.SM.get_all_records_where( \
-                              "field \"type\" = \"%s\"" % sm_type)
+    sm_rec = session.xenapi.SM.get_all_records_where(
+        "field \"type\" = \"%s\"" % sm_type)
 
-    # SM expects atleast one entry of any SR type
+    # SM expects at least one entry of any SR type
     if len(sm_rec) > 0:
-        result = sm_rec.values()[0]['capabilities']
+        result = list(sm_rec.values())[0]['capabilities']
 
     session.xenapi.logout()
     return result

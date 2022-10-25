@@ -1631,6 +1631,7 @@ class VDI(object):
             if vdi_type != vhdutil.VDI_TYPE_RAW:
                 session = self.target.vdi.session
                 vdi_ref = session.xenapi.VDI.get_by_uuid(vdi_uuid)
+                # pylint: disable=used-before-assignment
                 sm_config = session.xenapi.VDI.get_sm_config(vdi_ref)
                 if 'key_hash' in sm_config:
                     key_hash = sm_config['key_hash']
