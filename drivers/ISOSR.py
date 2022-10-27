@@ -62,8 +62,8 @@ def is_image_utf8_compatible(s):
     # Check for extended characters
     if type(s) == str:
         try:
-            s.decode('utf-8')
-        except UnicodeDecodeError as e:
+            s.encode('utf-8')
+        except UnicodeEncodeError as e:
             util.SMlog("WARNING: This string is not UTF-8 compatible.")
             return False
     return True
@@ -136,8 +136,8 @@ class ISOSR(SR.SR):
             # CA-80254: Check for iso/img files whose name consists of extended
             # characters.
             try:
-                name.decode('ascii')
-            except UnicodeDecodeError:
+                name.encode('ascii')
+            except UnicodeEncodeError:
                 raise xs_errors.XenError('CIFSExtendedCharsNotSupported', \
                         opterr='The repository contains at least one file whose name consists of extended characters.')
 
@@ -572,8 +572,8 @@ class ISOSR(SR.SR):
         for f in util.listdir(self.path, quiet=True):
             if is_image_utf8_compatible(f):
                 try:
-                    f.decode('ascii')
-                except UnicodeDecodeError:
+                    f.encode('ascii')
+                except UnicodeEncodeError:
                     raise xs_errors.XenError('CIFSExtendedCharsNotSupported',
                             opterr='The repository contains at least one file whose name consists of extended characters.')
 
