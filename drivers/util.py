@@ -1863,7 +1863,7 @@ def isInvalidVDI(exception):
 def get_pool_restrictions(session):
     """Returns pool restrictions as a map, @session must be already
     established."""
-    return session.xenapi.pool.get_all_records().values()[0]['restrictions']
+    return list(session.xenapi.pool.get_all_records().values())[0]['restrictions']
 
 
 def read_caching_is_restricted(session):

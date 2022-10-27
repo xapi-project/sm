@@ -311,7 +311,7 @@ class XAPI:
 
     def isMaster(self):
         if self.srRecord["shared"]:
-            pool = self.session.xenapi.pool.get_all_records().values()[0]
+            pool = list(self.session.xenapi.pool.get_all_records().values())[0]
             return pool["master"] == self._hostRef
         else:
             pbds = self.getAttachedPBDs()
