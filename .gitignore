@@ -18,3 +18,4 @@ htmlcov
 sonar-project.properties
 dcopy/dcopy
 dcopy/tp
+.idea
