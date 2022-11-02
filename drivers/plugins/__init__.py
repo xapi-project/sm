@@ -1,17 +1,16 @@
 import glob
 import importlib
-import logging
-import logging.handlers
 import os
-import re
 import sys
 import traceback
 
+sys.path.append('/opt/xensource/sm/')
 import util
 
 plugindir = os.path.dirname(__file__)
 
 plugins = []
+
 
 def _log_exn_backtrace():
     for line in traceback.format_exc().splitlines():
