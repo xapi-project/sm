@@ -88,16 +88,6 @@ def calcOverheadBitmap(virtual_size):
     return num_blocks * 4096
 
 
-def calcOverheadFull(virtual_size):
-    """Calculate the VHD space overhead for a full VDI of size virtual_size
-    (this includes bitmaps, which constitute the bulk of the overhead)"""
-    return calcOverheadEmpty(virtual_size) + calcOverheadBitmap(virtual_size)
-
-
-def fullSizeVHD(virtual_size):
-    return virtual_size + calcOverheadFull(virtual_size)
-
-
 def ioretry(cmd, text=True):
     return util.ioretry(lambda: util.pread2(cmd, text=text),
                         errlist=[errno.EIO, errno.EAGAIN])

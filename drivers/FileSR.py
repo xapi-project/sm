@@ -56,8 +56,6 @@ DRIVER_INFO = {
     'configuration': CONFIGURATION
     }
 
-ENFORCE_VIRT_ALLOC = False
-
 JOURNAL_FILE_PREFIX = ".journal-"
 
 OPS_EXCLUSIVE = [
@@ -577,18 +575,6 @@ class FileVDI(VDI.VDI):
         if util.ioretry(lambda: util.pathexists(self.path)):
             raise xs_errors.XenError('VDIExists')
 
-        overhead = 0
-        if self.vdi_type == vhdutil.VDI_TYPE_VHD:
-            overhead = vhdutil.calcOverheadFull(int(size))
-
-        # Test the amount of actual disk space
-        if ENFORCE_VIRT_ALLOC:
-            self.sr._loadvdis()
-            reserved = self.sr.virtual_allocation
-            sr_size = self.sr._getsize()
-            if (sr_size - reserved) < (int(size) + overhead):
-                raise xs_errors.XenError('SRNoSpace')
-
         if self.vdi_type == vhdutil.VDI_TYPE_VHD:
             try:
                 size = vhdutil.validate_and_round_vhd_size(int(size))
@@ -687,16 +673,7 @@ class FileVDI(VDI.VDI):
 
         # We already checked it is a VDI_TYPE_VHD
         size = vhdutil.validate_and_round_vhd_size(int(size))
-        overhead = vhdutil.calcOverheadFull(int(size))
-
-        # Test the amount of actual disk space
-        if ENFORCE_VIRT_ALLOC:
-            self.sr._loadvdis()
-            reserved = self.sr.virtual_allocation
-            sr_size = self.sr._getsize()
-            delta = int(size - self.size)
-            if (sr_size - reserved) < delta:
-                raise xs_errors.XenError('SRNoSpace')
+        
         jFile = JOURNAL_FILE_PREFIX + self.uuid
         try:
             vhdutil.setSizeVirt(self.path, size, jFile)
@@ -814,18 +791,6 @@ class FileVDI(VDI.VDI):
                   opterr='failed to get VHD depth')
         elif depth >= vhdutil.MAX_CHAIN_SIZE:
             raise xs_errors.XenError('SnapshotChainTooLong')
-
-        # Test the amount of actual disk space
-        if ENFORCE_VIRT_ALLOC:
-            self.sr._loadvdis()
-            reserved = self.sr.virtual_allocation
-            sr_size = self.sr._getsize()
-            num_vdis = 2
-            if (snap_type == VDI.SNAPSHOT_SINGLE or snap_type == VDI.SNAPSHOT_INTERNAL):
-                num_vdis = 1
-            if (sr_size - reserved) < ((self.size + VDI.VDIMetadataSize( \
-                    vhdutil.VDI_TYPE_VHD, self.size)) * num_vdis):
-                raise xs_errors.XenError('SRNoSpace')
 
         newuuid = util.gen_uuid()
         src = self.path
