@@ -6,9 +6,16 @@ SMROOT=$(cd "$(dirname "$0")" && cd .. && pwd)
 
 TESTS=tests
 
+COVERAGE="coverage3"
+
+FILES="*.py"
+
+CHECK_TEST_COVERAGE=1
+
 if [ $# -ge 1 ] && [ -n "$1" ]; then
     echo "Only testing $1"
-    TESTS=$*
+    CHECK_TEST_COVERAGE=0
+    FILES=$1
 fi
 
 (
@@ -16,13 +23,15 @@ fi
     PYTHONPATH="$SMROOT/tests/mocks:$SMROOT/drivers/" \
         coverage run --branch \
             --source="$SMROOT/drivers,$SMROOT/tests" \
-            -m unittest discover -s "$TESTS" -p "*.py" -v
+            -m unittest discover -f -s "$TESTS" -p "$FILES" -v
 
     echo "Test coverage"
     if ! coverage report -m --fail-under=100 --include="$SMROOT/tests/*"
     then
         echo "Test code not fully covered"
-        exit 1
+        if [ "$CHECK_TEST_COVERAGE" == 1 ]; then
+            exit 1
+        fi
     fi
 
     echo "Code coverage"
