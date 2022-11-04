@@ -68,7 +68,7 @@ class LVSubsystem(object):
                 return vg
 
     def fake_lvchange(self, args, stdin):
-        return 0, '', ''
+        return 0, b'', b''
 
     def fake_lvcreate(self, args, stdin):
         self.logger('lvcreate', repr(args), stdin)
@@ -103,7 +103,7 @@ class LVSubsystem(object):
             active,
             zeroed)
 
-        return 0, '', ''
+        return 0, b'', b''
 
     def fake_lvremove(self, args, stdin):
         self.logger('lvremove', repr(args), stdin)
@@ -125,7 +125,7 @@ class LVSubsystem(object):
                 if '/'.join([vg.name, lv.name]) == lvpath:
                     vg.delete_volume(lv)
 
-        return 0, '', ''
+        return 0, b'', b''
 
     def fake_dmsetup(self, args, stdin):
-        return 0, '', ''
+        return 0, b'', b''

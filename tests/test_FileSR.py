@@ -4,11 +4,13 @@ import stat
 import unittest
 import unittest.mock as mock
 import uuid
-from builtins import str
+import xmlrpc.client
+
 from xml.dom.minidom import parseString
 
 import FileSR
 import SR
+import SRCommand
 import util
 import vhdutil
 from XenAPI import Failure
@@ -20,6 +22,7 @@ class FakeFileVDI(FileSR.FileVDI):
         self.hidden = False
         self.path = os.path.join(self.sr.path, '%s.%s' % (
                uuid, vhdutil.VDI_TYPE_VHD))
+        self.key_hash = None
 
 
 class TestFileVDI(unittest.TestCase):
@@ -315,6 +318,105 @@ class TestFileVDI(unittest.TestCase):
                mock.call('sr_path/%s.vhd' % new_vdi_uuid,
                          'sr_path/%s.vhd' % vdi_uuid)])
 
+    @mock.patch('FileSR.vhdutil', spec=True)
+    def test_create_vdi_vhd(self, mock_vhdutil):
+        # Arrange
+        mock_vhdutil.VDI_TYPE_VHD = vhdutil.VDI_TYPE_VHD
+        sr_uuid = str(uuid.uuid4())
+        vdi_uuid = str(uuid.uuid4())
+        sr = mock.MagicMock()
+        sr.path = "sr_path"
+        vdi = FakeFileVDI(sr, vdi_uuid)
+        vdi.vdi_type = vhdutil.VDI_TYPE_VHD
+        mock_vhdutil.validate_and_round_vhd_size.side_effect = vhdutil.validate_and_round_vhd_size
+
+        # Act
+        vdi.create(sr_uuid, vdi_uuid, 20 * 1024 * 1024)
+
+        # Assert
+        expected_path = f"sr_path/{vdi_uuid}.vhd"
+        self.mock_pread.assert_has_calls([
+            mock.call(["/usr/sbin/td-util", "create", "vhd",
+                       "20", expected_path]),
+            mock.call(["/usr/sbin/td-util", "query", "vhd", "-v",
+                       expected_path])])
+
+    @mock.patch('FileSR.vhdutil', spec=True)
+    @mock.patch('builtins.open', new_callable=mock.mock_open())
+    def test_create_vdi_raw(self, mock_open, mock_vhdutil):
+        # Arrange
+        mock_vhdutil.VDI_TYPE_RAW = vhdutil.VDI_TYPE_RAW
+        sr_uuid = str(uuid.uuid4())
+        vdi_uuid = str(uuid.uuid4())
+        sr = mock.MagicMock()
+        sr.path = "sr_path"
+        vdi = FakeFileVDI(sr, vdi_uuid)
+        vdi.vdi_type = vhdutil.VDI_TYPE_RAW
+
+        # Act
+        vdi.create(sr_uuid, vdi_uuid, 20 * 1024 * 1024)
+
+        # Assert
+        expected_path = f"sr_path/{vdi_uuid}.vhd"
+        mock_open.assert_called_with(expected_path, 'w')
+
+    @mock.patch("FileSR.util.pathexists", autospec=True)
+    @mock.patch("FileSR.os.chdir", autospec=True)
+    def test_vdi_load_vhd(self, mock_chdir, mock_pathexists):
+        # Arrange
+        self.mock_pread.return_value = """10240
+/dev/VG_XenStorage-602fa2e9-2f9e-84af-ac1d-de4616cdcccb/VHD-155a6d00-2f70-411f-9bc7-3fa51fa543ca has no parent
+hidden: 0
+"""
+        sr_uuid = str(uuid.uuid4())
+        vdi_uuid = str(uuid.uuid4())
+        srcmd = mock.MagicMock(SRCommand)
+        srcmd.cmd = "vdi_create"
+        srcmd.dconf = {}
+        srcmd.params = {
+            'command': 'vdi_create'
+        }
+        sr = FakeSharedFileSR(srcmd, sr_uuid)
+        vdi = FileSR.FileVDI(sr, vdi_uuid)
+        vdi.vdi_type = vhdutil.VDI_TYPE_VHD
+        mock_pathexists.return_value = True
+
+        # Act
+        vdi.load(vdi_uuid)
+
+        # Assert
+        sr_path = f"/var/run/sr-mount/{sr_uuid}"
+        mock_chdir.assert_has_calls([
+            mock.call(sr_path),
+            mock.call(sr_path)])
+
+    @mock.patch("FileSR.util.pathexists", autospec=True)
+    def test_vdi_generate_config(self, mock_pathexists):
+        # Arrange
+        sr_uuid = str(uuid.uuid4())
+        vdi_uuid = str(uuid.uuid4())
+        srcmd = mock.MagicMock(SRCommand)
+        srcmd.cmd = "vdi_create"
+        srcmd.dconf = {}
+        srcmd.params = {
+            'command': 'vdi_create'
+        }
+        sr = FakeSharedFileSR(srcmd, sr_uuid)
+        vdi = FakeFileVDI(sr, vdi_uuid)
+        mock_pathexists.return_value = True
+
+        # Act
+        response = vdi.generate_config(sr_uuid, vdi_uuid)
+
+        # Assert
+        xml_response = xmlrpc.client.loads(response)
+        self.assertIsNotNone(xml_response)
+        config = xmlrpc.client.loads(xml_response[0][0])[0][0]
+        self.assertEqual(sr_uuid, config['sr_uuid'])
+        self.assertEqual(vdi_uuid, config['vdi_uuid'])
+        self.assertEqual("vdi_attach_from_config",
+                         config['command'])
+
 
 class FakeSharedFileSR(FileSR.SharedFileSR):
     """
@@ -322,6 +424,7 @@ class FakeSharedFileSR(FileSR.SharedFileSR):
     """
     def load(self, sr_uuid):
         self.path = os.path.join(SR.MOUNT_BASE, sr_uuid)
+        self.lock = None
 
     def attach(self, sr_uuid):
         self._check_hardlinks()
@@ -336,18 +439,8 @@ class TestShareFileSR(unittest.TestCase):
     NO_HARDLINKS = "no_hardlinks"
 
     def setUp(self):
-        fist_patcher = mock.patch('FileSR.util.FistPoint.is_active',
-                                  autospec=True)
-        self.mock_fist = fist_patcher.start()
-
-        self.active_fists = set()
-        def active_fists():
-            return self.active_fists
-
-        def is_active(self, name):
-            return name in active_fists()
-
-        self.mock_fist.side_effect = is_active
+        util_patcher = mock.patch('FileSR.util', autospec=True)
+        self.mock_util = util_patcher.start()
 
         link_patcher = mock.patch('FileSR.os.link')
         self.mock_link = link_patcher.start()
@@ -362,6 +455,11 @@ class TestShareFileSR(unittest.TestCase):
         self.mock_xapi = xapi_patcher.start()
         self.mock_session = mock.MagicMock()
         self.mock_xapi.xapi_local.return_value = self.mock_session
+
+        vhdutil_patcher = mock.patch('FileSR.vhdutil', autospec=True)
+        self.mock_vhdutil = vhdutil_patcher.start()
+        glob_patcher = mock.patch("FileSR.glob", autospec=True)
+        self.mock_glob = glob_patcher.start()
 
         self.session_ref = "dummy_session"
 
@@ -434,9 +532,7 @@ class TestShareFileSR(unittest.TestCase):
         """
         # Arrange
         test_sr = self.create_test_sr()
-        self.active_fists.add('FileSR_fail_hardlink')
-
-        self.mock_link.side_effect = OSError(524, TestShareFileSR.ERROR_524)
+        self.mock_util.fistpoint.activate_custom_fn.side_effect = OSError(524, TestShareFileSR.ERROR_524)
 
         # Act
         with mock.patch('FileSR.open'):
@@ -447,3 +543,30 @@ class TestShareFileSR(unittest.TestCase):
             TestShareFileSR.TEST_SR_REF, TestShareFileSR.NO_HARDLINKS, 'True')
         self.mock_session.xenapi.message.create.assert_called_with(
             'sr_does_not_support_hardlinks', 2, "SR", self.sr_uuid, mock.ANY)
+
+    def test_scan_load_vdis_scan_list_differ(self):
+        """
+            Load the SR VDIs
+        """
+        # Arrange
+        test_sr = self.create_test_sr()
+
+        self.mock_util.pathexists.return_value = True
+        self.mock_util.ismount.return_value = True
+
+        vdi1_uuid = str(uuid.uuid4())
+        vdi1_info = vhdutil.VHDInfo(vdi1_uuid)
+        vdi1_info.error = False
+        vdi1_info.path = f"sr_path/{vdi1_uuid}.vhd"
+        test_vhds = {
+            vdi1_uuid: vdi1_info
+        }
+        self.mock_glob.glob.return_value = []
+
+        self.mock_vhdutil.getAllVHDs.return_value = test_vhds
+
+        # Act
+        test_sr.scan(self.sr_uuid)
+
+        # Assert
+        self.assertEqual(1, len(test_sr.vdis))

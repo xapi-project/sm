@@ -3,6 +3,8 @@ import unittest.mock as mock
 
 import scsiutil
 
+import testlib
+
 
 class Test_sg_readcap(unittest.TestCase):
 
@@ -31,3 +33,10 @@ class Test_sg_readcap(unittest.TestCase):
                     "0x283d8e000 0x200\n")
         doexec.return_value = (0, fake_out, '')
         self.verify_sg_readcap(doexec, 5530605060096)
+
+    @testlib.with_context
+    def test_refreshdev(self, context):
+        adapter = context.add_adapter(testlib.SCSIAdapter())
+        adapter.add_disk()
+
+        scsiutil.refreshdev(["/dev/sda"])

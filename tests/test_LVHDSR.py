@@ -1,13 +1,16 @@
-from __future__ import print_function
-from builtins import object
 import unittest
 import unittest.mock as mock
-import lvutil
-import LVHDSR
-import journaler
-import lvhdutil
 import uuid
+
+import LVHDSR
+import lvhdutil
+import lvutil
 import vhdutil
+
+import testlib
+
+PV_FOR_VG_DATA = "/dev/mapper/3600a098038314650465d523777417142"
+
 
 class SMLog(object):
     def __call__(self, *args):
@@ -85,6 +88,127 @@ class TestLVHDSR(unittest.TestCase, Stubs):
 
         sr._undoAllInflateJournals()
         self.assertEqual(0, mock_lvhdutil_lvRefreshOnAllSlaves.call_count)
+
+    @mock.patch('LVHDSR.cleanup', autospec=True)
+    @mock.patch('LVHDSR.IPCFlag', autospec=True)
+    @mock.patch('LVHDSR.Lock', autospec=True)
+    @mock.patch('SR.XenAPI')
+    @testlib.with_context
+    def test_attach_success(self,
+                            context,
+                            mock_xenapi,
+                            mock_lock,
+                            mock_ipc,
+                            mock_cleanup):
+        sr_uuid = str(uuid.uuid4())
+        self.stubout('lvutil._checkVG')
+        mock_lvm_cache = self.stubout('lvmcache.LVMCache')
+        mock_get_vg_stats = self.stubout('lvutil._getVGstats')
+        mock_scsi_get_size = self.stubout('scsiutil.getsize')
+
+        device_size = 100 * 1024 * 1024
+        device_free = 10 * 1024 * 1024
+        mock_get_vg_stats.return_value = {
+            'physical_size': device_size,
+            'physical_utilisation': device_free}
+        mock_scsi_get_size.return_value = device_size
+        mock_lvm_cache.return_value.checkLV.return_value = False
+
+        mock_session = mock_xenapi.xapi_local.return_value
+        mock_session.xenapi.SR.get_sm_config.return_value = {
+            'allocation': 'thick',
+            'use_vhd': 'true'
+        }
+        vdi_data = {
+            'vdi1_ref': {
+                'uuid': str(uuid.uuid4()),
+                'name_label': "VDI1",
+                'name_description': "First VDI",
+                'is_a_snapshot': False,
+                'snapshot_of': None,
+                'snapshot_time': None,
+                'type': 'User',
+                'metadata-of-pool': None,
+                'sm-config': {
+                    'vdi_type': 'vhd'
+                }
+            },
+            'vdi2_ref': {
+                'uuid': str(uuid.uuid4()),
+                'name_label': "VDI2",
+                'name_description': "Second VDI",
+                'is_a_snapshot': False,
+                'snapshot_of': None,
+                'snapshot_time': None,
+                'type': 'User',
+                'metadata-of-pool': None,
+                'sm-config': {
+                    'vdi_type': 'vhd'
+                }
+            }
+        }
+        mock_session.xenapi.SR.get_VDIs.return_value = list(vdi_data.keys())
+
+        def get_vdi_data(vdi_key, vdi_ref):
+            return vdi_data[vdi_ref][vdi_key]
+
+        def get_vdi_by_uuid(vdi_uuid):
+            return [v for v in vdi_data if v['uuid'] == vdi_uuid][0]
+
+        mock_session.xenapi.VDI.get_uuid.side_effect = (
+            lambda x: get_vdi_data('uuid', x))
+        mock_session.xenapi.VDI.get_name_label.side_effect = (
+            lambda x: get_vdi_data('name_label', x))
+        mock_session.xenapi.VDI.get_name_description.side_effect = (
+            lambda x: get_vdi_data('name_description', x))
+        mock_session.xenapi.VDI.get_is_a_snapshot.side_effect = (
+            lambda x: get_vdi_data('is_a_snapshot', x))
+        mock_session.xenapi.VDI.get_snapshot_of.side_effect = (
+            lambda x: get_vdi_data('snapshot_of', x))
+        mock_session.xenapi.VDI.get_snapshot_time.side_effect = (
+            lambda x: get_vdi_data('snapshot_time', x))
+        mock_session.xenapi.VDI.get_type.side_effect = (
+            lambda x: get_vdi_data('type', x))
+        mock_session.xenapi.VDI.get_metadata_of_pool.side_effect = (
+            lambda x: get_vdi_data('metadata-of-pool', x))
+        mock_session.xenapi.VDI.get_sm_config.side_effect = (
+            lambda x: get_vdi_data('sm-config', x))
+        mock_session.xenapi.VDI.get_by_uuid.side_effect = get_vdi_by_uuid
+
+        sr = self.create_LVHDSR(master=True, command='sr_attach',
+                                sr_uuid=sr_uuid)
+        os.makedirs(sr.path)
+
+        # Act (1)
+        # This introduces the metadata volume
+        sr.attach(sr.uuid)
+
+        # Arrange (2)
+        sr = self.create_LVHDSR(master=True, command='sr_detach',
+                                sr_uuid=sr_uuid)
+        sr.detach(sr.uuid)
+        mock_lvm_cache.return_value.checkLV.return_value = True
+        sr = self.create_LVHDSR(master=True, command='sr_attach',
+                                sr_uuid=sr_uuid)
+
+        # Act (2)
+        # This syncs the already existing metadata volume
+        print("Doing second attach")
+        sr.attach(sr.uuid)
+
+        # Now resize
+        mock_cmd_lvm = self.stubout('lvutil.cmd_lvm')
+        lvm_cmds = {
+            "pvs": PV_FOR_VG_DATA,
+            "pvresize": ""
+        }
+        def cmd(args):
+            return lvm_cmds[args[0]]
+
+        mock_cmd_lvm.side_effect = cmd
+        mock_scsi_get_size.return_value = device_size + (2 * 1024 * 1024 * 1024)
+        sr.scan(sr.uuid)
+
 
 class TestLVHDVDI(unittest.TestCase, Stubs):
 

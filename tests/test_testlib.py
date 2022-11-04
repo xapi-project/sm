@@ -166,7 +166,8 @@ class TestTestContext(unittest.TestCase):
     def test_subprocess_execution(self, context):
         context.add_executable(
             'something',
-            lambda args, inp: (1, inp + ' out', ','.join(args)))
+            lambda args, inp: (1, (inp + ' out').encode(),
+                               ','.join(args).encode()))
         import subprocess
 
         proc = subprocess.Popen(

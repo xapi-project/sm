@@ -22,6 +22,11 @@ class TestTapdisk(unittest.TestCase):
     # hence no usual decorator mocks and the monkey patching.
     # https://bugs.python.org/issue23078
     #
+    def setUp(self):
+        subprocess_patcher = mock.patch("blktap2.subprocess")
+        self.mock_subprocess = subprocess_patcher.start()
+
+        self.addCleanup(mock.patch.stopall)
 
     @mock.patch('blktap2.util.pread2', autospec=True)
     def test_cgclassify_normal_call(self, mock_pread2):
@@ -69,6 +74,28 @@ class TestTapdisk(unittest.TestCase):
         blktap2.Tapdisk.spawn = spawn_old
         blktap2.Tapdisk.cgclassify = cgclassify_old
         blktap2.Tapdisk.find_by_path = find_by_path_old
+
+    def test_list(self):
+        mock_process = mock.MagicMock(autospec='subprocess.Popen')
+        mock_process.stdout = BytesIO(
+            b"pid=705 minor=0 state=0 args=vhd:/dev/VG_XenStorage-2eeb9fd5-6545-8f0b-cf72-0378e413a31c/VHD-a7c0f37e-b7fb-4a44-a6fe-05067fb84c09")
+        mock_process.wait.return_value = 0
+        self.mock_subprocess.Popen.return_value = mock_process
+
+        results = list(blktap2.Tapdisk.list())
+
+        self.mock_subprocess.Popen.assert_called_with(
+            ['/usr/sbin/tap-ctl', 'list'],
+            close_fds=True, stdin=mock.ANY,
+            stdout=mock.ANY, stderr=mock.ANY)
+        self.assertEqual(1, len(results))
+        print(f"Results are {results[0]}")
+        self.assertEqual(705, results[0].pid)
+        self.assertEqual(0, results[0].minor)
+        self.assertEqual(0, results[0].state)
+        self.assertEqual('/dev/VG_XenStorage-2eeb9fd5-6545-8f0b-cf72-0378e413a31c/VHD-a7c0f37e-b7fb-4a44-a6fe-05067fb84c09',
+                         results[0].path)
+        self.assertEqual('vhd', results[0].type)
 
 
 class TestVDI(unittest.TestCase):

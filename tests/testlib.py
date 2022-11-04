@@ -35,6 +35,8 @@ class SCSIDisk(object):
         yield '/sys/class/scsi_disk/%s:0:%s:0' % (host_id, disk_id)
         yield '/sys/class/scsi_disk/%s:0:%s:0/device/block/sd%s' % (
             host_id, disk_id, actual_disk_letter)
+        yield '/sys/block/sd%s/device' % (actual_disk_letter)
+        yield '/sys/block/sd%s/device/rescan' % (actual_disk_letter)
         yield '/dev/disk/by-scsibus/%s-%s:0:%s:0' % (
             self.adapter.long_id, host_id, disk_id)
         yield '/dev/disk/by-id/%s' % (self.long_id)
@@ -73,7 +75,7 @@ class Executable(object):
 
     def run(self, args, stdin):
         (return_code, stdout, stderr) = self.function_to_call(args, stdin)
-        return (return_code, stdout.encode(), stderr.encode())
+        return (return_code, stdout, stderr)
 
 
 class Subprocess(object):
@@ -209,7 +211,8 @@ class TestContext(object):
                 return io.StringIO(contents)
 
         if 'w' in mode:
-            if os.path.dirname(fname) in self.get_created_directories():
+            paths_to_check = list(self.get_created_directories()) + list(self.generate_device_paths())
+            if os.path.dirname(fname) in paths_to_check:
                 self._path_content[fname] = ''
                 return WriteableFile(self, fname, self._get_inc_fileno())
             error = IOError('No such file %s' % fname)
@@ -393,3 +396,15 @@ class WriteableFile(object):
     def close(self):
         self._context._path_content[self._fname] = self._file.getvalue()
         self._file.close()
+
+    def seek(self, offset, whence=io.SEEK_SET):
+        self._file.seek(offset, whence)
+
+    def read(self, size):
+        return self._file.read(size)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self,exc_type, exc_value, traceback):
+        self.close()
