@@ -1088,12 +1088,13 @@ def diskFromPartition(partition):
 def dom0_disks():
     """Disks carrying dom0, e.g. ['/dev/sda']"""
     disks = []
-    for line in open("/etc/mtab").readlines():
-        (dev, mountpoint, fstype, opts, freq, passno) = line.split(' ')
-        if mountpoint == '/':
-            disk = diskFromPartition(dev)
-            if not (disk in disks):
-                disks.append(disk)
+    with open("/etc/mtab", 'r') as f:
+        for line in f:
+            (dev, mountpoint, fstype, opts, freq, passno) = line.split(' ')
+            if mountpoint == '/':
+                disk = diskFromPartition(dev)
+                if not (disk in disks):
+                    disks.append(disk)
     SMlog("Dom0 disks: %s" % disks)
     return disks
 
