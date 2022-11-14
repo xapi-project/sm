@@ -22,7 +22,7 @@ def get_error_codes():
     error_code_catalog = open(error_codes_path, 'r')
     contents = error_code_catalog.read()
     error_code_catalog.close()
-    return contents
+    return contents.encode('utf-8')
 
 
 class SCSIDisk(object):
@@ -208,13 +208,17 @@ class TestContext(object):
 
         for fpath, contents in self.generate_path_content():
             if fpath == fname:
-                return io.StringIO(contents)
+                if not self.is_binary(mode):
+                    return io.StringIO(contents)
+                else:
+                    return io.BytesIO(contents)
 
         if 'w' in mode:
             paths_to_check = list(self.get_created_directories()) + list(self.generate_device_paths())
             if os.path.dirname(fname) in paths_to_check:
                 self._path_content[fname] = ''
-                return WriteableFile(self, fname, self._get_inc_fileno())
+                return WriteableFile(self, fname, self._get_inc_fileno(),
+                                     binary=self.is_binary(mode))
             error = IOError('No such file %s' % fname)
             error.errno = errno.ENOENT
             raise error
@@ -319,6 +323,10 @@ class TestContext(object):
         self.scsi_adapters.append(adapter)
         return adapter
 
+    @staticmethod
+    def is_binary(mode):
+        return 'b' in mode
+
 
 def with_custom_context(context_class):
     def _with_context(func):
@@ -381,10 +389,13 @@ class XmlMixIn(object):
 
 
 class WriteableFile(object):
-    def __init__(self, context, fname, fileno, data=None):
+    def __init__(self, context, fname, fileno, data=None, binary=False):
         self._context = context
         self._fname = fname
-        self._file = io.StringIO(data)
+        if not binary:
+            self._file = io.StringIO(data)
+        else:
+            self._file = io.BytesIO(data)
         self._fileno = fileno
 
     def fileno(self):

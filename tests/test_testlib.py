@@ -154,7 +154,7 @@ class TestTestContext(unittest.TestCase):
         errorcodes = errorcodes_file.read()
         errorcodes_file.close()
 
-        self.assertTrue("<SM-errorcodes>" in errorcodes)
+        self.assertTrue("<SM-errorcodes>" in errorcodes.decode())
 
     @testlib.with_context
     def test_executable_shows_up_on_filesystem(self, context):

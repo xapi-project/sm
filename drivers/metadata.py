@@ -117,23 +117,6 @@ def buildOutput(Dict):
     return HDR + XML
 
 
-def requiresUpgrade(path):
-    f = open(path, "rb")
-    s = f.read(STRUCT_SIZE)
-    assert(len(s) == STRUCT_SIZE)
-    hdr = unpackHeader(s)
-    mdmajor = hdr[2]
-    mdminor = hdr[3]
-
-    if mdmajor < MD_MAJOR:
-        return True
-
-    if mdmajor == MD_MAJOR and mdminor < MD_MINOR:
-        return True
-
-    return False
-
-
 def retrieveXMLfromFile(path):
     try:
         f = open(path, "rb")

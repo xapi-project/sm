@@ -1,5 +1,7 @@
+import os
 import unittest
 import unittest.mock as mock
+
 import uuid
 
 import LVHDSR
@@ -24,7 +26,7 @@ class Stubs(object):
     def stubout(self, *args, **kwargs):
         patcher = mock.patch( * args, ** kwargs)
         self._stubs.append(patcher)
-        patcher.start()
+        return patcher.start()
 
     def remove_stubs(self):
         for patcher in self._stubs:
@@ -39,11 +41,18 @@ class TestLVHDSR(unittest.TestCase, Stubs):
     def tearDown(self):
         self.remove_stubs()
 
-    def create_LVHDSR(self):
+    def create_LVHDSR(self, master=False, command='foo', sr_uuid=None):
         srcmd = mock.Mock()
         srcmd.dconf = {'device': '/dev/bar'}
-        srcmd.params = {'command': 'foo', 'session_ref': 'some session ref'}
-        return LVHDSR.LVHDSR(srcmd, "some SR UUID")
+        if master:
+            srcmd.dconf.update({"SRmaster": "true"})
+        srcmd.params = {
+            'command': command,
+            'session_ref': 'some session ref',
+            'sr_ref': 'test_sr_ref'}
+        if sr_uuid is None:
+            sr_uuid = str(uuid.uuid4())
+        return LVHDSR.LVHDSR(srcmd, sr_uuid)
 
     @mock.patch('lvhdutil.getVDIInfo', autospec=True)
     @mock.patch('LVHDSR.Lock', autospec=True)

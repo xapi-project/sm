@@ -45,7 +45,7 @@ import re
 from srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, \
     UUID_TAG, IS_A_SNAPSHOT_TAG, SNAPSHOT_OF_TAG, TYPE_TAG, VDI_TYPE_TAG, \
     READ_ONLY_TAG, MANAGED_TAG, SNAPSHOT_TIME_TAG, METADATA_OF_POOL_TAG, \
-    requiresUpgrade, LVMMetadataHandler, METADATA_OBJECT_TYPE_VDI, \
+    LVMMetadataHandler, METADATA_OBJECT_TYPE_VDI, \
     METADATA_OBJECT_TYPE_SR, METADATA_UPDATE_OBJECT_TYPE_TAG
 from metadata import retrieveXMLfromFile, _parseXML
 from xmlrpc.client import DateTime
@@ -353,16 +353,9 @@ class LVHDSR(SR.SR):
                     # will be deactivated at detach time
                     self.lvmCache.activateNoRefcount(self.MDVOLUME_NAME)
                     self._synchSmConfigWithMetaData()
-                    if requiresUpgrade(self.mdpath):
-                        util.SMlog("This SR requires metadata upgrade.")
-                        self.updateSRMetadata( \
-                            self.session.xenapi.SR.get_sm_config(self.sr_ref)['allocation']
-                        )
-                    else:
-                        util.SMlog("SR metadata upgrade not required.")
-                        util.SMlog("Sync SR metadata and the state on the storage.")
-                        self.syncMetadataAndStorage()
-                        self.syncMetadataAndXapi()
+                    util.SMlog("Sync SR metadata and the state on the storage.")
+                    self.syncMetadataAndStorage()
+                    self.syncMetadataAndXapi()
                 except Exception as e:
                     util.SMlog("Exception in _checkMetadataVolume, " \
                                "Error: %s." % str(e))
@@ -379,17 +372,7 @@ class LVHDSR(SR.SR):
             # get SR info from metadata
             sr_info = {}
             map = {}
-            try:
-                # First try old metadata format
-                # CHECKME: this can be removed once we stop supporting upgrade
-                # from pre-6.0 pools
-                xml = retrieveXMLfromFile(self.mdpath)
-                sr_info = _parseXML(xml)
-            except Exception as e:
-                # That dint work, try new format valid 6.0 onwards
-                util.SMlog("Could not read SR info from metadata using old " \
-                           "format, trying new format. Error: %s" % str(e))
-                sr_info = LVMMetadataHandler(self.mdpath, False).getMetadata()[0]
+            sr_info = LVMMetadataHandler(self.mdpath, False).getMetadata()[0]
 
             if sr_info == {}:
                 raise Exception("Failed to get SR information from metadata.")
@@ -398,19 +381,21 @@ class LVHDSR(SR.SR):
                 self.provision = sr_info.get("allocation")
                 map['allocation'] = sr_info.get("allocation")
             else:
-                raise Exception("Allocation key not found in SR metadata. " \
+                raise Exception("Allocation key not found in SR metadata. "
                                 "SR info found: %s" % sr_info)
 
         except Exception as e:
-            raise xs_errors.XenError('MetadataError', \
-                         opterr='Error reading SR params from ' \
-                         'metadata Volume: %s' % str(e))
+            raise xs_errors.XenError(
+                'MetadataError',
+                opterr='Error reading SR params from '
+                       'metadata Volume: %s' % str(e))
         try:
             map[self.FLAG_USE_VHD] = 'true'
             self.session.xenapi.SR.set_sm_config(self.sr_ref, map)
         except:
-            raise xs_errors.XenError('MetadataError', \
-                         opterr='Error updating sm_config key')
+            raise xs_errors.XenError(
+                'MetadataError',
+                opterr='Error updating sm_config key')
 
     def _introduceMetaDataVolume(self):
         util.SMlog("Creating Metadata volume")

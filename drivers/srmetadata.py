@@ -15,10 +15,11 @@
 #
 # Functions to read and write SR metadata
 #
+from io import SEEK_SET
+
 import util
 import metadata
 import os
-import sys
 import xs_errors
 import lvutil
 import xml.sax.saxutils
@@ -77,16 +78,18 @@ def get_min_blk_size_wrapper(fd):
 def open_file(path, write=False):
     if write:
         try:
-            file_p = os.open(path, os.O_RDWR)
+            file_p = open(path, 'wb+')
         except OSError as e:
-            raise OSError("Failed to open file %s for read-write. Error: %s" % \
-                          (path, (e.errno)))
+            raise OSError(
+                "Failed to open file %s for read-write. Error: %s" %
+                (path, e.errno))
     else:
         try:
-            file_p = os.open(path, os.O_RDONLY)
+            file_p = open(path, 'rb')
         except OSError as e:
-            raise OSError("Failed to open file %s for read. Error: %s" % \
-                          (path, (e.errno)))
+            raise OSError(
+                "Failed to open file %s for read. Error: %s" %
+                (path, e.errno))
     return file_p
 
 
@@ -95,30 +98,25 @@ def file_write_wrapper(fd, offset, blocksize, data, length):
         newlength = length
         if length % blocksize:
             newlength = length + (blocksize - length % blocksize)
-        os.lseek(fd, offset, os.SEEK_SET)
+        fd.seek(offset, SEEK_SET)
         to_write = data + ' ' * (newlength - length)
-        result = os.write(fd, to_write.encode())
+        result = fd.write(to_write.encode())
     except OSError as e:
-        raise OSError("Failed to write file with params %s. Error: %s" % \
-                          ([fd, offset, blocksize, data, length], \
-                            (e.errno)))
+        raise OSError(
+            "Failed to write file with params %s. Error: %s" %
+            ([fd, offset, blocksize, data, length], e.errno))
     return result
 
 
 def file_read_wrapper(fd, offset, bytesToRead, min_block_size):
     try:
-        os.lseek(fd, offset, os.SEEK_SET)
-        result = os.read(fd, bytesToRead)
+        fd.seek(offset, SEEK_SET)
+        result = fd.read(bytesToRead)
     except OSError as e:
-        raise OSError("Failed to read file with params %s. Error: %s" % \
-                          ([fd, offset, min_block_size, bytesToRead], \
-                            (e.errno)))
+        raise OSError(
+            "Failed to read file with params %s. Error: %s" %
+            ([fd, offset, min_block_size, bytesToRead], e.errno))
     return result.decode()
-
-
-def close(fd):
-    if fd != -1:
-        os.close(fd)
 
 
 # get a range which is block aligned, contains 'offset' and allows
@@ -212,48 +210,6 @@ def getMetadataLength(fd):
         raise
 
 
-def requiresUpgrade(path):
-    # if the metadata requires upgrade either by pre-Boston logic
-    # or Boston logic upgrade it
-
-    # First check if this is a pre-6.0 pool using the old metadata
-    pre_boston_upgrade = False
-    boston_upgrade = False
-    try:
-        if metadata.requiresUpgrade(path):
-            pre_boston_upgrade = True
-    except Exception as e:
-        util.SMlog("This looks like a 6.0 or later pool, try checking " \
-                   "for upgrade using the new metadata header format. " \
-                    "Error: %s" % str(e))
-
-    try:
-        # Now check for upgrade using the header format for 6.0/post-6.0
-        try:
-            fd = -1
-            fd = open_file(path)
-            min_blk_size = get_min_blk_size_wrapper(fd)
-            sector1 = \
-                file_read_wrapper(fd, 0, SECTOR_SIZE, min_blk_size).strip()
-            hdr = unpackHeader(sector1)
-            mdmajor = int(hdr[2])
-            mdminor = int(hdr[3])
-
-            if mdmajor < metadata.MD_MAJOR:
-                boston_upgrade = True
-            elif mdmajor == metadata.MD_MAJOR and mdminor < metadata.MD_MINOR:
-                boston_upgrade = True
-
-        except Exception as e:
-            util.SMlog("Exception checking header version, upgrading metadata." \
-                       " Error: %s" % str(e))
-            return True
-    finally:
-        close(fd)
-
-    return pre_boston_upgrade or boston_upgrade
-
-
 # ----------------- # General helper functions - end # -----------------
 class MetadataHandler:
 
@@ -262,14 +218,14 @@ class MetadataHandler:
     # constructor
     def __init__(self, path=None, write=True):
 
-        self.fd = -1
+        self.fd = None
         self.path = path
         if self.path is not None:
             self.fd = open_file(self.path, write)
 
     def __del__(self):
-        if self.fd != -1:
-            close(self.fd)
+        if self.fd:
+            self.fd.close()
 
     def spaceAvailableForVdis(self, count):
         raise NotImplementedError("spaceAvailableForVdis is undefined")
