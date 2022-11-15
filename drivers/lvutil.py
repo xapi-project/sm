@@ -327,6 +327,21 @@ def _get_sr_uuid(pvname, prefix_list):
         return ""
 
 
+# Retrieves the names of the Physical Volumes which are used by the specified
+# Volume Group
+# e.g.
+#   PV         VG                          Fmt  Attr PSize   PFree
+#  /dev/sda4  VG_XenStorage-some-hex-value lvm2 a-   224.74G 223.73G
+# will return "/dev/sda4" when given the argument "VG_XenStorage-some-hex-value".
+def get_pv_for_vg(vgname):
+    try:
+        result = cmd_lvm([CMD_PVS, "--noheadings",
+                          '-S', 'vg_name=%s' % vgname, '-o', 'name'])
+        return [x.strip() for x in result.splitlines()]
+    except util.CommandException:
+        return []
+
+
 # Tries to match any prefix contained in prefix_list in s. If matched, the
 # remainder string is returned, else the empty string is returned. E.g. if s is
 # "VG_XenStorage-some-hex-value" and prefix_list contains "VG_XenStorage-",

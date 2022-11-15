@@ -476,10 +476,10 @@ class LVHDSR(SR.SR):
                     # LVHDoHBASR, LVHDoISCSISR might have slaves
                     scsiutil.refresh_lun_size_by_SCSIid_on_slaves(self.session,
                                                        getattr(self, 'SCSIid'))
-                util.SMlog("LVHDSR._expand_size for %s will resize the pv."
-                           % self.uuid)
-                for device in devices:
-                    lvutil.resizePV(device)
+                util.SMlog("LVHDSR._expand_size for %s will resize the pv." %
+                           self.uuid)
+                for pv in lvutil.get_pv_for_vg(self.vgname):
+                    lvutil.resizePV(pv)
             except:
                 util.logException("LVHDSR._expand_size for %s failed to resize"
                                   " the PV" % self.uuid)
