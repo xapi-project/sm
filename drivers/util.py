@@ -624,7 +624,7 @@ def zeroOut(path, fromByte, bytes):
 
     blocks = bytes / blockSize
     bytes -= blocks * blockSize
-    fromByte = fromBlock + blocks * blockSize
+    fromByte = (fromBlock + blocks) * blockSize
     if blocks:
         cmd = [CMD_DD, "if=/dev/zero", "of=%s" % path, "bs=%s" % blockSize, \
                 "seek=%s" % fromBlock, "count=%s" % blocks]
