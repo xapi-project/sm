@@ -9,13 +9,21 @@ License: LGPL
 URL:  http://www.citrix.com
 Source0: sm-@SM_VERSION@.tar.bz2
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
-BuildRequires: python-devel xen-devel systemd pylint python-nose python-coverage python2-mock python2-bitarray
+
+%define __python python3.6
+
+BuildRequires: python3
+BuildRequires: python3-devel
+BuildRequires: python3-pylint
+BuildRequires: python3-coverage
+BuildRequires: python3-bitarray
+
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
 Requires: xenserver-multipath
-Requires: xenserver-lvm2 >= 2.02.177
-Requires: python2-bitarray
+Requires: python3-bitarray
+Requires: python3-future
 Conflicts: kernel < 4.19.19-5.0.0
 
 %description
@@ -30,9 +38,6 @@ DESTDIR=$RPM_BUILD_ROOT make
 %install
 DESTDIR=$RPM_BUILD_ROOT make install
 
-%clean
-rm -rf $RPM_BUILD_ROOT
-
 %pre
 # Remove sm-multipath on install or upgrade, to ensure it goes
 [ ! -x /sbin/chkconfig ] || chkconfig --del sm-multipath || :
@@ -42,8 +47,15 @@ rm -rf $RPM_BUILD_ROOT
 %systemd_post mpcount.service
 %systemd_post sm-mpath-root.service
 %systemd_post xs-sm.service
+%systemd_post storage-init.service
 %systemd_post usb-scan.socket
 %systemd_post mpathcount.socket
+
+# On upgrade, migrate from the old statefile to the new statefile so that
+# storage is not reinitialized.
+if [ $1 -gt 1 ] ; then
+    grep -q ^success /etc/firstboot.d/state/10-prepare-storage 2>/dev/null && touch /var/lib/misc/ran-storage-init || :
+fi
 
 [ -f /etc/lvm/lvm.conf.orig ] || cp /etc/lvm/lvm.conf /etc/lvm/lvm.conf.orig || exit $?
 [ -d /etc/lvm/master ] || mkdir /etc/lvm/master || exit $?
@@ -71,6 +83,7 @@ update-alternatives --install /etc/multipath.conf multipath.conf /etc/multipath.
 %systemd_preun mpcount.service
 %systemd_preun sm-mpath-root.service
 %systemd_preun xs-sm.service
+%systemd_preun storage-init.service
 %systemd_preun usb-scan.socket
 %systemd_preun mpathcount.socket
 # Remove sm-multipath on upgrade or uninstall, to ensure it goes
@@ -86,6 +99,7 @@ exit 0
 %systemd_postun mpcount.service
 %systemd_postun sm-mpath-root.service
 %systemd_postun xs-sm.service
+%systemd_postun storage-init.service
 if [ $1 -eq 0 ]; then
     [ ! -d /etc/lvm/master ] || rm -Rf /etc/lvm/master || exit $?
     cp -f /etc/lvm/lvm.conf.orig /etc/lvm/lvm.conf || exit $?
@@ -121,195 +135,82 @@ tests/run_python_unittests.sh
 /opt/xensource/libexec/usb_change
 /opt/xensource/libexec/kickpipe
 /opt/xensource/libexec/set-iscsi-initiator
+/opt/xensource/libexec/storage-init
 /opt/xensource/sm/DummySR
 /opt/xensource/sm/DummySR.py
-/opt/xensource/sm/DummySR.pyc
-/opt/xensource/sm/DummySR.pyo
 /opt/xensource/sm/EXTSR
 /opt/xensource/sm/EXTSR.py
-/opt/xensource/sm/EXTSR.pyc
-/opt/xensource/sm/EXTSR.pyo
 /opt/xensource/sm/FileSR
 /opt/xensource/sm/FileSR.py
-/opt/xensource/sm/FileSR.pyc
-/opt/xensource/sm/FileSR.pyo
 /opt/xensource/sm/HBASR
 /opt/xensource/sm/HBASR.py
-/opt/xensource/sm/HBASR.pyc
-/opt/xensource/sm/HBASR.pyo
 /opt/xensource/sm/ISCSISR
 /opt/xensource/sm/RawISCSISR.py
-/opt/xensource/sm/RawISCSISR.pyc
-/opt/xensource/sm/RawISCSISR.pyo
 /opt/xensource/sm/BaseISCSI.py
-/opt/xensource/sm/BaseISCSI.pyc
-/opt/xensource/sm/BaseISCSI.pyo
 /opt/xensource/sm/ISOSR
 /opt/xensource/sm/ISOSR.py
-/opt/xensource/sm/ISOSR.pyc
-/opt/xensource/sm/ISOSR.pyo
 /opt/xensource/sm/LUNperVDI.py
-/opt/xensource/sm/LUNperVDI.pyc
-/opt/xensource/sm/LUNperVDI.pyo
 /opt/xensource/sm/LVHDSR.py
-/opt/xensource/sm/LVHDSR.pyc
-/opt/xensource/sm/LVHDSR.pyo
 /opt/xensource/sm/LVHDoHBASR.py
-/opt/xensource/sm/LVHDoHBASR.pyc
-/opt/xensource/sm/LVHDoHBASR.pyo
 /opt/xensource/sm/LVHDoISCSISR.py
-/opt/xensource/sm/LVHDoISCSISR.pyc
-/opt/xensource/sm/LVHDoISCSISR.pyo
 /opt/xensource/sm/LVHDoFCoESR.py
-/opt/xensource/sm/LVHDoFCoESR.pyc
-/opt/xensource/sm/LVHDoFCoESR.pyo
 /opt/xensource/sm/LVMSR
 /opt/xensource/sm/LVMoHBASR
 /opt/xensource/sm/LVMoISCSISR
 /opt/xensource/sm/LVMoFCoESR
 /opt/xensource/sm/NFSSR
 /opt/xensource/sm/NFSSR.py
-/opt/xensource/sm/NFSSR.pyc
-/opt/xensource/sm/NFSSR.pyo
 /opt/xensource/sm/SMBSR
 /opt/xensource/sm/SMBSR.py
-/opt/xensource/sm/SMBSR.pyc
-/opt/xensource/sm/SMBSR.pyo
 /opt/xensource/sm/SHMSR.py
-/opt/xensource/sm/SHMSR.pyc
-/opt/xensource/sm/SHMSR.pyo
 /opt/xensource/sm/SR.py
-/opt/xensource/sm/SR.pyc
-/opt/xensource/sm/SR.pyo
 /opt/xensource/sm/SRCommand.py
-/opt/xensource/sm/SRCommand.pyc
-/opt/xensource/sm/SRCommand.pyo
 /opt/xensource/sm/VDI.py
-/opt/xensource/sm/VDI.pyc
-/opt/xensource/sm/VDI.pyo
 /opt/xensource/sm/XE_SR_ERRORCODES.xml
 /opt/xensource/sm/blktap2.py
-/opt/xensource/sm/blktap2.pyc
-/opt/xensource/sm/blktap2.pyo
 /opt/xensource/sm/cleanup.py
-/opt/xensource/sm/cleanup.pyc
-/opt/xensource/sm/cleanup.pyo
 /opt/xensource/sm/devscan.py
-/opt/xensource/sm/devscan.pyc
-/opt/xensource/sm/devscan.pyo
 /opt/xensource/sm/fjournaler.py
-/opt/xensource/sm/fjournaler.pyc
-/opt/xensource/sm/fjournaler.pyo
 /opt/xensource/sm/flock.py
-/opt/xensource/sm/flock.pyc
-/opt/xensource/sm/flock.pyo
 /opt/xensource/sm/ipc.py
-/opt/xensource/sm/ipc.pyc
-/opt/xensource/sm/ipc.pyo
 /opt/xensource/sm/iscsilib.py
-/opt/xensource/sm/iscsilib.pyc
-/opt/xensource/sm/iscsilib.pyo
 /opt/xensource/sm/fcoelib.py
-/opt/xensource/sm/fcoelib.pyc
-/opt/xensource/sm/fcoelib.pyo
 /opt/xensource/sm/journaler.py
-/opt/xensource/sm/journaler.pyc
-/opt/xensource/sm/journaler.pyo
 /opt/xensource/sm/lcache.py
-/opt/xensource/sm/lcache.pyc
-/opt/xensource/sm/lcache.pyo
 /opt/xensource/sm/lock.py
-/opt/xensource/sm/lock.pyc
-/opt/xensource/sm/lock.pyo
 /opt/xensource/sm/lvhdutil.py
-/opt/xensource/sm/lvhdutil.pyc
-/opt/xensource/sm/lvhdutil.pyo
 /opt/xensource/sm/lvmanager.py
-/opt/xensource/sm/lvmanager.pyc
-/opt/xensource/sm/lvmanager.pyo
 /opt/xensource/sm/lvmcache.py
-/opt/xensource/sm/lvmcache.pyc
-/opt/xensource/sm/lvmcache.pyo
 /opt/xensource/sm/lvutil.py
-/opt/xensource/sm/lvutil.pyc
-/opt/xensource/sm/lvutil.pyo
 /opt/xensource/sm/metadata.py
-/opt/xensource/sm/metadata.pyc
-/opt/xensource/sm/metadata.pyo
 /opt/xensource/sm/srmetadata.py
-/opt/xensource/sm/srmetadata.pyc
-/opt/xensource/sm/srmetadata.pyo
 /opt/xensource/sm/mpath_cli.py
-/opt/xensource/sm/mpath_cli.pyc
-/opt/xensource/sm/mpath_cli.pyo
 /opt/xensource/sm/mpath_dmp.py
-/opt/xensource/sm/mpath_dmp.pyc
-/opt/xensource/sm/mpath_dmp.pyo
 /opt/xensource/sm/mpath_null.py
-/opt/xensource/sm/mpath_null.pyc
-/opt/xensource/sm/mpath_null.pyo
 /opt/xensource/sm/mpathcount.py
-/opt/xensource/sm/mpathcount.pyc
-/opt/xensource/sm/mpathcount.pyo
 /opt/xensource/sm/mpathutil.py
-/opt/xensource/sm/mpathutil.pyc
-/opt/xensource/sm/mpathutil.pyo
-/opt/xensource/sm/cifutils.py
-/opt/xensource/sm/cifutils.pyc
-/opt/xensource/sm/cifutils.pyo
 /opt/xensource/sm/mpp_mpathutil.py
-/opt/xensource/sm/mpp_mpathutil.pyc
-/opt/xensource/sm/mpp_mpathutil.pyo
 /opt/xensource/sm/nfs.py
-/opt/xensource/sm/nfs.pyc
-/opt/xensource/sm/nfs.pyo
 /opt/xensource/sm/refcounter.py
-/opt/xensource/sm/refcounter.pyc
-/opt/xensource/sm/refcounter.pyo
 /opt/xensource/sm/resetvdis.py
-/opt/xensource/sm/resetvdis.pyc
-/opt/xensource/sm/resetvdis.pyo
 /opt/xensource/sm/scsiutil.py
-/opt/xensource/sm/scsiutil.pyc
-/opt/xensource/sm/scsiutil.pyo
 /opt/xensource/sm/scsi_host_rescan.py
-/opt/xensource/sm/scsi_host_rescan.pyc
-/opt/xensource/sm/scsi_host_rescan.pyo
 /opt/xensource/sm/sysdevice.py
-/opt/xensource/sm/sysdevice.pyc
-/opt/xensource/sm/sysdevice.pyo
 /opt/xensource/sm/udevSR
 /opt/xensource/sm/udevSR.py
-/opt/xensource/sm/udevSR.pyc
-/opt/xensource/sm/udevSR.pyo
 /opt/xensource/sm/util.py
-/opt/xensource/sm/util.pyc
-/opt/xensource/sm/util.pyo
+/opt/xensource/sm/cifutils.py
 /opt/xensource/sm/verifyVHDsOnSR.py
-/opt/xensource/sm/verifyVHDsOnSR.pyc
-/opt/xensource/sm/verifyVHDsOnSR.pyo
 /opt/xensource/sm/vhdutil.py
-/opt/xensource/sm/vhdutil.pyc
-/opt/xensource/sm/vhdutil.pyo
 /opt/xensource/sm/trim_util.py
-/opt/xensource/sm/trim_util.pyc
-/opt/xensource/sm/trim_util.pyo
 /opt/xensource/sm/xs_errors.py
-/opt/xensource/sm/xs_errors.pyc
-/opt/xensource/sm/xs_errors.pyo
 /opt/xensource/sm/wwid_conf.py
-/opt/xensource/sm/wwid_conf.pyc
-/opt/xensource/sm/wwid_conf.pyo
 /opt/xensource/sm/pluginutil.py
-/opt/xensource/sm/pluginutil.pyc
-/opt/xensource/sm/pluginutil.pyo
 /opt/xensource/sm/constants.py
-/opt/xensource/sm/constants.pyc
-/opt/xensource/sm/constants.pyo
 /opt/xensource/sm/cbtutil.py
-/opt/xensource/sm/cbtutil.pyc
-/opt/xensource/sm/cbtutil.pyo
 /opt/xensource/sm/multipath-root-setup
+%dir /opt/xensource/sm/plugins
+/opt/xensource/sm/plugins/__init__.py*
 /sbin/mpathutil
 /etc/rc.d/init.d/sm-multipath
 %{_unitdir}/make-dummy-sr.service
