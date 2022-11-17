@@ -700,8 +700,7 @@ def is_master(session):
     return get_this_host_ref(session) == master
 
 
-# XXX: this function doesn't do what it claims to do
-def get_localhost_uuid(session):
+def get_localhost_ref(session):
     filename = '/etc/xensource-inventory'
     try:
         f = open(filename, 'r')
@@ -807,7 +806,7 @@ def find_my_pbd(session, host_ref, sr_ref):
 
 
 def test_hostPBD_devs(session, sr_uuid, devs):
-    host = get_localhost_uuid(session)
+    host = get_localhost_ref(session)
     sr = session.xenapi.SR.get_by_uuid(sr_uuid)
     try:
         pbds = session.xenapi.PBD.get_all_records()
@@ -829,7 +828,7 @@ def test_hostPBD_devs(session, sr_uuid, devs):
 
 
 def test_hostPBD_lun(session, targetIQN, LUNid):
-    host = get_localhost_uuid(session)
+    host = get_localhost_ref(session)
     try:
         pbds = session.xenapi.PBD.get_all_records()
     except:

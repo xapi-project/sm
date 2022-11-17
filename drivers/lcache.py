@@ -186,7 +186,7 @@ class CacheFileSR(object):
         import util
         import SR as sm
 
-        host_ref = util.get_localhost_uuid(session)
+        host_ref = util.get_localhost_ref(session)
 
         _host = session.xenapi.host
         sr_ref = _host.get_local_cache_sr(host_ref)

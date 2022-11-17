@@ -189,7 +189,7 @@ class SR(object):
         target = driver(sm_type)
         # NB. get the host pbd's device_config
 
-        host_ref = util.get_localhost_uuid(session)
+        host_ref = util.get_localhost_ref(session)
 
         _PBD = session.xenapi.PBD
         pbds = _PBD.get_all_records_where('field "SR" = "%s" and' % sr_ref +
