@@ -2006,7 +2006,7 @@ class VDI(object):
             self._updateCacheRecord(self._session, self.target.vdi.uuid, None, None)
 
     def _is_tapdisk_in_use(self, minor):
-        (retVal, links) = util.findRunningProcessOrOpenFile("tapdisk")
+        retVal, links, sockets = util.findRunningProcessOrOpenFile("tapdisk")
         if not retVal:
             # err on the side of caution
             return True
@@ -2014,6 +2014,12 @@ class VDI(object):
         for link in links:
             if link.find("tapdev%d" % minor) != -1:
                 return True
+
+        socket_re = re.compile(r'^/.*/nbd\d+\.%d' % minor)
+        for s in sockets:
+            if socket_re.match(s):
+                return True
+
         return False
 
     def _remove_cache(self, session, local_sr_uuid):

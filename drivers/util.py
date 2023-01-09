@@ -1407,11 +1407,12 @@ def extractSRFromDevMapper(path):
 #       returns process names and pids
 def findRunningProcessOrOpenFile(name, process=True):
     retVal = True
+    links = []
+    processandpids = []
+    sockets = set()
     try:
         SMlog("Entering findRunningProcessOrOpenFile with params: %s" % \
                    [name, process])
-        links = []
-        processandpids = []
 
         # Look at all pids
         pids = [pid for pid in os.listdir('/proc') if pid.isdigit()]
@@ -1459,15 +1460,51 @@ def findRunningProcessOrOpenFile(name, process=True):
                         SMlog("File %s has an open handle with process %s "
                               "with pid %s" % (name, prog, pid))
                         processandpids.append((prog, pid))
+
+            # Get the connected sockets
+            if name == prog:
+                sockets.update(get_connected_sockets(pid))
     except Exception as e:
         SMlog("Exception checking running process or open file handles. " \
                    "Error: %s" % str(e))
         retVal = False
 
     if process:
-        return (retVal, links)
+        return retVal, links, sockets
     else:
-        return (retVal, processandpids)
+        return retVal, processandpids
+
+
+def get_connected_sockets(pid):
+    sockets = set()
+    try:
+        # Lines in /proc/<pid>/net/unix are formatted as follows
+        # (see Linux source net/unix/af_unix.c, unix_seq_show() )
+        # - Pointer address to socket (hex)
+        # - Refcount (HEX)
+        # - 0
+        # - State (HEX, 0 or __SO_ACCEPTCON)
+        # - Type (HEX - but only 0001 of interest)
+        # - Connection state (HEX - but only 03, SS_CONNECTED  of interest)
+        # - Inode number
+        # - Path (optional)
+        open_sock_matcher = re.compile(
+            r'^[0-9a-f]+: [0-9A-Fa-f]+ [0-9A-Fa-f]+ [0-9A-Fa-f]+ 0001 03 \d+ (.*)$')
+        with open(
+                os.path.join('/proc', str(pid), 'net', 'unix'), 'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                match = open_sock_matcher.match(line)
+                if match:
+                    sockets.add(match[1])
+    except OSError as e:
+        if e.errno in (errno.ENOENT, errno.ESRCH):
+            # Ignore pid that are no longer valid
+            SMlog("ERROR %s reading sockets for %s, ignore" %
+                  (e.errno, pid))
+        else:
+            raise
+    return sockets
 
 
 def retry(f, maxretry=20, period=3):

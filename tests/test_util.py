@@ -1,8 +1,8 @@
 import copy
 import errno
+import io
 import os
 import socket
-import subprocess
 import unittest
 import unittest.mock as mock
 import uuid
@@ -44,8 +44,6 @@ class TestUtil(unittest.TestCase):
     """
 
     def setUp(self):
-        self.test_processes = {}
-
         # OS Patchers
         statvfs_patcher = mock.patch("util.os.statvfs", autospec=True)
         self.mock_statvfs = statvfs_patcher.start()
@@ -55,6 +53,13 @@ class TestUtil(unittest.TestCase):
         self.mock_mkdir = mkdir_patcher.start()
         unlink_patcher = mock.patch('util.os.unlink', autospec=True)
         self.mock_unlink = unlink_patcher.start()
+        self.dir_contents = {}
+        listdir_patcher = mock.patch('util.os.listdir', autospec=True)
+        self.mock_listdir = listdir_patcher.start()
+        self.mock_listdir.side_effect = self.list_dir
+        readlink_patcher = mock.patch('util.os.readlink', autospec=True)
+        self.mock_readlink = readlink_patcher.start()
+        self.mock_readlink.side_effect = self.readlink
 
         socket_patcher = mock.patch('util.socket', autospec=True)
         self.mock_socket = socket_patcher.start()
@@ -77,7 +82,33 @@ class TestUtil(unittest.TestCase):
         self.mock_popen = popen_patcher.start()
         self.mock_popen.side_effect = self.popen
 
+        self.mock_files = {}
+
         self.addCleanup(mock.patch.stopall)
+
+    def open(self, file_name, mode):
+        assert(mode == 'r')
+        mock_file = mock.MagicMock(spec=io.TextIOBase, name=file_name)
+        file_data = self.file_data[file_name]
+        mock_file.read.return_value = file_data
+        lines = str.splitlines(file_data)
+        mock_file.return_value.readlines.return_value = lines
+        mock_file.__enter__ = mock_file
+        mock_file.__exit__ = lambda x, y, z, a: None
+        self.mock_files[file_name] = mock_file
+        return mock_file
+
+    def add_file_data(self, mock_file_data):
+        self.file_data = mock_file_data
+        open_patcher = mock.patch('builtins.open', autospec=True)
+        self.mock_open = open_patcher.start()
+        self.mock_open.side_effect = self.open
+
+    def readlink(self, path):
+        return path
+
+    def list_dir(self, path):
+        return self.dir_contents[path]
 
     @staticmethod
     def process_key(args):
@@ -621,3 +652,33 @@ class TestUtil(unittest.TestCase):
         # Assert
         self.assertTrue(result)
 
+    def test_find_running_process(self):
+        # Arrange
+        self.dir_contents['/proc'] = [str(17416), str(17414), str(17417)]
+        tapdisk_unix_data = """
+00000000f1cc0a81: 00000002 00000000 00000000 0002 01 23755
+00000000728fbd2a: 00000002 00000000 00010000 0001 01 14525476 /var/run/blktap-control/nbd17416.1
+00000000a68a75cf: 00000003 00000000 00000000 0001 03 14522812 /var/run/blktap-control/nbd17405.0
+        """
+
+        mock_file_data = {
+            '/proc/17416/cmdline': 'tapdisk\x00\n',
+            '/proc/17414/cmdline': 'bash\x00\n',
+            '/proc/17417/cmdline': 'bash\x00\n',
+            '/proc/17416/net/unix': tapdisk_unix_data
+        }
+        self.add_file_data(mock_file_data)
+        self.dir_contents.update(
+            {
+                '/proc/17414/fd': [],
+                '/proc/17417/fd': [],
+                '/proc/17416/fd': ['/dev/zero']
+            }
+        )
+
+        # Act
+        retval, links, sockets = util.findRunningProcessOrOpenFile('tapdisk')
+
+        # Assert
+        self.assertTrue(retval)
+        self.assertSetEqual({'/var/run/blktap-control/nbd17405.0'}, sockets)
