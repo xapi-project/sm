@@ -745,7 +745,7 @@ class VDI(object):
 
                 # Check if we have reached "vdi_to"
                 if curr_vdi == vdi_to:
-                    encoded_string = base64.b64encode(merged_bitmap.tobytes())
+                    encoded_string = base64.b64encode(merged_bitmap.tobytes()).decode()
                     return xmlrpc.client.dumps((encoded_string, ), "", True)
         # TODO: Check 2: If both VDIs still exist,
         # find common ancestor and find difference

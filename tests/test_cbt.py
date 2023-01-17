@@ -681,7 +681,7 @@ class TestCBT(unittest.TestCase):
         mock_cbt.get_cbt_size.return_value = 67108864
         bitmap1.bytereverse()
         bitmap2.bytereverse()
-        expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
+        expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes()).decode()
         expected_result = xmlrpc.client.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()
@@ -717,7 +717,7 @@ class TestCBT(unittest.TestCase):
         # Pad bitmap1 with extra 0s
         bitmap1 += 80 * bitarray('0')
         bitmap2.bytereverse()
-        expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
+        expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes()).decode()
         expected_result = xmlrpc.client.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()
@@ -800,7 +800,7 @@ class TestCBT(unittest.TestCase):
         bitmap2.bytereverse()
         # Trim bitmap to the expected size
         bitmap2 = bitmap2[:80]
-        expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
+        expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes()).decode()
         expected_result = xmlrpc.client.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()
@@ -836,7 +836,7 @@ class TestCBT(unittest.TestCase):
         mock_call.side_effect = [bitmap1.tobytes(), data]
         bitmap1.bytereverse()
         bitmap2.bytereverse()
-        expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes())
+        expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes()).decode()
         expected_result = xmlrpc.client.dumps((expected_string, ), "", True)
 
         result = self.vdi.list_changed_blocks()

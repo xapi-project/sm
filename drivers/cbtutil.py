@@ -39,11 +39,11 @@ def get_cbt_parent(file_name):
     cmd = [CBT_UTIL, "get", "-n", file_name, "-p"]
     ret = _call_cbt_util(cmd)
     uret = uuid.UUID(ret.strip())
-    #TODO: Need to check for NULL UUID
-    # Ideally, we want to do
-    # if uuid.UUID(ret.strip()).int == 0
+    # TODO: Need to check for NULL UUID
+    #  Ideally, we want to do
+    #  if uuid.UUID(ret.strip()).int == 0
     #     return None
-    # Pylint doesn't like this for reason though
+    #  Pylint doesn't like this for reason though
     return str(uret)
 
 
@@ -58,7 +58,7 @@ def get_cbt_child(file_name):
     cmd = [CBT_UTIL, "get", "-n", file_name, "-c"]
     ret = _call_cbt_util(cmd)
     uret = uuid.UUID(ret.strip())
-    #TODO: Need to check for NULL UUID
+    # TODO: Need to check for NULL UUID
     return str(uret)
 
 
@@ -82,9 +82,9 @@ def get_cbt_consistency(file_name):
 def get_cbt_bitmap(file_name):
     """Get bitmap field from log file"""
     cmd = [CBT_UTIL, "get", "-n", file_name, "-b"]
-    ret = _call_cbt_util(cmd)
-    #Do not strip the return string. It's a byte string and stripping
-    #it sometimes leads to loss of information
+    ret = _call_cbt_util(cmd, text=False)
+    # Do not strip the return string. It's a byte string and stripping
+    # it sometimes leads to loss of information
     return ret
 
 
@@ -107,5 +107,5 @@ def coalesce_bitmap(parent_path, child_path):
     _call_cbt_util(cmd)
 
 
-def _call_cbt_util(cmd):
-    return util.ioretry(lambda: util.pread2(cmd))
+def _call_cbt_util(cmd, text=True):
+    return util.ioretry(lambda: util.pread2(cmd, text=text))
