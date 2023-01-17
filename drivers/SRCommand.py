@@ -159,7 +159,8 @@ class SRCommand:
                     acquired = False
             try:
                 rv = self._run(sr, target)
-            except Exception as e:
+            except Exception as exc:
+                e = exc
                 raise
         finally:
             if acquired:
