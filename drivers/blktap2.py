@@ -1541,8 +1541,9 @@ class VDI(object):
         back_path = self.BackendLink.from_uuid(sr_uuid, vdi_uuid).path()
         if self.tap_wanted():
             # Only have NBD if we also have a tap
-            nbd_path = \
-                       "nbd:unix:" + VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid).path()
+            nbd_path = "nbd:unix:{}:exportname={}".format(
+                VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid).path(),
+                vdi_uuid)
         else:
             nbd_path = ""
 
