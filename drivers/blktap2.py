@@ -201,7 +201,8 @@ class TapCtl(object):
                                  stdin=subprocess.PIPE,
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE,
-                                 close_fds=True)
+                                 close_fds=True,
+                                 universal_newlines=True)
             if input:
                 p.stdin.write(input)
                 p.stdin.close()
@@ -246,7 +247,7 @@ class TapCtl(object):
         output = tapctl.stdout.readline().rstrip()
 
         tapctl._wait(quiet)
-        return output.decode()
+        return output
 
     @staticmethod
     def _maybe(opt, parm):
@@ -265,16 +266,15 @@ class TapCtl(object):
         tapctl = cls._call(args, True)
 
         for stdout_line in tapctl.stdout:
-            decoded_line = stdout_line.decode()
             # FIXME: tap-ctl writes error messages to stdout and
             # confuses this parser
-            if decoded_line == "blktap kernel module not installed\n":
+            if stdout_line == "blktap kernel module not installed\n":
                 # This isn't pretty but (a) neither is confusing stdout/stderr
                 # and at least causes the error to describe the fix
                 raise Exception("blktap kernel module not installed: try 'modprobe blktap'")
             row = {}
 
-            for field in decoded_line.rstrip().split(' ', 3):
+            for field in stdout_line.rstrip().split(' ', 3):
                 bits = field.split('=')
                 if len(bits) == 2:
                     key, val = field.split('=')
