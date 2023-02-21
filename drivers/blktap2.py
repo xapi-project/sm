@@ -187,7 +187,7 @@ class TapCtl(object):
         return __next_mkcmd(args)
 
     @classmethod
-    def _call(cls, args, quiet=False, input=None):
+    def _call(cls, args, quiet=False, input=None, text_mode=True):
         """
         Spawn a tap-ctl process. Return a TapCtl invocation.
         Raises a TapCtl.CommandFailure if subprocess creation failed.
@@ -202,7 +202,7 @@ class TapCtl(object):
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE,
                                  close_fds=True,
-                                 universal_newlines=True)
+                                 universal_newlines=text_mode)
             if input:
                 p.stdin.write(input)
                 p.stdin.close()
@@ -238,11 +238,12 @@ class TapCtl(object):
         raise self.CommandFailure(self.cmd, ** info)
 
     @classmethod
-    def _pread(cls, args, quiet=False, input=None):
+    def _pread(cls, args, quiet=False, input=None, text_mode=True):
         """
         Spawn a tap-ctl invocation and read a single line.
         """
-        tapctl = cls._call(args=args, quiet=quiet, input=input)
+        tapctl = cls._call(args=args, quiet=quiet, input=input,
+                           text_mode=text_mode)
 
         output = tapctl.stdout.readline().rstrip()
 
@@ -354,6 +355,7 @@ class TapCtl(object):
     def open(cls, pid, minor, _type, _file, options):
         params = Tapdisk.Arg(_type, _file)
         args = ["open", "-p", pid, "-m", minor, '-a', str(params)]
+        text_mode = True
         input = None
         if options.get("rdonly"):
             args.append('-R')
@@ -382,8 +384,10 @@ class TapCtl(object):
             if not key:
                 raise util.SMException("No key found with key hash {}".format(key_hash))
             input = key
+            text_mode = False
             args.append('-E')
-        cls._pread(args=args, input=input)
+
+        cls._pread(args=args, input=input, text_mode=text_mode)
 
     @classmethod
     def close(cls, pid, minor, force=False):
@@ -826,7 +830,11 @@ class Tapdisk(object):
                     raise
 
             except:
-                TapCtl.shutdown(pid)
+                try:
+                    TapCtl.shutdown(pid)
+                except:
+                    # Best effort to shutdown
+                    pass
                 raise
 
         except TapCtl.CommandFailure as ctl:
