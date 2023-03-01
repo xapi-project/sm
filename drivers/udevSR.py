@@ -148,8 +148,7 @@ class udevVDI(VDI.VDI):
             iso8601 = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(s[stat.ST_CTIME]))
             self.sm_config['hotplugged_at'] = iso8601
 
-            if os.path.islink(self.path):
-                self.path = os.path.realpath(self.path)
+            self.path = os.path.realpath(self.path)
 	
             dev = os.path.basename(self.path)
             info = sysdevice.stat(dev)
