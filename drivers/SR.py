@@ -111,6 +111,7 @@ class SR(object):
           srcmd: SRCommand instance, contains parsed arguments
         """
         try:
+            self.other_config = {}
             self.srcmd = srcmd
             self.dconf = srcmd.dconf
             if 'session_ref' in srcmd.params:

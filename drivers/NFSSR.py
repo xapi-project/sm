@@ -135,24 +135,22 @@ class NFSSR(FileSR.SharedFileSR):
         if not self._checkmount():
             self.validate_remotepath(False)
             util._testHost(self.dconf['server'], NFSPORT, 'NFSTarget')
-            #Extract timeout and retrans values, if any
-            io_timeout = nfs.get_nfs_timeout(self.other_config)
-            io_retrans = nfs.get_nfs_retrans(self.other_config)
-            self.mount_remotepath(sr_uuid, timeout=io_timeout,
-                                  retrans=io_retrans)
-
+            self.mount_remotepath(sr_uuid)
             self._check_hardlinks()
         self.attached = True
 
-    def mount_remotepath(self, sr_uuid, timeout=5, retrans=5):
+    def mount_remotepath(self, sr_uuid):
         if not self._checkmount():
             # FIXME: What is the purpose of this check_server?
             # It doesn't stop us from continuing if the server
             # doesn't support the requested version. We fail
             # in mount instead
             self.check_server()
+            # Extract timeout and retrans values, if any
+            io_timeout = nfs.get_nfs_timeout(self.other_config)
+            io_retrans = nfs.get_nfs_retrans(self.other_config)
             self.mount(self.path, self.remotepath,
-                       timeout=timeout, retrans=retrans)
+                       timeout=io_timeout, retrans=io_retrans)
 
     def probe(self):
         # Verify NFS target and port

@@ -13,6 +13,7 @@ class FakeISOSR(ISOSR.ISOSR):
     sr_ref = None
     session = None
     srcmd = None
+    other_config = {}
 
     def __init__(self, srcmd, none):
         self.dconf = srcmd.dconf
@@ -86,6 +87,8 @@ class TestISOSR_overNFS(unittest.TestCase):
                                            'aServer',
                                            '/aLocation',
                                            'tcp',
+                                           retrans=3,
+                                           timeout=100,
                                            useroptions='',
                                            nfsversion='aNfsversionChanged')
 
