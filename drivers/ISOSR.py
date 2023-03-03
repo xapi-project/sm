@@ -314,9 +314,12 @@ class ISOSR(SR.SR):
                 # to the process waiting.
                 serv_path = location.split(':')
                 util._testHost(serv_path[0], NFSPORT, 'NFSTarget')
+                # Extract timeout and retrans values, if any
+                io_timeout = nfs.get_nfs_timeout(self.other_config)
+                io_retrans = nfs.get_nfs_retrans(self.other_config)
                 nfs.soft_mount(self.mountpoint, serv_path[0], serv_path[1],
-                               'tcp', useroptions=options,
-                               nfsversion=self.nfsversion)
+                               'tcp', useroptions=options, nfsversion=self.nfsversion,
+                               timeout=io_timeout, retrans=io_retrans)
             else:
                 smb3_fail_reason = None
                 if self.smbversion in SMB_VERSION_3:
@@ -482,10 +485,10 @@ class ISOSR(SR.SR):
         self.physical_utilisation = util.get_fs_utilisation(self.path)
         self.virtual_allocation = self.physical_size
 
-        other_config = self.session.xenapi.SR.get_other_config(self.sr_ref)
+        self.other_config = self.session.xenapi.SR.get_other_config(self.sr_ref)
 
-        if other_config.has_key('xenserver_tools_sr') and \
-                other_config['xenserver_tools_sr'] == "true":
+        if 'xenserver_tools_sr' in self.other_config and \
+                self.other_config['xenserver_tools_sr'] == "true":
             # Out of all the xs-tools ISOs which exist in this dom0, we mark
             # only one as the official one.
 
