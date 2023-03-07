@@ -6,7 +6,7 @@ SMROOT=$(cd "$(dirname "$0")" && cd .. && pwd)
 
 TESTS=tests
 
-COVERAGE="coverage3"
+COVERAGE=$(command -v "coverage3" || :)
 
 FILES="*.py"
 

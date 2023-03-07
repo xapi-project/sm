@@ -4,14 +4,14 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python 2.7
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - name: Set up Python 3
+        uses: actions/setup-python@v4
         with:
-          python-version: '2.7'
+          python-version: '3.6'
 
       - name: Install dependencies
         run: |
@@ -20,6 +20,6 @@ jobs:
 
       - name: Test
         run: |
-          PYTHONPATH=./drivers pylint --rcfile=tests/pylintrc ./drivers/*.py
-          PYTHONPATH=./drivers/ coverage run --branch --source='./drivers,./tests' -m unittest discover -s tests -p "*.py" -v
-          coverage report --include='./*'
+          make precheck
+          PYTHONPATH="./tests/mocks:./drivers/" coverage3 run --branch --source='./drivers,./tests' -m unittest discover -s tests -p "*.py" -v
+          coverage3 report --include='./*'

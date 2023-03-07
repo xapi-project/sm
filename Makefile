@@ -1,3 +1,4 @@
+PYLINT=$(shell command -v pylint-3 || echo pylint)
 
 SM_DRIVERS := File
 SM_DRIVERS += NFS
@@ -96,7 +97,7 @@ precommit: build
 	CHANGED=$$(git status --porcelain $(SM_PY_FILES) | awk '{print $$2}'); \
 	for i in $$CHANGED; do \
 		echo Checking $${i} ...; \
-		PYTHONPATH=./drivers:$$PYTHONPATH pylint-3 --rcfile=tests/pylintrc $${i}; \
+		PYTHONPATH=./drivers:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $${i}; \
 		[ $$? -ne 0 ] && QUIT=1 ; \
 	done; \
 	if [ $$QUIT -ne 0 ]; then \
@@ -110,7 +111,7 @@ precheck: build
 	@ QUIT=0; \
 	for i in $(SM_PY_FILES); do \
 		echo Checking $${i} ...; \
-		PYTHONPATH=./drivers:$$PYTHONPATH pylint-3 --rcfile=tests/pylintrc $${i}; \
+		PYTHONPATH=./drivers:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $${i}; \
 		[ $$? -ne 0 ] && QUIT=1 ; \
 	done; \
 	if [ $$QUIT -ne 0 ]; then \
