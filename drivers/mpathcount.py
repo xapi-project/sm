@@ -40,6 +40,7 @@ mpath_enabled = True
 SCSIid = 'NOTSUPPLIED'
 mpp_entry = 'NOTSUPPLIED'
 
+cached_DM_maj = None
 
 def get_dm_major():
     global cached_DM_maj
@@ -217,8 +218,6 @@ if __name__ == '__main__':
         SCSIid = sys.argv[1]
         mpp_path_update = True
         mpp_entry = sys.argv[2]
-
-    cached_DM_maj = None
 
     try:
         session = util.get_localAPI_session()

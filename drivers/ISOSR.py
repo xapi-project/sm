@@ -187,7 +187,7 @@ class ISOSR(SR.SR):
             smconfig = self.srcmd.params.get('vdi_sm_config')
             if smconfig is None:
                 # uh, oh, a VDI.from_uuid()
-                import XenAPI
+                import XenAPI # pylint: disable=import-error
                 _VDI = self.session.xenapi.VDI
                 try:
                     vdi_ref = _VDI.get_by_uuid(uuid)
@@ -320,6 +320,7 @@ class ISOSR(SR.SR):
                 raise xs_errors.XenError('ISOInvalidSMBversion')
 
         # Attempt mounting
+        smb3_fail_reason = None
         try:
             if protocol == 'nfs_iso':
                 # For NFS, do a soft mount with tcp as protocol. Since ISO SR is
@@ -334,7 +335,6 @@ class ISOSR(SR.SR):
                                'tcp', useroptions=options, nfsversion=self.nfsversion,
                                timeout=io_timeout, retrans=io_retrans)
             else:
-                smb3_fail_reason = None
                 if self.smbversion in SMB_VERSION_3:
                     util.SMlog('ISOSR mount over smb 3.0')
                     try:

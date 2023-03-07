@@ -21,7 +21,7 @@
 import cleanup
 import util
 import lock
-import XenAPI
+import XenAPI # pylint: disable=import-error
 
 
 def reset_sr(session, host_uuid, sr_uuid, is_sr_master):

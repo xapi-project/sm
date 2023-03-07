@@ -22,7 +22,7 @@ import VDI
 import xml.dom.minidom
 import errno
 import xs_errors
-import XenAPI
+import XenAPI # pylint: disable=import-error
 import xmlrpc.client
 import util
 import copy

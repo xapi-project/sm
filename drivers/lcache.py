@@ -205,7 +205,7 @@ class CacheFileSR(object):
 
     @classmethod
     def from_cli(cls):
-        import XenAPI
+        import XenAPI # pylint: disable=import-error
 
         session = XenAPI.xapi_local()
         session.xenapi.login_with_password('root', '', '', 'SM')
