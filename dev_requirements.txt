@@ -1,7 +1,0 @@
-mock==1.0.1
-xenapi
-coverage
-astroid==1.4.9
-pylint==1.5
-bitarray
-monotonic
