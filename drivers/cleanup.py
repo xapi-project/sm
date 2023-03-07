@@ -32,7 +32,7 @@ import zlib
 import errno
 import stat
 
-import XenAPI
+import XenAPI # pylint: disable=import-error
 import util
 import lvutil
 import vhdutil

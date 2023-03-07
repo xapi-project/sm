@@ -66,7 +66,7 @@ def adapters(filterstr="any"):
         port_name_path = os.path.join(SYSFS_PATH1, a, 'device', \
                          'fc_host', a, 'port_name')
         port_name_path_exists = os.path.exists(port_name_path)
-        util.SMlog("Port name path exists %d" % port_name_path_exists)
+        util.SMlog("Port name path exists %s" % port_name_path_exists)
         if filterstr == "fcoe" and not port_name_path_exists:
             continue
         if port_name_path_exists:

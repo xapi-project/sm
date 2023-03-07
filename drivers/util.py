@@ -31,7 +31,7 @@ import xml.dom.minidom
 import scsiutil
 import stat
 import xs_errors
-import XenAPI
+import XenAPI # pylint: disable=import-error
 import xmlrpc.client
 import base64
 import syslog

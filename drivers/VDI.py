@@ -864,7 +864,7 @@ class VDI(object):
         SR specific Implementation required for VDIs on block-based SRs.
         No-op otherwise
         """
-        pass
+        return False
 
     def _deactivate_cbt_log(self, logname):
         """Deactivate CBT log file

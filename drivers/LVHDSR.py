@@ -40,7 +40,7 @@ from lock import Lock
 from refcounter import RefCounter
 from ipc import IPCFlag
 from lvmanager import LVActivator
-import XenAPI
+import XenAPI # pylint: disable=import-error
 import re
 from srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, \
     UUID_TAG, IS_A_SNAPSHOT_TAG, SNAPSHOT_OF_TAG, TYPE_TAG, VDI_TYPE_TAG, \
@@ -792,9 +792,8 @@ class LVHDSR(SR.SR):
                     new_vdi.cbt_enabled = True
                     self.vdis[cbt_uuid] = new_vdi
 
-            ret = super(LVHDSR, self).scan(uuid)
+            super(LVHDSR, self).scan(uuid)
             self._kickGC()
-            return ret
 
         finally:
             if lvname != '' and activated:
@@ -2232,6 +2231,7 @@ class LVHDVDI(VDI.VDI):
             except Exception as e:
                 util.SMlog("Exception in _activate_cbt_log, "
                            "Error: %s." % str(e))
+                raise
         else:
             return False
 
@@ -2240,6 +2240,7 @@ class LVHDVDI(VDI.VDI):
             self.sr.lvmCache.deactivateNoRefcount(lv_name)
         except Exception as e:
             util.SMlog("Exception in _deactivate_cbt_log, Error: %s." % str(e))
+            raise
 
     def _cbt_log_exists(self, logpath):
         return lvutil.exists(logpath)

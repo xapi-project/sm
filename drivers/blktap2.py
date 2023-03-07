@@ -33,7 +33,7 @@ import syslog as _syslog
 import glob
 import json
 import xs_errors
-import XenAPI
+import XenAPI # pylint: disable=import-error
 import scsiutil
 from syslog import openlog, syslog
 from stat import *  # S_ISBLK(), ...
@@ -1042,7 +1042,6 @@ class VDI(object):
     @classmethod
     def from_cli(cls, uuid):
         import VDI as sm
-        import XenAPI
 
         session = XenAPI.xapi_local()
         session.xenapi.login_with_password('root', '', '', 'SM')
@@ -1887,7 +1886,6 @@ class VDI(object):
         import SR
         import EXTSR
         import NFSSR
-        import XenAPI
         from lock import Lock
         from FileSR import FileVDI
 
@@ -2035,7 +2033,6 @@ class VDI(object):
         import SR
         import EXTSR
         import NFSSR
-        import XenAPI
         from lock import Lock
         from FileSR import FileVDI
 
@@ -2091,9 +2088,13 @@ class UEventHandler(object):
         self._action = None
 
     class KeyError(PythonKeyError):
+        def __init__(self, args):
+            super().__init__(args)
+            self.key = args[0]
+
         def __str__(self):
             return \
-                "Key '%s' missing in environment. " % self.args[0] + \
+                "Key '%s' missing in environment. " % self.key + \
                 "Not called in udev context?"
 
     @classmethod
@@ -2239,7 +2240,7 @@ class XenbusDevice(BusDevice):
         self.devid = int(devid)
         self._xbt = XenbusDevice.XBT_NIL
 
-        import xen.lowlevel.xs
+        import xen.lowlevel.xs  # pylint: disable=import-error
         self.xs = xen.lowlevel.xs.xs()
 
     def xs_path(self, key=None):

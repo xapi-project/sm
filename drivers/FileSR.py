@@ -33,7 +33,7 @@ import glob
 from uuid import uuid4
 from lock import Lock
 import xmlrpc.client
-import XenAPI
+import XenAPI # pylint: disable=import-error
 from constants import CBTLOG_TAG
 
 geneology = {}
@@ -215,7 +215,7 @@ class FileSR(SR.SR):
         self._kickGC()
 
         # default behaviour from here on
-        return super(FileSR, self).scan(sr_uuid)
+        super(FileSR, self).scan(sr_uuid)
 
     def update(self, sr_uuid):
         if not self._checkmount():

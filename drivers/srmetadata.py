@@ -286,7 +286,7 @@ class MetadataHandler:
     #   is_a_snapshot
     #   snapshot_of, if snapshot status is true
     #   snapshot time
-    #   type: system, user or metadata etc
+    #   type (system, user or metadata etc)
     #   vdi_type: raw or vhd
     #   read_only
     #   location
@@ -634,10 +634,10 @@ class MetadataHandler:
 
     # specific functions, to be implement by the child classes
     def getVdiInfo(self, Dict, generateSector=0):
-        return
+        return ''
 
     def getSRInfoForSectors(self, sr_info, range):
-        return
+        return ''
 
 
 class LVMMetadataHandler(MetadataHandler):

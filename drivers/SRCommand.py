@@ -18,7 +18,7 @@
 # SRCommand: parse SR command-line objects
 #
 
-import XenAPI
+import XenAPI # pylint: disable=import-error
 import sys
 import xs_errors
 import xmlrpc.client
