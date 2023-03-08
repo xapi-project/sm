@@ -94,7 +94,7 @@ def gen_uuid_from_string(src_string):
 
 def SCSIid_sanitise(str):
     text = str.strip()
-    return re.sub("\s+", "_", text)
+    return re.sub(r"\s+", "_", text)
 
 
 def getSCSIid(path):
@@ -138,7 +138,7 @@ def getserial(path):
     dev = os.path.join('/dev', getdev(path))
     try:
         cmd = ["sginfo", "-s", dev]
-        text = re.sub("\s+", "", util.pread2(cmd))
+        text = re.sub(r"\s+", "", util.pread2(cmd))
     except:
         raise xs_errors.XenError('EIO', \
               opterr='An error occured querying device serial number [%s]' \
@@ -162,7 +162,7 @@ def cacheSCSIidentifiers():
     SCSI = {}
     SYS_PATH = "/dev/disk/by-scsibus/*"
     for node in glob.glob(SYS_PATH):
-        if not re.match('.*-\d+:\d+:\d+:\d+$', node):
+        if not re.match(r'.*-\d+:\d+:\d+:\d+$', node):
             continue
         dev = os.path.realpath(node)
         HBTL = os.path.basename(node).split("-")[-1].split(":")
@@ -401,7 +401,7 @@ def _genReverseSCSidtoLUNidmap(SCSIid):
 
 
 def _dosgscan():
-    regex = re.compile("([^:]*):\s+scsi([0-9]+)\s+channel=([0-9]+)\s+id=([0-9]+)\s+lun=([0-9]+)")
+    regex = re.compile(r"([^:]*):\s+scsi([0-9]+)\s+channel=([0-9]+)\s+id=([0-9]+)\s+lun=([0-9]+)")
     scan = util.pread2(["/usr/bin/sg_scan"]).split('\n')
     sgs = []
     for line in scan:

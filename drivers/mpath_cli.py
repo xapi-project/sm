@@ -57,8 +57,8 @@ def resize_map(m):
 def reconfigure():
     mpexec("reconfigure")
 
-regex = re.compile("[0-9]+:[0-9]+:[0-9]+:[0-9]+\s*([a-z]*)")
-regex2 = re.compile("multipathd>(\s*[^:]*:)?\s+(.*)")
+regex = re.compile(r"[0-9]+:[0-9]+:[0-9]+:[0-9]+\s*([a-z]*)")
+regex2 = re.compile(r"multipathd>(\s*[^:]*:)?\s+(.*)")
 regex3 = re.compile("switchgroup")
 
 

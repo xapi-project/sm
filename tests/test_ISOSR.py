@@ -201,7 +201,7 @@ class TestISOSR_overSMB(unittest.TestCase):
         context.setup_error_codes()
         update = {'cifspassword': 'winter2019'}
         smbsr = self.create_smbisosr(atype='cifs', vers='1.0',
-                                     username='citrix\jsmith',
+                                     username=r'citrix\jsmith',
                                      dconf_update=update)
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)

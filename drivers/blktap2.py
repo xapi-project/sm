@@ -949,7 +949,7 @@ class Tapdisk(object):
 
     @staticmethod
     def _parse_minor(devpath):
-        regex = '%s/(blktap|tapdev)(\d+)$' % Blktap.DEV_BASEDIR
+        regex = r'%s/(blktap|tapdev)(\d+)$' % Blktap.DEV_BASEDIR
         pattern = re.compile(regex)
         groups = pattern.search(devpath)
         if not groups:
