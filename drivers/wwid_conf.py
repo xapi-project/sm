@@ -45,8 +45,8 @@ def edit_wwid(wwid, remove=False):
     """
 
     tmp_file = CONF_FILE + "~"
-    filt_regex = re.compile('^\s*%s\s*{' % BELIST_TAG)
-    wwid_regex = re.compile('^\s*wwid\s+\"%s\"' % wwid)
+    filt_regex = re.compile(r'^\s*%s\s*{' % BELIST_TAG)
+    wwid_regex = re.compile(r'^\s*wwid\s+\"%s\"' % wwid)
 
     conflock = lock.Lock(LOCK_TYPE_HOST, LOCK_NS)
     conflock.acquire()

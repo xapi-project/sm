@@ -56,7 +56,7 @@ NFSPORT = 2049
 
 def is_image_utf8_compatible(s):
     # pylint: disable=no-member
-    regex = re.compile("\.iso$|\.img$", re.I)
+    regex = re.compile(r"\.iso$|\.img$", re.I)
     if regex.search(s) is None:
         return False
 
@@ -120,7 +120,7 @@ class ISOSR(SR.SR):
 
     # pylint: disable=no-member
     uuid_file_regex = re.compile(
-        "([0-9a-f]{8}-(([0-9a-f]{4})-){3}[0-9a-f]{12})\.(iso|img)", re.I)
+        r"([0-9a-f]{8}-(([0-9a-f]{4})-){3}[0-9a-f]{12})\.(iso|img)", re.I)
 
     def _loadvdis(self):
         """Scan the directory and get uuids either from the VDI filename, \
@@ -176,7 +176,7 @@ class ISOSR(SR.SR):
         return super(ISOSR, self).content_type(sr_uuid)
 
     # pylint: disable=no-member
-    vdi_path_regex = re.compile("[a-z0-9.-]+\.(iso|img)", re.I)
+    vdi_path_regex = re.compile(r"[a-z0-9.-]+\.(iso|img)", re.I)
 
     def vdi(self, uuid):
         """Create a VDI class.  If the VDI does not exist, we determine
