@@ -100,12 +100,6 @@ exit 0
 %systemd_postun sm-mpath-root.service
 %systemd_postun xs-sm.service
 %systemd_postun storage-init.service
-if [ $1 -eq 0 ]; then
-    [ ! -d /etc/lvm/master ] || rm -Rf /etc/lvm/master || exit $?
-    cp -f /etc/lvm/lvm.conf.orig /etc/lvm/lvm.conf || exit $?
-elif [ $1 -eq 1 ]; then
-    true;
-fi
 
 %check
 tests/run_python_unittests.sh
