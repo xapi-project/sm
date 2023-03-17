@@ -67,6 +67,17 @@ def to_xml(d):
     return dom.toxml()
 
 
+def _handle_discard_error(vg_name, sr_uuid, error):
+    if "BLKDISCARD ioctl failed: Operation not supported" not in error.reason:
+        err_msg = {
+            ERROR_CODE_KEY: 'TrimException',
+            ERROR_MSG_KEY: error.reason
+        }
+        return to_xml(err_msg)
+    else:
+        return str(True)
+
+
 # Note: This function is expected to be called from a context where
 # the SR is locked by the thread calling the function; therefore removing
 # any risk of a race condition updating the LAST_TRIGGERED value.
@@ -129,11 +140,7 @@ def do_trim(session, args):
                 util.SMlog("Trim on SR: %s complete. " % sr_uuid)
                 result = str(True)
         except util.CommandException as e:
-            err_msg = {
-                ERROR_CODE_KEY: 'TrimException',
-                ERROR_MSG_KEY: e.reason
-            }
-            result = to_xml(err_msg)
+            result = _handle_discard_error(vg_name, sr_uuid, e)
         except:
             err_msg = {
                 ERROR_CODE_KEY: 'UnknownTrimException',

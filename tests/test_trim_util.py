@@ -4,6 +4,10 @@ import testlib
 
 import unittest.mock as mock
 
+import util
+
+IOCTL_ERROR = "blkdiscard: /dev/VG_XenStorage-33f99d3e-1c69-1a64-e05d-8a84ef7b8efc/33f99d3e-1c69-1a64-e05d-8a84ef7b8efc_trim_lv: BLKDISCARD ioctl failed: Operation not supported"
+
 EMPTY_VG_SPACE = 4 * 1024 * 1024
 
 
@@ -341,3 +345,71 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
             </key_value_pair>
         </trim_response>
         """, result)
+
+    @mock.patch("trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
+    @mock.patch('util.pread2', autospec=True)
+    @mock.patch('trim_util.lvutil', autospec=True)
+    @mock.patch('lock.Lock', autospec=True)
+    @mock.patch('util.sr_get_capability', autospec=True)
+    @testlib.with_context
+    def test_do_trim_ioctl_not_supported(
+            self, context, sr_get_capability, mock_lock, lvutil, mock_pread):
+        """
+        Check that ioctl not supported error is not propagated
+        """
+        # Arrange
+        def pread2(cmd):
+            raise util.CommandException(1, cmd, IOCTL_ERROR)
+        mock_pread.side_effect = pread2
+        lvutil._getVGstats.return_value = {'physical_size': 0,
+                                           'physical_utilisation': 0,
+                                           'freespace': EMPTY_VG_SPACE}
+        mock_lock.return_value = AlwaysFreeLock()
+        sr_get_capability.return_value = [trim_util.TRIM_CAP]
+        context.setup_error_codes()
+
+        # Act
+        result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
+
+        # Assert
+        self.assertEqual("True", result)
+
+    @mock.patch("trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
+    @mock.patch('util.pread2', autospec=True)
+    @mock.patch('trim_util.lvutil', autospec=True)
+    @mock.patch('lock.Lock', autospec=True)
+    @mock.patch('util.sr_get_capability', autospec=True)
+    @testlib.with_context
+    def test_do_trim_blkdiscard_error_not_ioctl(
+            self, context, sr_get_capability, mock_lock, lvutil, mock_pread):
+        """
+        Check that blkdiscard errors are reported
+        """
+        # Arrange
+        def pread2(cmd):
+            raise util.CommandException(5, cmd, "IO Error")
+        mock_pread.side_effect = pread2
+        lvutil._getVGstats.return_value = {'physical_size': 0,
+                                           'physical_utilisation': 0,
+                                           'freespace': EMPTY_VG_SPACE}
+        mock_lock.return_value = AlwaysFreeLock()
+        sr_get_capability.return_value = [trim_util.TRIM_CAP]
+        context.setup_error_codes()
+
+        # Act
+        result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
+
+        # Assert
+        self.assertXML("""
+                <?xml version="1.0" ?>
+                <trim_response>
+                    <key_value_pair>
+                        <key>errcode</key>
+                        <value>TrimException</value>
+                    </key_value_pair>
+                    <key_value_pair>
+                        <key>errmsg</key>
+                        <value>IO Error</value>
+                    </key_value_pair>
+                </trim_response>
+                """, result)
