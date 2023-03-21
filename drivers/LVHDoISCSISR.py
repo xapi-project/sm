@@ -483,10 +483,10 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
             for i in self.iscsiSRs:
                 try:
                     i.attach(sr_uuid)
-                except SR.SROSError, inst:
-                    # Some iscsi objects can fail login but not all. Storing exception
-                    if inst.errno == 141:
-                        util.SMlog("Connection failed for target %s, continuing.." %i.target)
+                except SR.SROSError as inst:
+                    # Some iscsi objects can fail login/discovery but not all. Storing exception
+                    if inst.errno in [141, 83]:
+                        util.SMlog("Connection failed for target %s, continuing.." % i.target)
                         stored_exception = inst
                         continue
                     else:
