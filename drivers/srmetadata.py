@@ -652,25 +652,24 @@ class LVMMetadataHandler(MetadataHandler):
     def spaceAvailableForVdis(self, count):
         created = False
         try:
-            try:
-                # The easiest way to do this, is to create a dummy vdi and write it
-                uuid = util.gen_uuid()
-                vdi_info = {UUID_TAG: uuid,
-                            NAME_LABEL_TAG: 'dummy vdi for space check',
-                            NAME_DESCRIPTION_TAG: 'dummy vdi for space check',
-                            IS_A_SNAPSHOT_TAG: 0,
-                            SNAPSHOT_OF_TAG: '',
-                            SNAPSHOT_TIME_TAG: '',
-                            TYPE_TAG: 'user',
-                            VDI_TYPE_TAG: 'vhd',
-                            READ_ONLY_TAG: 0,
-                            MANAGED_TAG: 0,
-                            'metadata_of_pool': ''
-                }
+            # The easiest way to do this, is to create a dummy vdi and write it
+            uuid = util.gen_uuid()
+            vdi_info = {UUID_TAG: uuid,
+                        NAME_LABEL_TAG: 'dummy vdi for space check',
+                        NAME_DESCRIPTION_TAG: 'dummy vdi for space check',
+                        IS_A_SNAPSHOT_TAG: 0,
+                        SNAPSHOT_OF_TAG: '',
+                        SNAPSHOT_TIME_TAG: '',
+                        TYPE_TAG: 'user',
+                        VDI_TYPE_TAG: 'vhd',
+                        READ_ONLY_TAG: 0,
+                        MANAGED_TAG: 0,
+                        'metadata_of_pool': ''
+            }
 
-                created = self.addVdiInternal(vdi_info)
-            except IOError as e:
-                raise
+            created = self.addVdiInternal(vdi_info)
+        except IOError as e:
+            raise
         finally:
             if created:
                 # Now delete the dummy VDI created above
