@@ -111,15 +111,7 @@ precommit: build
 
 .PHONY: precheck
 precheck: build
-	@ QUIT=0; \
-	for i in $(SM_PY_FILES); do \
-		echo Checking $${i} ...; \
-		PYTHONPATH=./drivers:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $${i}; \
-		[ $$? -ne 0 ] && QUIT=1 ; \
-	done; \
-	if [ $$QUIT -ne 0 ]; then \
-		exit 1; \
-	fi; \
+	PYTHONPATH=./drivers:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $(SM_PY_FILES)
 	echo "Precheck succeeded with no outstanding issues found."
 
 .PHONY: install
