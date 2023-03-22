@@ -208,6 +208,7 @@ class SMBSR(FileSR.SharedFileSR):
             err = "SMBUnMount"
             self.unmount(PROBE_MOUNTPOINT, True)
         except SMBException as inst:
+            # pylint: disable=used-before-assignment
             raise xs_errors.XenError(err, opterr=inst.errstr)
         except (util.CommandException, xs_errors.XenError):
             raise
