@@ -215,31 +215,6 @@ def _parseHostId(str):
     return val.replace(',', '')
 
 
-def _genMPPHBA(id):
-    devs = scsiutil.cacheSCSIidentifiers()
-    mppdict = {}
-    for dev in devs:
-        item = devs[dev]
-        if item[1] == id:
-            arr = scsiutil._genArrayIdentifier(dev)
-            if not len(arr):
-                continue
-            try:
-                cmd = ['/usr/sbin/mppUtil', '-a']
-                for line in util.doexec(cmd)[1].split('\n'):
-                    if line.find(arr) != -1:
-                        rec = line.split()[0]
-                        cmd2 = ['/usr/sbin/mppUtil', '-g', rec]
-                        li = []
-                        for newline in util.doexec(cmd2)[1].split('\n'):
-                            if newline.find('hostId') != -1:
-                                li.append(_parseHostId(newline))
-                        mppdict[dev.split('/')[-1]] = li
-            except:
-                continue
-    return mppdict
-
-
 def match_hbadevs(s, filterstr):
     driver_name = _get_driver_name(s)
     if match_host(s) and not match_blacklist(driver_name) \
@@ -380,19 +355,6 @@ def scan(srobj):
         if obj.SCSIid in vdis:
             vdis[obj.SCSIid].numpaths += 1
             vdis[obj.SCSIid].path += " [%s]" % key
-        elif obj.hba == 'mpp':
-            mppdict = _genMPPHBA(obj.adapter)
-            if key in mppdict:
-                item = mppdict[key]
-                adapters = ''
-                for i in item:
-                    if len(adapters):
-                        adapters += ', '
-                        obj.numpaths += 1
-                    adapters += i
-                if len(adapters):
-                    obj.mpp = adapters
-            vdis[obj.SCSIid] = obj
         else:
             vdis[obj.SCSIid] = obj
 
@@ -401,13 +363,13 @@ def scan(srobj):
         d = dom.createElement("BlockDevice")
         e.appendChild(d)
 
-        for attr in ['path', 'numpaths', 'SCSIid', 'vendor', 'serial', 'size', 'adapter', 'channel', 'id', 'lun', 'hba', 'mpp', 'eth']:
+        for attr in ['path', 'numpaths', 'SCSIid', 'vendor', 'serial', 'size', 'adapter', 'channel', 'id', 'lun', 'hba', 'eth']:
             try:
                 aval = getattr(obj, attr)
             except AttributeError:
-                if attr in ['mpp'] or attr in ['eth']:
+                if attr in ['eth']:
                     continue
-                raise xs_errors.XenError('InvalidArg', \
+                raise xs_errors.XenError('InvalidArg',
                       opterr='Missing required field [%s]' % attr)
             entry = dom.createElement(attr)
             d.appendChild(entry)

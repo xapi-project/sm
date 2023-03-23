@@ -188,7 +188,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             pbdref = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
         except:
             pass
-        for key in ["mpath-" + self.SCSIid, "multipathed", "MPPEnabled"]:
+        for key in ["mpath-" + self.SCSIid, "multipathed"]:
             try:
                 self.session.xenapi.PBD.remove_from_other_config(pbdref, key)
             except:

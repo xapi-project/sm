@@ -405,8 +405,6 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 # issue a report luns:
                 luns = util.pread2(["/usr/bin/sg_luns", "-q", sgdev]).split('\n')
                 nluns = len(luns) - 1  # remove the line relating to the final \n
-                # check if the LUNs are MPP-RDAC Luns
-                scsi_id = scsiutil.getSCSIid(sgdev)
 
                 # make sure we've got that many sg devices present
                 for i in range(0, 30):

@@ -16,16 +16,11 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 import util
-import time
 import os
 import sys
 import re
 import xs_errors
-import lock
 import mpath_cli
-import mpp_mpathutil
-import glob
-import json
 
 supported = ['iscsi', 'lvmoiscsi', 'rawhba', 'lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp', 'lvmofcoe', 'gfs2']
 
@@ -34,11 +29,9 @@ LOCK_NS1 = "mpathcount1"
 LOCK_NS2 = "mpathcount2"
 
 MAPPER_DIR = "/dev/mapper"
-mpp_path_update = False
 match_bySCSIid = False
 mpath_enabled = True
 SCSIid = 'NOTSUPPLIED'
-mpp_entry = 'NOTSUPPLIED'
 
 cached_DM_maj = None
 
@@ -120,16 +113,7 @@ def get_root_dev_major():
 # @entry:   string representing previous value
 # @remove:  callback to remove key
 # @add:     callback to add key/value pair
-def update_config(key, SCSIid, entry, remove, add, mpp_path_update=False):
-    if mpp_path_update:
-        remove('multipathed')
-        remove(key)
-        remove('MPPEnabled')
-        add('MPPEnabled', 'true')
-        add('multipathed', 'true')
-        add(key, str(entry))
-        return
-
+def update_config(key, SCSIid, entry, remove, add):
     path = os.path.join(MAPPER_DIR, SCSIid)
     util.SMlog("MPATH: Updating entry for [%s], current: %s" % (SCSIid, entry))
     if os.path.exists(path):
@@ -203,9 +187,6 @@ def check_devconfig(devconfig, sm_config, config, remove, add):
         if not mpath_enabled:
             remove(key)
             remove('multipathed')
-        elif mpp_path_update:
-            util.SMlog("Matched SCSIid, updating entry %s" % str(mpp_entry))
-            update_config(key, i, mpp_entry, remove, add, mpp_path_update)
         else:
             if key not in config:
                 update_config(key, i, "", remove, add)
@@ -213,12 +194,6 @@ def check_devconfig(devconfig, sm_config, config, remove, add):
                 update_config(key, i, config[key], remove, add)
 
 if __name__ == '__main__':
-    if len(sys.argv) == 3:
-        match_bySCSIid = True
-        SCSIid = sys.argv[1]
-        mpp_path_update = True
-        mpp_entry = sys.argv[2]
-
     try:
         session = util.get_localAPI_session()
     except:
