@@ -119,7 +119,6 @@ tests/run_python_unittests.sh
 /opt/xensource/bin/blktap2
 /opt/xensource/bin/tapdisk-cache-stats
 /opt/xensource/bin/xe-getarrayidentifier
-/opt/xensource/bin/xe-get-arrayid-lunnum
 /opt/xensource/bin/xe-getlunidentifier
 /opt/xensource/debug/tp
 /opt/xensource/libexec/check-device-sharing
@@ -183,7 +182,6 @@ tests/run_python_unittests.sh
 /opt/xensource/sm/mpath_null.py
 /opt/xensource/sm/mpathcount.py
 /opt/xensource/sm/mpathutil.py
-/opt/xensource/sm/mpp_mpathutil.py
 /opt/xensource/sm/nfs.py
 /opt/xensource/sm/refcounter.py
 /opt/xensource/sm/resetvdis.py

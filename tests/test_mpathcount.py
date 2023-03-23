@@ -50,28 +50,23 @@ class TestMpathCount(unittest.TestCase):
         ## don't exist, to exercise different branches
         mpathcount.MAPPER_DIR = "tests/fake_mapper"
 
-        mpathcount.update_config("fred", "3600a098038303973743f486833396d44", "[2, 4]", remove, add, True)
-        self.assertIn('MPPEnabled', store)
+        store = {'fred': ''}
+        mpathcount.update_config("fred", "3600a098038303973743f486833396d44", "[2, hamster]", remove, add)
         self.assertIn('multipathed', store)
         self.assertEqual('[2, 4]', store['fred'], msg="Store value incorrect for key 'fred'")
 
         store = {'fred': ''}
-        mpathcount.update_config("fred", "3600a098038303973743f486833396d44", "[2, hamster]", remove, add, False)
+        mpathcount.update_config("fred", "3600a098038303973743f486833396d44", "[2, 2]", remove, add)
         self.assertIn('multipathed', store)
         self.assertEqual('[2, 4]', store['fred'], msg="Store value incorrect for key 'fred'")
 
         store = {'fred': ''}
-        mpathcount.update_config("fred", "3600a098038303973743f486833396d44", "[2, 2]", remove, add, False)
+        mpathcount.update_config("fred", "3600a098038303973743f486833396d44", "", remove, add)
         self.assertIn('multipathed', store)
         self.assertEqual('[2, 4]', store['fred'], msg="Store value incorrect for key 'fred'")
 
         store = {'fred': ''}
-        mpathcount.update_config("fred", "3600a098038303973743f486833396d44", "", remove, add, False)
-        self.assertIn('multipathed', store)
-        self.assertEqual('[2, 4]', store['fred'], msg="Store value incorrect for key 'fred'")
-
-        store = {'fred': ''}
-        mpathcount.update_config("fred", "NotARealItem", "", remove, add, False)
+        mpathcount.update_config("fred", "NotARealItem", "", remove, add)
         self.assertNotIn('multipathed', store)
         self.assertNotIn('fred', store)
 

@@ -28,11 +28,8 @@ DMPBIN = "/sbin/multipath"
 DEVMAPPERPATH = "/dev/mapper"
 DEVBYIDPATH = "/dev/disk/by-id"
 DEVBYSCSIPATH = "/dev/disk/by-scsibus"
-DEVBYMPPPATH = "/dev/disk/by-mpp"
 SYSFS_PATH = '/sys/class/scsi_host'
 MP_INUSEDIR = "/dev/disk/mpInuse"
-
-MPPGETAIDLNOBIN = "/opt/xensource/bin/xe-get-arrayid-lunnum"
 
 
 def _is_mpath_daemon_running():
@@ -213,15 +210,6 @@ def deactivate():
         # Flush the multipath nodes
         for sid in mpath_cli.list_maps():
             reset(sid, True)
-
-    # Disable any active MPP LUN maps (except the root dev)
-    systemroot = os.path.realpath(util.getrootdev())
-    for dev in glob.glob(DEVBYMPPPATH + "/*"):
-        if os.path.realpath(dev) != systemroot:
-            sid = os.path.basename(dev).split('-')[0]
-            reset(sid)
-        else:
-            util.SMlog("MPP: Found root dev node, not resetting")
 
     # Check the ISCSI daemon doesn't have any active sessions, if not,
     # restart in the new mode

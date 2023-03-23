@@ -435,7 +435,7 @@ class BaseISCSISR(SR.SR):
         # Remove iscsi_sessions and multipathed keys
         if pbdref is not None:
             if self.cmd == 'sr_detach':
-                keys += ["multipathed", "iscsi_sessions", "MPPEnabled"]
+                keys += ["multipathed", "iscsi_sessions"]
             for key in keys:
                 try:
                     self.session.xenapi.PBD.remove_from_other_config(pbdref, key)
