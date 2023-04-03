@@ -243,9 +243,7 @@ class NFSSR(FileSR.SharedFileSR):
             if inst.code != errno.ENOENT:
                 raise xs_errors.XenError('NFSDelete')
 
-    def vdi(self, uuid, loadLocked=False):
-        if not loadLocked:
-            return NFSFileVDI(self, uuid)
+    def vdi(self, uuid):
         return NFSFileVDI(self, uuid)
 
     def scan_exports(self, target):
