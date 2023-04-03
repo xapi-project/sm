@@ -31,10 +31,10 @@ import vhdutil
 from lock import Lock
 from constants import EXT_PREFIX
 
-CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_SUPPORTS_LOCAL_CACHING", \
-                "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH", \
-                "VDI_UPDATE", "VDI_CLONE", "VDI_SNAPSHOT", "VDI_RESIZE", "VDI_MIRROR", \
-                "VDI_GENERATE_CONFIG", \
+CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_SUPPORTS_LOCAL_CACHING",
+                "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
+                "VDI_UPDATE", "VDI_CLONE", "VDI_SNAPSHOT", "VDI_RESIZE", "VDI_MIRROR",
+                "VDI_GENERATE_CONFIG",
                 "VDI_RESET_ON_BOOT/2", "ATOMIC_PAUSE", "VDI_CONFIG_CBT",
                 "VDI_ACTIVATE", "VDI_DEACTIVATE", "THIN_PROVISIONING", "VDI_READ_CACHING"]
 
@@ -81,11 +81,11 @@ class EXTSR(FileSR.FileSR):
                 cmd = ["pvs", dev]
                 txt = util.pread2(cmd)
                 if txt.find(self.vgname) == -1:
-                    raise xs_errors.XenError('VolNotFound', \
-                          opterr='volume is %s' % self.vgname)
+                    raise xs_errors.XenError('VolNotFound',
+                                             opterr='volume is %s' % self.vgname)
         except util.CommandException as inst:
-            raise xs_errors.XenError('PVSfailed', \
-                  opterr='error is %d' % inst.code)
+            raise xs_errors.XenError('PVSfailed',
+                                     opterr='error is %d' % inst.code)
 
         # Remove LV, VG and pv
         try:
@@ -99,8 +99,8 @@ class EXTSR(FileSR.FileSR):
                 cmd = ["pvremove", dev]
                 util.pread2(cmd)
         except util.CommandException as inst:
-            raise xs_errors.XenError('LVMDelete', \
-                  opterr='errno is %d' % inst.code)
+            raise xs_errors.XenError('LVMDelete',
+                                     opterr='errno is %d' % inst.code)
 
     def attach(self, sr_uuid):
         if not self._checkmount():
@@ -113,8 +113,9 @@ class EXTSR(FileSR.FileSR):
                 if not os.path.isdir(self.path):
                     os.makedirs(self.path)
             except util.CommandException as inst:
-                raise xs_errors.XenError('LVMMount', \
-                      opterr='Unable to activate LV. Errno is %d' % inst.code)
+                raise xs_errors.XenError(
+                    'LVMMount',
+                    opterr='Unable to activate LV. Errno is %d' % inst.code)
 
             try:
                 util.pread(["fsck", "-a", self.remotepath])
@@ -122,20 +123,23 @@ class EXTSR(FileSR.FileSR):
                 if inst.code == 1:
                     util.SMlog("FSCK detected and corrected FS errors. Not fatal.")
                 else:
-                    raise xs_errors.XenError('LVMMount', \
-                         opterr='FSCK failed on %s. Errno is %d' % (self.remotepath, inst.code))
+                    raise xs_errors.XenError(
+                        'LVMMount',
+                        opterr='FSCK failed on %s. Errno is %d' % (self.remotepath, inst.code))
 
             try:
                 util.pread(["mount", self.remotepath, self.path])
             except util.CommandException as inst:
-                raise xs_errors.XenError('LVMMount', \
-                      opterr='Failed to mount FS. Errno is %d' % inst.code)
+                raise xs_errors.XenError(
+                    'LVMMount',
+                    opterr='Failed to mount FS. Errno is %d' % inst.code)
 
         self.attached = True
 
         #Update SCSIid string
-        scsiutil.add_serial_record(self.session, self.sr_ref, \
-                scsiutil.devlist_to_serialstring(self.dconf['device'].split(',')))
+        scsiutil.add_serial_record(
+            self.session, self.sr_ref,
+            scsiutil.devlist_to_serialstring(self.dconf['device'].split(',')))
 
         # Set the block scheduler
         for dev in self.dconf['device'].split(','):
@@ -148,8 +152,9 @@ class EXTSR(FileSR.FileSR):
             cmd = ["lvchange", "-an", self.remotepath]
             util.pread2(cmd)
         except util.CommandException as inst:
-            raise xs_errors.XenError('LVMUnMount', \
-                  opterr='lvm -an failed errno is %d' % inst.code)
+            raise xs_errors.XenError(
+                'LVMUnMount',
+                opterr='lvm -an failed errno is %d' % inst.code)
 
     @deviceCheck
     def probe(self):
@@ -199,21 +204,24 @@ class EXTSR(FileSR.FileSR):
             cmd = ["lvchange", "-ay", self.remotepath]
             text = util.pread(cmd)
         except util.CommandException as inst:
-            raise xs_errors.XenError('LVMCreate', \
-                  opterr='lv operation, error %d' % inst.code)
+            raise xs_errors.XenError(
+                'LVMCreate',
+                opterr='lv operation, error %d' % inst.code)
         except AssertionError:
-            raise xs_errors.XenError('SRNoSpace', \
-                  opterr='Insufficient space in VG %s' % self.vgname)
+            raise xs_errors.XenError(
+                'SRNoSpace',
+                opterr='Insufficient space in VG %s' % self.vgname)
 
         try:
             util.pread2(["mkfs.ext4", "-F", self.remotepath])
         except util.CommandException as inst:
-            raise xs_errors.XenError('LVMFilesystem', \
-                  opterr='mkfs failed error %d' % inst.code)
+            raise xs_errors.XenError('LVMFilesystem',
+                                     opterr='mkfs failed error %d' % inst.code)
 
         #Update serial number string
-        scsiutil.add_serial_record(self.session, self.sr_ref, \
-                  scsiutil.devlist_to_serialstring(self.dconf['device'].split(',')))
+        scsiutil.add_serial_record(
+            self.session, self.sr_ref,
+            scsiutil.devlist_to_serialstring(self.dconf['device'].split(',')))
 
     def vdi(self, uuid, loadLocked=False):
         if not loadLocked:
