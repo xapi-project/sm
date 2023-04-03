@@ -272,7 +272,7 @@ class FileSR(SR.SR):
         for uuid in self.vhds.keys():
             if self.vhds[uuid].error:
                 raise xs_errors.XenError('SRScan', opterr='uuid=%s' % uuid)
-            self.vdis[uuid] = self.vdi(uuid, True)
+            self.vdis[uuid] = self.vdi(uuid)
             # Get the key hash of any encrypted VDIs:
             vhd_path = os.path.join(self.path, self.vhds[uuid].path)
             key_hash = vhdutil.getKeyHash(vhd_path)
@@ -283,7 +283,7 @@ class FileSR(SR.SR):
         for fn in files:
             if fn.endswith(vhdutil.FILE_EXTN_RAW):
                 uuid = fn[:-(len(vhdutil.FILE_EXTN_RAW))]
-                self.vdis[uuid] = self.vdi(uuid, True)
+                self.vdis[uuid] = self.vdi(uuid)
             elif fn.endswith(CBTLOG_TAG):
                 cbt_uuid = fn.split(".")[0]
                 # If an associated disk exists, update CBT status
