@@ -287,9 +287,7 @@ class SMBSR(FileSR.SharedFileSR):
             if inst.code != errno.ENOENT:
                 raise xs_errors.XenError('SMBDelete')
 
-    def vdi(self, uuid, loadLocked=False):
-        if not loadLocked:
-            return SMBFileVDI(self, uuid)
+    def vdi(self, uuid):
         return SMBFileVDI(self, uuid)
 
 

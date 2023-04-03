@@ -233,7 +233,7 @@ class FileSR(SR.SR):
     def content_type(self, sr_uuid):
         return super(FileSR, self).content_type(sr_uuid)
 
-    def vdi(self, uuid, loadLocked=False):
+    def vdi(self, uuid):
         return FileVDI(self, uuid)
 
     def added_vdi(self, vdi):

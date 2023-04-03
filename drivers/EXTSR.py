@@ -215,9 +215,7 @@ class EXTSR(FileSR.FileSR):
         scsiutil.add_serial_record(self.session, self.sr_ref, \
                   scsiutil.devlist_to_serialstring(self.dconf['device'].split(',')))
 
-    def vdi(self, uuid, loadLocked=False):
-        if not loadLocked:
-            return EXTFileVDI(self, uuid)
+    def vdi(self, uuid):
         return EXTFileVDI(self, uuid)
 
 
