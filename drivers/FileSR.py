@@ -1071,7 +1071,7 @@ class SharedFileSR(FileSR):
     NO_HARDLINK_SUPPORT = "no_hardlinks"
 
     def _raise_hardlink_error(self):
-        raise OSError(542, "Unknown error 524")
+        raise OSError(524, "Unknown error 524")
 
     def _check_hardlinks(self):
         test_name = os.path.join(self.path, str(uuid4()))
@@ -1079,7 +1079,7 @@ class SharedFileSR(FileSR):
 
         link_name = '%s.new' % test_name
         try:
-            # XSI-1100: Fail the link operation
+            # XSI-1100: Let tests simulate failure of the link operation
             util.fistpoint.activate_custom_fn(
                 "FileSR_fail_hardlink",
                 self._raise_hardlink_error)
