@@ -1832,6 +1832,7 @@ class SR:
         self.deleteVDI(vdi)
 
     class CoalesceTracker:
+        GRACE_ITERATIONS = 1
         MAX_ITERATIONS_NO_PROGRESS = 3
         MAX_ITERATIONS = 10
         MAX_INCREASE_FROM_MINIMUM = 1.2
@@ -1885,7 +1886,8 @@ class SR:
                 res = True
 
             maxSizeFromMin = self.MAX_INCREASE_FROM_MINIMUM * self.minSize
-            if (not res) and (curSize > maxSizeFromMin):
+            if (self.its > self.GRACE_ITERATIONS and
+                (not res) and (curSize > maxSizeFromMin)):
                 self.reason = "Unexpected bump in size," \
                               " compared to minimum acheived"
                 res = True
