@@ -31,20 +31,6 @@ class FakeUtil:
     log = staticmethod(log)
 
 
-class FakeXapi(object):
-    def __init__(self):
-        self.srRecord = {
-            'name_label': 'dummy'
-        }
-        self.session = mock.MagicMock()
-
-    def isPluggedHere(self):
-        return True
-
-    def isMaster(self):
-        return True
-
-
 class AlwaysLockedLock(object):
     def acquireNoblock(self):
         return False
@@ -63,8 +49,7 @@ class IrrelevantLock(object):
     pass
 
 
-def create_cleanup_sr(uuid=None):
-    xapi = FakeXapi()
+def create_cleanup_sr(xapi, uuid=None):
     return cleanup.SR(uuid=uuid, xapi=xapi, createLock=False, force=False)
 
 
@@ -82,6 +67,11 @@ class TestSR(unittest.TestCase):
         blktap2_patcher = mock.patch('cleanup.blktap2', autospec=True)
         self.mock_blktap2 = blktap2_patcher.start()
 
+        self.xapi_mock = mock.MagicMock(name='MockXapi')
+        self.xapi_mock.srRecord = {'name_label': 'dummy'}
+        self.xapi_mock.isPluggedHere.return_value = True
+        self.xapi_mock.isMaster.return_value = True
+
         self.addCleanup(mock.patch.stopall)
 
     def setup_abort_flag(self, ipc_mock, should_abort=False):
@@ -90,9 +80,8 @@ class TestSR(unittest.TestCase):
 
         ipc_mock.return_value = flag
 
-    def setup_mock_sr(selfs, mock_sr):
-        xapi = FakeXapi()
-        mock_sr.configure_mock(uuid=1234, xapi=xapi,
+    def setup_mock_sr(self, mock_sr):
+        mock_sr.configure_mock(uuid=1234, xapi=self.xapi_mock,
                                createLock=False, force=False)
 
     def mock_cleanup_locks(self):
@@ -108,7 +97,7 @@ class TestSR(unittest.TestCase):
         increments the lock counter
         """
 
-        sr = create_cleanup_sr()
+        sr = create_cleanup_sr(self.xapi_mock)
         sr._srLock = IrrelevantLock()
         sr._locked = 1
 
@@ -122,7 +111,7 @@ class TestSR(unittest.TestCase):
         the counter
         """
 
-        sr = create_cleanup_sr()
+        sr = create_cleanup_sr(self.xapi_mock)
         sr._srLock = None
 
         sr.lock()
@@ -138,7 +127,7 @@ class TestSR(unittest.TestCase):
         """
 
         self.setup_abort_flag(mock_ipc_flag)
-        sr = create_cleanup_sr()
+        sr = create_cleanup_sr(self.xapi_mock)
         sr._srLock = AlwaysFreeLock()
 
         sr.lock()
@@ -154,7 +143,7 @@ class TestSR(unittest.TestCase):
         """
 
         self.setup_abort_flag(mock_ipc_flag, should_abort=True)
-        sr = create_cleanup_sr()
+        sr = create_cleanup_sr(self.xapi_mock)
         sr._srLock = AlwaysLockedLock()
 
         self.assertRaises(cleanup.AbortException, sr.lock)
@@ -168,7 +157,7 @@ class TestSR(unittest.TestCase):
         """
 
         self.setup_abort_flag(mock_ipc_flag)
-        sr = create_cleanup_sr()
+        sr = create_cleanup_sr(self.xapi_mock)
         sr._srLock = AlwaysLockedLock()
 
         self.assertRaises(util.SMException, sr.lock)
@@ -182,7 +171,7 @@ class TestSR(unittest.TestCase):
         """
 
         self.setup_abort_flag(mock_ipc_flag)
-        sr = create_cleanup_sr()
+        sr = create_cleanup_sr(self.xapi_mock)
         sr._srLock = AlwaysLockedLock()
 
         try:
@@ -542,7 +531,7 @@ class TestSR(unittest.TestCase):
         mock_lock.Lock = mock.MagicMock(spec=lock.Lock)
 
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         vdi_uuid = uuid4()
 
         vdi = cleanup.VDI(sr, str(vdi_uuid), False)
@@ -559,7 +548,7 @@ class TestSR(unittest.TestCase):
         mock_vdi.canLiveCoalesce.return_value = True
         mock_srLeafCoalesce.return_value = "This is a test"
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         vdi_uuid = uuid4()
         vdi = cleanup.VDI(sr, str(vdi_uuid), False)
 
@@ -580,7 +569,7 @@ class TestSR(unittest.TestCase):
         mock_srSnapshotCoalesce.return_value = False
         mock_srLeafCoalesce.return_value = False
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         vdi_uuid = uuid4()
         vdi = cleanup.VDI(sr, str(vdi_uuid), False)
 
@@ -601,7 +590,7 @@ class TestSR(unittest.TestCase):
                                         mockliveCoalesce):
 
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         vdi_uuid = uuid4()
         vdi = cleanup.VDI(sr, str(vdi_uuid), False)
 
@@ -623,7 +612,7 @@ class TestSR(unittest.TestCase):
                                       mock_vdiLiveCoalesce):
 
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         vdi_uuid = uuid4()
         vdi = cleanup.VDI(sr, str(vdi_uuid), False)
 
@@ -657,7 +646,7 @@ class TestSR(unittest.TestCase):
         mock_vhdSize.side_effect = iter([1024, 1023, 1023, 1022, 1022, 1021])
 
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         vdi_uuid = uuid4()
         vdi = cleanup.VDI(sr, str(vdi_uuid), False)
 
@@ -671,7 +660,7 @@ class TestSR(unittest.TestCase):
     @mock.patch('cleanup.Util.log')
     def test_findLeafCoalesceable_forbidden1(self, mock_log):
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         sr.xapi.srRecord = {"other_config": {cleanup.VDI.DB_COALESCE: "false"}}
 
         res = sr.findLeafCoalesceable()
@@ -681,7 +670,7 @@ class TestSR(unittest.TestCase):
     @mock.patch('cleanup.Util.log')
     def test_findLeafCoalesceable_forbidden2(self, mock_log):
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         sr.xapi.srRecord =\
             {"other_config":
              {cleanup.VDI.DB_LEAFCLSC: cleanup.VDI.LEAFCLSC_DISABLED}}
@@ -693,7 +682,7 @@ class TestSR(unittest.TestCase):
     @mock.patch('cleanup.Util.log')
     def test_findLeafCoalesceable_forbidden3(self, mock_log):
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         sr.xapi.srRecord = {"other_config":
                             {cleanup.VDI.DB_LEAFCLSC:
                              cleanup.VDI.LEAFCLSC_DISABLED,
@@ -707,7 +696,7 @@ class TestSR(unittest.TestCase):
     @mock.patch('cleanup.Util.log')
     def test_findLeafCoalesceable_forbidden4(self, mock_log):
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         sr.xapi.srRecord = {"other_config": {cleanup.VDI.DB_LEAFCLSC:
                                              cleanup.VDI.LEAFCLSC_DISABLED,
                                              cleanup.VDI.DB_COALESCE:
@@ -720,7 +709,7 @@ class TestSR(unittest.TestCase):
     @mock.patch('cleanup.Util.log')
     def test_findLeafCoalesceable_forbidden5(self, mock_log):
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         sr.xapi.srRecord = {"other_config": {cleanup.VDI.DB_LEAFCLSC:
                                              cleanup.VDI.LEAFCLSC_FORCE,
                                              cleanup.VDI.DB_COALESCE:
@@ -734,7 +723,7 @@ class TestSR(unittest.TestCase):
 
     def srWithOneGoodVDI(self, mock_getConfig, goodConfig):
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
 
         vdi_uuid = uuid4()
         if goodConfig:
@@ -872,7 +861,7 @@ class TestSR(unittest.TestCase):
                              expectedNothing=False):
 
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
 
         good = self.makeVDIReturningSize(sr, goodSize, canLiveCoalesce,
                                          liveSize)
@@ -998,7 +987,7 @@ class TestSR(unittest.TestCase):
     def test_getStorageSpeed(self, mock_unlock, mock_lock, mock_chmod,
                              mock_isFile, mock_open):
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         fakeFile = self.makeFakeFile()
         mock_open.return_value = FakeFile
 
@@ -1066,7 +1055,7 @@ class TestSR(unittest.TestCase):
     def test_writeSpeedToFile(self, mock_lock, mock_unlock, mock_atomicWrite,
                               mock_isFile, mock_open):
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         FakeFile = self.makeFakeFile()
         mock_open.return_value = FakeFile
 
@@ -1146,7 +1135,7 @@ class TestSR(unittest.TestCase):
 
     def test_canLiveCoalesce(self):
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         vdi_uuid = uuid4()
         vdi = cleanup.VDI(sr, str(vdi_uuid), False)
         # Fast enough to for size 10/10 = 1 second and not forcing
@@ -1233,7 +1222,7 @@ class TestSR(unittest.TestCase):
         switchValue = "test"
         failMessage = "This is a test"
 
-        sr = create_cleanup_sr()
+        sr = create_cleanup_sr(self.xapi_mock)
 
         side_effect = iter([True, True])
         self.leafCoalesceForbidden(sr, mock_srforbiddenBySwitch, side_effect,
@@ -1380,7 +1369,7 @@ class TestSR(unittest.TestCase):
         mock_abortable.side_effect = self.runAbortable
 
         sr_uuid = uuid4()
-        sr = create_cleanup_sr(uuid=str(sr_uuid))
+        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
         sr.journaler = mock_journaler
 
         mock_ipc_flag = mock.MagicMock(spec=ipc.IPCFlag)
