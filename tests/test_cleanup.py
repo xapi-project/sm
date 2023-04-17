@@ -1291,9 +1291,8 @@ class TestSR(unittest.TestCase):
         self.trackerReportOk(tracker, expectedHistory,
                              expectedReason, start, finish, minimum)
 
-    def exerciseTracker(self, size1, size2, its,  expectedHistory,
+    def exerciseTracker(self, tracker, size1, size2, its, expectedHistory,
                         expectedReason, start, finish, minimum):
-        tracker = cleanup.SR.CoalesceTracker()
         for x in range(its):
             res = tracker.abortCoalesce(size1, size2)
             self.assertFalse(res)
@@ -1302,8 +1301,10 @@ class TestSR(unittest.TestCase):
                             start, finish, minimum)
 
     def test_leafCoalesceTracker(self):
+        sr = create_cleanup_sr(self.xapi_mock)
+
         # Test initialization
-        tracker = cleanup.SR.CoalesceTracker()
+        tracker = cleanup.SR.CoalesceTracker(sr)
         self.assertEqual(tracker.itsNoProgress, 0)
         self.assertEqual(tracker.its, 0)
         self.assertEqual(tracker.minSize, float("inf"))
@@ -1311,6 +1312,25 @@ class TestSR(unittest.TestCase):
         self.assertEqual(tracker.reason, "")
         self.assertEqual(tracker.startSize, None)
         self.assertEqual(tracker.finishSize, None)
+
+        # Increase beyond maximum allowed growth
+        expectedHistory = [
+            "Iteration: 1 -- Initial size 100 --> Final size 100",
+            "Iteration: 2 -- Initial size 100 --> Final size 121",
+        ]
+        expectedReason = "Unexpected bump in size," \
+                         " compared to minimum acheived"
+        res = tracker.abortCoalesce(100, 100)
+        self.assertFalse(res)
+        res = tracker.abortCoalesce(100, 121)
+        self.autopsyTracker(tracker, res, expectedHistory,
+                            expectedReason, 100, 121, 100)
+
+    def test_leafCoaleesceTracker_too_many_iterations(self):
+        sr = create_cleanup_sr(self.xapi_mock)
+
+        # Test initialization
+        tracker = cleanup.SR.CoalesceTracker(sr)
 
         # 10 iterations no progress 11th fails.
         expectedHistory = [
@@ -1327,8 +1347,14 @@ class TestSR(unittest.TestCase):
             "Iteration: 11 -- Initial size 10 --> Final size 10"
         ]
         expectedReason = "Max iterations (10) exceeded"
-        self.exerciseTracker(10, 10, 10, expectedHistory,
+        self.exerciseTracker(tracker, 10, 10, 10, expectedHistory,
                              expectedReason, 10, 10, 10)
+
+    def test_leafCoalesceTracker_getting_bigger(self):
+        sr = create_cleanup_sr(self.xapi_mock)
+
+        # Test initialization
+        tracker = cleanup.SR.CoalesceTracker(sr)
 
         # 3 iterations getting bigger, then fail
         expectedHistory = [
@@ -1338,21 +1364,8 @@ class TestSR(unittest.TestCase):
             "Iteration: 4 -- Initial size 100 --> Final size 101"
         ]
         expectedReason = "No progress made for 3 iterations"
-        self.exerciseTracker(100, 101, 3, expectedHistory,
+        self.exerciseTracker(tracker, 100, 101, 3, expectedHistory,
                              expectedReason, 100, 101, 100)
-
-        # Increase beyond maximum allowed growth
-        expectedHistory = [
-            "Iteration: 1 -- Initial size 100 --> Final size 100",
-            "Iteration: 2 -- Initial size 100 --> Final size 121",
-        ]
-        expectedReason = "Unexpected bump in size,"\
-                         " compared to minimum acheived"
-        res = tracker.abortCoalesce(100, 100)
-        self.assertFalse(res)
-        res = tracker.abortCoalesce(100, 121)
-        self.autopsyTracker(tracker, res, expectedHistory,
-                            expectedReason, 100, 121, 100)
 
     def runAbortable(self, func, ret, ns, abortTest, pollInterval, timeOut):
         return func()
