@@ -778,6 +778,17 @@
                 <description>Device Mapper path missing</description>
                 <value>432</value>
         </code>
+
+        <code>
+                <name>MultipathDeviceNotAppeared</name>
+                <description>Device Mapper path not appeared yet</description>
+                <value>433</value>
+        </code>
+        <code>
+                <name>MultipathDeviceNoScsiid</name>
+                <description>Device Mapper path no SCSI ID supplied</description>
+                <value>434</value>
+        </code>
         <code>
             <name>TapdiskAlreadyRunning</name>
             <description>The tapdisk is already running</description>
