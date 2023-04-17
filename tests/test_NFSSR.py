@@ -1,7 +1,9 @@
 import mock
 import nfs
 import NFSSR
+import SR
 import unittest
+from uuid import uuid4
 
 
 class FakeNFSSR(NFSSR.NFSSR):
@@ -64,6 +66,45 @@ class TestNFSSR(unittest.TestCase):
         validate_nfsversion.side_effect = nfs.NfsException('aNfsException')
 
         self.assertRaises(nfs.NfsException, self.create_nfssr)
+
+    @mock.patch('util.makedirs')
+    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('nfs.soft_mount')
+    @mock.patch('util._testHost')
+    @mock.patch('nfs.check_server_tcp')
+    @mock.patch('nfs.validate_nfsversion')
+    def test_sr_create(self, validate_nfsversion, check_server_tcp, _testhost,
+                       soft_mount, Lock, makedirs):
+        nfssr = self.create_nfssr(server='aServer', serverpath='/aServerpath',
+                                  sr_uuid='UUID', useroptions='options')
+
+        sr_uuid = str(uuid4())
+        size = 100
+        nfssr.create(sr_uuid, size)
+
+    @mock.patch('NFSSR.os.rmdir')
+    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('nfs.soft_mount')
+    @mock.patch('util._testHost')
+    @mock.patch('nfs.check_server_tcp')
+    @mock.patch('nfs.validate_nfsversion')
+    @mock.patch('NFSSR.xs_errors.XML_DEFS',
+                'drivers/XE_SR_ERRORCODES.xml')
+    def test_sr_create_mount_error(
+            self, validate_nfsversion, check_server_tcp, _testhost,
+            soft_mount, Lock, mock_rmdir):
+
+        validate_nfsversion.return_value = '3'
+
+        nfssr = self.create_nfssr(server='aServer', serverpath='/aServerpath',
+                                  sr_uuid='UUID', useroptions='options')
+
+        check_server_tcp.side_effect = nfs.NfsException("Failed to detect NFS Server")
+
+        sr_uuid = str(uuid4())
+        size = 100
+        with self.assertRaises(SR.SROSError):
+            nfssr.create(sr_uuid, size)
 
     @mock.patch('FileSR.SharedFileSR._check_hardlinks', autospec=True)
     @mock.patch('util.makedirs', autospec=True)

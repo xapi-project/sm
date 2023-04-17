@@ -212,7 +212,7 @@ class NFSSR(FileSR.SharedFileSR):
                 os.rmdir(self.path)
             except:
                 pass
-            raise exn
+            raise
 
         if not self.nosubdir:
             newpath = os.path.join(self.path, sr_uuid)
