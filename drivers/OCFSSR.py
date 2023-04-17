@@ -60,9 +60,6 @@ class OCFSSR(FileSR.FileSR):
         if not self.dconf.has_key('device') or not self.dconf['device']:
             raise xs_errors.XenError('ConfigDeviceMissing',)
         self.blockdevice = self.dconf['device']
-        if not self._isvalidpathstring(self.blockdevice):
-            raise xs_errors.XenError('ConfigDeviceInvalid', \
-                    opterr='path is %s' % self.blockdevice)
 
         self.isMaster = False
         if self.dconf.has_key('SRmaster') and self.dconf['SRmaster'] == 'true':

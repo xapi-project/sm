@@ -462,7 +462,7 @@ class LVHDSR(SR.SR):
             return scsiutil.refresh_lun_size_by_SCSIid(getattr(self, 'SCSIid'))
         else:
             # LVHDSR
-            devices = self.root.split(',')
+            devices = self.dconf['device'].split(',')
             scsiutil.refreshdev(devices)
             return True
 
@@ -476,7 +476,7 @@ class LVHDSR(SR.SR):
         currentvgsize = lvutil._getVGstats(self.vgname)['physical_size']
         # We are comparing PV- with VG-sizes that are aligned. Need a threshold
         resizethreshold = 100*1024*1024 # 100MB
-        devices = self.root.split(',')
+        devices = self.dconf['device'].split(',')
         totaldevicesize = 0
         for device in devices:
             totaldevicesize = totaldevicesize + scsiutil.getsize(device)
@@ -505,19 +505,19 @@ class LVHDSR(SR.SR):
             raise xs_errors.XenError('SRExists')
 
         # Check none of the devices already in use by other PBDs
-        if util.test_hostPBD_devs(self.session, uuid, self.root):
+        if util.test_hostPBD_devs(self.session, uuid, self.dconf['device']):
             raise xs_errors.XenError('SRInUse')
 
         # Check serial number entry in SR records
-        for dev in self.root.split(','):
+        for dev in self.dconf['device'].split(','):
             if util.test_scsiserial(self.session, dev):
                 raise xs_errors.XenError('SRInUse')
 
-        lvutil.createVG(self.root, self.vgname)
+        lvutil.createVG(self.dconf['device'], self.vgname)
 
         #Update serial number string
         scsiutil.add_serial_record(self.session, self.sr_ref, \
-                scsiutil.devlist_to_serialstring(self.root.split(',')))
+                scsiutil.devlist_to_serialstring(self.dconf['device'].split(',')))
         
         # since this is an SR.create turn off legacy mode
         self.session.xenapi.SR.add_to_sm_config(self.sr_ref, \
@@ -573,7 +573,7 @@ class LVHDSR(SR.SR):
             raise Exception("LVHDSR delete failed, please refer to the log " \
                             "for details.")
 
-        lvutil.removeVG(self.root, self.vgname)
+        lvutil.removeVG(self.dconf['device'], self.vgname)
         self._cleanup()
 
     def attach(self, uuid):
@@ -596,7 +596,7 @@ class LVHDSR(SR.SR):
             #Update SCSIid string
             util.SMlog("Calling devlist_to_serial")
             scsiutil.add_serial_record(self.session, self.sr_ref, \
-                    scsiutil.devlist_to_serialstring(self.root.split(',')))
+                    scsiutil.devlist_to_serialstring(self.dconf['device'].split(',')))
 
         # Test Legacy Mode Flag and update if VHD volumes exist
         if self.isMaster and self.legacyMode:
@@ -609,7 +609,7 @@ class LVHDSR(SR.SR):
                     break
 
         # Set the block scheduler
-        for dev in self.root.split(','): self.block_setscheduler(dev)
+        for dev in self.dconf['device'].split(','): self.block_setscheduler(dev)
 
     def detach(self, uuid):
         util.SMlog("LVHDSR.detach for %s" % self.uuid)
@@ -851,7 +851,7 @@ class LVHDSR(SR.SR):
 
     def probe(self):
         return lvutil.srlist_toxml(
-                lvutil.scan_srlist(lvhdutil.VG_PREFIX, self.root),
+                lvutil.scan_srlist(lvhdutil.VG_PREFIX, self.dconf['device']),
                 lvhdutil.VG_PREFIX,
                 (self.srcmd.params['sr_sm_config'].has_key('metadata') and \
                  self.srcmd.params['sr_sm_config']['metadata'] == 'true'))

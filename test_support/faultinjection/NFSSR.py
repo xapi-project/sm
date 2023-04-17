@@ -67,9 +67,6 @@ class NFSSR(FileSR.FileSR):
             raise xs_errors.XenError('ConfigServerPathMissing')
         if not self.dconf.has_key('server'):
             raise xs_errors.XenError('ConfigServerMissing')
-        if not self._isvalidpathstring(self.dconf['serverpath']):
-            raise xs_errors.XenError('ConfigServerPathBad', \
-                  opterr='serverpath is %s' % self.dconf['serverpath'])
 
         self.remotepath = os.path.join(self.dconf['serverpath'], sr_uuid)
 
