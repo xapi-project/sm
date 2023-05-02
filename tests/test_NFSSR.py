@@ -121,7 +121,7 @@ class TestNFSSR(unittest.TestCase):
 
         nfssr.attach(None)
 
-        check_server_tcp.assert_called_once_with('aServer',
+        check_server_tcp.assert_called_once_with('aServer', 'tcp',
                                                  'aNfsversionChanged')
         soft_mount.assert_called_once_with('/var/run/sr-mount/UUID',
                                            'aServer',

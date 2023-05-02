@@ -113,11 +113,13 @@ class NFSSR(FileSR.SharedFileSR):
     def check_server(self):
         try:
             if PROBEVERSION in self.dconf:
-                sv = nfs.get_supported_nfs_versions(self.remoteserver)
+                sv = nfs.get_supported_nfs_versions(self.remoteserver, self.transport)
                 if len(sv):
                     self.nfsversion = sv[0]
             else:
-                nfs.check_server_tcp(self.remoteserver, self.nfsversion)
+                if not nfs.check_server_tcp(self.remoteserver, self.transport, self.nfsversion):
+                    raise nfs.NfsException("Unsupported NFS version: %s" % self.nfsversion)
+
         except nfs.NfsException as exc:
             raise xs_errors.XenError('NFSVersion',
                                      opterr=exc.errstr)
@@ -163,7 +165,7 @@ class NFSSR(FileSR.SharedFileSR):
 
         self.mount(temppath, self.remotepath)
         try:
-            return nfs.scan_srlist(temppath, self.dconf)
+            return nfs.scan_srlist(temppath, self.transport, self.dconf)
         finally:
             try:
                 nfs.unmount(temppath, True)
@@ -250,7 +252,7 @@ class NFSSR(FileSR.SharedFileSR):
 
     def scan_exports(self, target):
         util.SMlog("scanning2 (target=%s)" % target)
-        dom = nfs.scan_exports(target)
+        dom = nfs.scan_exports(target, self.transport)
         print(dom.toprettyxml(), file=sys.stderr)
 
     def set_transport(self):
