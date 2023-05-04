@@ -287,11 +287,9 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         test_vhdInfo.hidden = hidden
         self.mock_vhdutil.getVHDInfo.return_value = test_vhdInfo
 
-    @mock.patch('LVHDSR.lvutil.LvmLockContext', autospec=True)
     @mock.patch('LVHDSR.Lock', autospec=True)
     @mock.patch('SR.XenAPI')
-    def test_clone_success(self, mock_xenapi, mock_lock,
-                           mock_lock_context):
+    def test_clone_success(self, mock_xenapi, mock_lock):
         """
         Successfully create clone
         """
@@ -319,11 +317,9 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         # Assert
         self.assertIsNotNone(clone)
 
-    @mock.patch('LVHDSR.lvutil.LvmLockContext', autospec=True)
     @mock.patch('LVHDSR.Lock', autospec=True)
     @mock.patch('SR.XenAPI')
-    def test_snapshot_attached_success(
-            self, mock_xenapi,  mock_lock, mock_lock_context):
+    def test_snapshot_attached_success(self, mock_xenapi, mock_lock):
         """
         LVHDSR.snapshot, attached on host, no CBT
         """
@@ -358,11 +354,9 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         # Assert
         self.assertIsNotNone(snap)
 
-    @mock.patch('LVHDSR.lvutil.LvmLockContext', autospec=True)
     @mock.patch('LVHDSR.Lock', autospec=True)
     @mock.patch('SR.XenAPI')
-    def test_snapshot_attached_cbt_success(
-            self, mock_xenapi,  mock_lock, mock_lock_context):
+    def test_snapshot_attached_cbt_success(self, mock_xenapi, mock_lock):
         """
         LVHDSR.snapshot, attached on host, with CBT
         """
