@@ -155,6 +155,15 @@ class SMBSR(FileSR.SharedFileSR):
                 'actimeo=0'
         ]
 
+	# Newer kernels defer closes by default but this interferes with use of
+	# hard links since with SMB (or maybe the underlying server
+	# filesystem), a hard link cannot be opened if the target is also
+	# open (which it will be with deferred close). Disable using the
+	# mount param, available since Linux 6.0.
+        kver_maj = int(os.uname()[2].split('.')[0])
+        if kver_maj >= 6:
+            options.append('closetimeo=0')
+
         if domain:
             options.append('domain=' + domain)
 
