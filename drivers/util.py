@@ -67,9 +67,8 @@ FIST_PAUSE_PERIOD = 30  # seconds
 
 
 class SMException(Exception):
-    """Base class for all SM exceptions for easier catching & wrapping in 
+    """Base class for all SM exceptions for easier catching & wrapping in
     XenError"""
-    pass
 
 
 class CommandException(SMException):
@@ -1098,24 +1097,29 @@ def dom0_disks():
     return disks
 
 
-def set_scheduler_sysfs_node(node, str):
-    """Set the scheduler for a sysfs node (e.g. '/sys/block/sda')"""
+def set_scheduler_sysfs_node(node, scheds):
+    """
+    Set the scheduler for a sysfs node (e.g. '/sys/block/sda')
+    according to prioritized list schedulers
+    Try to set the first item, then fall back to the next on failure
+    """
 
     path = os.path.join(node, "queue", "scheduler")
     if not os.path.exists(path):
         SMlog("no path %s" % path)
         return
-    try:
-        f = open(path, 'w')
-        f.write("%s\n" % str)
-        f.close()
-        SMlog("Set scheduler to [%s] on [%s]" % (str, node))
-    except:
-        SMlog("Error setting scheduler to [%s] on [%s]" % (str, node))
-        pass
+    for sched in scheds:
+        try:
+            with open(path, 'w') as file:
+                file.write("%s\n" % sched)
+            SMlog("Set scheduler to [%s] on [%s]" % (sched, node))
+            return
+        except (OSError, IOError) as err:
+            SMlog("Setting scheduler to [%s] on [%s] failed with [%s]" % (sched, node, str(err)))
+    SMlog("Error setting schedulers to [%s] on [%s]" % (scheds, node))
 
 
-def set_scheduler(dev, str):
+def set_scheduler(dev, scheds):
     devices = []
     if not scsiutil.match_dm(dev):
         # Remove partition numbers
@@ -1125,7 +1129,7 @@ def set_scheduler(dev, str):
         devices = [os.path.realpath(x)[5:] for x in scsiutil._genReverseSCSIidmap(rawdev.split('/')[-1])]
 
     for d in devices:
-        set_scheduler_sysfs_node("/sys/block/%s" % d, str)
+        set_scheduler_sysfs_node("/sys/block/%s" % d, scheds)
 
 
 # This function queries XAPI for the existing VDI records for this SR

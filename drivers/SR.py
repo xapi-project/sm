@@ -160,7 +160,7 @@ class SR(object):
         # XXX: if this is really needed then we must make a deep copy
         self.original_srcmd = copy.deepcopy(self.srcmd)
         self.default_vdi_visibility = True
-        self.sched = 'noop'
+        self.scheds = ['none', 'noop']
         self._mpathinit()
         self.direct = False
         self.ops_exclusive = []
@@ -219,20 +219,21 @@ class SR(object):
             realdev = os.path.realpath(dev)
             disk = util.diskFromPartition(realdev)
 
-            # the normal case: the sr default scheduler (typically noop),
+            # the normal case: the sr default scheduler (typically none/noop),
             # potentially overridden by SR.other_config:scheduler
             other_config = self.session.xenapi.SR.get_other_config(self.sr_ref)
             sched = other_config.get('scheduler')
-            if not sched:
-                sched = self.sched
+            if not sched or sched in self.scheds:
+                scheds = self.scheds
+            else:
+                scheds = [sched]
 
-            # special case: CFQ if the underlying disk holds dom0's file systems.
+            # special case: BFQ/CFQ if the underlying disk holds dom0's file systems.
             if disk in util.dom0_disks():
-                sched = 'cfq'
+                scheds = ['bfq', 'cfq']
 
-            util.SMlog("Block scheduler: %s (%s) wants %s" % (dev, disk, sched))
-            util.set_scheduler(realdev[5:], sched)
-
+            util.SMlog("Block scheduler: %s (%s) wants %s" % (dev, disk, scheds))
+            util.set_scheduler(realdev[5:], scheds)
         except Exception as e:
             util.SMlog("Failed to set block scheduler on %s: %s" % (dev, e))
 
