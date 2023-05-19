@@ -120,7 +120,7 @@ class RAWVDI(VDI.VDI):
                 devs = os.listdir("/dev/disk/by-scsid/%s" % self.sm_config['SCSIid'])
                 for dev in devs:
                     realdev = os.path.realpath("/dev/disk/by-scsid/%s/%s" % (self.sm_config['SCSIid'], dev))
-                    util.set_scheduler(realdev.split("/")[-1], "noop")
+                    util.set_scheduler(realdev.split("/")[-1], ["none", "noop"])
             if not util.wait_for_path(self.path, MAX_TIMEOUT):
                 util.SMlog("Unable to detect LUN attached to host [%s]" % self.sr.path)
                 raise xs_errors.XenError('VDIUnavailable')

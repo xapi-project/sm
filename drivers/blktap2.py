@@ -819,7 +819,7 @@ class Tapdisk(object):
                     try:
                         tapdisk = cls.__from_blktap(blktap)
                         node = '/sys/dev/block/%d:%d' % (tapdisk.major(), tapdisk.minor)
-                        util.set_scheduler_sysfs_node(node, 'noop')
+                        util.set_scheduler_sysfs_node(node, ['none', 'noop'])
                         return tapdisk
                     except:
                         TapCtl.close(pid, minor)

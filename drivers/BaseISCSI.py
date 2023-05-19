@@ -419,7 +419,7 @@ class BaseISCSISR(SR.SR):
             devs = os.listdir("/dev/disk/by-scsid/%s" % self.dconf['SCSIid'])
             for dev in devs:
                 realdev = os.path.realpath("/dev/disk/by-scsid/%s/%s" % (self.dconf['SCSIid'], dev))
-                util.set_scheduler(realdev.split("/")[-1], "noop")
+                util.set_scheduler(realdev.split("/")[-1], ["none", "noop"])
 
     def detach(self, sr_uuid, delete=False):
         keys = []
