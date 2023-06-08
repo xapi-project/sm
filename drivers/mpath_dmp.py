@@ -175,7 +175,7 @@ def _refresh_DMP(sid, npaths):
                                  'Device mapper path {} not found'.format(
                                      path))
     lvm_path = "/dev/disk/by-scsid/" + sid + "/mapper"
-    util.wait_for_path(lvm_path, 10)
+    util.wait_for_path(lvm_path, 30)
     activate_MPdev(sid, path)
 
 
