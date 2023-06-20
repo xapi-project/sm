@@ -1119,7 +1119,10 @@ def set_scheduler_sysfs_node(node, scheds):
     SMlog("Error setting schedulers to [%s] on [%s]" % (scheds, node))
 
 
-def set_scheduler(dev, scheds):
+def set_scheduler(dev, schedulers=None):
+    if schedulers is None:
+        schedulers = ["none", "noop"]
+
     devices = []
     if not scsiutil.match_dm(dev):
         # Remove partition numbers
@@ -1129,7 +1132,7 @@ def set_scheduler(dev, scheds):
         devices = [os.path.realpath(x)[5:] for x in scsiutil._genReverseSCSIidmap(rawdev.split('/')[-1])]
 
     for d in devices:
-        set_scheduler_sysfs_node("/sys/block/%s" % d, scheds)
+        set_scheduler_sysfs_node("/sys/block/%s" % d, schedulers)
 
 
 # This function queries XAPI for the existing VDI records for this SR

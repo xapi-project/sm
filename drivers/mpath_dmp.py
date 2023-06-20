@@ -49,6 +49,7 @@ def activate_MPdev(sid, dst):
     path = os.path.join(MP_INUSEDIR, sid)
     cmd = ['ln', '-sf', dst, path]
     util.pread2(cmd)
+    util.set_scheduler(os.path.realpath(path))
 
 
 def deactivate_MPdev(sid):
