@@ -435,45 +435,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
 
         self.iscsi.attach(sr_uuid)
         try:
-            if not self.iscsi._attach_LUN_bySCSIid(self.SCSIid):
-                # UPGRADE FROM GEORGE: take care of ill-formed SCSIid
-                upgraded = False
-                matchSCSIid = False
-                for file in filter(self.iscsi.match_lun, util.listdir(self.iscsi.path)):
-                    path = os.path.join(self.iscsi.path, file)
-                    if not util.wait_for_path(path, BaseISCSI.MAX_TIMEOUT):
-                        util.SMlog("Unable to detect LUN attached to host [%s]" % path)
-                        continue
-                    try:
-                        SCSIid = scsiutil.getSCSIid(path)
-                    except:
-                        continue
-                    try:
-                        matchSCSIid = scsiutil.compareSCSIid_2_6_18(self.SCSIid, path)
-                    except:
-                        continue
-                    if (matchSCSIid):
-                        util.SMlog("Performing upgrade from George")
-                        try:
-                            pbd = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
-                            device_config = self.session.xenapi.PBD.get_device_config(pbd)
-                            device_config['SCSIid'] = SCSIid
-                            self.session.xenapi.PBD.set_device_config(pbd, device_config)
-
-                            self.dconf['SCSIid'] = SCSIid
-                            self.SCSIid = self.dconf['SCSIid']
-                        except:
-                            continue
-                        if not self.iscsi._attach_LUN_bySCSIid(self.SCSIid):
-                            raise xs_errors.XenError('InvalidDev')
-                        else:
-                            upgraded = True
-                            break
-                    else:
-                        util.SMlog("Not a matching LUN, skip ... scsi_id is: %s" % SCSIid)
-                        continue
-                if not upgraded:
-                    raise xs_errors.XenError('InvalidDev')
+            self.iscsi._attach_LUN_bySCSIid(self.SCSIid)
             self._pathrefresh(LVHDoISCSISR)
             LVHDSR.LVHDSR.create(self, sr_uuid, size)
         except Exception as inst:
@@ -504,8 +466,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 else:
                     connected = True
 
-                if not i._attach_LUN_bySCSIid(self.SCSIid):
-                    raise xs_errors.XenError('InvalidDev')
+                i._attach_LUN_bySCSIid(self.SCSIid)
 
             # Check if at least one iscsi succeeded
             if not connected:
@@ -556,9 +517,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 raise xs_errors.XenError('SRInUse')
 
         self.iscsi.attach(self.uuid)
-        if not self.iscsi._attach_LUN_bySCSIid(self.SCSIid):
-            util.SMlog("Unable to detect LUN")
-            raise xs_errors.XenError('InvalidDev')
+        self.iscsi._attach_LUN_bySCSIid(self.SCSIid)
         self._pathrefresh(LVHDoISCSISR)
         out = LVHDSR.LVHDSR.probe(self)
         self.iscsi.detach(self.uuid)
@@ -594,8 +553,7 @@ class LVHDoISCSIVDI(LVHDSR.LVHDVDI):
         util.SMlog("LVHDoISCSIVDI.attach_from_config")
         try:
             self.sr.iscsi.attach(sr_uuid)
-            if not self.sr.iscsi._attach_LUN_bySCSIid(self.sr.SCSIid):
-                raise xs_errors.XenError('InvalidDev')
+            self.sr.iscsi._attach_LUN_bySCSIid(self.sr.SCSIid)
             return LVHDSR.LVHDVDI.attach(self, sr_uuid, vdi_uuid)
         except:
             util.logException("LVHDoISCSIVDI.attach_from_config")
