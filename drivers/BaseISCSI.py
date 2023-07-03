@@ -630,10 +630,9 @@ class BaseISCSISR(SR.SR):
         if not util.pathexists(path):
             self.refresh()
             if not util.wait_for_path(path, MAX_TIMEOUT):
-                util.SMlog("Unable to detect LUN attached to host [%s]" \
+                util.SMlog("Unable to detect LUN attached to host [%s]"
                            % path)
-                return False
-        return True
+                raise xs_errors.XenError('ISCSIDevice')
 
     # This function queries the session for the attached LUNs
     def _loadvdis(self):
