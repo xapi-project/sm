@@ -416,7 +416,17 @@ class BaseISCSISR(SR.SR):
         if 'SCSIid' in self.dconf:
             if self.mpath == 'true':
                 self.mpathmodule.refresh(self.dconf['SCSIid'], 0)
-            devs = os.listdir("/dev/disk/by-scsid/%s" % self.dconf['SCSIid'])
+            try:
+                devs = os.listdir(
+                       os.path.join('/dev/disk/by-scsid', self.dconf['SCSIid'])
+                )
+            except OSError as e:
+                util.SMlog(str(e))
+                raise xs_errors.XenError(
+                     'ConfigDeviceInvalid',
+                     opterr='check devices path'
+                )
+
             for dev in devs:
                 realdev = os.path.realpath("/dev/disk/by-scsid/%s/%s" % (self.dconf['SCSIid'], dev))
                 util.set_scheduler(realdev.split("/")[-1])
