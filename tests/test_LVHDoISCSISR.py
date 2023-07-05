@@ -1,12 +1,19 @@
 import mock
 import unittest
 
+from uuid import uuid4
+
 import SR
 import LVHDoISCSISR
+from BaseISCSI import BaseISCSISR
+import SRCommand
+import util
 import xs_errors
 
 import testlib
 from test_ISCSISR import NonInitingISCSISR
+
+TEST_SR_UUID = 'test_uuid'
 
 
 class RandomError(Exception):
@@ -113,4 +120,92 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
         self.assertEqual(
             str(cm.exception),
             'General backend error [opterr=Raise RandomError]'
+        )
+
+
+class TestLVHDoISCSISR(unittest.TestCase):
+
+    def setUp(self):
+        util_patcher = mock.patch('LVHDoISCSISR.util')
+        self.mock_util = util_patcher.start()
+        self.mock_util.sessions_less_than_targets = util.sessions_less_than_targets
+        baseiscsi_patcher = mock.patch('LVHDoISCSISR.BaseISCSI.BaseISCSISR')
+        patched_baseiscsi = baseiscsi_patcher.start()
+        self.mock_baseiscsi = mock.create_autospec(BaseISCSISR)
+        patched_baseiscsi.return_value = self.mock_baseiscsi
+        self.mock_session = mock.MagicMock()
+        xenapi_patcher = mock.patch('SR.XenAPI')
+        mock_xenapi = xenapi_patcher.start()
+        mock_xenapi.xapi_local.return_value = self.mock_session
+
+        copy_patcher = mock.patch('LVHDoISCSISR.SR.copy.deepcopy')
+        self.mock_copy = copy_patcher.start()
+
+        def deepcopy(to_copy):
+            return to_copy
+
+        self.mock_copy.side_effect = deepcopy
+
+        lock_patcher = mock.patch('LVHDSR.Lock')
+        self.mock_lock = lock_patcher.start()
+
+        self.addCleanup(mock.patch.stopall)
+
+        dummy_cmd = mock.create_autospec(SRCommand)
+        dummy_cmd.dconf = {
+            'SCSIid': '3600a098038313577792450384a4a6275',
+            'multihomelist': 'tgt1:3260,tgt2:3260',
+            'target': "10.70.89.34",
+            'targetIQN': 'iqn.2009-01.example.test:iscsi085e938a'
+        }
+        dummy_cmd.params = {
+            'command': 'nop',
+            'session_ref': 'test_session',
+            'host_ref': 'test_host',
+            'sr_ref': 'sr_ref'
+        }
+        dummy_cmd.cmd = None
+
+        self.sr_uuid = str(uuid4())
+        self.subject = LVHDoISCSISR.LVHDoISCSISR(
+            dummy_cmd, self.sr_uuid)
+
+    def test_check_sr_pbd_not_found(self):
+        # Arrange
+        self.mock_util.find_my_pbd.return_value = None
+
+        # Act
+        self.subject.check_sr(TEST_SR_UUID)
+
+        # Assert
+        self.mock_util.find_my_pbd.assert_called_with(
+            self.mock_session, 'test_host', 'sr_ref')
+
+    def test_check_sr_correct_sessions_count(self):
+        # Arrange
+        self.mock_util.find_my_pbd.return_value = 'my_pbd'
+        self.mock_session.xenapi.PBD.get_other_config.return_value = {
+            'iscsi_sessions': 2
+        }
+
+        # Act
+        self.subject.check_sr(TEST_SR_UUID)
+
+        # Assert
+        self.mock_session.xenapi.PBD.get_other_config.assert_called_with('my_pbd')
+
+    def test_check_sr_not_enough_sessions(self):
+        # Arrange
+        self.mock_util.find_my_pbd.return_value = 'my_pbd'
+        self.mock_session.xenapi.PBD.get_other_config.return_value = {
+            'iscsi_sessions': 1
+        }
+
+
+        # Act
+        self.subject.check_sr(TEST_SR_UUID)
+
+        # Assert
+        self.mock_baseiscsi.attach.assert_called_with(
+            TEST_SR_UUID
         )

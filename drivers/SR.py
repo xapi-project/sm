@@ -354,6 +354,10 @@ class SR(object):
         """Post-init hook"""
         pass
 
+    def check_sr(self, sr_uuid):
+        """Hook to check SR health"""
+        pass
+
     def vdi(self, uuid):
         """Return VDI object owned by this repository"""
         if not self.vdis.has_key(uuid):

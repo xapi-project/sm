@@ -136,7 +136,7 @@ class BaseISCSISR(SR.SR):
         self.default_vdi_visibility = False
         
         # Required parameters
-        if not self.dconf.has_key('target') or  not self.dconf['target']:
+        if 'target' not in self.dconf or not self.dconf['target']:
             raise xs_errors.XenError('ConfigTargetMissing')
 
         # we are no longer putting hconf in the xml.
