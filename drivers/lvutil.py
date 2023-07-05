@@ -520,24 +520,12 @@ def createVG(root, vgname):
 
         f = _openExclusive(dev, True)
         os.close(f)
+
+        # Wipe any fs signature
         try:
-            # Overwrite the disk header, try direct IO first
-            cmd = [util.CMD_DD, "if=/dev/zero", "of=%s" % dev, "bs=1M",
-                    "count=10", "oflag=direct"]
-            util.pread2(cmd)
+            util.wipefs(dev)
         except util.CommandException as inst:
-            if inst.code == errno.EPERM:
-                try:
-                    # Overwrite the disk header, try normal IO
-                    cmd = [util.CMD_DD, "if=/dev/zero", "of=%s" % dev,
-                            "bs=1M", "count=10"]
-                    util.pread2(cmd)
-                except util.CommandException as inst:
-                    raise xs_errors.XenError('LVMWrite', \
-                          opterr='device %s' % dev)
-            else:
-                raise xs_errors.XenError('LVMWrite', \
-                      opterr='device %s' % dev)
+            raise xs_errors.XenError('WipefsFailure', opterr='device %s' % dev) # from inst
 
         if not (dev == rootdev):
             try:

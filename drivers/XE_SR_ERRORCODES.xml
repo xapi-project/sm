@@ -899,6 +899,12 @@
         </code>
 
         <code>
+            <name>WipefsFailure</name>
+            <description>Failed to wipe pre-existing filesystem signature.</description>
+            <value>461</value>
+        </code>
+
+        <code>
             <name>GenericException</name>
             <description>SM has thrown a generic python exception</description>
             <value>1200</value>

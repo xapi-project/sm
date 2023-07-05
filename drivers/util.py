@@ -637,6 +637,11 @@ def zeroOut(path, fromByte, bytes):
     return True
 
 
+def wipefs(blockdev):
+    "Wipe filesystem signatures from `blockdev`"
+    pread2(["/usr/sbin/wipefs", "-a", blockdev])
+
+
 def match_rootdev(s):
     regex = re.compile("^PRIMARY_DISK")
     return regex.search(s, 0)
