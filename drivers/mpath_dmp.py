@@ -170,7 +170,7 @@ def _refresh_DMP(sid, npaths):
             ['/usr/sbin/multipath', '-r', sid]),
                    maxretry=3,
                    period=4)
-        util.wait_for_path(path, 10)
+        util.wait_for_path(path, 30)
     if not os.path.exists(path):
         raise xs_errors.XenError('MultipathMapperPathMissing',
                                  'Device mapper path {} not found'.format(
