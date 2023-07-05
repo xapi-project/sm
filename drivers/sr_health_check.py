@@ -1,0 +1,60 @@
+#!/usr/bin/python3
+
+# Copyright (C) Cloud Software Group, Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
+# by the Free Software Foundation; version 2.1 only.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+"""
+Health check for SR, to be triggered periodically by a systemd timer. What is checked is
+SR implementation type dependent.
+"""
+
+import SR
+import util
+
+
+def main():
+    """
+    For all locally plugged SRs check that they are healthy
+    """
+    try:
+        session = util.get_localAPI_session()
+    except SR.SROSError:
+        util.SMlog("Unable to open local XAPI session", priority=util.LOG_ERR)
+        return
+
+    localhost = util.get_localhost_ref(session)
+
+    sm_types = [x['type'] for x in session.xenapi.SM.get_all_records_where(
+        'field "required_api_version" = "1.0"').values()]
+    for sm_type in sm_types:
+        srs = session.xenapi.SR.get_all_records_where(
+            f'field "type" = "{sm_type}"')
+        for sr in srs:
+            pbds = session.xenapi.PBD.get_all_records_where(
+                f'field "SR" = "{sr}" and field "host" = "{localhost}"')
+            if not pbds:
+                continue
+
+            pbd_ref, pbd = pbds.popitem()
+            if not pbd['currently_attached']:
+                continue
+
+            sr_uuid = srs[sr]['uuid']
+            sr_obj = SR.SR.from_uuid(session, sr_uuid)
+            sr_obj.check_sr(sr_uuid)
+
+
+if __name__ == "__main__":
+    main()
