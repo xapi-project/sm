@@ -1,0 +1,13 @@
+[Unit]
+Description=Period SR health check
+
+[Timer]
+# Jitter it a bit
+RandomizedDelaySec=30
+# Run 10 minutes after first activated...
+OnActiveSec=600
+# ...and at 10-minute intervals thereafter
+OnUnitInactiveSec=600
+
+[Install]
+WantedBy=timers.target
