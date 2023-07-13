@@ -51,7 +51,7 @@ NFS_VERSION = [
 NFS_SERVICE_WAIT = 30
 NFS_SERVICE_RETRY = 6
 
-NSFv4_PSEUDOFS = "/"
+NFS4_PSEUDOFS = "/"
 NFS4_TMP_MOUNTPOINT = "/tmp/mnt"
 
 class NfsException(Exception):
@@ -191,7 +191,7 @@ def _scan_exports_nfs3(target, dom, element):
     for val in util.pread2(cmd).split('\n'):
         if not len(val):
             continue
-        entry = dom.createElement('Export')
+        entry = dom.createElement("Export")
         element.appendChild(entry)
 
         subentry = dom.createElement("Target")
@@ -222,11 +222,11 @@ def _scan_exports_nfs4_only(target, transport, dom, element):
     """
 
     mountpoint = "%s/%s" % (NFS4_TMP_MOUNTPOINT, target)
-    soft_mount(mountpoint, target, NSFv4_PSEUDOFS, transport, nfsversion='4')
+    soft_mount(mountpoint, target, NFS4_PSEUDOFS, transport, nfsversion="4")
     paths = os.listdir(mountpoint)
-    unmount(mountpoint, NSFv4_PSEUDOFS)
+    unmount(mountpoint, NFS4_PSEUDOFS)
     for path in paths:
-        entry = dom.createElement('Export')
+        entry = dom.createElement("Export")
         element.appendChild(entry)
 
         subentry = dom.createElement("Target")
@@ -263,7 +263,7 @@ def scan_exports(target, transport):
     except Exception:
         util.SMlog("Unable to scan exports with NFSv4 pseudo FS mount")
 
-    raise NfsException('Failed to read NFS export paths from server %s' %
+    raise NfsException("Failed to read NFS export paths from server %s" %
                            (target))
 
 
@@ -311,7 +311,7 @@ def _get_supported_nfs_version_rpcinfo(server):
         Using NFS3 services.
     """
 
-    valid_versions = set(['3', '4'])
+    valid_versions = set(["3", "4"])
     cv = set()
     ns = util.pread2([RPCINFO_BIN, "-s", "%s" % server])
     ns = ns.split("\n")
@@ -330,9 +330,9 @@ def _is_nfs4_supported(server, transport):
 
     try:
         mountpoint = "%s/%s" % (NFS4_TMP_MOUNTPOINT, server)
-        soft_mount(mountpoint, server, NSFv4_PSEUDOFS, transport, nfsversion='4')
-        util.pread2([NFS_STAT, '-m'])
-        unmount(mountpoint, NSFv4_PSEUDOFS)
+        soft_mount(mountpoint, server, NFS4_PSEUDOFS, transport, nfsversion='4')
+        util.pread2([NFS_STAT, "-m"])
+        unmount(mountpoint, NFS4_PSEUDOFS)
         return True
     except Exception:
         return False
@@ -343,15 +343,15 @@ def get_supported_nfs_versions(server, transport):
     try:
         return _get_supported_nfs_version_rpcinfo(server)
     except Exception:
-        util.SMlog("Unable to obtain list of valid nfs versions with %s, trying NSFv4" % RPCINFO_BIN)
+        util.SMlog("Unable to obtain list of valid nfs versions with %s, trying NFSv4" % RPCINFO_BIN)
 
     # NFSv4 only
     if _is_nfs4_supported(server, transport):
-        return ['4']
+        return ["4"]
     else:
-        util.SMlog("Unable to obtain list of valid nfs versions with NSFv4 pseudo FS mount")
+        util.SMlog("Unable to obtain list of valid nfs versions with NFSv4 pseudo FS mount")
 
-    raise NfsException('Failed to read supported NFS version from server %s' %
+    raise NfsException("Failed to read supported NFS version from server %s" %
                            (server))
 
 
