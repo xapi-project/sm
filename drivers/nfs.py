@@ -216,7 +216,7 @@ def _scan_exports_nfs3(target, dom, element):
     return dom
 
 
-def _scan_exports_nfs4_only(target, transport, dom, element):
+def _scan_exports_nfs4(target, transport, dom, element):
     """ Scan target and return an XML DOM with target, path and accesslist.
         Using NFS4 only pseudo FS.
     """
@@ -259,7 +259,7 @@ def scan_exports(target, transport):
 
     # NFSv4 only
     try:
-        return _scan_exports_nfs4_only(target, transport, dom, element)
+        return _scan_exports_nfs4(target, transport, dom, element)
     except Exception:
         util.SMlog("Unable to scan exports with NFSv4 pseudo FS mount")
 
