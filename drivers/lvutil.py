@@ -427,8 +427,8 @@ def srlist_toxml(VGs, prefix, includeMetadata=False):
             # add SR name_label
             mdpath = os.path.join(VG_LOCATION, VG_PREFIX + val)
             mdpath = os.path.join(mdpath, MDVOLUME_NAME)
+            mgtVolActivated = False
             try:
-                mgtVolActivated = False
                 if not os.path.exists(mdpath):
                     # probe happens out of band with attach so this volume
                     # may not have been activated at this point

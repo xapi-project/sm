@@ -449,6 +449,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
     def attach(self, sr_uuid):
         try:
             connected = False
+            stored_exception = None
             for i in self.iscsiSRs:
                 try:
                     i.attach(sr_uuid)
@@ -466,7 +467,8 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 i._attach_LUN_bySCSIid(self.SCSIid)
 
             # Check if at least one iscsi succeeded
-            if not connected:
+            if not connected and stored_exception:
+                # pylint: disable=raising-bad-type
                 raise stored_exception
 
             if 'multiSession' in self.dconf:
