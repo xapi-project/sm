@@ -652,9 +652,9 @@ class LVHDSR(SR.SR):
         super(LVHDSR, self).forget_vdi(uuid)
 
     def scan(self, uuid):
+        activated = True
         try:
             lvname = ''
-            activated = True
             util.SMlog("LVHDSR.scan for %s" % self.uuid)
             if not self.isMaster:
                 util.SMlog('sr_scan blocked for non-master')

@@ -201,8 +201,8 @@ class SMBSR(FileSR.SharedFileSR):
         self.attached = True
 
     def probe(self):
+        err = "SMBMount"
         try:
-            err = "SMBMount"
             self.mount(PROBE_MOUNTPOINT)
             sr_list = filter(util.match_uuid, util.listdir(PROBE_MOUNTPOINT))
             err = "SMBUnMount"

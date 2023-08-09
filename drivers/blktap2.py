@@ -2174,7 +2174,7 @@ class __BlktapControl(ClassDevice):
             self.name = name
 
         def __str__(self):
-            return "No such pool: %s", self.name
+            return "No such pool: {}".format(self.name)
 
     def get_pool(self, name):
         path = "%s/pools/%s" % (self.sysfs_path(), name)

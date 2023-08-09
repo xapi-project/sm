@@ -1236,6 +1236,7 @@ def daemon():
 
 if __debug__:
     try:
+        #pylint: disable=used-before-assignment
         XE_IOFI_IORETRY
     except NameError:
         XE_IOFI_IORETRY = os.environ.get('XE_IOFI_IORETRY', None)

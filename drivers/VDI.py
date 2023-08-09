@@ -324,10 +324,10 @@ class VDI(object):
                 self._cbt_op(child_uuid, cbtutil.set_cbt_parent,
                              child_path, parent_uuid)
                 lock.acquire()
+                paused_for_coalesce = False
                 try:
                     # Coalesce contents of bitmap with child's bitmap
                     # Check if child bitmap is currently attached
-                    paused_for_coalesce = False
                     consistent = self._cbt_op(child_uuid,
                                               cbtutil.get_cbt_consistency,
                                               child_path)

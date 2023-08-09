@@ -650,8 +650,8 @@ class LVMMetadataHandler(MetadataHandler):
         MetadataHandler.__init__(self, path, write)
 
     def spaceAvailableForVdis(self, count):
+        created = False
         try:
-            created = False
             try:
                 # The easiest way to do this, is to create a dummy vdi and write it
                 uuid = util.gen_uuid()
