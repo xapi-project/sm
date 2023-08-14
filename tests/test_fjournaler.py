@@ -4,7 +4,6 @@ import unittest
 import unittest.mock as mock
 
 import fjournaler
-import journaler
 
 TEST_DIR_PATH = '/var/lib/sometest'
 
@@ -131,9 +130,9 @@ class TestFjournaler(unittest.TestCase):
     def test_create_existing_error(self):
         self.subject.create('clone', '1', 'a')
 
-        with self.assertRaises(journaler.JournalerException):
+        with self.assertRaises(fjournaler.JournalerException):
             self.subject.create('clone', '1', 'a')
 
     def test_remove_non_existing_error(self):
-        with self.assertRaises(journaler.JournalerException):
+        with self.assertRaises(fjournaler.JournalerException):
             self.subject.remove('clone', '1')
