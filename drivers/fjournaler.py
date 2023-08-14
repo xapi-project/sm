@@ -19,9 +19,11 @@ import os
 import errno
 
 import util
-from journaler import JournalerException
 
 SEPARATOR = "_"
+
+class JournalerException(util.SMException):
+    pass
 
 
 class Journaler:

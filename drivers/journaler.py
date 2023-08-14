@@ -18,14 +18,11 @@
 # LVM-based journaling
 
 import util
+import xs_errors
 from srmetadata import open_file, get_min_blk_size_wrapper, \
     file_read_wrapper, file_write_wrapper
 
 LVM_MAX_NAME_LEN = 127
-
-
-class JournalerException(util.SMException):
-    pass
 
 
 class Journaler:
@@ -49,8 +46,7 @@ class Journaler:
         valExisting = self.get(type, id)
         writeData = False
         if valExisting:
-            raise JournalerException("Journal already exists for '%s:%s': %s" \
-                    % (type, id, valExisting))
+            raise xs_errors.XenError('LVMCreate', opterr="Journal already exists for '%s:%s': %s" % (type, id, valExisting))
         lvName = self._getNameLV(type, id, val)
 
         mapperDevice = self._getLVMapperName(lvName)
@@ -93,15 +89,14 @@ class Journaler:
                 except Exception as e:
                     util.SMlog('WARNING: failed to clean up failed journal ' \
                             ' creation: %s (error ignored)' % e)
-                raise JournalerException("Failed to write to journal %s" \
-                    % lvName)
+                raise xs_errors.XenError('LVMWrite', opterr="Failed to write to journal %s" % lvName)
 
     def remove(self, type, id):
         """Remove the entry of type "type" for "id". Error if the entry doesn't
         exist."""
         val = self.get(type, id)
         if not val:
-            raise JournalerException("No journal for '%s:%s'" % (type, id))
+            raise xs_errors.XenError('LVMNoVolume', opterr="No journal for '%s:%s'" % (type, id))
         lvName = self._getNameLV(type, id, val)
 
         mapperDevice = self._getLVMapperName(lvName)
@@ -142,7 +137,7 @@ class Journaler:
         for lvName in lvList:
             parts = lvName.split(self.SEPARATOR, 2)
             if len(parts) != 3:
-                raise JournalerException("Bad LV name: %s" % lvName)
+                raise xs_errors.XenError('LVMNoVolume', opterr="Bad LV name: %s" % lvName)
             type, id, val = parts
             if readFile:
                 # For clone and leaf journals, additional
@@ -159,8 +154,7 @@ class Journaler:
                             length, val = data.split(" ", 1)
                             val = val[:int(length)]
                         except:
-                            raise JournalerException("Failed to read from journal %s" \
-                                  % lvName)
+                            raise xs_errors.XenError('LVMRead', opterr="Failed to read from journal %s" % lvName)
                     finally:
                         journal_file.close()
                         self.lvmCache.deactivateNoRefcount(lvName)
