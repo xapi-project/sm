@@ -501,6 +501,13 @@
                 <value>116</value>
         </code>
 
+        <!-- An extra LVM error -->
+        <code>
+                <name>LVMRead</name>
+                <description>Logical Volume read error</description>
+                <value>117</value>
+        </code>
+
        <!-- Agent database query errors 150+ -->
         <code>
                 <name>APISession</name>

@@ -21,9 +21,12 @@ import os
 import errno
 
 import util
-from journaler import JournalerException
 
 SEPARATOR = "_"
+
+class JournalerException(util.SMException):
+    pass
+
 
 class Journaler:
     """Simple file-based journaler. A journal is a id-value pair, and there
