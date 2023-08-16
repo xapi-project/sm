@@ -1509,10 +1509,11 @@ class LVHDVDI(VDI.VDI):
         elif self.sr.provision == "thick":
             needDeflate = False
             # except for snapshots, which are always deflated
-            vdi_ref = self.sr.srcmd.params['vdi_ref']
-            snap = self.session.xenapi.VDI.get_is_a_snapshot(vdi_ref)
-            if snap:
-                needDeflate = True
+            if self.sr.srcmd.cmd != 'vdi_detach_from_config':
+                vdi_ref = self.sr.srcmd.params['vdi_ref']
+                snap = self.session.xenapi.VDI.get_is_a_snapshot(vdi_ref)
+                if snap:
+                    needDeflate = True
 
         if needDeflate:
             try:
