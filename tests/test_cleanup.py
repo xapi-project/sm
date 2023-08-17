@@ -1744,3 +1744,29 @@ class TestSR(unittest.TestCase):
         ## Assert
         mock_gc.assert_called_with(None, sr_uuid, False)
         mock_daemonize.assert_called_with()
+
+    def test_not_plugged(self):
+        """
+        GC called on an SR that is not plugged errors
+        """
+        # Arrange
+        self.xapi_mock.isPluggedHere.return_value = False
+
+        # Act
+        with self.assertRaises(util.SMException):
+            create_cleanup_sr(self.xapi_mock)
+
+    def test_not_plugged_retry(self):
+        """
+        GC called on an SR that is not plugged retrys
+        """
+        # Arrange
+        self.xapi_mock.isPluggedHere.side_effect = [
+            False, False, False, True]
+
+        # Act
+        sr = create_cleanup_sr(self.xapi_mock)
+
+        # Assert
+        self.assertIsNotNone(sr)
+

@@ -1532,12 +1532,20 @@ class SR:
             if force:
                 Util.log("SR %s not attached on this host, ignoring" % uuid)
             else:
-                raise util.SMException("SR %s not attached on this host" % uuid)
+                if not self.wait_for_plug():
+                    raise util.SMException("SR %s not attached on this host" % uuid)
 
         if force:
             Util.log("Not checking if we are Master (SR %s)" % uuid)
         elif not self.xapi.isMaster():
             raise util.SMException("This host is NOT master, will not run")
+
+    def wait_for_plug(self):
+        for _ in range(1, 10):
+            time.sleep(2)
+            if self.xapi.isPluggedHere():
+                return True
+        return False
 
     def gcEnabled(self, refresh=True):
         if refresh:
