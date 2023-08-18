@@ -45,7 +45,7 @@ class Journaler:
         Error if such an entry already exists."""
         valExisting = self.get(type, id)
         writeData = False
-        if valExisting:
+        if valExisting or util.fistpoint.is_active("LVM_journaler_exists"):
             raise xs_errors.XenError('LVMCreate', opterr="Journal already exists for '%s:%s': %s" % (type, id, valExisting))
         lvName = self._getNameLV(type, id, val)
 
@@ -67,6 +67,8 @@ class Journaler:
                     min_block_size = get_min_blk_size_wrapper(journal_file)
                     data = "%d %s" % (len(val), val)
                     file_write_wrapper(journal_file, 0, min_block_size, data, len(data))
+                    if util.fistpoint.is_active("LVM_journaler_writefail"):
+                        raise ValueError("LVM_journaler_writefail FistPoint active")
                 except Exception as e:
                     raise
                 finally:
@@ -95,7 +97,7 @@ class Journaler:
         """Remove the entry of type "type" for "id". Error if the entry doesn't
         exist."""
         val = self.get(type, id)
-        if not val:
+        if not val or util.fistpoint.is_active("LVM_journaler_none"):
             raise xs_errors.XenError('LVMNoVolume', opterr="No journal for '%s:%s'" % (type, id))
         lvName = self._getNameLV(type, id, val)
 
@@ -136,7 +138,7 @@ class Journaler:
         entries = dict()
         for lvName in lvList:
             parts = lvName.split(self.SEPARATOR, 2)
-            if len(parts) != 3:
+            if len(parts) != 3 or util.fistpoint.is_active("LVM_journaler_badname"):
                 raise xs_errors.XenError('LVMNoVolume', opterr="Bad LV name: %s" % lvName)
             type, id, val = parts
             if readFile:
@@ -153,6 +155,8 @@ class Journaler:
                             data = file_read_wrapper(journal_file, 0, min_block_size, min_block_size)
                             length, val = data.split(" ", 1)
                             val = val[:int(length)]
+                            if util.fistpoint.is_active("LVM_journaler_readfail"):
+                                raise ValueError("LVM_journaler_readfail FistPoint active")
                         except:
                             raise xs_errors.XenError('LVMRead', opterr="Failed to read from journal %s" % lvName)
                     finally:
