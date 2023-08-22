@@ -363,6 +363,18 @@ class TestTestContext(unittest.TestCase):
             context.fake_rmdir('/existing_dir')
         self.assertEqual(errno.ENOTEMPTY, cm.exception.errno)
 
+    def test_get_error_code(self):
+        context = testlib.TestContext()
+        self.assertEqual(context.get_error_code("SMBMount"), 111)
+
+    def test_get_error_code_not_found(self):
+        """
+        When error code can't be found then None is returned.
+        This test is to keep 100% coverage on tests.
+        """
+        context = testlib.TestContext()
+        self.assertEqual(context.get_error_code("PANCAKES"), None)
+
 
 class TestFilesystemFor(unittest.TestCase):
     def test_returns_single_item_for_root(self):
