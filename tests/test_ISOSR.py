@@ -14,6 +14,7 @@ class FakeISOSR(ISOSR.ISOSR):
     session = None
     srcmd = None
     other_config = {}
+    host_ref = None
 
     def __init__(self, srcmd, none):
         self.dconf = srcmd.dconf
@@ -427,3 +428,21 @@ class TestISOSR_overSMB(unittest.TestCase):
         _checkmount.side_effect = [False, True]
         with self.assertRaises(Exception):
             smbsr.attach(None)
+
+    @testlib.with_context
+    @mock.patch('util.makedirs')
+    @mock.patch('ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('util.pread', autospec=True)
+    @mock.patch('util.find_my_pbd')
+    @mock.patch('ISOSR.ISOSR._checkmount')
+    def test_mountoversmb_will_raise_on_error(self, context, _checkmount, find_my_pbd, pread, _checkTargetStr, makedirs):
+        """
+        Test failure to store SMB version inside PBD config will raise exception
+        """
+        context.setup_error_codes()
+        smbsr = self.create_smbisosr(atype='cifs')
+        find_my_pbd.return_value = None
+        _checkmount.side_effect = [False, True]
+        with self.assertRaises(SR.SROSError) as exp:
+            smbsr.attach(None)
+        self.assertEqual(exp.exception.errno, context.get_error_code("SMBMount"))

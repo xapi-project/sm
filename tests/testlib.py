@@ -8,6 +8,8 @@ import random
 import textwrap
 import errno
 
+from xml.dom.minidom import parseString
+
 PATHSEP = '/'
 
 
@@ -322,6 +324,14 @@ class TestContext(object):
     def add_adapter(self, adapter):
         self.scsi_adapters.append(adapter)
         return adapter
+
+    def get_error_code(self, error_name):
+        xml = parseString(self.error_codes)
+        for code in xml.getElementsByTagName('code'):
+            name = code.getElementsByTagName('name')[0].firstChild.nodeValue
+            if name == error_name:
+                return int(code.getElementsByTagName('value')[0].firstChild.nodeValue)
+        return None
 
     @staticmethod
     def is_binary(mode):

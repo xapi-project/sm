@@ -417,7 +417,7 @@ class ISOSR(SR.SR):
             util.SMlog("Exception: %s" % str(exc))
             if self._checkmount():
                 util.pread(["umount", self.mountpoint])
-            raise util.CommandException
+            raise xs_errors.XenError('SMBMount') from exc
 
     def updateSMBVersInPBDConfig(self):
         """Store smb version in PBD config"""
