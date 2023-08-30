@@ -17,17 +17,11 @@ class Test_on_slave_is_open(unittest.TestCase):
 
     def fake_import(self, name, *args):
         print('Asked to import {}'.format(name))
-        if name in Test_on_slave_is_open.MOCK_IMPORTS:
-            if name not in self.mocks:
-                self.mocks[name] = mock.MagicMock()
-
-            return self.mocks[name]
-        else:
-            return self.real_import(name)
+        return self.mocks.get(name, self.real_import(name))
 
     def setUp(self):
         self.addCleanup(mock.patch.stopall)
-        self.mocks = {}
+        self.mocks = {x: mock.MagicMock() for x in self.MOCK_IMPORTS}
 
         self.real_import = __import__
 
