@@ -3,7 +3,7 @@ DESTDIR ?=
 DEBUGDIR ?= /opt/xensource/debug
 
 
-OPTS := -D _GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -Wall
+OPTS := -D _GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -g -Wall
 
 SRC := dcopy.c
 SRC += atomicio.c
