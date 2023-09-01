@@ -290,8 +290,14 @@ configure_multipathing() {
 }
 
 if [ ! "$UPGRADE" = "true" ]; then
-  create_local_sr
-  set_default_sr
+  if [[ -z "$(xe sr-list name-label="Local storage" | awk -F: '/uuid/ {print $2}')" ]]
+  then
+    create_local_sr
+    set_default_sr
+  else
+    echo "Existing local SR detected, skip create_local_sr"
+  fi
+
   create_udev_srs
   configure_multipathing
   # Ensure changes are synced to disk
