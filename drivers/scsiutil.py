@@ -357,16 +357,6 @@ def rescan(ids, fullrescan=True):
         refresh_HostID(id, fullrescan)
 
 
-def _genArrayIdentifier(dev):
-    try:
-        cmd = ["sg_inq", "--page=0xc8", "-r", dev]
-        id = util.pread2(cmd)
-        #pylint: disable=no-member
-        return id.encode("hex")[180:212]
-    except:
-        return ""
-
-
 def _genHostList(procname):
     # loop through and check all adapters
     ids = []

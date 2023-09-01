@@ -118,8 +118,6 @@ tests/run_python_unittests.sh
 /etc/xensource/master.d/02-vhdcleanup
 /opt/xensource/bin/blktap2
 /opt/xensource/bin/tapdisk-cache-stats
-/opt/xensource/bin/xe-getarrayidentifier
-/opt/xensource/bin/xe-getlunidentifier
 /opt/xensource/debug/tp
 /opt/xensource/libexec/check-device-sharing
 /opt/xensource/libexec/dcopy

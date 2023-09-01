@@ -1232,16 +1232,6 @@ def daemon():
     os.open('/dev/null', os.O_RDWR)
     os.dup2(0, 1)
     os.dup2(0, 2)
-#########################
-
-if __debug__:
-    try:
-        #pylint: disable=used-before-assignment
-        XE_IOFI_IORETRY
-    except NameError:
-        XE_IOFI_IORETRY = os.environ.get('XE_IOFI_IORETRY', None)
-    if __name__ == 'util' and XE_IOFI_IORETRY is not None:
-        __import__('iofi')
 
 ################################################################################
 #
@@ -1772,7 +1762,7 @@ DEFAULT_SEGMENT_LEN = 950
 
 def hidePasswdInConfig(config):
     """
-    Function to hide passwd values in a simple prop map, 
+    Function to hide passwd values in a simple prop map,
     for example "device_config"
     """
     return hideValuesInPropMap(config, PASSWD_PROP_KEYS)
@@ -1780,10 +1770,10 @@ def hidePasswdInConfig(config):
 
 def hidePasswdInParams(params, configProp):
     """
-    Function to hide password values in a specified property which 
+    Function to hide password values in a specified property which
     is a simple map of prop name/values, and is itself an prop entry
     in a larger property map.
-    For example, param maps containing "device_config", or 
+    For example, param maps containing "device_config", or
     "sm_config", etc
     """
     params[configProp] = hideValuesInPropMap(params[configProp], PASSWD_PROP_KEYS)
@@ -1792,11 +1782,11 @@ def hidePasswdInParams(params, configProp):
 
 def hideMemberValuesInXmlParams(xmlParams, propnames=PASSWD_PROP_KEYS):
     """
-    Function to hide password values in XML params, specifically 
+    Function to hide password values in XML params, specifically
     for the XML format of incoming params to SR modules.
-    Uses text parsing: loop through the list of specific propnames 
+    Uses text parsing: loop through the list of specific propnames
     whose values we want to hide, and:
-    - Assemble a full "prefix" containing each property name, e.g., 
+    - Assemble a full "prefix" containing each property name, e.g.,
         "<member><name>password</name><value>"
     - Test the XML if it contains that string, save the index.
     - If found, get the index of the ending tag
