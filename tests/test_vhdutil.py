@@ -8,6 +8,8 @@ import vhdutil
 
 import testlib
 
+TEST_VHD_PATH = '/test/path/test-par.vhd'
+
 TEST_VHD_NAME = "/test/path/test-vdi.vhd"
 
 VHD_UTIL = '/usr/bin/vhd-util'
@@ -245,7 +247,7 @@ class TestVhdUtil(unittest.TestCase):
         # Act
         vhdutil.snapshot(
             TEST_VHD_NAME,
-            '/test/path/test-par.vhd',
+            TEST_VHD_PATH,
             False)
 
         # Assert
@@ -271,7 +273,7 @@ class TestVhdUtil(unittest.TestCase):
         # Act
         vhdutil.snapshot(
             TEST_VHD_NAME,
-            '/test/path/test-par.vhd',
+            TEST_VHD_PATH,
             True)
 
         # Assert
@@ -297,7 +299,7 @@ class TestVhdUtil(unittest.TestCase):
         # Act
         vhdutil.snapshot(
             TEST_VHD_NAME,
-            '/test/path/test-par.vhd',
+            TEST_VHD_PATH,
             False,
             msize=lvhdutil.MSIZE_MB)
 
@@ -325,7 +327,7 @@ class TestVhdUtil(unittest.TestCase):
         # Act
         vhdutil.snapshot(
             TEST_VHD_NAME,
-            '/test/path/test-par.vhd',
+            TEST_VHD_PATH,
             False,
             checkEmpty=False)
 
@@ -335,3 +337,32 @@ class TestVhdUtil(unittest.TestCase):
              "-n", TEST_VHD_NAME,
              "-p", "/test/path/test-par.vhd", '-e'],
             call_args)
+
+    @testlib.with_context
+    def test_coalesce_no_sector_count(self, context):
+        """
+        Call vhd-util.coalesce and handle no sector count return
+        """
+        # With a suitably updated blktap/vhd-util package this should not occur
+        # Arrange
+        def test_function(args, inp):
+            return 0, "", ""
+
+        context.add_executable(VHD_UTIL, test_function)
+
+        # Act/Assert
+        self.assertEqual(0, vhdutil.coalesce(TEST_VHD_PATH))
+
+    @testlib.with_context
+    def test_coalesce_with_sector_count(self, context):
+        """
+        Call vhd-util.coalesce and decode sector count return
+        """
+        # Arrange
+        def test_function(args, inp):
+            return 0, "Coalesced 25 sectors", ""
+
+        context.add_executable(VHD_UTIL, test_function)
+
+        # Act/Assert
+        self.assertEqual(25, vhdutil.coalesce(TEST_VHD_PATH))

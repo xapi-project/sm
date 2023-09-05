@@ -855,12 +855,12 @@ class VDI:
 
     def _doCoalesceVHD(vdi):
         try:
-
             startTime = time.time()
             vhdSize = vdi.getSizeVHD()
-            vhdutil.coalesce(vdi.path)
+            # size is returned in sectors
+            coalesced_size = vhdutil.coalesce(vdi.path) * 512
             endTime = time.time()
-            vdi.sr.recordStorageSpeed(startTime, endTime, vhdSize)
+            vdi.sr.recordStorageSpeed(startTime, endTime, coalesced_size)
         except util.CommandException as ce:
             # We use try/except for the following piece of code because it runs
             # in a separate process context and errors will not be caught and
