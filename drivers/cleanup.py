@@ -650,12 +650,13 @@ class VDI:
         feasibleSize = False
         allowedDownTime = \
                 self.TIMEOUT_SAFETY_MARGIN * self.LIVE_LEAF_COALESCE_TIMEOUT
+        vhd_size = self.getSizeVHD()
         if speed:
             feasibleSize = \
-                self.getSizeVHD() // speed < allowedDownTime
+                vhd_size // speed < allowedDownTime
         else:
             feasibleSize = \
-                self.getSizeVHD() < self.LIVE_LEAF_COALESCE_MAX_SIZE
+                vhd_size < self.LIVE_LEAF_COALESCE_MAX_SIZE
 
         return (feasibleSize or
                 self.getConfig(self.DB_LEAFCLSC) == self.LEAFCLSC_FORCE)
