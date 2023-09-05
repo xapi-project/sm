@@ -1115,7 +1115,7 @@ class TestSR(unittest.TestCase):
                             write=write)
 
     def canLiveCoalesce(self, vdi, size, config, speed, expectedRes):
-        vdi.getSizeVHD = mock.MagicMock(return_value=size)
+        vdi.getAllocatedSize = mock.MagicMock(return_value=size)
         vdi.getConfig = mock.MagicMock(return_value=config)
         res = vdi.canLiveCoalesce(speed)
         self.assertEqual(res, expectedRes)

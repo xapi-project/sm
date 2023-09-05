@@ -52,6 +52,7 @@ class VHDInfo:
     path = ""
     sizeVirt = -1
     sizePhys = -1
+    sizeAllocated = -1
     hidden = False
     parentUuid = ""
     parentPath = ""
@@ -97,7 +98,7 @@ def getVHDInfo(path, extractUuidFunction, includeParent=True):
     """Get the VHD info. The parent info may optionally be omitted: vhd-util
     tries to verify the parent by opening it, which results in error if the VHD
     resides on an inactive LV"""
-    opts = "-vsf"
+    opts = "-vsaf"
     if includeParent:
         opts += "p"
     cmd = [VHD_UTIL, "query", OPT_LOG_ERR, opts, "-n", path]
@@ -114,6 +115,7 @@ def getVHDInfo(path, extractUuidFunction, includeParent=True):
             vhdInfo.parentUuid = extractUuidFunction(fields[nextIndex])
         nextIndex += 1
     vhdInfo.hidden = int(fields[nextIndex].replace("hidden: ", ""))
+    vhdInfo.sizeAllocated = int(fields[nextIndex+1])
     vhdInfo.path = path
     return vhdInfo
 
@@ -268,6 +270,12 @@ def setSizePhys(path, size, debug=True):
         cmd = [VHD_UTIL, "modify", "-s", str(size), "-n", path]
     ioretry(cmd)
 
+
+def getAllocatedSize(path):
+    cmd = [VHD_UTIL, "query", OPT_LOG_ERR, '-a', '-n', path]
+    ret = ioretry(cmd)
+    # Assume we have standard 2MB allocation blocks
+    return int(ret) * 2 * 1024 * 1024
 
 def killData(path):
     "zero out the disk (kill all data inside the VHD file)"

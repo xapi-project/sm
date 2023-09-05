@@ -530,6 +530,7 @@ class VDI:
         self.parentUuid = ""
         self.sizeVirt = -1
         self._sizeVHD = -1
+        self._sizeAllocated = -1
         self.hidden = False
         self.parent = None
         self.children = []
@@ -540,7 +541,7 @@ class VDI:
     def extractUuid(path):
         raise NotImplementedError("Implement in sub class")
 
-    def load(self):
+    def load(self, info=None):
         """Load VDI info"""
         pass  # abstract
 
@@ -650,7 +651,7 @@ class VDI:
         feasibleSize = False
         allowedDownTime = \
                 self.TIMEOUT_SAFETY_MARGIN * self.LIVE_LEAF_COALESCE_TIMEOUT
-        vhd_size = self.getSizeVHD()
+        vhd_size = self.getAllocatedSize()
         if speed:
             feasibleSize = \
                 vhd_size // speed < allowedDownTime
@@ -687,6 +688,9 @@ class VDI:
 
     def getSizeVHD(self):
         return self._sizeVHD
+
+    def getAllocatedSize(self):
+        return self._sizeAllocated
 
     def getTreeRoot(self):
         "Get the root of the tree that self belongs to"
@@ -750,13 +754,16 @@ class VDI:
         strSizeVHD = "?"
         if self._sizeVHD > 0:
             strSizeVHD = "/%s" % Util.num2str(self._sizeVHD)
+        strSizeAllocated = "?"
+        if self._sizeAllocated >= 0:
+            strSizeAllocated = "/%s" % Util.num2str(self._sizeAllocated)
         strType = ""
         if self.raw:
             strType = "[RAW]"
             strSizeVHD = ""
 
-        return "%s%s(%s%s)%s" % (strHidden, self.uuid[0:8], strSizeVirt,
-                strSizeVHD, strType)
+        return "%s%s(%s%s%s)%s" % (strHidden, self.uuid[0:8], strSizeVirt,
+                strSizeVHD, strSizeAllocated, strType)
 
     def validate(self, fast=False):
         if not vhdutil.check(self.path, fast=fast):
@@ -857,7 +864,7 @@ class VDI:
     def _doCoalesceVHD(vdi):
         try:
             startTime = time.time()
-            vhdSize = vdi.getSizeVHD()
+            vhdSize = vdi.getAllocatedSize()
             # size is returned in sectors
             coalesced_size = vhdutil.coalesce(vdi.path) * 512
             endTime = time.time()
@@ -1124,6 +1131,7 @@ class FileVDI(VDI):
         self.parentUuid = info.parentUuid
         self.sizeVirt = info.sizeVirt
         self._sizeVHD = info.sizePhys
+        self._sizeAllocated = info.sizeAllocated
         self.hidden = info.hidden
         self.scanError = False
         self.path = os.path.join(self.sr.path, "%s%s" % \
@@ -1164,6 +1172,7 @@ class LVHDVDI(VDI):
         self.parent = None
         self.children = []
         self._sizeVHD = -1
+        self._sizeAllocated = -1
         self.scanError = vdiInfo.scanError
         self.sizeLV = vdiInfo.sizeLV
         self.sizeVirt = vdiInfo.sizeVirt
@@ -1197,6 +1206,7 @@ class LVHDVDI(VDI):
             self.sr.unlock()
         self.sizeLV = self.sr.lvmCache.getSize(self.fileName)
         self._sizeVHD = -1
+        self._sizeAllocated = -1
 
     def deflate(self):
         """deflate the LV containing the VHD to minimum"""
@@ -1210,6 +1220,7 @@ class LVHDVDI(VDI):
             self.sr.unlock()
         self.sizeLV = self.sr.lvmCache.getSize(self.fileName)
         self._sizeVHD = -1
+        self._sizeAllocated = -1
 
     def inflateFully(self):
         self.inflate(lvhdutil.calcSizeVHDLV(self.sizeVirt))
@@ -1278,6 +1289,20 @@ class LVHDVDI(VDI):
             raise util.SMException("phys size of %s = %d" % \
                     (self, self._sizeVHD))
 
+    def getAllocatedSize(self):
+        if self._sizeAllocated == -1:
+            self._loadInfoSizeAllocated()
+        return self._sizeAllocated
+
+    def _loadInfoSizeAllocated(self):
+        """
+        Get the allocated size of the VHD volume.
+        """
+        if self.raw:
+            return
+        self._activate()
+        self._sizeAllocated = vhdutil.getAllocatedSize(self.path)
+
     def _loadInfoHidden(self):
         if self.raw:
             self.hidden = self.sr.lvmCache.getHidden(self.fileName)
@@ -1301,13 +1326,16 @@ class LVHDVDI(VDI):
         strSizeVHD = ""
         if self._sizeVHD > 0:
             strSizeVHD = Util.num2str(self._sizeVHD)
+        strSizeAllocated = ""
+        if self._sizeAllocated >= 0:
+            strSizeAllocated = Util.num2str(self._sizeAllocated)
         strActive = "n"
         if self.lvActive:
             strActive = "a"
         if self.lvOpen:
             strActive += "o"
-        return "%s%s[%s](%s/%s/%s|%s)" % (strHidden, self.uuid[0:8], strType,
-                Util.num2str(self.sizeVirt), strSizeVHD,
+        return "%s%s[%s](%s/%s/%s/%s|%s)" % (strHidden, self.uuid[0:8], strType,
+                Util.num2str(self.sizeVirt), strSizeVHD, strSizeAllocated,
                 Util.num2str(self.sizeLV), strActive)
 
     def validate(self, fast=False):
