@@ -292,8 +292,16 @@ def getBlockBitmap(path):
 
 
 def coalesce(path):
+    """
+    Coalesce the VHD, on success it returns the number of sectors coalesced
+    """
     cmd = [VHD_UTIL, "coalesce", OPT_LOG_ERR, "-n", path]
-    ioretry(cmd)
+    text = ioretry(cmd)
+    match = re.match(r'^Coalesced (\d+) sectors', text)
+    if match:
+        return int(match.group(1))
+
+    return 0
 
 
 def create(path, size, static, msize=0):
