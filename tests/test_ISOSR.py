@@ -88,8 +88,8 @@ class TestISOSR_overNFS(unittest.TestCase):
                                            'aServer',
                                            '/aLocation',
                                            'tcp',
-                                           retrans=3,
-                                           timeout=100,
+                                           retrans=4,
+                                           timeout=200,
                                            useroptions='',
                                            nfsversion='aNfsversionChanged')
 
