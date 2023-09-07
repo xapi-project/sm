@@ -281,7 +281,7 @@ def get_supported_nfs_versions(server):
 
 
 def get_nfs_timeout(other_config):
-    nfs_timeout = 100
+    nfs_timeout = 200
 
     if 'nfs-timeout' in other_config:
         val = int(other_config['nfs-timeout'])
@@ -294,7 +294,7 @@ def get_nfs_timeout(other_config):
 
 
 def get_nfs_retrans(other_config):
-    nfs_retrans = 3
+    nfs_retrans = 4
 
     if 'nfs-retrans' in other_config:
         val = int(other_config['nfs-retrans'])
