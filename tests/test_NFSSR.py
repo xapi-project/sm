@@ -128,9 +128,9 @@ class TestNFSSR(unittest.TestCase):
                                            '/aServerpath/UUID',
                                            'tcp',
                                            useroptions='options',
-                                           timeout=100,
+                                           timeout=200,
                                            nfsversion='aNfsversionChanged',
-                                           retrans=3)
+                                           retrans=4)
 
     @mock.patch('NFSSR.Lock', autospec=True)
     def test_load_ipv6(self, mock_lock):
