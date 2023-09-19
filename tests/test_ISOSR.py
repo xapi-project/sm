@@ -115,6 +115,32 @@ class TestISOSR_overNFS(unittest.TestCase):
 
         self.assertEqual(140, ose.exception.errno)
 
+    @testlib.with_context
+    @mock.patch('util.gen_uuid', autospec=True)
+    @mock.patch('nfs.soft_mount', autospec=True)
+    @mock.patch('util._convertDNS', autospec=True)
+    @mock.patch('nfs.validate_nfsversion', autospec=True)
+    @mock.patch('util.makedirs', autospec=True)
+    @mock.patch('util._testHost', autospec=True)
+    @mock.patch('ISOSR.ISOSR._checkmount')
+    def test_attach_nfs_wrong_version(
+            self, context, _checkmount, testHost, makedirs,
+            validate_nfsversion, convertDNS, soft_mount, gen_uuid):
+        context.setup_error_codes()
+
+        validate_nfsversion.return_value = '4'
+        isosr = self.create_isosr(location='aServer:/aLocation', atype='nfs_iso',
+                                  sr_uuid='asr_uuid')
+        _checkmount.side_effect = [False, True]
+        gen_uuid.return_value = 'aUuid'
+        soft_mount.side_effect = nfs.NfsVersionException('aNfsVersionException')
+
+        with self.assertRaises(SR.SROSError) as cm:
+            isosr.attach(None)
+
+        self.assertRegex(str(cm.exception),
+                         r"^Required NFS server version unsupported\b")
+
 
 class TestISOSR_overSMB(unittest.TestCase):
 

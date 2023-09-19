@@ -370,6 +370,8 @@ class ISOSR(SR.SR):
             else:
                 raise xs_errors.XenError(
                     'ISOMountFailure', opterr=inst.reason)
+        except nfs.NfsVersionException as e:
+            raise xs_errors.XenError('NFSVersion', opterr=str(e.errstr))
         except nfs.NfsException as e:
             raise xs_errors.XenError('ISOMountFailure', opterr=str(e.errstr))
 

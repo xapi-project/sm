@@ -128,6 +128,8 @@ class NFSSR(FileSR.SharedFileSR):
                     mountpoint, self.remoteserver, remotepath, self.transport,
                     useroptions=self.options, timeout=timeout,
                     nfsversion=self.nfsversion, retrans=retrans)
+        except nfs.NfsVersionException as exc:
+            raise xs_errors.XenError('NFSVersion', opterr=str(exc.errstr))
         except nfs.NfsException as exc:
             raise xs_errors.XenError('NFSMount', opterr=exc.errstr)
 

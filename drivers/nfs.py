@@ -57,6 +57,10 @@ class NfsException(Exception):
         self.errstr = errstr
 
 
+class NfsVersionException(NfsException):
+    pass
+
+
 def check_server_tcp(server, nfsversion=DEFAULT_NFSVERSION):
     """Make sure that NFS over TCP/IP V3 is supported on the server.
 
@@ -71,11 +75,15 @@ def check_server_tcp(server, nfsversion=DEFAULT_NFSVERSION):
                            inst.code)
 
 
-def check_server_service(server):
-    """Ensure NFS service is up and available on the remote server.
+def check_server_service(server, nfsversion):
+    """Ensure NFS service is up and available on the remote server, and that
+    it supportes the NFS version we want to use.
 
-    Returns False if fails to detect service after 
+    Raises an NfsException if fails to detect service after
     NFS_SERVICE_RETRY * NFS_SERVICE_WAIT
+
+    Raises an NfsVersionException if the service does not support the version
+    we want
     """
 
     retries = 0
@@ -84,13 +92,23 @@ def check_server_service(server):
     while True:
         try:
             services = util.pread([RPCINFO_BIN, "-s", "%s" % server])
-            services = services.split("\n")
-            for i in range(len(services)):
-                if services[i].find("nfs") > 0:
-                    return True
+            supported_versions = _extract_supported_nfs_versions(services)
+            if nfsversion in supported_versions:
+                return
+            elif not supported_versions:
+                # NFS service not currently detected
+                pass
+            else:
+                raise NfsVersionException(
+                    "Server `%s` supports NFS version %s but not %s"
+                    % (server,
+                       ', '.join(sorted(supported_versions)),
+                       nfsversion))
         except util.CommandException as inst:
             if not int(inst.code) in errlist:
-                raise
+                msg = "Failed to detect NFS service on server `%s`" % server
+                util.SMlog("%s: %s" % (msg, inst))
+                raise NfsException(msg)
 
         util.SMlog("NFS service not ready on server %s" % server)
         retries += 1
@@ -99,7 +117,8 @@ def check_server_service(server):
 
         time.sleep(NFS_SERVICE_WAIT)
 
-    return False
+    raise NfsException("No NFS service found on server `%s`"
+                       % server)
 
 
 def validate_nfsversion(nfsversion):
@@ -131,15 +150,7 @@ def soft_mount(mountpoint, remoteserver, remotepath, transport, useroptions='',
 
 
     # Wait for NFS service to be available
-    try:
-        if not check_server_service(remoteserver):
-            raise util.CommandException(
-                code=errno.EOPNOTSUPP,
-                reason='No NFS service on server: `%s`' % remoteserver
-            )
-    except util.CommandException as inst:
-        raise NfsException("Failed to detect NFS service on server `%s`"
-                           % remoteserver)
+    check_server_service(remoteserver, nfsversion)
 
     mountcommand = 'mount.nfs'
 
@@ -267,17 +278,20 @@ def get_supported_nfs_versions(server):
     cv = set()
     try:
         ns = util.pread2([RPCINFO_BIN, "-s", "%s" % server])
-        ns = ns.split("\n")
-        for i in range(len(ns)):
-            if ns[i].find("nfs") > 0:
-                cvi = ns[i].split()[1].split(",")
-                for j in range(len(cvi)):
-                    cv.add(cvi[j])
+        cv = _extract_supported_nfs_versions(ns)
         return sorted(cv & valid_versions)
     except:
         util.SMlog("Unable to obtain list of valid nfs versions")
         raise NfsException('Failed to read supported NFS version from server %s' %
                            (server))
+
+
+def _extract_supported_nfs_versions(rpcinfo_response):
+    cv = set()
+    for l in rpcinfo_response.split("\n"):
+        if l.find("nfs") > 0:
+            cv.update(l.split()[1].split(","))
+    return cv
 
 
 def get_nfs_timeout(other_config):

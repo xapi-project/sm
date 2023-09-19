@@ -3,6 +3,7 @@ import nfs
 import NFSSR
 import SR
 import unittest
+import testlib
 from uuid import uuid4
 
 
@@ -131,6 +132,30 @@ class TestNFSSR(unittest.TestCase):
                                            timeout=200,
                                            nfsversion='aNfsversionChanged',
                                            retrans=4)
+
+    @testlib.with_context
+    @mock.patch('FileSR.SharedFileSR._check_hardlinks', autospec=True)
+    @mock.patch('util.makedirs', autospec=True)
+    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('nfs.soft_mount', autospec=True)
+    @mock.patch('util._testHost', autospec=True)
+    @mock.patch('nfs.check_server_tcp', autospec=True)
+    @mock.patch('nfs.validate_nfsversion', autospec=True)
+    def test_attach_wrong_version(
+            self, context, validate_nfsversion, check_server_tcp, _testhost,
+            soft_mount, Lock, makedirs, mock_checklinks):
+        context.setup_error_codes()
+        validate_nfsversion.return_value = "aNfsversionChanged"
+        soft_mount.side_effect = nfs.NfsVersionException('aNfsVersionException')
+
+        nfssr = self.create_nfssr(server='aServer', serverpath='/aServerpath',
+                                  sr_uuid='UUID', useroptions='options')
+
+        with self.assertRaises(SR.SROSError) as cm:
+            nfssr.attach(None)
+
+        self.assertRegex(str(cm.exception),
+                         r"^Required NFS server version unsupported\b")
 
     @mock.patch('NFSSR.Lock', autospec=True)
     def test_load_ipv6(self, mock_lock):

@@ -33,9 +33,8 @@ class Test_nfs(unittest.TestCase):
     @mock.patch('util.pread')
     def test_check_server_service(self, pread, sleep):
         pread.side_effect = ["    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
-        service_found = nfs.check_server_service('aServer')
+        nfs.check_server_service('aServer', '4')
 
-        self.assertTrue(service_found)
         self.assertEqual(len(pread.mock_calls), 1)
         pread.assert_called_with(['/usr/sbin/rpcinfo', '-s', 'aServer'])
         sleep.assert_not_called()
@@ -47,9 +46,8 @@ class Test_nfs(unittest.TestCase):
         pread.side_effect = ["",
                            "",
                            "    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
-        service_found = nfs.check_server_service('aServer')
+        nfs.check_server_service('aServer', '4')
 
-        self.assertTrue(service_found)
         self.assertEqual(len(pread.mock_calls), 3)
         pread.assert_called_with(['/usr/sbin/rpcinfo', '-s', 'aServer'])
 
@@ -58,17 +56,16 @@ class Test_nfs(unittest.TestCase):
     def test_check_server_service_not_available(self, pread, sleep):
         pread.return_value = ""
 
-        service_found = nfs.check_server_service('aServer')
-
-        self.assertFalse(service_found)
+        with self.assertRaises(nfs.NfsException):
+            nfs.check_server_service('aServer', '4')
 
     @mock.patch('time.sleep', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('util.pread')
     def test_check_server_service_exception(self, pread, sleep):
         pread.side_effect = [util.CommandException(errno.ENOMEM)]
-        with self.assertRaises(util.CommandException):
-            nfs.check_server_service('aServer')
+        with self.assertRaises(nfs.NfsException):
+            nfs.check_server_service('aServer', '3')
 
     @mock.patch('time.sleep', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
@@ -76,10 +73,19 @@ class Test_nfs(unittest.TestCase):
     def test_check_server_service_first_call_exception(self, pread, sleep):
         pread.side_effect = [util.CommandException(errno.EPIPE),
                             "    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
-        service_found = nfs.check_server_service('aServer')
+        nfs.check_server_service('aServer', '3')
 
-        self.assertTrue(service_found)
         self.assertEqual(len(pread.mock_calls), 2)
+
+    @mock.patch('time.sleep', autospec=True)
+    @mock.patch('util.pread')
+    def test_check_server_service_wrong_version(self, pread, sleep):
+        pread.side_effect = ["    100003  3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
+        with self.assertRaises(nfs.NfsVersionException):
+            nfs.check_server_service('aServer', '4')
+
+        pread.assert_called_once()
+        sleep.assert_not_called()
 
     # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('util.pread2')
@@ -104,7 +110,7 @@ class Test_nfs(unittest.TestCase):
         nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
                        timeout=None)
 
-        check_server_service.assert_called_once_with('remoteserver')
+        check_server_service.assert_called_once_with('remoteserver', '3')
         pread.assert_called_once_with(self.get_soft_mount_pread('mount.nfs',
                                                                 '3'))
 
@@ -115,7 +121,7 @@ class Test_nfs(unittest.TestCase):
         nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'tcp6',
                        timeout=None)
 
-        check_server_service.assert_called_once_with('remoteserver')
+        check_server_service.assert_called_once_with('remoteserver', '3')
         pread.assert_called_once_with(self.get_soft_mount_pread('mount.nfs',
                                                                 '3', True))
 
@@ -127,7 +133,7 @@ class Test_nfs(unittest.TestCase):
         nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
                        timeout=None, nfsversion='3')
 
-        check_server_service.assert_called_once_with('remoteserver')
+        check_server_service.assert_called_once_with('remoteserver', '3')
         pread.assert_called_with(self.get_soft_mount_pread('mount.nfs',
                                                                 '3'))
 
@@ -139,7 +145,7 @@ class Test_nfs(unittest.TestCase):
         nfs.soft_mount('mountpoint', 'remoteserver', 'remotepath', 'transport',
                        timeout=None, nfsversion='4')
 
-        check_server_service.assert_called_once_with('remoteserver')
+        check_server_service.assert_called_once_with('remoteserver', '4')
         pread.assert_called_with(self.get_soft_mount_pread('mount.nfs',
                                                                 '4'))
 
