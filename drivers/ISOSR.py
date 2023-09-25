@@ -326,13 +326,22 @@ class ISOSR(SR.SR):
                 # For NFS, do a soft mount with tcp as protocol. Since ISO SR is
                 # going to be r-only, a failure in nfs link can be reported back
                 # to the process waiting.
-                serv_path = location.split(':')
+                serv_path = []
+                transport = 'tcp'
+                if location.startswith('['):
+                    # IPv6 target: remove brackets around the IPv6
+                    transport = 'tcp6'
+                    ip6 = location[1:location.index(']')]
+                    path = location[location.index(']') + 2:]
+                    serv_path = [ip6, path]
+                else:
+                    serv_path = location.split(':')
                 util._testHost(serv_path[0], NFSPORT, 'NFSTarget')
                 # Extract timeout and retrans values, if any
                 io_timeout = nfs.get_nfs_timeout(self.other_config)
                 io_retrans = nfs.get_nfs_retrans(self.other_config)
                 nfs.soft_mount(self.mountpoint, serv_path[0], serv_path[1],
-                               'tcp', useroptions=options, nfsversion=self.nfsversion,
+                               transport, useroptions=options, nfsversion=self.nfsversion,
                                timeout=io_timeout, retrans=io_retrans)
             else:
                 if self.smbversion in SMB_VERSION_3:
