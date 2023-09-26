@@ -52,6 +52,7 @@ TYPE = "iso"
 SMB_VERSION_1 = '1.0'
 SMB_VERSION_3 = '3.0'
 NFSPORT = 2049
+NFSTRANSPORT = "tcp"
 
 
 def is_image_utf8_compatible(s):
@@ -261,20 +262,24 @@ class ISOSR(SR.SR):
         if self._checkmount():
             return
 
+        location = util.to_plain_string(self.dconf['location'])
+        # TODO: Have XC standardise iso type string
+        if 'type' in self.dconf:
+            protocol = self.dconf['type']
+        elif ":/" in location:
+            protocol = 'nfs_iso'
+        else:
+            protocol = 'cifs'
+
+        if protocol == 'nfs_iso':
+            self._check_nfs_server(location)
+
         # Create the mountpoint if it's not already there
         if not util.isdir(self.mountpoint):
             util.makedirs(self.mountpoint)
 
         mountcmd = []
-        location = util.to_plain_string(self.dconf['location'])
-        # TODO: Have XC standardise iso type string
-        protocol = 'nfs_iso'
         options = ''
-
-        if 'type' in self.dconf:
-            protocol = self.dconf['type']
-        elif ":/" not in location:
-            protocol = 'cifs'
 
         if 'options' in self.dconf:
             options = self.dconf['options'].split(' ')
@@ -327,12 +332,11 @@ class ISOSR(SR.SR):
                 # going to be r-only, a failure in nfs link can be reported back
                 # to the process waiting.
                 serv_path = location.split(':')
-                util._testHost(serv_path[0], NFSPORT, 'NFSTarget')
                 # Extract timeout and retrans values, if any
                 io_timeout = nfs.get_nfs_timeout(self.other_config)
                 io_retrans = nfs.get_nfs_retrans(self.other_config)
                 nfs.soft_mount(self.mountpoint, serv_path[0], serv_path[1],
-                               'tcp', useroptions=options, nfsversion=self.nfsversion,
+                               NFSTRANSPORT, useroptions=options, nfsversion=self.nfsversion,
                                timeout=io_timeout, retrans=io_retrans)
             else:
                 if self.smbversion in SMB_VERSION_3:
@@ -377,6 +381,24 @@ class ISOSR(SR.SR):
         if not self._checkmount():
             self.detach(sr_uuid)
             raise xs_errors.XenError('ISOSharenameFailure')
+
+    def _check_nfs_server(self, location):
+        """
+        Given that we want to mount a given NFS share, checks that there is an
+        NFS server running in the remote server, and that it supports the
+        desired NFS version. Raises an appropriate exception if this is not
+        the case.
+        """
+        serv_path = location.split(':')
+
+        try:
+            util._testHost(serv_path[0], NFSPORT, 'NFSTarget')
+            if not nfs.check_server_tcp(serv_path[0], NFSTRANSPORT, self.nfsversion):
+                raise xs_errors.XenError('NFSVersion',
+                                         opterr="Unsupported NFS version: %s" % self.nfsversion)
+        except nfs.NfsException as e:
+            raise xs_errors.XenError('NFSTarget', opterr=str(e.errstr))
+
 
     def after_master_attach(self, uuid):
         """Perform actions required after attaching on the pool master
