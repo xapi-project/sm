@@ -52,7 +52,6 @@ TYPE = "iso"
 SMB_VERSION_1 = '1.0'
 SMB_VERSION_3 = '3.0'
 NFSPORT = 2049
-NFSTRANSPORT = "tcp"
 
 
 def is_image_utf8_compatible(s):
@@ -331,21 +330,11 @@ class ISOSR(SR.SR):
                 # For NFS, do a soft mount with tcp as protocol. Since ISO SR is
                 # going to be r-only, a failure in nfs link can be reported back
                 # to the process waiting.
-                serv_path = []
-                transport = 'tcp'
-                if location.startswith('['):
-                    # IPv6 target: remove brackets around the IPv6
-                    transport = 'tcp6'
-                    ip6 = location[1:location.index(']')]
-                    path = location[location.index(']') + 2:]
-                    serv_path = [ip6, path]
-                else:
-                    serv_path = location.split(':')
-                util._testHost(serv_path[0], NFSPORT, 'NFSTarget')
+                server, path, transport = self._parse_nfs_location(location)
                 # Extract timeout and retrans values, if any
                 io_timeout = nfs.get_nfs_timeout(self.other_config)
                 io_retrans = nfs.get_nfs_retrans(self.other_config)
-                nfs.soft_mount(self.mountpoint, serv_path[0], serv_path[1],
+                nfs.soft_mount(self.mountpoint, server, path,
                                transport, useroptions=options, nfsversion=self.nfsversion,
                                timeout=io_timeout, retrans=io_retrans)
             else:
@@ -392,6 +381,25 @@ class ISOSR(SR.SR):
             self.detach(sr_uuid)
             raise xs_errors.XenError('ISOSharenameFailure')
 
+    def _parse_nfs_location(self, location):
+        """
+        Given the location of an NFS share, parse it to give
+        a tuple of the remove server, remote path, and transport protocol to
+        use.
+        """
+        serv_path = []
+        transport = 'tcp'
+        if location.startswith('['):
+            # IPv6 target: remove brackets around the IPv6
+            transport = 'tcp6'
+            ip6 = location[1:location.index(']')]
+            path = location[location.index(']') + 2:]
+            serv_path = [ip6, path]
+        else:
+            serv_path = location.split(':')
+
+        return serv_path[0], serv_path[1], transport
+
     def _check_nfs_server(self, location):
         """
         Given that we want to mount a given NFS share, checks that there is an
@@ -399,11 +407,11 @@ class ISOSR(SR.SR):
         desired NFS version. Raises an appropriate exception if this is not
         the case.
         """
-        serv_path = location.split(':')
+        server, _, transport = self._parse_nfs_location(location)
 
         try:
-            util._testHost(serv_path[0], NFSPORT, 'NFSTarget')
-            if not nfs.check_server_tcp(serv_path[0], NFSTRANSPORT, self.nfsversion):
+            util._testHost(server, NFSPORT, 'NFSTarget')
+            if not nfs.check_server_tcp(server, transport, self.nfsversion):
                 raise xs_errors.XenError('NFSVersion',
                                          opterr="Unsupported NFS version: %s" % self.nfsversion)
         except nfs.NfsException as e:
