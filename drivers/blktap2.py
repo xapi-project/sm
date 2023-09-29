@@ -17,9 +17,9 @@
 #
 # blktap2: blktap/tapdisk management layer
 #
-
-
+import grp
 import os
+import stat
 import sys
 import re
 import time
@@ -1255,7 +1255,9 @@ class VDI(object):
             if not S_ISBLK(st.st_mode):
                 raise self.NotABlockDevice(target, st)
 
-            os.mknod(self.path(), st.st_mode, st.st_rdev)
+            # set group read for disk group as well as root
+            os.mknod(self.path(), st.st_mode | stat.S_IRGRP, st.st_rdev)
+            os.chown(self.path(), st.st_uid, grp.getgrnam("disk").gr_gid)
 
         def _equals(self, target):
             target_rdev = self._real_stat(target).st_rdev
