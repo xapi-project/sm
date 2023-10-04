@@ -121,3 +121,52 @@ class TestStandaloneFunctions(unittest.TestCase):
         mock_driver = mock.Mock(side_effect=SomeException)
 
         SRCommand.run(mock_driver, DRIVER_INFO)
+
+    @mock.patch("os.fsencode",
+                new=lambda s: s.encode("ascii", "surrogateescape"))
+    @mock.patch("os.fsdecode",
+                new=lambda bs: bs.decode("ascii", "surrogateescape"))
+    def test_parse_handles_wide_chars(self):
+        import os
+        import xmlrpc.client
+        from DummySR import DRIVER_INFO
+
+        xmlrpc_method = "vdi_create"
+        xmlrpc_params = {
+            'host_ref': 'OpaqueRef:133c7c46-f4d9-3695-83c4-bf8574b89fb9',
+            'command': 'vdi_create',
+            'args': [
+                '10737418240',
+                '\u4e2d\u6587\u673a\u5668 0',
+                'Created by template provisioner',
+                '',
+                'false',
+                '19700101T00:00:00Z',
+                '',
+                'false'
+            ],
+            'device_config': {
+                'SRmaster': 'true',
+                'device': '/dev/disk/by-id/scsi-3600508b1001c25e9eea8ead175fd83fb-part3'
+            },
+            'session_ref': 'OpaqueRef:c2c628b6-93c3-5e29-00cf-4f15a34e1555',
+            'sr_ref': 'OpaqueRef:c523a79a-8a60-121c-832e-d507586cb117',
+            'vdi_type': 'system',
+            'sr_uuid': '13c4384e-897b-e745-6b3e-9a89c06537be',
+            'vdi_sm_config': {},
+            'subtask_of': 'DummyRef:|0c533c65-d321-59c2-f540c-e66efbe3b1b7|VDI.create'
+        }
+
+        # We are trying to simulate how a UTF8-encoded request passed on the
+        # command line shows up in sys.argv. FS encoding always makes use of
+        # "surrogateescape" (see https://peps.python.org/pep-0383/) but the
+        # actual encoding would probably depend on locale settings.
+
+        request = xmlrpc.client.dumps((xmlrpc_params,), xmlrpc_method)
+        argv = ["foo.py", os.fsdecode(request.encode("utf-8"))]
+        with mock.patch("sys.argv", new=argv):
+            srcommand = SRCommand.SRCommand(DRIVER_INFO)
+            srcommand.parse()
+
+            self.assertEqual(srcommand.cmd, xmlrpc_method)
+            self.assertEqual(srcommand.params, xmlrpc_params)
