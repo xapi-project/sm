@@ -83,7 +83,7 @@ class SRCommand:
         #                                  priority=util.LOG_DEBUG )
 
         try:
-            params, methodname = xmlrpc.client.loads(sys.argv[1])
+            params, methodname = xmlrpc.client.loads(os.fsencode(sys.argv[1]))
             self.cmd = methodname
             params = params[0]  # expect a single struct
             self.params = params
