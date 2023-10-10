@@ -1728,7 +1728,6 @@ def unictrunc(string, max_bytes):
     string: the string to truncate
     max_bytes: the maximum number of bytes the truncated string can be
     """
-    string = string.decode('UTF-8')
     cur_bytes = 0
     for char in string:
         charsize = len(char.encode('UTF-8'))
