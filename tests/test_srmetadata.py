@@ -14,7 +14,7 @@ from srmetadata import (LVMMetadataHandler, buildHeader, buildXMLSector,
 class TestSRMetadataFunctions(unittest.TestCase):
     def test_unpackHeader(self):
         # Given
-        header = "XSSM:4096      :1:2" + (' ' * 493)
+        header = b"XSSM:4096      :1:2" + (b' ' * 493)
 
         # When
         hdr_string, length, major, minor = unpackHeader(header)
@@ -54,9 +54,9 @@ class TestSRMetadataFunctions(unittest.TestCase):
         xml3 = buildXMLSector(tag_name, value3)
 
         # Then
-        self.assertEqual(xml1, "<blah>%s</blah>" % value1)
+        self.assertEqual(xml1.decode("utf8"), "<blah>%s</blah>" % value1)
         self.assertEqual(xml2, xml1)
-        self.assertEqual(xml3,
+        self.assertEqual(xml3.decode("utf8"),
                          "<blah>%s</blah>" % value3 + " " * value3_deficit)
 
     def test_getMetadataLength(self):
@@ -310,9 +310,8 @@ class TestLVMMetadataHandler(unittest.TestCase):
         self.assertEqual(set(retrieved_description), set(vdi3_description))
         self.assertLess(len(retrieved_description), len(vdi3_description))
 
-    @unittest.expectedFailure
     @with_lvm_test_context
-    def test_long_non_ascii_names_truncated(self): # pragma: no cover
+    def test_long_non_ascii_names_truncated(self):
         # Given
         self.make_handler().writeMetadata(self.make_sr_info(), {})
 
@@ -354,7 +353,6 @@ class TestLVMMetadataHandler(unittest.TestCase):
         self.assertEqual(set(retrieved_description), set(vdi2_description))
         self.assertLess(len(retrieved_description), len(vdi2_description))
 
-    @unittest.expectedFailure
     @with_lvm_test_context
     def test_CA383791(self):
         # Given
@@ -369,7 +367,7 @@ class TestLVMMetadataHandler(unittest.TestCase):
         caught = None
         try:
             self.make_handler().ensureSpaceIsAvailableForVdis(1)
-        except Exception as e:
+        except Exception as e: # pragma: no cover
             caught = e
 
         # Then
@@ -466,7 +464,7 @@ class LVMMetadataTestContext(testlib.TestContext):
         yield self.METADATA_PATH
 
     def fake_open(self, fname, mode='r'):
-        if fname != self.METADATA_PATH:
+        if fname != self.METADATA_PATH: # pragma: no cover
             return super().fake_open(fname, mode)
         else:
             return LVMMetadataFile.open(self, mode)

@@ -63,7 +63,7 @@ class Journaler:
             try:
                 e = None
                 try:
-                    data = "%d %s" % (len(val), val)
+                    data = ("%d %s" % (len(val), val)).encode()
                     file_write_wrapper(journal_file, 0, data)
                     if util.fistpoint.is_active("LVM_journaler_writefail"):
                         raise ValueError("LVM_journaler_writefail FistPoint active")
@@ -150,7 +150,7 @@ class Journaler:
                     try:
                         try:
                             data = file_read_wrapper(journal_file, 0)
-                            length, val = data.split(" ", 1)
+                            length, val = data.decode().split(" ", 1)
                             val = val[:int(length)]
                             if util.fistpoint.is_active("LVM_journaler_readfail"):
                                 raise ValueError("LVM_journaler_readfail FistPoint active")
