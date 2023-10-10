@@ -6,9 +6,9 @@ import uuid
 import unittest
 import unittest.mock as mock
 
-from srmetadata import (LVMMetadataHandler, buildHeader, getMetadataLength,
-                        getSectorAlignedXML, unpackHeader,
-                        updateLengthInHeader, MAX_VDI_NAME_LABEL_DESC_LENGTH)
+from srmetadata import (LVMMetadataHandler, buildHeader, buildXMLSector,
+                        getMetadataLength, unpackHeader, updateLengthInHeader,
+                        MAX_VDI_NAME_LABEL_DESC_LENGTH)
 
 
 class TestSRMetadataFunctions(unittest.TestCase):
@@ -40,19 +40,24 @@ class TestSRMetadataFunctions(unittest.TestCase):
         self.assertEqual(int(major), orig_major)
         self.assertEqual(int(minor), orig_minor)
 
-    def test_getSectorAlignedXML(self):
+    def test_buildXMLSector(self):
         # Given
         tag_name = "blah"
         value1 = "x" * (512 - len("<blah>") - len("</blah>"))
         value2 = value1 + "excess"
+        value3_deficit = 10
+        value3 = value1[:-value3_deficit]
 
         # When
-        xml1 = getSectorAlignedXML(tag_name, value1)
-        xml2 = getSectorAlignedXML(tag_name, value2)
+        xml1 = buildXMLSector(tag_name, value1)
+        xml2 = buildXMLSector(tag_name, value2)
+        xml3 = buildXMLSector(tag_name, value3)
 
         # Then
         self.assertEqual(xml1, "<blah>%s</blah>" % value1)
         self.assertEqual(xml2, xml1)
+        self.assertEqual(xml3,
+                         "<blah>%s</blah>" % value3 + " " * value3_deficit)
 
     def test_getMetadataLength(self):
         # Given

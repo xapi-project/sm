@@ -19,8 +19,7 @@
 
 import util
 import xs_errors
-from srmetadata import open_file, get_min_blk_size_wrapper, \
-    file_read_wrapper, file_write_wrapper
+from srmetadata import open_file, file_read_wrapper, file_write_wrapper
 
 LVM_MAX_NAME_LEN = 127
 
@@ -64,9 +63,8 @@ class Journaler:
             try:
                 e = None
                 try:
-                    min_block_size = get_min_blk_size_wrapper(journal_file)
                     data = "%d %s" % (len(val), val)
-                    file_write_wrapper(journal_file, 0, min_block_size, data, len(data))
+                    file_write_wrapper(journal_file, 0, data)
                     if util.fistpoint.is_active("LVM_journaler_writefail"):
                         raise ValueError("LVM_journaler_writefail FistPoint active")
                 except Exception as e:
@@ -151,8 +149,7 @@ class Journaler:
                     journal_file = open_file(fullPath)
                     try:
                         try:
-                            min_block_size = get_min_blk_size_wrapper(journal_file)
-                            data = file_read_wrapper(journal_file, 0, min_block_size, min_block_size)
+                            data = file_read_wrapper(journal_file, 0)
                             length, val = data.split(" ", 1)
                             val = val[:int(length)]
                             if util.fistpoint.is_active("LVM_journaler_readfail"):
