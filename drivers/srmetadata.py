@@ -24,12 +24,20 @@ import xs_errors
 import lvutil
 import xml.sax.saxutils
 
+# A metadata file is considered to be made up of 512 byte sectors.
+# Most of the information in it is in the form of fragments of XML.
+# The first four contain SR information - well, the first actually
+# contains a header, and the next three contain bits of XML representing SR
+# info, but the four are treated as a unit. Information in the header includes
+# the length of the part of the file that's in use.
+# Subsequent sectors, if they are in use, contain VDI information - in the LVM
+# case they take two sectors each. VDI information might mark the VDI as
+# having been deleted, in which case the sectors used to contain this info can
+# potentially be reused when a new VDI is subsequently added.
+
 SECTOR_SIZE = 512
 XML_HEADER = "<?xml version=\"1.0\" ?>"
-SECTOR2_FMT = "%s%s%s"
 MAX_METADATA_LENGTH_SIZE = 10
-LEN_FMT = "%" + "-%ds" % MAX_METADATA_LENGTH_SIZE
-SECTOR_STRUCT = "%-512s"
 OFFSET_TAG = 'offset'
 
 # define xml tags for metadata
@@ -37,7 +45,6 @@ ALLOCATION_TAG = 'allocation'
 NAME_LABEL_TAG = 'name_label'
 NAME_DESCRIPTION_TAG = 'name_description'
 VDI_TAG = 'vdi'
-VDI_CLOSING_TAG = '</%s>' % VDI_TAG
 VDI_DELETED_TAG = 'deleted'
 UUID_TAG = 'uuid'
 IS_A_SNAPSHOT_TAG = 'is_a_snapshot'
@@ -50,13 +57,6 @@ SNAPSHOT_TIME_TAG = 'snapshot_time'
 METADATA_OF_POOL_TAG = 'metadata_of_pool'
 SVID_TAG = 'svid'
 LUN_LABEL_TAG = 'll'
-VDI_SECTOR_1 = "<%s><%s>%s</%s><%s>%s</%s>" % (VDI_TAG,
-                                               NAME_LABEL_TAG,
-                                               '%s',
-                                               NAME_LABEL_TAG,
-                                               NAME_DESCRIPTION_TAG,
-                                               '%s',
-                                               NAME_DESCRIPTION_TAG)
 MAX_VDI_NAME_LABEL_DESC_LENGTH = SECTOR_SIZE - 2 * len(NAME_LABEL_TAG) - \
     2 * len(NAME_DESCRIPTION_TAG) - len(VDI_TAG) - 12
 
@@ -71,10 +71,6 @@ METADATA_BLK_SIZE = 512
 
 
 # ----------------- # General helper functions - begin # -----------------
-def get_min_blk_size_wrapper(fd):
-    return METADATA_BLK_SIZE
-
-
 def open_file(path, write=False):
     if write:
         try:
@@ -93,8 +89,15 @@ def open_file(path, write=False):
     return file_p
 
 
-def file_write_wrapper(fd, offset, blocksize, data, length):
+def file_write_wrapper(fd, offset, data):
+    """
+    Writes data to a file at a given offset. Padding (consisting of spaces)
+    may be written out after the given data to ensure that complete blocks are
+    written.
+    """
     try:
+        blocksize = METADATA_BLK_SIZE
+        length = len(data)
         newlength = length
         if length % blocksize:
             newlength = length + (blocksize - length % blocksize)
@@ -104,24 +107,36 @@ def file_write_wrapper(fd, offset, blocksize, data, length):
     except OSError as e:
         raise OSError(
             "Failed to write file with params %s. Error: %s" %
-            ([fd, offset, blocksize, data, length], e.errno))
+            ([fd, offset, blocksize, data], e.errno))
     return result
 
 
-def file_read_wrapper(fd, offset, bytesToRead, min_block_size):
+def file_read_wrapper(fd, offset, bytesToRead=METADATA_BLK_SIZE):
+    """
+    Reads data from a file at a given offset. If not specified, the amount of
+    data to read defaults to one block.
+    """
     try:
         fd.seek(offset, SEEK_SET)
         result = fd.read(bytesToRead)
     except OSError as e:
         raise OSError(
             "Failed to read file with params %s. Error: %s" %
-            ([fd, offset, min_block_size, bytesToRead], e.errno))
+            ([fd, offset, bytesToRead], e.errno))
     return result.decode()
 
 
 # get a range which is block aligned, contains 'offset' and allows
 # length bytes to be written
-def getBlockAlignedRange(block_size, offset, length):
+def getBlockAlignedRange(offset, length):
+    # It looks like offsets and lengths are in reality always sector aligned,
+    # and since a block and a sector are the same size we could probably do
+    # without this code.
+    # There methods elsewhere in this module (updateSR, getMetadataForWrite)
+    # that appear try to cope with the possibility of the block-aligned range
+    # for SR info also containing VDI info, or vice versa. On the face of it,
+    # that's impossible, and so there's scope for simplification there too.
+    block_size = METADATA_BLK_SIZE
     lower = 0
     if offset % block_size == 0:
         lower = offset
@@ -136,17 +151,15 @@ def getBlockAlignedRange(block_size, offset, length):
     return (lower, upper)
 
 
-def buildHeader(len, major=metadata.MD_MAJOR, minor=metadata.MD_MINOR):
-    # build the header, which is the first sector
-    output = ("%s%s%s%s%s%s%s" % (metadata.HDR_STRING,
-                                   HEADER_SEP,
-                                   LEN_FMT,
-                                   HEADER_SEP,
-                                   str(major),
-                                   HEADER_SEP,
-                                   str(minor)
-                                   )) % len
-    return output
+def buildHeader(length, major=metadata.MD_MAJOR, minor=metadata.MD_MINOR):
+    len_fmt = "%%-%ds" % MAX_METADATA_LENGTH_SIZE
+    return (metadata.HDR_STRING
+            + HEADER_SEP
+            + (len_fmt % length)
+            + HEADER_SEP
+            + str(major)
+            + HEADER_SEP
+            + str(minor))
 
 
 def unpackHeader(header):
@@ -159,12 +172,12 @@ def unpackHeader(header):
     return (vals[0], vals[1], vals[2], vals[3])
 
 
-def getSector(str):
-    sector = SECTOR_STRUCT % str
-    return sector
+def getSector(s):
+    sector_fmt = "%%-%ds" % SECTOR_SIZE
+    return sector_fmt % s
 
 
-def getSectorAlignedXML(tagName, value):
+def buildXMLSector(tagName, value):
     # truncate data if we breach the 512 limit
     if len("<%s>%s</%s>" % (tagName, value, tagName)) > SECTOR_SIZE:
         length = util.unictrunc(value, SECTOR_SIZE - 2 * len(tagName) - 5)
@@ -172,24 +185,35 @@ def getSectorAlignedXML(tagName, value):
                 + str(len(value)) + ' to ' + str(length) + ' bytes')
         value = value[:length]
 
-    return "<%s>%s</%s>" % (tagName, value, tagName)
+    return getSector("<%s>%s</%s>" % (tagName, value, tagName))
 
 
-def getXMLTag(tagName):
-    return "<%s>%s</%s>" % (tagName, '%s', tagName)
+def buildXMLElement(tag, value_dict):
+    return "<%s>%s</%s>" % (tag, value_dict[tag], tag)
+
+
+def openingTag(tag):
+    return "<%s>" % tag
+
+
+def closingTag(tag):
+    return "</%s>" % tag
+
+
+def buildParsableMetadataXML(info):
+    tag = metadata.XML_TAG
+    return "%s<%s>%s</%s>" % (XML_HEADER, tag, info, tag)
 
 
 def updateLengthInHeader(fd, length, major=metadata.MD_MAJOR, \
                          minor=metadata.MD_MINOR):
     try:
-        min_block_size = get_min_blk_size_wrapper(fd)
-        md = ''
-        md = file_read_wrapper(fd, 0, min_block_size, min_block_size)
+        md = file_read_wrapper(fd, 0)
         updated_md = buildHeader(length, major, minor)
         updated_md += md[SECTOR_SIZE:]
 
         # Now write the new length
-        file_write_wrapper(fd, 0, min_block_size, updated_md, len(updated_md))
+        file_write_wrapper(fd, 0, updated_md)
     except Exception as e:
         util.SMlog("Exception updating metadata length with length: %d."
                    "Error: %s" % (length, str(e)))
@@ -198,9 +222,8 @@ def updateLengthInHeader(fd, length, major=metadata.MD_MAJOR, \
 
 def getMetadataLength(fd):
     try:
-        min_blk_size = get_min_blk_size_wrapper(fd)
         sector1 = \
-            file_read_wrapper(fd, 0, SECTOR_SIZE, min_blk_size).strip()
+            file_read_wrapper(fd, 0, SECTOR_SIZE).strip()
         hdr = unpackHeader(sector1)
         len = int(hdr[1])
         return len
@@ -226,6 +249,10 @@ class MetadataHandler:
     def __del__(self):
         if self.fd:
             self.fd.close()
+
+    @property
+    def vdi_info_size(self):
+        return self.VDI_INFO_SIZE_IN_SECTORS * SECTOR_SIZE
 
     def spaceAvailableForVdis(self, count):
         raise NotImplementedError("spaceAvailableForVdis is undefined")
@@ -353,10 +380,9 @@ class MetadataHandler:
 
             try:
                 mdlength = getMetadataLength(self.fd)
-                if (mdlength - md['offset']) == \
-                    self.VDI_INFO_SIZE_IN_SECTORS * SECTOR_SIZE:
-                    updateLengthInHeader(self.fd, (mdlength - \
-                                    self.VDI_INFO_SIZE_IN_SECTORS * SECTOR_SIZE))
+                if (mdlength - md['offset']) == self.vdi_info_size:
+                    updateLengthInHeader(self.fd,
+                                         mdlength - self.vdi_info_size)
             except:
                 raise
         except Exception as e:
@@ -393,16 +419,13 @@ class MetadataHandler:
     def addVdiInternal(self, Dict):
         util.SMlog("Entering addVdiInternal")
         try:
-            value = ''
             Dict[VDI_DELETED_TAG] = '0'
-            min_block_size = get_min_blk_size_wrapper(self.fd)
             mdlength = getMetadataLength(self.fd)
             md = self.getMetadataInternal({'firstDeleted': 1, 'includeDeletedVdis': 1})
             if 'foundDeleted' not in md:
                 md['offset'] = mdlength
                 (md['lower'], md['upper']) = \
-                    getBlockAlignedRange(min_block_size, mdlength, \
-                                        SECTOR_SIZE * self.VDI_INFO_SIZE_IN_SECTORS)
+                    getBlockAlignedRange(mdlength, self.vdi_info_size)
             # If this has created a new VDI, update metadata length
             if 'foundDeleted' in md:
                 value = self.getMetadataToWrite(md['sr_info'], md['vdi_info'], \
@@ -411,14 +434,12 @@ class MetadataHandler:
                 value = self.getMetadataToWrite(md['sr_info'], md['vdi_info'], \
                         md['lower'], md['upper'], Dict, mdlength)
 
-            file_write_wrapper(self.fd, md['lower'], min_block_size, \
-                                  value, len(value))
+            file_write_wrapper(self.fd, md['lower'], value)
 
             if 'foundDeleted' in md:
                 updateLengthInHeader(self.fd, mdlength)
             else:
-                updateLengthInHeader(self.fd, mdlength + \
-                        SECTOR_SIZE * self.VDI_INFO_SIZE_IN_SECTORS)
+                updateLengthInHeader(self.fd, mdlength + self.vdi_info_size)
             return True
         except Exception as e:
             util.SMlog("Exception adding vdi with info: %s. Error: %s" % \
@@ -445,11 +466,9 @@ class MetadataHandler:
             sr_info_map = {}
             ret_vdi_info = {}
             length = getMetadataLength(self.fd)
-            min_blk_size = get_min_blk_size_wrapper(self.fd)
 
             # Read in the metadata fil
-            metadataxml = ''
-            metadataxml = file_read_wrapper(self.fd, 0, length, min_blk_size)
+            metadataxml = file_read_wrapper(self.fd, 0, length)
 
             # At this point we have the complete metadata in metadataxml
             offset = SECTOR_SIZE + len(XML_HEADER)
@@ -457,31 +476,26 @@ class MetadataHandler:
             offset = SECTOR_SIZE * 4
             sr_info = sr_info.replace('\x00', '')
 
-            parsable_metadata = '%s<%s>%s</%s>' % (XML_HEADER, metadata.XML_TAG,
-                                                   sr_info, metadata.XML_TAG)
+            parsable_metadata = buildParsableMetadataXML(sr_info)
             retmap['sr_info'] = metadata._parseXML(parsable_metadata)
 
             # At this point we check if an offset has been passed in
             if 'offset' in params:
-                upper = getBlockAlignedRange(min_blk_size, params['offset'], \
-                                             0)[1]
+                upper = getBlockAlignedRange(params['offset'], 0)[1]
             else:
                 upper = length
 
             # Now look at the VDI objects
             while offset < upper:
-                vdi_info = metadataxml[offset:
-                                offset +
-                                (SECTOR_SIZE * self.VDI_INFO_SIZE_IN_SECTORS)]
+                vdi_info = metadataxml[offset:offset + self.vdi_info_size]
                 vdi_info = vdi_info.replace('\x00', '')
-                parsable_metadata = '%s<%s>%s</%s>' % (XML_HEADER, metadata.XML_TAG,
-                                               vdi_info, metadata.XML_TAG)
+                parsable_metadata = buildParsableMetadataXML(vdi_info)
                 vdi_info_map = metadata._parseXML(parsable_metadata)[VDI_TAG]
                 vdi_info_map[OFFSET_TAG] = offset
 
                 if 'includeDeletedVdis' not in params and \
                     vdi_info_map[VDI_DELETED_TAG] == '1':
-                    offset += SECTOR_SIZE * self.VDI_INFO_SIZE_IN_SECTORS
+                    offset += self.vdi_info_size
                     continue
 
                 if 'indexByUuid' in params:
@@ -493,18 +507,16 @@ class MetadataHandler:
                     if vdi_info_map[UUID_TAG] == params['vdi_uuid']:
                         retmap['offset'] = offset
                         (lower, upper) = \
-                            getBlockAlignedRange(min_blk_size, offset, \
-                                        SECTOR_SIZE * self.VDI_INFO_SIZE_IN_SECTORS)
+                            getBlockAlignedRange(offset, self.vdi_info_size)
 
                 elif 'firstDeleted' in params:
                     if vdi_info_map[VDI_DELETED_TAG] == '1':
                         retmap['foundDeleted'] = 1
                         retmap['offset'] = offset
                         (lower, upper) = \
-                            getBlockAlignedRange(min_blk_size, offset, \
-                                        SECTOR_SIZE * self.VDI_INFO_SIZE_IN_SECTORS)
+                            getBlockAlignedRange(offset, self.vdi_info_size)
 
-                offset += SECTOR_SIZE * self.VDI_INFO_SIZE_IN_SECTORS
+                offset += self.vdi_info_size
 
             retmap['lower'] = lower
             retmap['upper'] = upper
@@ -526,8 +538,7 @@ class MetadataHandler:
         diff = set(Dict.keys()) - set(ATOMIC_UPDATE_PARAMS_AND_OFFSET.keys())
         if diff == set([]):
             offset = SECTOR_SIZE * 2
-            (lower, upper) = getBlockAlignedRange(get_min_blk_size_wrapper( \
-                self.fd), offset, SECTOR_SIZE * 2)
+            (lower, upper) = getBlockAlignedRange(offset, SECTOR_SIZE * 2)
             md = self.getMetadataInternal({'offset': \
                                 SECTOR_SIZE * (SR_INFO_SIZE_IN_SECTORS - 1)})
 
@@ -555,8 +566,7 @@ class MetadataHandler:
                 # generate the remaining VDI
                 value += self.generateVDIsForRange(vdi_info_by_offset, lower, upper)
 
-            file_write_wrapper(self.fd, lower, \
-                get_min_blk_size_wrapper(self.fd), value, len(value))
+            file_write_wrapper(self.fd, lower, value)
         else:
             raise Exception("SR Update operation not supported for "
                             "parameters: %s" % diff)
@@ -564,13 +574,11 @@ class MetadataHandler:
     def updateVdi(self, Dict):
         util.SMlog('entering updateVdi')
         try:
-            value = ''
-            min_block_size = get_min_blk_size_wrapper(self.fd)
             mdlength = getMetadataLength(self.fd)
             md = self.getMetadataInternal({'vdi_uuid': Dict[UUID_TAG]})
             value = self.getMetadataToWrite(md['sr_info'], md['vdi_info'], \
                         md['lower'], md['upper'], Dict, md['offset'])
-            file_write_wrapper(self.fd, md['lower'], min_block_size, value, len(value))
+            file_write_wrapper(self.fd, md['lower'], value)
             return True
         except Exception as e:
             util.SMlog("Exception updating vdi with info: %s. Error: %s" % \
@@ -582,7 +590,6 @@ class MetadataHandler:
     # about the SRs and all its VDIs
     def writeMetadataInternal(self, sr_info, vdi_info):
         try:
-            md = ''
             md = self.getSRInfoForSectors(sr_info, range(0, SR_INFO_SIZE_IN_SECTORS))
 
             # Go over the VDIs passed and for each
@@ -590,8 +597,7 @@ class MetadataHandler:
                 md += self.getVdiInfo(vdi_info[key])
 
             # Now write the metadata on disk.
-            min_block_size = get_min_blk_size_wrapper(self.fd)
-            file_write_wrapper(self.fd, 0, min_block_size, md, len(md))
+            file_write_wrapper(self.fd, 0, md)
             updateLengthInHeader(self.fd, len(md))
 
         except Exception as e:
@@ -720,8 +726,10 @@ class LVMMetadataHandler(MetadataHandler):
                                 Dict[NAME_DESCRIPTION_TAG][:length]
 
                 # Fill the open struct and write it
-                vdi_info += getSector(VDI_SECTOR_1 % (Dict[NAME_LABEL_TAG],
-                                                      Dict[NAME_DESCRIPTION_TAG]))
+                vdi_info += getSector(openingTag(VDI_TAG)
+                                      + buildXMLElement(NAME_LABEL_TAG, Dict)
+                                      + buildXMLElement(NAME_DESCRIPTION_TAG,
+                                                        Dict))
 
             if generateSector == 2 or generateSector == 0:
                 sector2 = ''
@@ -732,9 +740,9 @@ class LVMMetadataHandler(MetadataHandler):
                 for tag in Dict.keys():
                     if tag == NAME_LABEL_TAG or tag == NAME_DESCRIPTION_TAG:
                         continue
-                    sector2 += getXMLTag(tag) % Dict[tag]
+                    sector2 += buildXMLElement(tag, Dict)
 
-                sector2 += VDI_CLOSING_TAG
+                sector2 += closingTag(VDI_TAG)
                 vdi_info += getSector(sector2)
             return vdi_info
 
@@ -754,21 +762,19 @@ class LVMMetadataHandler(MetadataHandler):
                 srinfo = getSector(buildHeader(SECTOR_SIZE))
 
             if 1 in range:
-                uuid = getXMLTag(UUID_TAG) % sr_info[UUID_TAG]
-                allocation = getXMLTag(ALLOCATION_TAG) % sr_info[ALLOCATION_TAG]
-
-                second = SECTOR2_FMT % (XML_HEADER, uuid, allocation)
-                srinfo += getSector(second)
+                srinfo += getSector(XML_HEADER
+                                    + buildXMLElement(UUID_TAG, sr_info)
+                                    + buildXMLElement(ALLOCATION_TAG, sr_info))
 
             if 2 in range:
                 # Fill up the SR name_label
-                srinfo += getSector(getSectorAlignedXML(NAME_LABEL_TAG,
-                    xml.sax.saxutils.escape(sr_info[NAME_LABEL_TAG])))
+                srinfo += buildXMLSector(NAME_LABEL_TAG,
+                    xml.sax.saxutils.escape(sr_info[NAME_LABEL_TAG]))
 
             if 3 in range:
                 # Fill the name_description
-                srinfo += getSector(getSectorAlignedXML(NAME_DESCRIPTION_TAG,
-                    xml.sax.saxutils.escape(sr_info[NAME_DESCRIPTION_TAG])))
+                srinfo += buildXMLSector(NAME_DESCRIPTION_TAG,
+                    xml.sax.saxutils.escape(sr_info[NAME_DESCRIPTION_TAG]))
 
             return srinfo
 
