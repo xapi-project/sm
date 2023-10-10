@@ -121,21 +121,22 @@ class TestContext(object):
             ]
         )
 
+    def patch(self, *args, **kwargs):
+        patcher = mock.patch(*args, **kwargs)
+        self.patchers.append(patcher)
+        patcher.start()
+
     def start(self):
-        self.patchers = [
-            mock.patch('builtins.open', new=self.fake_open),
-            mock.patch('fcntl.fcntl', new=self.fake_fcntl),
-            mock.patch('os.path.exists', new=self.fake_exists),
-            mock.patch('os.makedirs', new=self.fake_makedirs),
-            mock.patch('os.listdir', new=self.fake_listdir),
-            mock.patch('glob.glob', new=self.fake_glob),
-            mock.patch('os.uname', new=self.fake_uname),
-            mock.patch('subprocess.Popen', new=self.fake_popen),
-            mock.patch('os.rmdir', new=self.fake_rmdir),
-            mock.patch('os.stat', new=self.fake_stat)
-        ]
-        for patcher in self.patchers:
-            patcher.start()
+        self.patch('builtins.open', new=self.fake_open)
+        self.patch('fcntl.fcntl', new=self.fake_fcntl)
+        self.patch('os.path.exists', new=self.fake_exists)
+        self.patch('os.makedirs', new=self.fake_makedirs)
+        self.patch('os.listdir', new=self.fake_listdir)
+        self.patch('glob.glob', new=self.fake_glob)
+        self.patch('os.uname', new=self.fake_uname)
+        self.patch('subprocess.Popen', new=self.fake_popen)
+        self.patch('os.rmdir', new=self.fake_rmdir)
+        self.patch('os.stat', new=self.fake_stat)
 
         self.setup_modinfo()
 
