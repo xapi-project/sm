@@ -1722,20 +1722,35 @@ def isLegalXMLString(s):
 
 def unictrunc(string, max_bytes):
     """
-    Returns the number of bytes that is smaller than, or equal to, the number
-    of bytes specified, such that the UTF-8 encoded string can be correctly
-    truncated.
+    Given a string, returns the largest number of elements for a prefix
+    substring of it, such that the UTF-8 encoding of this substring takes no
+    more than the given number of bytes.
+
+    The string may be given as a unicode string or a UTF-8 encoded byte
+    string, and the number returned will be in characters or bytes
+    accordingly.  Note that in the latter case, the substring will still be a
+    valid UTF-8 encoded string (which is to say, it won't have been truncated
+    part way through a multibyte sequence for a unicode character).
+
     string: the string to truncate
     max_bytes: the maximum number of bytes the truncated string can be
     """
+    if isinstance(string, str):
+        return_chars = True
+    else:
+        return_chars = False
+        string = string.decode('UTF-8')
+
+    cur_chars = 0
     cur_bytes = 0
     for char in string:
         charsize = len(char.encode('UTF-8'))
         if cur_bytes + charsize > max_bytes:
             break
         else:
-            cur_bytes = cur_bytes + charsize
-    return cur_bytes
+            cur_chars += 1
+            cur_bytes += charsize
+    return cur_chars if return_chars else cur_bytes
 
 
 def hideValuesInPropMap(propmap, propnames):

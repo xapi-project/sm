@@ -35,8 +35,17 @@ import xml.sax.saxutils
 # having been deleted, in which case the sectors used to contain this info can
 # potentially be reused when a new VDI is subsequently added.
 
+# String data in this module takes the form of normal Python unicode `str`
+# instances, or UTF-8 encoded `bytes`, depending on circumstance. In `dict`
+# instances such as are used to represent SR and VDI info, `str` is used (as
+# these may be returned to, or have been supplied by, this module's callers).
+# Data going into or taken from a metadata file is `bytes`. XML and XML
+# fragments come under this category, so are `bytes`. XML tag names are `str`
+# instances, as these are also used as `dict` keys.
+
+
 SECTOR_SIZE = 512
-XML_HEADER = "<?xml version=\"1.0\" ?>"
+XML_HEADER = b"<?xml version=\"1.0\" ?>"
 MAX_METADATA_LENGTH_SIZE = 10
 OFFSET_TAG = 'offset'
 
@@ -102,13 +111,12 @@ def file_write_wrapper(fd, offset, data):
         if length % blocksize:
             newlength = length + (blocksize - length % blocksize)
         fd.seek(offset, SEEK_SET)
-        to_write = data + ' ' * (newlength - length)
-        result = fd.write(to_write.encode())
+        to_write = data + b' ' * (newlength - length)
+        return fd.write(to_write)
     except OSError as e:
         raise OSError(
             "Failed to write file with params %s. Error: %s" %
             ([fd, offset, blocksize, data], e.errno))
-    return result
 
 
 def file_read_wrapper(fd, offset, bytesToRead=METADATA_BLK_SIZE):
@@ -118,12 +126,19 @@ def file_read_wrapper(fd, offset, bytesToRead=METADATA_BLK_SIZE):
     """
     try:
         fd.seek(offset, SEEK_SET)
-        result = fd.read(bytesToRead)
+        return fd.read(bytesToRead)
     except OSError as e:
         raise OSError(
             "Failed to read file with params %s. Error: %s" %
             ([fd, offset, bytesToRead], e.errno))
-    return result.decode()
+
+
+def to_utf8(s):
+    return s.encode("utf-8")
+
+
+def from_utf8(bs):
+    return bs.decode("utf-8")
 
 
 # get a range which is block aligned, contains 'offset' and allows
@@ -153,17 +168,17 @@ def getBlockAlignedRange(offset, length):
 
 def buildHeader(length, major=metadata.MD_MAJOR, minor=metadata.MD_MINOR):
     len_fmt = "%%-%ds" % MAX_METADATA_LENGTH_SIZE
-    return (metadata.HDR_STRING
-            + HEADER_SEP
-            + (len_fmt % length)
-            + HEADER_SEP
-            + str(major)
-            + HEADER_SEP
-            + str(minor))
+    return to_utf8(metadata.HDR_STRING
+                   + HEADER_SEP
+                   + (len_fmt % length)
+                   + HEADER_SEP
+                   + str(major)
+                   + HEADER_SEP
+                   + str(minor))
 
 
 def unpackHeader(header):
-    vals = header.split(HEADER_SEP)
+    vals = from_utf8(header).split(HEADER_SEP)
     if len(vals) != 4 or vals[0] != metadata.HDR_STRING:
         util.SMlog("Exception unpacking metadata header: "
                    "Error: Bad header '%s'" % (header))
@@ -173,36 +188,40 @@ def unpackHeader(header):
 
 
 def getSector(s):
-    sector_fmt = "%%-%ds" % SECTOR_SIZE
+    sector_fmt = b"%%-%ds" % SECTOR_SIZE
     return sector_fmt % s
 
 
 def buildXMLSector(tagName, value):
     # truncate data if we breach the 512 limit
-    if len("<%s>%s</%s>" % (tagName, value, tagName)) > SECTOR_SIZE:
-        length = util.unictrunc(value, SECTOR_SIZE - 2 * len(tagName) - 5)
-        util.SMlog('warning: SR ' + tagName + ' truncated from ' \
-                + str(len(value)) + ' to ' + str(length) + ' bytes')
-        value = value[:length]
+    tag_bytes = to_utf8(tagName)
+    value_bytes = to_utf8(value)
 
-    return getSector("<%s>%s</%s>" % (tagName, value, tagName))
+    elt = b"<%s>%s</%s>" % (tag_bytes, value_bytes, tag_bytes)
+    if len(elt) > SECTOR_SIZE:
+        length = util.unictrunc(value_bytes, SECTOR_SIZE - 2 * len(tag_bytes) - 5)
+        util.SMlog('warning: SR %s truncated from %d to %d bytes'
+                   % (tagName, len(value_bytes), length))
+        elt = b"<%s>%s</%s>" % (tag_bytes, value_bytes[:length], tag_bytes)
+
+    return getSector(elt)
 
 
 def buildXMLElement(tag, value_dict):
-    return "<%s>%s</%s>" % (tag, value_dict[tag], tag)
+    return to_utf8("<%s>%s</%s>" % (tag, value_dict[tag], tag))
 
 
 def openingTag(tag):
-    return "<%s>" % tag
+    return b"<%s>" % to_utf8(tag)
 
 
 def closingTag(tag):
-    return "</%s>" % tag
+    return b"</%s>" % to_utf8(tag)
 
 
 def buildParsableMetadataXML(info):
-    tag = metadata.XML_TAG
-    return "%s<%s>%s</%s>" % (XML_HEADER, tag, info, tag)
+    tag = to_utf8(metadata.XML_TAG)
+    return b"%s<%s>%s</%s>" % (XML_HEADER, tag, info, tag)
 
 
 def updateLengthInHeader(fd, length, major=metadata.MD_MAJOR, \
@@ -225,8 +244,7 @@ def getMetadataLength(fd):
         sector1 = \
             file_read_wrapper(fd, 0, SECTOR_SIZE).strip()
         hdr = unpackHeader(sector1)
-        len = int(hdr[1])
-        return len
+        return int(hdr[1])
     except Exception as e:
         util.SMlog("Exception getting metadata length: "
                    "Error: %s" % str(e))
@@ -393,10 +411,10 @@ class MetadataHandler:
     # common functions with some details derived from the child class
     def generateVDIsForRange(self, vdi_info, lower, upper, update_map={}, \
                              offset=0):
-        value = ''
         if not len(vdi_info.keys()) or offset not in vdi_info:
             return self.getVdiInfo(update_map)
 
+        value = b""
         for vdi_offset in vdi_info.keys():
             if vdi_offset < lower:
                 continue
@@ -474,7 +492,7 @@ class MetadataHandler:
             offset = SECTOR_SIZE + len(XML_HEADER)
             sr_info = metadataxml[offset: SECTOR_SIZE * 4]
             offset = SECTOR_SIZE * 4
-            sr_info = sr_info.replace('\x00', '')
+            sr_info = sr_info.replace(b'\x00', b'')
 
             parsable_metadata = buildParsableMetadataXML(sr_info)
             retmap['sr_info'] = metadata._parseXML(parsable_metadata)
@@ -488,7 +506,7 @@ class MetadataHandler:
             # Now look at the VDI objects
             while offset < upper:
                 vdi_info = metadataxml[offset:offset + self.vdi_info_size]
-                vdi_info = vdi_info.replace('\x00', '')
+                vdi_info = vdi_info.replace(b'\x00', b'')
                 parsable_metadata = buildParsableMetadataXML(vdi_info)
                 vdi_info_map = metadata._parseXML(parsable_metadata)[VDI_TAG]
                 vdi_info_map[OFFSET_TAG] = offset
@@ -532,7 +550,7 @@ class MetadataHandler:
     def updateSR(self, Dict):
         util.SMlog('entering updateSR')
 
-        value = ''
+        value = b""
 
         # Find the offset depending on what we are updating
         diff = set(Dict.keys()) - set(ATOMIC_UPDATE_PARAMS_AND_OFFSET.keys())
@@ -614,7 +632,7 @@ class MetadataHandler:
                            offset):
         util.SMlog("Entering getMetadataToWrite")
         try:
-            value = ''
+            value = b""
             vdi_map = {}
 
             # if lower is less than SR info
@@ -640,10 +658,10 @@ class MetadataHandler:
 
     # specific functions, to be implement by the child classes
     def getVdiInfo(self, Dict, generateSector=0):
-        return ''
+        return b""
 
     def getSRInfoForSectors(self, sr_info, range):
-        return ''
+        return b""
 
 
 class LVMMetadataHandler(MetadataHandler):
@@ -690,40 +708,32 @@ class LVMMetadataHandler(MetadataHandler):
     def getVdiInfo(self, Dict, generateSector=0):
         util.SMlog("Entering VDI info")
         try:
-            vdi_info = ''
+            vdi_info = b""
             # HP split into 2 functions, 1 for generating the first 2 sectors,
             # which will be called by all classes
             # and one specific to this class
             if generateSector == 1 or generateSector == 0:
-                Dict[NAME_LABEL_TAG] = \
-                        xml.sax.saxutils.escape(Dict[NAME_LABEL_TAG])
-                Dict[NAME_DESCRIPTION_TAG] = \
-                        xml.sax.saxutils.escape(Dict[NAME_DESCRIPTION_TAG])
-                if len(Dict[NAME_LABEL_TAG]) + len(Dict[NAME_DESCRIPTION_TAG]) > \
-                        MAX_VDI_NAME_LABEL_DESC_LENGTH:
-                    if len(Dict[NAME_LABEL_TAG]) > MAX_VDI_NAME_LABEL_DESC_LENGTH // 2:
-                        length = util.unictrunc(
-                            Dict[NAME_LABEL_TAG],
-                            MAX_VDI_NAME_LABEL_DESC_LENGTH // 2)
+                label = xml.sax.saxutils.escape(Dict[NAME_LABEL_TAG])
+                desc = xml.sax.saxutils.escape(Dict[NAME_DESCRIPTION_TAG])
+                label_length = len(to_utf8(label))
+                desc_length = len(to_utf8(desc))
 
-                        util.SMlog('warning: name-label truncated from ' +
-                                   str(len(Dict[NAME_LABEL_TAG])) + ' to ' +
-                                   str(length) + ' bytes')
+                if label_length + desc_length > MAX_VDI_NAME_LABEL_DESC_LENGTH:
+                    limit = MAX_VDI_NAME_LABEL_DESC_LENGTH // 2
+                    if label_length > limit:
+                        label = label[:util.unictrunc(label, limit)]
+                        util.SMlog('warning: name-label truncated from '
+                                   '%d to %d bytes'
+                                   % (label_length, len(to_utf8(label))))
 
-                        Dict[NAME_LABEL_TAG] = Dict[NAME_LABEL_TAG][:length]
+                    if desc_length > limit:
+                        desc = desc[:util.unictrunc(desc, limit)]
+                        util.SMlog('warning: description truncated from '
+                                   '%d to %d bytes'
+                                   % (desc_length, len(to_utf8(desc))))
 
-                    if (len(Dict[NAME_DESCRIPTION_TAG]) >
-                            MAX_VDI_NAME_LABEL_DESC_LENGTH // 2):
-                        length = util.unictrunc(
-                            Dict[NAME_DESCRIPTION_TAG],
-                            MAX_VDI_NAME_LABEL_DESC_LENGTH // 2)
-
-                        util.SMlog('warning: description truncated from ' +
-                                   str(len(Dict[NAME_DESCRIPTION_TAG])) +
-                                   ' to ' + str(length) + ' bytes')
-
-                        Dict[NAME_DESCRIPTION_TAG] = \
-                                Dict[NAME_DESCRIPTION_TAG][:length]
+                Dict[NAME_LABEL_TAG] = label
+                Dict[NAME_DESCRIPTION_TAG] = desc
 
                 # Fill the open struct and write it
                 vdi_info += getSector(openingTag(VDI_TAG)
@@ -732,7 +742,7 @@ class LVMMetadataHandler(MetadataHandler):
                                                         Dict))
 
             if generateSector == 2 or generateSector == 0:
-                sector2 = ''
+                sector2 = b""
 
                 if VDI_DELETED_TAG not in Dict:
                     Dict.update({VDI_DELETED_TAG: '0'})
@@ -752,7 +762,7 @@ class LVMMetadataHandler(MetadataHandler):
             raise
 
     def getSRInfoForSectors(self, sr_info, range):
-        srinfo = ''
+        srinfo = b""
 
         try:
             # write header, name_labael and description in that function

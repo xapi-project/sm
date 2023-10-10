@@ -687,7 +687,8 @@ class TestUtil(unittest.TestCase):
         # Successive chars in this string have 1, 2, 3, and 4 byte encodings.
         # So the number of bytes required to encode some prefix of it will be
         # a triangle number.
-        s = "X\u00f6\u732b\U0001f3f9"
+        t = "X\u00f6\u732b\U0001f3f9"
+        s = "X\u00f6\u732b\U0001f3f9".encode("utf-8")
 
         self.assertEqual(util.unictrunc(s, 10), 10)
         self.assertEqual(util.unictrunc(s, 9), 6)
@@ -700,3 +701,15 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(util.unictrunc(s, 2), 1)
         self.assertEqual(util.unictrunc(s, 1), 1)
         self.assertEqual(util.unictrunc(s, 0), 0)
+
+        self.assertEqual(util.unictrunc(t, 10), 4)
+        self.assertEqual(util.unictrunc(t, 9), 3)
+        self.assertEqual(util.unictrunc(t, 8), 3)
+        self.assertEqual(util.unictrunc(t, 7), 3)
+        self.assertEqual(util.unictrunc(t, 6), 3)
+        self.assertEqual(util.unictrunc(t, 5), 2)
+        self.assertEqual(util.unictrunc(t, 4), 2)
+        self.assertEqual(util.unictrunc(t, 3), 2)
+        self.assertEqual(util.unictrunc(t, 2), 1)
+        self.assertEqual(util.unictrunc(t, 1), 1)
+        self.assertEqual(util.unictrunc(t, 0), 0)
