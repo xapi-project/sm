@@ -89,10 +89,12 @@ def open_file(path, write=False):
     return file_p
 
 
-# Writes data to a file at a given offset. Padding (consisting of spaces) may
-# be written out after the given data to ensure that complete blocks are
-# written.
 def file_write_wrapper(fd, offset, data):
+    """
+    Writes data to a file at a given offset. Padding (consisting of spaces)
+    may be written out after the given data to ensure that complete blocks are
+    written.
+    """
     try:
         blocksize = METADATA_BLK_SIZE
         length = len(data)
@@ -108,9 +110,11 @@ def file_write_wrapper(fd, offset, data):
             ([fd, offset, blocksize, data], e.errno))
 
 
-# Reads data from a file at a given offset. If not specified, the amount of
-# data to read defaults to one block.
 def file_read_wrapper(fd, offset, bytesToRead=METADATA_BLK_SIZE):
+    """
+    Reads data from a file at a given offset. If not specified, the amount of
+    data to read defaults to one block.
+    """
     try:
         fd.seek(offset, SEEK_SET)
         return fd.read(bytesToRead)
