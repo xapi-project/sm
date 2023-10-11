@@ -35,6 +35,15 @@ import xml.sax.saxutils
 # having been deleted, in which case the sectors used to contain this info can
 # potentially be reused when a new VDI is subsequently added.
 
+# String data in this module takes the form of normal Python unicode `str`
+# instances, or UTF-8 encoded `bytes`, depending on circumstance. In `dict`
+# instances such as are used to represent SR and VDI info, `str` is used (as
+# these may be returned to, or have been supplied by, this module's callers).
+# Data going into or taken from a metadata file is `bytes`. XML and XML
+# fragments come under this category, so are `bytes`. XML tag names are `str`
+# instances, as these are also used as `dict` keys.
+
+
 SECTOR_SIZE = 512
 XML_HEADER = b"<?xml version=\"1.0\" ?>"
 MAX_METADATA_LENGTH_SIZE = 10
@@ -122,15 +131,6 @@ def file_read_wrapper(fd, offset, bytesToRead=METADATA_BLK_SIZE):
         raise OSError(
             "Failed to read file with params %s. Error: %s" %
             ([fd, offset, bytesToRead], e.errno))
-
-
-# String data in this module takes the form of normal Python unicode `str`
-# instances, or UTF-8 encoded `bytes`, depending on circumstance. In `dict`
-# instances such as are used to represent SR and VDI info, `str` is used (as
-# these may be returned to, or have been supplied by, this module's callers).
-# Data going into or taken from a metadata file is `bytes`. XML and XML
-# fragments come under this category, so are `bytes`. XML tag names are `str`
-# instances, as these are also used as `dict` keys.
 
 
 def to_utf8(s):
