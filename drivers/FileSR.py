@@ -415,6 +415,9 @@ class FileSR(SR.SR):
                                 (util.ismount(mount_path) or \
                                  util.pathexists(self.remotepath) and self._isbind()))
 
+    # Override in SharedFileSR.
+    def _check_hardlinks(self):
+        return True
 
 class FileVDI(VDI.VDI):
     PARAM_VHD = "vhd"
@@ -758,11 +761,10 @@ class FileVDI(VDI.VDI):
         os.unlink(path)
 
     def _create_new_parent(self, src, newsrc):
-        sr_sm_config = self.session.xenapi.SR.get_sm_config(self.sr.sr_ref)
-        if SharedFileSR.NO_HARDLINK_SUPPORT in sr_sm_config:
-            self._rename(src, newsrc)
-        else:
+        if self.sr._check_hardlinks():
             self._link(src, newsrc)
+        else:
+            self._rename(src, newsrc)
 
     def __fist_enospace(self):
         raise util.CommandException(28, "vhd-util snapshot", reason="No space")
@@ -1068,12 +1070,15 @@ class SharedFileSR(FileSR):
     """
     FileSR subclass for SRs that use shared network storage
     """
-    NO_HARDLINK_SUPPORT = "no_hardlinks"
 
     def _raise_hardlink_error(self):
         raise OSError(524, "Unknown error 524")
 
     def _check_hardlinks(self):
+        hardlink_conf = self._read_hardlink_conf()
+        if hardlink_conf is not None:
+            return hardlink_conf
+
         test_name = os.path.join(self.path, str(uuid4()))
         open(test_name, 'ab').close()
 
@@ -1085,25 +1090,55 @@ class SharedFileSR(FileSR):
                 self._raise_hardlink_error)
 
             os.link(test_name, link_name)
-            self.session.xenapi.SR.remove_from_sm_config(
-                self.sr_ref, SharedFileSR.NO_HARDLINK_SUPPORT)
+            self._write_hardlink_conf(supported=True)
+            return True
         except OSError:
+            self._write_hardlink_conf(supported=False)
+
             msg = "File system for SR %s does not support hardlinks, crash " \
                 "consistency of snapshots cannot be assured" % self.uuid
             util.SMlog(msg, priority=util.LOG_WARNING)
-            try:
-                self.session.xenapi.SR.add_to_sm_config(
-                    self.sr_ref, SharedFileSR.NO_HARDLINK_SUPPORT, 'True')
-                self.session.xenapi.message.create(
-                    "sr_does_not_support_hardlinks", 2, "SR", self.uuid,
-                    msg)
-            except XenAPI.Failure:
-                # Might already be set and checking has TOCTOU issues
-                pass
+            # Note: session can be not set during attach/detach_from_config calls.
+            if self.session:
+                try:
+                    self.session.xenapi.message.create(
+                        "sr_does_not_support_hardlinks", 2, "SR", self.uuid,
+                        msg)
+                except XenAPI.Failure:
+                    # Might already be set and checking has TOCTOU issues
+                    pass
         finally:
             util.force_unlink(link_name)
             util.force_unlink(test_name)
 
+        return False
+
+    def _get_hardlink_conf_path(self):
+        return os.path.join(self.path, 'sm-hardlink.conf')
+
+    def _read_hardlink_conf(self):
+        try:
+            with open(self._get_hardlink_conf_path(), 'r') as f:
+                try:
+                    return bool(int(f.read()))
+                except Exception as e:
+                    # If we can't read, assume the file is empty and test for hardlink support.
+                    return None
+        except IOError as e:
+            if e.errno == errno.ENOENT:
+                # If the config file doesn't exist, assume we want to support hardlinks.
+                return None
+            util.SMlog('Failed to read hardlink conf: {}'.format(e))
+            # Can be caused by a concurrent access, not a major issue.
+            return None
+
+    def _write_hardlink_conf(self, supported):
+        try:
+            with open(self._get_hardlink_conf_path(), 'w') as f:
+                f.write('1' if supported else '0')
+        except Exception as e:
+            # Can be caused by a concurrent access, not a major issue.
+            util.SMlog('Failed to write hardlink conf: {}'.format(e))
 
 if __name__ == '__main__':
     SRCommand.run(FileSR, DRIVER_INFO)
