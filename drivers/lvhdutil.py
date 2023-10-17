@@ -246,7 +246,7 @@ def attachThin(journaler, srUuid, vdiUuid):
     lock.release()
 
 
-def detachThin(session, lvmCache, srUuid, vdiUuid):
+def detachThinImpl(session, lvmCache, srUuid, vdiUuid):
     """Shrink the VDI to the minimal size if no one is using it"""
     lvName = LV_PREFIX[vhdutil.VDI_TYPE_VHD] + vdiUuid
     path = os.path.join(VG_LOCATION, VG_PREFIX + srUuid, lvName)
@@ -271,6 +271,13 @@ def detachThin(session, lvmCache, srUuid, vdiUuid):
     finally:
         lvmCache.deactivate(NS_PREFIX_LVM + srUuid, vdiUuid, lvName, False)
     lock.release()
+
+
+def detachThin(session, lvmCache, srUuid, vdiUuid):
+    try:
+        detachThinImpl(session, lvmCache, srUuid, vdiUuid)
+    except Exception as e:
+        util.SMlog(f'Failed to detach properly VDI {vdiUuid}: {e}')
 
 
 def createVHDJournalLV(lvmCache, jName, size):
