@@ -108,10 +108,6 @@ class EXTSR(FileSR.FileSR):
                 #Activate LV
                 cmd = ['lvchange', '-ay', self.remotepath]
                 util.pread2(cmd)
-
-                # make a mountpoint:
-                if not os.path.isdir(self.path):
-                    os.makedirs(self.path)
             except util.CommandException as inst:
                 raise xs_errors.XenError(
                     'LVMMount',
@@ -127,12 +123,7 @@ class EXTSR(FileSR.FileSR):
                         'LVMMount',
                         opterr='FSCK failed on %s. Errno is %d' % (self.remotepath, inst.code))
 
-            try:
-                util.pread(["mount", self.remotepath, self.path])
-            except util.CommandException as inst:
-                raise xs_errors.XenError(
-                    'LVMMount',
-                    opterr='Failed to mount FS. Errno is %d' % inst.code)
+            super(EXTSR, self).attach(sr_uuid, bind=False)
 
         self.attached = True
 
