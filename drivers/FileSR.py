@@ -156,16 +156,20 @@ class FileSR(SR.SR):
             raise xs_errors.XenError('FileSRDelete', \
                   opterr='error %d' % inst.code)
 
-    def attach(self, sr_uuid):
+    def attach(self, sr_uuid, bind=True):
         if not self._checkmount():
             try:
-                util.ioretry(lambda: util.makedirs(self.path))
+                util.ioretry(lambda: util.makedirs(self.path, mode=0o700))
             except util.CommandException as inst:
                 if inst.code != errno.EEXIST:
                     raise xs_errors.XenError("FileSRCreate", \
                                              opterr='fail to create mount point. Errno is %s' % inst.code)
             try:
-                util.pread(["mount", "--bind", self.remotepath, self.path])
+                cmd = ["mount", self.remotepath, self.path]
+                if bind:
+                    cmd.append("--bind")
+                util.pread(cmd)
+                os.chmod(self.path, mode=0o0700)
             except util.CommandException as inst:
                 raise xs_errors.XenError('FileSRCreate', \
                                          opterr='fail to mount FileSR. Errno is %s' % inst.code)

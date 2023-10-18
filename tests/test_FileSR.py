@@ -7,10 +7,12 @@ import uuid
 import xmlrpc.client
 
 from xml.dom.minidom import parseString
+import EXTSR
 
 import FileSR
 import SR
 import SRCommand
+import testlib
 import util
 import vhdutil
 from XenAPI import Failure
@@ -570,3 +572,150 @@ class TestShareFileSR(unittest.TestCase):
 
         # Assert
         self.assertEqual(1, len(test_sr.vdis))
+
+class TestFileSR(unittest.TestCase):
+    def setUp(self):
+        pread_patcher = mock.patch('FileSR.util.pread')
+        self.mock_pread = pread_patcher.start()
+
+        errors_patcher = mock.patch('FileSR.xs_errors.XML_DEFS',
+                "drivers/XE_SR_ERRORCODES.xml")
+        errors_patcher.start()
+
+        sr_init_patcher = mock.patch('SR.SR.__init__')
+        def fake_sr_init(self, srcmd, sr_uuid):
+            self.sr_ref = False
+        self.mock_sr_init = sr_init_patcher.start()
+        self.mock_sr_init.side_effect = fake_sr_init
+
+        checkmount_patcher = mock.patch('FileSR.FileSR._checkmount')
+        self.mock_filesr_checkmount = checkmount_patcher.start()
+        self.mock_filesr_checkmount.return_value = False
+
+    def test_attach_does_nothing_if_already_mounted(self):
+
+        self.mock_filesr_checkmount.return_value = True
+        sr = FileSR.FileSR(None, None)
+        sr.attach(None)
+        self.assertTrue(sr.attached)
+
+    @mock.patch("FileSR.util.makedirs", autospec=True)
+    @mock.patch("FileSR.os.chmod", autospec=True)
+    def test_attach_will_mount_if_not_already_mounted(self, mock_chmod, mock_util_makedirs):
+
+        mount_dst = "pancakes"
+        mount_src = "strawberries"
+
+        sr = FileSR.FileSR(None, None)
+
+        sr.path = mount_dst
+        sr.remotepath = mount_src
+        sr.attach(None)
+
+        self.assertTrue(sr.attached)
+
+        mount_args = self.mock_pread.call_args[0][0]
+        self.assertIn(mount_src, mount_args)
+        self.assertIn(mount_dst, mount_args)
+
+    @mock.patch("FileSR.util.makedirs", autospec=True)
+    @mock.patch("FileSR.os.chmod", autospec=True)
+    def test_attach_will_ignore_mkdir_error_if_dir_already_exists(self, mock_chmod, mock_util_makedirs):
+        sr = FileSR.FileSR(None, None)
+
+        def fake_makedirs(path, mode):
+            raise util.CommandException(errno.EEXIST)
+        mock_util_makedirs.side_effect = fake_makedirs
+        sr.path = "pancakes"
+        sr.remotepath = "strawberries"
+        sr.attach(None)
+
+        self.assertTrue(sr.attached)
+
+    @mock.patch("FileSR.util.makedirs", autospec=True)
+    def test_attach_will_rethrow_any_oserrors_on_mkdir(self, mock_util_makedirs):
+        sr = FileSR.FileSR(None, None)
+
+        def fake_makedirs(path, mode):
+            raise util.CommandException(errno.ENOMEM)
+        mock_util_makedirs.side_effect = fake_makedirs
+
+        sr.path = "pancakes"
+
+        with self.assertRaises(SR.SROSError):
+            sr.attach(None)
+
+    @mock.patch("FileSR.util.makedirs", autospec=True)
+    def test_attach_will_rethrow_any_oserrors_on_mount(self, mock_util_makedirs):
+        sr = FileSR.FileSR(None, None)
+
+        def fake_pread(cmd):
+            raise util.CommandException(errno.ENOMEM)
+        self.mock_pread.side_effect = fake_pread
+
+        sr.path = "pancakes"
+        sr.remotepath = "blueberries"
+
+        with self.assertRaises(SR.SROSError):
+            sr.attach(None)
+
+    @mock.patch("FileSR.util.makedirs", autospec=True)
+    @mock.patch("FileSR.os.chmod", autospec=True)
+    def test_attach_will_mkdir_with_closed_mode(self, mock_chmod, mock_util_makedirs):
+        dst_path = "pancakes"
+        sr = FileSR.FileSR(None, None)
+
+        sr.path = dst_path
+        sr.remotepath = "strawberries"
+        sr.attach(None)
+
+        mock_util_makedirs.assert_called_with(dst_path, mode=0o700)
+
+    @mock.patch("FileSR.util.makedirs", autospec=True)
+    @mock.patch("FileSR.os.chmod", autospec=True)
+    def test_attach_will_bind_mount_by_default(self, mock_chmod, mock_util_makedirs):
+
+        mount_dst = "pancakes"
+        mount_src = "strawberries"
+        sr = FileSR.FileSR(None, None)
+
+        sr.path = mount_dst
+        sr.remotepath = mount_src
+        sr.attach(None)
+
+        self.assertTrue(sr.attached)
+        self.assertEqual(1, len(self.mock_pread.mock_calls))
+
+        mount_args = self.mock_pread.call_args[0][0]
+        self.assertIn("--bind", mount_args)
+
+    @mock.patch("FileSR.util.makedirs", autospec=True)
+    @mock.patch("FileSR.os.chmod", autospec=True)
+    def test_attach_can_do_non_bind_mount(self, mock_chmod, mock_util_makedirs):
+
+        mount_dst = "pancakes"
+        mount_src = "strawberries"
+        sr = FileSR.FileSR(None, None)
+
+        sr.path = mount_dst
+        sr.remotepath = mount_src
+        sr.attach(None, bind=False)
+
+        self.assertTrue(sr.attached)
+
+        mount_args = self.mock_pread.call_args[0][0]
+        self.assertNotIn("--bind", mount_args)
+
+    @mock.patch("FileSR.util.makedirs", autospec=True)
+    @mock.patch("FileSR.os.chmod", autospec=True)
+    def test_attach_will_chmod_the_mount_point(self, mock_chmod, mock_util_makedirs):
+
+        mount_dst = "pancakes"
+        mount_src = "strawberries"
+        sr = FileSR.FileSR(None, None)
+
+        sr.path = mount_dst
+        sr.remotepath = mount_src
+        sr.attach(None)
+
+        mock_chmod.assert_called_with(mount_dst, mode=0o700)
