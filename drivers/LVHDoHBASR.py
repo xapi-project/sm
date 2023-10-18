@@ -34,14 +34,16 @@ import scsiutil
 import mpath_cli
 import glob
 
-CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_METADATA", "SR_TRIM",
+CAPABILITIES = ("SR_PROBE", "SR_UPDATE", "SR_METADATA", "SR_TRIM",
                 "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
                 "VDI_GENERATE_CONFIG", "VDI_SNAPSHOT", "VDI_CLONE", "VDI_MIRROR",
                 "VDI_RESIZE", "ATOMIC_PAUSE", "VDI_RESET_ON_BOOT/2",
-                "VDI_UPDATE", "VDI_CONFIG_CBT", "VDI_ACTIVATE", "VDI_DEACTIVATE"]
+                "VDI_UPDATE", "VDI_CONFIG_CBT", "VDI_ACTIVATE", "VDI_DEACTIVATE")
 
-CONFIGURATION = [['SCSIid', 'The scsi_id of the destination LUN'], \
-                  ['allocation', 'Valid values are thick or thin (optional, defaults to thick)']]
+CONFIGURATION = (
+  ('SCSIid', 'The scsi_id of the destination LUN'),
+  ('allocation', 'Valid values are thick or thin (optional, defaults to thick)'),
+)
 
 DRIVER_INFO = {
     'name': 'LVHD over FC',
@@ -51,23 +53,21 @@ DRIVER_INFO = {
     'driver_version': '1.0',
     'required_api_version': '1.0',
     'capabilities': CAPABILITIES,
-    'configuration': CONFIGURATION
+    'configuration': CONFIGURATION,
     }
 
 
 class LVHDoHBASR(LVHDSR.LVHDSR):
     """LVHD over HBA storage repository"""
 
-    def handles(type):
+    def handles(type_):
         if __name__ == '__main__':
             name = sys.argv[0]
         else:
             name = __name__
-        if name.endswith("LVMoHBASR"):
-            return type == "lvmohba"  # for the initial switch from LVM
-        if type == "lvhdohba":
-            return True
-        return False
+
+        # for the initial switch from LVM
+        return type_ == "lvmohba" if name.endswith("LVMoHBASR") else "lvhdohba"
     handles = staticmethod(handles)
 
     def load(self, sr_uuid):
@@ -75,7 +75,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
         self.hbasr = driver(self.original_srcmd, sr_uuid)
 
         # If this is a vdi command, don't initialise SR
-        if not (util.isVDICommand(self.original_srcmd.cmd)):
+        if not util.isVDICommand(self.original_srcmd.cmd):
             pbd = None
             try:
                 pbd = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
@@ -118,7 +118,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
         finally:
             if self.mpath == "true":
                 self.mpathmodule.reset(self.SCSIid, explicit_unmap=True)
-                util.remove_mpathcount_field(self.session, self.host_ref, \
+                util.remove_mpathcount_field(self.session, self.host_ref,
                                              self.sr_ref, self.SCSIid)
 
     def attach(self, sr_uuid):
@@ -126,9 +126,9 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
         if self.mpath == "true":
             self.mpathmodule.refresh(self.SCSIid, 0)
             # set the device mapper's I/O scheduler
-            path = '/dev/disk/by-scsid/%s' % self.dconf['SCSIid']
+            path = f"/dev/disk/by-scsid/{self.dconf['SCSIid']}"
             for file in os.listdir(path):
-                self.block_setscheduler('%s/%s' % (path, file))
+                self.block_setscheduler(f"{path}/{file}")
 
         self._pathrefresh(LVHDoHBASR)
         if not os.path.exists(self.dconf['device']):
@@ -188,7 +188,7 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
             pbdref = util.find_my_pbd(self.session, self.host_ref, self.sr_ref)
         except:
             pass
-        for key in ["mpath-" + self.SCSIid, "multipathed"]:
+        for key in ("mpath-" + self.SCSIid, "multipathed"):
             try:
                 self.session.xenapi.PBD.remove_from_other_config(pbdref, key)
             except:
@@ -198,11 +198,10 @@ class LVHDoHBASR(LVHDSR.LVHDSR):
         """
         Remove the kernel device nodes
         """
-        nodes = glob.glob('/dev/disk/by-scsid/%s/*' % self.SCSIid)
-        util.SMlog('Remove_nodes, nodes are %s' % nodes)
+        nodes = glob.glob(f"/dev/disk/by-scsid/{self.SCSIid}/*")
+        util.SMlog(f"Remove_nodes, nodes are {nodes}")
         for node in nodes:
-            with open('/sys/block/%s/device/delete' %
-                      (os.path.basename(node)), 'w') as f:
+            with open(f"/sys/block/{os.path.basename(node)}/device/delete", 'w') as f:
                 f.write('1\n')
 
     def delete(self, sr_uuid):
@@ -244,7 +243,7 @@ class LVHDoHBAVDI(LVHDSR.LVHDVDI):
             return self.attach(sr_uuid, vdi_uuid)
         except:
             util.logException("LVHDoHBAVDI.attach_from_config")
-            raise xs_errors.XenError('SRUnavailable', \
+            raise xs_errors.XenError('SRUnavailable',
                         opterr='Unable to attach the heartbeat disk')
 
 
