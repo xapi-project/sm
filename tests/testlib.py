@@ -130,6 +130,7 @@ class TestContext(object):
         self.patch('builtins.open', new=self.fake_open)
         self.patch('fcntl.fcntl', new=self.fake_fcntl)
         self.patch('os.path.exists', new=self.fake_exists)
+        self.patch('os.path.isdir', new=self.fake_isdir),
         self.patch('os.makedirs', new=self.fake_makedirs)
         self.patch('os.listdir', new=self.fake_listdir)
         self.patch('glob.glob', new=self.fake_glob)
@@ -236,6 +237,9 @@ class TestContext(object):
 
         self.log('not exists', fname)
         return False
+
+    def fake_isdir(self, fname):
+        return fname in self.get_created_directories()
 
     def fake_listdir(self, path):
         assert '*' not in path
