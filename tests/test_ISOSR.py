@@ -5,6 +5,9 @@ import unittest
 import util
 import SR
 import errno
+import os
+import sys
+import tempfile
 import testlib
 
 
@@ -517,3 +520,191 @@ class TestISOSR_overSMB(unittest.TestCase):
         with self.assertRaises(SR.SROSError) as exp:
             smbsr.attach(None)
         self.assertEqual(exp.exception.errno, context.get_error_code("SMBMount"))
+
+
+class TestISOSR_functions(unittest.TestCase):
+    def test_is_consistent_utf8_filename(self):
+        with PatchFSEncoder() as fs_encoder:
+            # Expectations:
+            # - ascii filename should always show up as consistent (assuming the
+            #   file system encoding is either ascii or utf-8, which we do)
+            # - non-ascii utf-8 filenames are consistent when the file system
+            #   encoding is utf-8
+            # - non-utf-8 filenames should always cause an exception
+
+            simple_ascii = b"nothing fancy"
+            non_ascii_utf8 = b"snowman: \xe2\x98\x83"
+            non_utf8 = b"\xablatin-1\xbb"
+
+            cases = {
+                (simple_ascii, "utf-8"): True,
+                (simple_ascii, "ascii"): True,
+                (non_ascii_utf8, "utf-8"): True,
+                (non_ascii_utf8, "ascii"): False,
+                (non_utf8, "utf-8"): None,
+                (non_utf8, "ascii"): None
+            }
+
+            for filename_bytes, encoding in cases:
+                case_name = f"filename: {filename_bytes}, encoding '{encoding}'"
+                fs_encoder.set_encoding(encoding)
+                expectation = cases[filename_bytes, encoding]
+                name = os.fsdecode(filename_bytes)
+
+                if expectation is not None:
+                    self.assertEqual(ISOSR.is_consistent_utf8_filename(name),
+                                     expectation,
+                                     msg=case_name)
+                else:
+                    with self.assertRaises(UnicodeDecodeError, msg=case_name):
+                        ISOSR.is_consistent_utf8_filename(name)
+
+    def test_list_images(self):
+        with tempfile.TemporaryDirectory() as d:
+            # Given
+            should_find = {"ascii_name1.iso", "ascii_name2.img"}
+
+            shouldnt_find = {
+                "not_an_image.txt",
+                "misleadingly_named_directory.iso",
+                os.fsdecode(b"nom probl\xe9matique.iso")
+            }
+
+            # We anticipate that in Python 3.7 or later the fs encoding will
+            # be utf-8, which means these would be found.
+            might_find = {
+                os.fsdecode(b"\xf0\x9f\x8d\x8b.iso"),
+                os.fsdecode(b"nom_agr\xc3\xa9able.img")
+            }
+
+            for filename in should_find | shouldnt_find | might_find:
+                if "directory" in filename:
+                    os.mkdir(os.path.join(d, filename))
+                else:
+                    with open(os.path.join(d, filename), 'w'):
+                        pass
+
+            # When
+            found, num_ignored = ISOSR.list_images(d)
+
+            # Then
+            for filename in found:
+                self.assertTrue(os.path.isfile(os.path.join(d, filename)))
+            self.assertEqual(set(found) & shouldnt_find, set())
+            self.assertEqual(set(found) & should_find, should_find)
+            self.assertEqual(len(found) + num_ignored,
+                             len(should_find) + len(might_find) + 1)
+
+    @testlib.with_context
+    def test_list_images_filters_non_utf8_names(self, context):
+        with PatchFSEncoder() as fs_encoder:
+            # Given
+            images_dir = "/tmp/images"
+
+            fs_encoder.set_encoding("utf-8")
+
+            os.makedirs(images_dir)
+
+            for filename_bytes in (b"simple_ascii.iso",
+                                   b"g\xc3\xbcltigen_unicode.iso",
+                                   b"probl\xe9matique.iso"):
+                filename = os.fsdecode(filename_bytes)
+                with open(os.path.join(images_dir, filename), "w"):
+                    pass
+
+            # When
+            found, num_ignored = ISOSR.list_images(images_dir)
+
+            # Then
+            self.assertEqual(set(found),
+                             {"simple_ascii.iso", "g\u00fcltigen_unicode.iso"})
+            self.assertEqual(num_ignored, 1)
+
+    @testlib.with_context
+    def test_list_images_filters_non_ascii_names(self, context):
+        with PatchFSEncoder() as fs_encoder:
+            # Given
+
+            images_dir = "/tmp/images"
+
+            # This is the fs encoding in Python 3.6 when it's not set to anything
+            # else.
+            fs_encoder.set_encoding("ascii")
+
+            os.makedirs(images_dir)
+
+            for filename_bytes in (b"simple_ascii.iso",
+                                   b"g\xc3\xbcltigen_unicode.iso",
+                                   b"probl\xe9matique.iso"):
+                filename = os.fsdecode(filename_bytes)
+                with open(os.path.join(images_dir, filename), "w"):
+                    pass
+
+            # When
+            found, num_ignored = ISOSR.list_images(images_dir)
+
+            # Then
+            self.assertEqual(found, ["simple_ascii.iso"])
+            self.assertEqual(num_ignored, 2)
+
+    @mock.patch('util.SMlog', autospec=True)
+    @mock.patch('os.path.isdir', autospec=True)
+    @mock.patch('os.listdir', autospec=True)
+    @mock.patch('ISOSR.is_consistent_utf8_filename')
+    def test_list_images_reports_problem_filenames(self,
+                                                   mock_is_consistent,
+                                                   mock_listdir,
+                                                   mock_isdir,
+                                                   mock_SMlog):
+        # Given
+        images_dir = "aMountPoint"
+
+        mock_isdir.return_value = False
+        mock_listdir.return_value = ["bad.iso", "good.iso", "junk.iso"]
+        mock_is_consistent.side_effect = [
+            False,
+            True,
+            UnicodeDecodeError("utf-8", b'', 0, 0, "an error message")
+        ]
+
+        # When
+        found, num_ignored = ISOSR.list_images(images_dir)
+
+        # Then
+        self.assertEqual(found, ["good.iso"])
+        self.assertEqual(num_ignored, 2)
+
+        self.assertEqual(len(mock_SMlog.mock_calls), 2)
+
+        _, (log_message,), _ = mock_SMlog.mock_calls[0]
+        self.assertIn("'bad.iso'", log_message)
+
+        _, (log_message,), _ = mock_SMlog.mock_calls[1]
+        self.assertIn("'junk.iso'", log_message)
+
+
+class PatchFSEncoder:
+    def __init__(self, encoding="ascii"):
+        self.encoding = encoding
+        self.patch_fsencode = mock.patch("os.fsencode",
+                                         new=self.fake_fsencode)
+        self.patch_fsdecode = mock.patch("os.fsdecode",
+                                         new=self.fake_fsdecode)
+
+    def __enter__(self):
+        self.patch_fsencode.start()
+        self.patch_fsdecode.start()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.patch_fsencode.stop()
+        self.patch_fsdecode.stop()
+
+    def set_encoding(self, encoding):
+        self.encoding = encoding
+
+    def fake_fsencode(self, s):
+        return s.encode(self.encoding, "surrogateescape")
+
+    def fake_fsdecode(self, bs):
+        return bs.decode(self.encoding, "surrogateescape")

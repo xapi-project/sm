@@ -54,20 +54,84 @@ SMB_VERSION_3 = '3.0'
 NFSPORT = 2049
 
 
-def is_image_utf8_compatible(s):
+def list_images(path):
+    """
+    Finds the iso and img files in a given directory that have valid unicode
+    names. Returns a list of these, together with a count of number of image
+    files that had to be ignored due to encoding issues in their names.
+    """
     # pylint: disable=no-member
-    regex = re.compile(r"\.iso$|\.img$", re.I)
-    if regex.search(s) is None:
-        return False
 
-    # Check for extended characters
-    if type(s) == str:
-        try:
-            s.encode('utf-8')
-        except UnicodeEncodeError as e:
-            util.SMlog("WARNING: This string is not UTF-8 compatible.")
-            return False
-    return True
+    regex = re.compile(r"\.iso$|\.img$", re.I)
+    images = []
+    num_images_ignored = 0
+
+    for filename in os.listdir(path):
+        if not regex.search(filename):
+            # Not an image file
+            pass
+        elif os.path.isdir(os.path.join(path, filename)):
+            util.SMlog("list_images: '%s' is a directory. Ignore"
+                       % loggable_filename(filename))
+        else:
+            try:
+                if is_consistent_utf8_filename(filename):
+                    images.append(filename)
+                else:
+                    num_images_ignored += 1
+                    util.SMlog("WARNING: ignoring image file '%s' due to"
+                               " encoding issues"
+                               % loggable_filename(filename))
+            except UnicodeDecodeError as e:
+                num_images_ignored += 1
+                util.SMlog("WARNING: ignoring image file '%s' as its name is"
+                           " not UTF-8 compatible"
+                           % loggable_filename(filename))
+
+    return images, num_images_ignored
+
+
+def loggable_filename(filename):
+    # Strip the 'b"' and '"' off the string representation of bytes
+    return str(os.fsencode(filename))[2:-1]
+
+
+def is_consistent_utf8_filename(filename):
+    """
+    Determines whether a filename, which is assumed to come from a filesystem
+    where names are UTF-8 encoded, is consistent in the sense that its name in
+    the form we'd like to use it (that is, as valid unicode) is the same as
+    the form it needs to take when passed to Python library functions (e.g.
+    open, os.stat).
+
+    Raises UnicodeDecodeError if the name on the filesystem isn't UTF-8
+    encoded.
+    """
+    # We generally expect that names of files in the mounted file system will
+    # be utf-8 encoded. That need not always be true - for example, mount.cifs
+    # provides an "iocharset" option to control this. But we make no attempt
+    # to cope with, say, latin-1, and so such a file name will cause an
+    # exception.
+    #
+    # Even if a file's name is utf-8 encoded, we might still have to reject it
+    # for being "inconsistent". That's because Python's filesystem encoding
+    # (see `sys.getfilesystemencoding`) might be ascii rather than utf-8, in
+    # which case non-ascii characters in file names will show up as "surrogate
+    # escapes" - which makes them technically not valid as unicode.
+    #
+    # Although it would be easy enough to recover the originally intended name
+    # for such a file, it would be awkward elsewhere in the code base either
+    # to have invalid unicode in file paths, or to have file paths that needed
+    # massaging before they could be used for actual file operations. Hence
+    # we say the name is inconsistent.
+    #
+    # From Python 3.7 onwards it looks like it should be much more likely that
+    # the filesystem encoding will be utf-8, which will hopefully mean that we
+    # would then get previously rejected image files showing up, and working
+    # without further code changes being necessary.
+
+    filename_bytes = os.fsencode(filename)
+    return filename == filename_bytes.decode("utf-8")
 
 
 def tools_iso_name(filename):
@@ -128,21 +192,9 @@ class ISOSR(SR.SR):
         if self.vdis:
             return
 
-        for name in filter(is_image_utf8_compatible,
-                util.listdir(self.path, quiet=True)):
-            fileName = self.path + "/" + name
-            if os.path.isdir(fileName):
-                util.SMlog("_loadvdis : %s is a directory. Ignore" % fileName)
-                continue
+        image_names, _ = list_images(self.path)
 
-            # CA-80254: Check for iso/img files whose name consists of extended
-            # characters.
-            try:
-                name.encode('ascii')
-            except UnicodeEncodeError:
-                raise xs_errors.XenError('CIFSExtendedCharsNotSupported', \
-                        opterr='The repository contains at least one file whose name consists of extended characters.')
-
+        for name in image_names:
             self.vdis[name] = ISOVDI(self, name)
             # Set the VDI UUID if the filename is of the correct form.
             # Otherwise, one will be generated later in VDI._db_introduce.
@@ -613,15 +665,15 @@ class ISOSR(SR.SR):
             smconfig['iso_type'] = self.dconf['type']
             self.session.xenapi.SR.set_sm_config(self.sr_ref, smconfig)
 
-        # CA-80254: Check for iso/img files whose name consists of extended
-        # characters.
-        for f in util.listdir(self.path, quiet=True):
-            if is_image_utf8_compatible(f):
-                try:
-                    f.encode('ascii')
-                except UnicodeEncodeError:
-                    raise xs_errors.XenError('CIFSExtendedCharsNotSupported',
-                            opterr='The repository contains at least one file whose name consists of extended characters.')
+        _, num_images_ignored = list_images(self.path)
+        if num_images_ignored > 0:
+            xapi = self.session.xenapi
+            xapi.message.create("DISK_IMAGES_IGNORED",
+                                "4",
+                                "SR",
+                                self.uuid,
+                                "Ignored disk image file(s) due to"
+                                " file name encoding issues")
 
         self.detach(sr_uuid)
 
