@@ -81,10 +81,14 @@ def check_server_service(server, transport):
     NFS_SERVICE_RETRY * NFS_SERVICE_WAIT
     """
 
-    sv = get_supported_nfs_versions(server, transport)
-    # Services are not present in NFS4 only, this doesn't mean there's no NFS
-    if sv == ['4']:
-        return True
+    try:
+        sv = get_supported_nfs_versions(server, transport)
+        # Services are not present in NFS4 only, this doesn't mean there's no NFS
+        if "4" in sv:
+            return True
+    except NfsException:
+        # Server failed to give us supported versions
+        pass
 
     retries = 0
     errlist = [errno.EPERM, errno.EPIPE, errno.EIO]
@@ -309,6 +313,9 @@ def scan_srlist(path, transport, dconf):
 def _get_supported_nfs_version_rpcinfo(server):
     """ Return list of supported nfs versions.
         Using NFS3 services.
+        *Might* return "4" in the list of supported NFS versions, but might not:
+        There is no requirement for NFS4 to register with rpcbind, even though it can, so
+        a server which supports NFS4 might still only return ["3"] from here.
     """
 
     valid_versions = set(["3", "4"])
@@ -339,20 +346,27 @@ def _is_nfs4_supported(server, transport):
 
 
 def get_supported_nfs_versions(server, transport):
-    """Return list of supported nfs versions."""
+    """
+    Return list of supported nfs versions.
+
+    First check list from rpcinfo and if that does not contain NFS4, probe for it and
+    add it to the list if available.
+    """
+    vers = []
     try:
-        return _get_supported_nfs_version_rpcinfo(server)
+        vers = _get_supported_nfs_version_rpcinfo(server)
     except Exception:
         util.SMlog("Unable to obtain list of valid nfs versions with %s, trying NFSv4" % RPCINFO_BIN)
 
-    # NFSv4 only
-    if _is_nfs4_supported(server, transport):
-        return ["4"]
-    else:
-        util.SMlog("Unable to obtain list of valid nfs versions with NFSv4 pseudo FS mount")
+    # Test for NFS4 if the rpcinfo query did not find it (NFS4 does not *have* to register with rpcbind)
+    if "4" not in vers:
+        if _is_nfs4_supported(server, transport):
+            vers.append("4")
 
-    raise NfsException("Failed to read supported NFS version from server %s" %
-                           (server))
+    if vers:
+        return vers
+    else:
+        raise NfsException("Failed to read supported NFS version from server %s" % (server))
 
 
 def get_nfs_timeout(other_config):
