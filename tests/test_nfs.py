@@ -9,12 +9,14 @@ class Test_nfs(unittest.TestCase):
 
     @mock.patch('util.pread', autospec=True)
     def test_check_server_tcp(self, pread):
+        pread.side_effect = ["    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
         nfs.check_server_tcp('aServer', 'tcp')
 
         pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-s', 'aServer'], quiet=False, text=True)
 
     @mock.patch('util.pread', autospec=True)
     def test_check_server_tcp_nfsversion(self, pread):
+        pread.side_effect = ["    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
         nfs.check_server_tcp('aServer', 'tcp', 'aNfsversion')
 
         pread.assert_called_once_with(['/usr/sbin/rpcinfo', '-s', 'aServer'], quiet=False, text=True)
@@ -41,23 +43,28 @@ class Test_nfs(unittest.TestCase):
         pread.assert_called_with(['/usr/sbin/rpcinfo', '-s', 'aServer'])
         sleep.assert_not_called()
 
+    @mock.patch('nfs._is_nfs4_supported', autospec=True)
     @mock.patch('time.sleep', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('util.pread')
-    def test_check_server_service_with_retries(self, pread, sleep):
+    def test_check_server_service_with_retries(self, pread, sleep, nfs4sup):
         pread.side_effect = ["",
                            "",
-                           "    100003  4,3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
+                           "    100003  3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
+        nfs4sup.return_value = False
+
         service_found = nfs.check_server_service('aServer', 'tcp')
 
         self.assertTrue(service_found)
         self.assertEqual(len(pread.mock_calls), 3)
         pread.assert_called_with(['/usr/sbin/rpcinfo', '-s', 'aServer'])
 
+    @mock.patch('nfs._is_nfs4_supported', autospec=True)
     @mock.patch('time.sleep', autospec=True)
     @mock.patch('util.pread', autospec=True)
-    def test_check_server_service_not_available(self, pread, sleep):
+    def test_check_server_service_not_available(self, pread, sleep, nfs4sup):
         pread.return_value = ""
+        nfs4sup.return_value = False
 
         service_found = nfs.check_server_service('aServer', 'tcp')
 
@@ -91,6 +98,30 @@ class Test_nfs(unittest.TestCase):
         versions = nfs.get_supported_nfs_versions('aServer', 'tcp')
 
         self.assertEqual(versions, ['3', '4'])
+        self.assertEqual(len(pread2.mock_calls), 1)
+        pread2.assert_called_with(['/usr/sbin/rpcinfo', '-s', 'aServer'])
+
+    @mock.patch('nfs._is_nfs4_supported', autospec=True)
+    @mock.patch('util.pread2')
+    def test_get_supported_nfs_versions_rpc_nov4(self, pread2, nfs4sup):
+        pread2.side_effect = ["    100003  3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
+        nfs4sup.return_value = True
+
+        versions = nfs.get_supported_nfs_versions('aServer', 'tcp')
+
+        self.assertEqual(versions, ['3', '4'])
+        self.assertEqual(len(pread2.mock_calls), 1)
+        pread2.assert_called_with(['/usr/sbin/rpcinfo', '-s', 'aServer'])
+
+    @mock.patch('nfs._is_nfs4_supported', autospec=True)
+    @mock.patch('util.pread2')
+    def test_get_supported_nfs_versions_nov4(self, pread2, nfs4sup):
+        pread2.side_effect = ["    100003  3,2     udp6,tcp6,udp,tcp                nfs         superuser"]
+        nfs4sup.return_value = False
+
+        versions = nfs.get_supported_nfs_versions('aServer', 'tcp')
+
+        self.assertEqual(versions, ['3'])
         self.assertEqual(len(pread2.mock_calls), 1)
         pread2.assert_called_with(['/usr/sbin/rpcinfo', '-s', 'aServer'])
 
