@@ -256,7 +256,7 @@ class DummyVDI(VDI.VDI):
         if len(active_vdis) != 0:
             msg = "LVHDRT: found other operations in progress for VDI: %s" % active_vdis[0]['uuid']
             util.SMlog(msg)
-            raise xs_errors.XenError('OtherVDIOperationInProgress')
+            raise xs_errors.XenError('VDIInUse')
 
     def get_attached_vbds(self):
         vdi_ref = self.session.xenapi.VDI.get_by_uuid(self.uuid)

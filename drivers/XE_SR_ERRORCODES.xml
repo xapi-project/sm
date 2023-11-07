@@ -456,6 +456,11 @@
                 <value>105</value>
         </code>
         <code>
+                <name>NoRootDev</name>
+                <description>Root system device not found</description>
+                <value>118</value>
+        </code>
+        <code>
                 <name>InvalidIQN</name>
                 <description>The IQN provided is an invalid format</description>
                 <value>106</value>
@@ -763,6 +768,11 @@
                 <name>LeafGCSkip</name>
                 <description>Gave up on leaf coalesce after leaf grew bigger than before snapshot taken</description>
                 <value>204</value>
+        </code>
+        <code>
+                <name>VBDListNotStable</name>
+                <description>LVHDRT: found a non-stable VBD</description>
+                <value>205</value>
         </code>
 
         <code>
