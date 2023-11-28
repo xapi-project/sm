@@ -54,10 +54,11 @@ class TestLVHDSR(unittest.TestCase, Stubs):
             sr_uuid = str(uuid.uuid4())
         return LVHDSR.LVHDSR(srcmd, sr_uuid)
 
+    @mock.patch('lvutil.LvmLockContext', autospec=True)
     @mock.patch('lvhdutil.getVDIInfo', autospec=True)
     @mock.patch('LVHDSR.Lock', autospec=True)
     @mock.patch('SR.XenAPI')
-    def test_loadvids(self, mock_xenapi, mock_lock, mock_getVDIInfo):
+    def test_loadvids(self, mock_xenapi, mock_lock, mock_getVDIInfo, mock_lvlock):
         """sr.allVDIs populated by _loadvdis"""
 
         vdi_uuid = 'some VDI UUID'

@@ -87,6 +87,8 @@ class TestLVHDoHBASR(unittest.TestCase):
         self.mock_lvhdsr = lvhdsr_patcher.start()
         util_patcher = mock.patch('LVHDoHBASR.util', autospec=True)
         self.mock_util = util_patcher.start()
+        lc_patcher = mock.patch('LVHDSR.lvmcache.lvutil.LvmLockContext', autospec=True)
+        self.mock_lc = lc_patcher.start()
         xenapi_patcher = mock.patch('SR.XenAPI')
         self.mock_xapi = xenapi_patcher.start()
 

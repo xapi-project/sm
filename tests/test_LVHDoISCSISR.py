@@ -148,6 +148,8 @@ class TestLVHDoISCSISR(unittest.TestCase):
 
         lock_patcher = mock.patch('LVHDSR.Lock')
         self.mock_lock = lock_patcher.start()
+        lvlock_patcher = mock.patch('LVHDSR.lvutil.LvmLockContext')
+        self.mock_lvlock = lvlock_patcher.start()
 
         self.addCleanup(mock.patch.stopall)
 

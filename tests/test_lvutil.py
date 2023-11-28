@@ -26,7 +26,7 @@ def with_lvm_subsystem(func):
 
 class TestCreate(unittest.TestCase):
     def setUp(self):
-        lock_patcher = mock.patch('lvutil.lock', autospec=True)
+        lock_patcher = mock.patch('lvutil.LvmLockContext', autospec=True)
         self.addCleanup(lock_patcher.stop)
         self.mock_lock = lock_patcher.start()
 
@@ -99,7 +99,7 @@ class TestCreate(unittest.TestCase):
 
 class TestRemove(unittest.TestCase):
     def setUp(self):
-        lock_patcher = mock.patch('lvutil.lock', autospec=True)
+        lock_patcher = mock.patch('lvutil.LvmLockContext', autospec=True)
         self.addCleanup(lock_patcher.stop)
         self.mock_lock = lock_patcher.start()
 
@@ -125,7 +125,7 @@ class TestRemove(unittest.TestCase):
 class TestDeactivate(unittest.TestCase):
 
     def setUp(self):
-        lock_patcher = mock.patch('lvutil.lock', autospec=True)
+        lock_patcher = mock.patch('lvutil.LvmLockContext', autospec=True)
         pathexists_patcher = mock.patch('lvutil.util.pathexists', autospec=True)
         lexists_patcher = mock.patch('lvutil.os.path.lexists', autospec=True)
         unlink_patcher = mock.patch('lvutil.os.unlink', autospec=True)
@@ -211,7 +211,7 @@ class TestActivate(unittest.TestCase):
     def setUp(self):
         self.addCleanup(mock.patch.stopall)
 
-        lock_patcher = mock.patch('lvutil.lock', autospec=True)
+        lock_patcher = mock.patch('lvutil.LvmLockContext', autospec=True)
         self.mock_lock = lock_patcher.start()
         pathexists_patcher = mock.patch('lvutil.util.pathexists', autospec=True)
         self.mock_exists = pathexists_patcher.start()
@@ -309,3 +309,84 @@ class TestActivate(unittest.TestCase):
             lvutil.activateNoRefcount(TEST_VOL, False)
 
         self.assertIn('LV not activated', ce.exception.reason)
+
+class TestLvmLockContext(unittest.TestCase):
+
+    @mock.patch('lock_queue.LockQueue.__enter__')
+    @mock.patch('lock_queue.LockQueue.__exit__')
+    @mock.patch('lock_queue.LockQueue.__init__')
+    def test_LvmLockContext(self, m_init, m_exit, m_enter):
+        """
+        LvmLockContext should act as a wrapper around LockQueue.
+        """
+        with lvutil.LvmLockContext("pancakes"):
+            self.assertEqual(m_init.call_count, 1)
+            self.assertEqual(m_enter.call_count, 1)
+            self.assertEqual(m_exit.call_count, 0)
+
+        self.assertEqual(m_init.call_count, 1)
+        self.assertEqual(m_enter.call_count, 1)
+        self.assertEqual(m_exit.call_count, 1)
+
+    @mock.patch('lock_queue.LockQueue.__enter__')
+    @mock.patch('lock_queue.LockQueue.__exit__')
+    @mock.patch('lock_queue.LockQueue.__init__')
+    def test_LvmLockContext_readlonly(self, m_init, m_exit, m_enter):
+        """
+        If the LVM command is readonly then LvmLockContext should not do any
+        actual locking.
+        """
+        with lvutil.LvmLockContext("waffles --readonly"):
+            self.assertEqual(m_init.call_count, 1)
+            self.assertEqual(m_enter.call_count, 0)
+            self.assertEqual(m_exit.call_count, 0)
+
+        self.assertEqual(m_init.call_count, 1)
+        self.assertEqual(m_enter.call_count, 0)
+        self.assertEqual(m_exit.call_count, 0)
+
+
+@mock.patch('util.pread', autospec=True) # m_pread
+@mock.patch('lvutil.LvmLockContext', autospec=True) # _1
+class Test_cmd_lvm(unittest.TestCase):
+
+    def test_refuse_to_run_empty_list(self, _1, m_pread):
+        r = lvutil.cmd_lvm([])
+        self.assertIsNone(r)
+        self.assertEqual(m_pread.call_count, 0)
+
+    def test_refuse_to_run_none_list(self, _1, m_pread):
+        r = lvutil.cmd_lvm("i am not a list")
+        self.assertIsNone(r)
+        self.assertEqual(m_pread.call_count, 0)
+
+    def test_refuse_to_run_not_whitelisted_command(self, _1, m_pread):
+        r = lvutil.cmd_lvm(["/usr/bin/i_am_not_an_approved_command"])
+        self.assertIsNone(r)
+        self.assertEqual(m_pread.call_count, 0)
+
+    def test_refuse_to_run_with_non_string_args(self, _1, m_pread):
+        r = lvutil.cmd_lvm([lvutil.CMD_LVDISPLAY, 458])
+        self.assertIsNone(r)
+        self.assertEqual(m_pread.call_count, 0)
+
+    def test_args_are_passed_to_pread(self, _1, m_pread):
+        r = lvutil.cmd_lvm([lvutil.CMD_LVDISPLAY, "pancakes"])
+        self.assertEqual(m_pread.call_count, 1)
+        self.assertIn(lvutil.CMD_LVDISPLAY, m_pread.call_args[0][0][0])
+        self.assertIn("pancakes", m_pread.call_args[0][0][1])
+
+    def test_output_is_returned(self, _1, m_pread):
+        m_pread.return_value = "muffins"
+        r = lvutil.cmd_lvm([lvutil.CMD_LVDISPLAY])
+        self.assertEqual("muffins", r)
+
+    @mock.patch('time.time', autospec=True) # m_time
+    @mock.patch('util.SMlog', autospec=True) # m_smlog
+    def test_warning_if_cmd_takes_too_long(self, m_smlog, m_time, _1, m_pread):
+        m_time.side_effect = [0, lvutil.MAX_OPERATION_DURATION*2]
+        lvutil.cmd_lvm([lvutil.CMD_LVDISPLAY])
+        self.assertEqual(m_pread.call_count, 1)
+        self.assertIn("Long LVM call", m_smlog.call_args[0][0])
+        self.assertIn(f"took {lvutil.MAX_OPERATION_DURATION*2}", m_smlog.call_args[0][0])
+

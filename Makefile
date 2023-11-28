@@ -45,6 +45,7 @@ SM_LIBS += journaler
 SM_LIBS += fjournaler
 SM_LIBS += lock
 SM_LIBS += flock
+SM_LIBS += lock_queue
 SM_LIBS += ipc
 SM_LIBS += srmetadata
 SM_LIBS += metadata
