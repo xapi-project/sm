@@ -1407,6 +1407,23 @@ def extractSRFromDevMapper(path):
         return ''
 
 
+def pid_is_alive(pid):
+    """
+    Try to kill PID with signal 0.
+    If we succeed, the PID is alive, so return True.
+    If we get an EPERM error, the PID is alive but we are not allowed to
+    signal it. Still return true.
+    Any other error (e.g. ESRCH), return False
+    """
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError as e:
+        if e.errno == errno.EPERM:
+            return True
+        return False
+
+
 # Looks at /proc and figures either
 #   If a process is still running (default), returns open file names
 #   If any running process has open handles to the given file (process = False)
@@ -1463,13 +1480,21 @@ def findRunningProcessOrOpenFile(name, process=True):
                 else:
                     # need to return process name and pid tuples
                     if link == name:
-                        SMlog("File %s has an open handle with process %s "
-                              "with pid %s" % (name, prog, pid))
                         processandpids.append((prog, pid))
 
             # Get the connected sockets
             if name == prog:
                 sockets.update(get_connected_sockets(pid))
+
+        # We will only have a non-empty processandpids if some fd entries were found.
+        # Before returning them, verify that all the PIDs in question are properly alive.
+        # There is no specific guarantee of when a PID's /proc directory will disappear
+        # when it exits, particularly relative to filedescriptor cleanup, so we want to
+        # make sure we're not reporting a false positive.
+        processandpids = [ x for x in processandpids if pid_is_alive(x[1]) ]
+        for pp in processandpids:
+            SMlog(f"File {name} has an open handle with process {pp[0]} with pid {pp[1]}")
+
     except Exception as e:
         SMlog("Exception checking running process or open file handles. " \
                    "Error: %s" % str(e))
