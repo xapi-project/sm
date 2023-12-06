@@ -1758,9 +1758,7 @@ class LVHDVDI(VDI.VDI):
         if snapType == VDI.SNAPSHOT_DOUBLE:
             clonUuid = util.gen_uuid()
         jval = "%s_%s" % (baseUuid, clonUuid)
-        with lvutil.LvmLockContext():
-            # This makes multiple LVM calls so take the lock early
-            self.sr.journaler.create(self.JRN_CLONE, origUuid, jval)
+        self.sr.journaler.create(self.JRN_CLONE, origUuid, jval)
         util.fistpoint.activate("LVHDRT_clone_vdi_after_create_journal", self.sr.uuid)
 
         try:
@@ -1835,9 +1833,7 @@ class LVHDVDI(VDI.VDI):
             self._failClone(origUuid, jval, str(e))
         util.fistpoint.activate("LVHDRT_clone_vdi_before_remove_journal", self.sr.uuid)
 
-        with lvutil.LvmLockContext():
-            # This makes multiple LVM calls so take the lock early
-            self.sr.journaler.remove(self.JRN_CLONE, origUuid)
+        self.sr.journaler.remove(self.JRN_CLONE, origUuid)
 
         return self._finishSnapshot(snapVDI, snapVDI2, hostRefs, cloneOp, snapType)
 

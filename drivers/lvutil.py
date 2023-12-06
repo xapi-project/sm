@@ -16,12 +16,14 @@
 # Miscellaneous LVM utility functions
 #
 
+import traceback
 import re
 import os
 import errno
 import time
 
 import lock
+import lock_queue
 import util
 import xs_errors
 import xml.dom.minidom
@@ -110,7 +112,7 @@ def extract_vgname(str_in):
 
     return None
 
-class LvmLockContext(object):
+class LvmLockContext(lock_queue.LockQueue):
     """
     Context manager around the LVM lock.
 
@@ -120,20 +122,35 @@ class LvmLockContext(object):
     """
 
     def __init__(self, cmd=None):
-        self.lock = lock.Lock(LVM_LOCK)
         self.cmd = cmd
         self.locked = False
+        try:
+            super().__init__(LVM_LOCK)
+        except Exception as e:
+            util.SMlog(f"===> LvmLockContext __init__ {e} {traceback.format_exc()}")
+            raise
 
     def __enter__(self):
         if self.cmd and '--readonly' in self.cmd:
             return
 
-        self.lock.acquire()
+        while True:
+            try:
+                super().__enter__()
+            except Exception as e:
+                util.SMlog(f"===> LvmLockContext __enter__ {e} {traceback.format_exc()}")
+                continue
+            break
+
         self.locked = True
 
-    def __exit__(self, exc_type, value, traceback):
+    def __exit__(self, exc_type, value, tbck):
         if self.locked:
-            self.lock.release()
+            try:
+                super().__exit__(exc_type, value, tbck)
+            except Exception as e:
+                util.SMlog(f"===> LvmLockContext __exit__ {e} {traceback.format_exc()}")
+                raise
 
 
 LVM_RETRY_ERRORS = [

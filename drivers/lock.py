@@ -49,7 +49,6 @@ class Lock(object):
             instances[name] = LockImplementation(name, ns)
         return instances[name]
 
-    # These are required to pacify pylint as it doesn't understand the __new__
     def acquire(self):
         raise NotImplementedError("Lock methods implemented in LockImplementation")
 

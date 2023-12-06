@@ -126,11 +126,13 @@ class TestStandaloneFunctions(unittest.TestCase):
                 new=lambda s: s.encode("ascii", "surrogateescape"))
     @mock.patch("os.fsdecode",
                 new=lambda bs: bs.decode("ascii", "surrogateescape"))
-    def test_parse_handles_wide_chars(self):
+    @mock.patch('util.gen_uuid', autospec=True)
+    def test_parse_handles_wide_chars(self, gen_uuid):
         import os
         import xmlrpc.client
         from DummySR import DRIVER_INFO
 
+        gen_uuid.return_value = '13c4384e-897b-e745-6b3e-9a89c06537be'
         xmlrpc_method = "vdi_create"
         xmlrpc_params = {
             'host_ref': 'OpaqueRef:133c7c46-f4d9-3695-83c4-bf8574b89fb9',
