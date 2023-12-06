@@ -21,6 +21,9 @@ import sys
 import re
 import xs_errors
 import mpath_cli
+import json
+import tempfile
+import shutil
 
 supported = ['iscsi', 'lvmoiscsi', 'rawhba', 'lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp', 'lvmofcoe', 'gfs2']
 
@@ -113,7 +116,7 @@ def get_root_dev_major():
 # @entry:   string representing previous value
 # @remove:  callback to remove key
 # @add:     callback to add key/value pair
-def update_config(key, SCSIid, entry, remove, add):
+def update_config(key, SCSIid, entry, remove, add, mpath_status=None):
     path = os.path.join(MAPPER_DIR, SCSIid)
     util.SMlog("MPATH: Updating entry for [%s], current: %s" % (SCSIid, entry))
     if os.path.exists(path):
@@ -136,6 +139,8 @@ def update_config(key, SCSIid, entry, remove, add):
             add('multipathed', 'true')
             add(key, str(newentry))
             util.SMlog("MPATH: Set val: %s" % str(newentry))
+        if mpath_status != None:
+            mpath_status.update({str(key): f"{count}/{max}"})
     else:
         util.SMlog('MPATH: device %s gone' % (SCSIid))
         remove('multipathed')
@@ -175,7 +180,7 @@ def check_root_disk(config, maps, remove, add):
                 update_config(key, i, config[key], remove, add)
 
 
-def check_devconfig(devconfig, sm_config, config, remove, add):
+def check_devconfig(devconfig, sm_config, config, remove, add, mpath_status):
     SCSIidlist = get_SCSIidlist(devconfig, sm_config)
     if not len(SCSIidlist):
         return
@@ -189,9 +194,22 @@ def check_devconfig(devconfig, sm_config, config, remove, add):
             remove('multipathed')
         else:
             if key not in config:
-                update_config(key, i, "", remove, add)
+                update_config(key, i, "", remove, add, mpath_status)
             else:
-                update_config(key, i, config[key], remove, add)
+                update_config(key, i, config[key], remove, add, mpath_status)
+
+
+def safe_dump_iscsi_mp_status(data):
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as temp_file:
+            json.dump(data, temp_file)
+            temp_file_path = temp_file.name
+
+            target_file = '/dev/shm/iscsi_mp_status'
+            shutil.move(temp_file_path, target_file)
+            os.chmod(target_file, 0o0644)
+    except:
+        util.SMlog(f"MPATH: Failure updating {target_file}")
 
 if __name__ == '__main__':
     try:
@@ -232,6 +250,7 @@ if __name__ == '__main__':
         mpc_exit(session, -1)
 
     try:
+        mpath_status = {}
         for pbd in pbds:
             def remove(key):
                 session.xenapi.PBD.remove_from_other_config(pbd, key)
@@ -246,7 +265,8 @@ if __name__ == '__main__':
             if srtype in supported:
                 devconfig = record["device_config"]
                 sm_config = session.xenapi.SR.get_sm_config(SR)
-                check_devconfig(devconfig, sm_config, config, remove, add)
+                check_devconfig(devconfig, sm_config, config, remove, add, mpath_status)
+        safe_dump_iscsi_mp_status(mpath_status)
     except:
         util.SMlog("MPATH: Failure updating db. %s" % sys.exc_info())
         mpc_exit(session, -1)
