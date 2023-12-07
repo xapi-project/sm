@@ -34,7 +34,7 @@ CONFIGURATION = \
     [['location', 'path to mount (required) (e.g. server:/path)'],
       ['options',
         'extra options to pass to mount (deprecated) (e.g. \'-o ro\')'],
-      ['type', 'cifs or nfs'],
+      ['type', 'cifs or nfs_iso'],
       nfs.NFS_VERSION]
 
 DRIVER_INFO = {
