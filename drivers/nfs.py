@@ -46,7 +46,7 @@ NFS_STAT = "/usr/sbin/nfsstat"
 DEFAULT_NFSVERSION = '3'
 
 NFS_VERSION = [
-    'nfsversion', 'for type=nfs, NFS protocol version - 3, 4, 4.0, 4.1']
+    'nfsversion', 'NFS protocol version - 3, 4, 4.0, 4.1']
 
 NFS_SERVICE_WAIT = 30
 NFS_SERVICE_RETRY = 6

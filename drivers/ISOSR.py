@@ -30,12 +30,17 @@ import cifutils
 CAPABILITIES = ["VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
                 "SR_SCAN", "SR_ATTACH", "SR_DETACH"]
 
-CONFIGURATION = \
-    [['location', 'path to mount (required) (e.g. server:/path)'],
-      ['options',
-        'extra options to pass to mount (deprecated) (e.g. \'-o ro\')'],
-      ['type', 'cifs or nfs_iso'],
-      nfs.NFS_VERSION]
+CONFIGURATION = [
+    ['location', 'path to mount (required) (e.g. server:/path)'],
+    ['options',
+     'extra options to pass to mount (e.g. \'-o ro\')'],
+    ['type', 'cifs (SMB) or nfs_iso'],
+    nfs.NFS_VERSION,
+    ['vers', 'SMB version, default version 3'],
+    ['username', r'Username to authenticate to SMB share with, can be domain\username'],
+    ['cifspassword_secret', 'Secret ID containing the password to authenticate to SMB'],
+    ['cifspassword', 'Password to authenticate to SMB, (deprecated see cifspassword_secret)']
+]
 
 DRIVER_INFO = {
     'name': 'ISO',
