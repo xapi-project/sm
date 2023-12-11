@@ -7,5 +7,6 @@ After=xapi-init-complete.target
 StandardInput=socket
 StandardOutput=null
 StandardError=journal
+ExecStartPre=/bin/bash -c 'if [ ! -f "/dev/shm/mpath_status" ]; then /opt/xensource/sm/mpathcount.py; fi'
 ExecStart=/usr/bin/sh -c '. /etc/xensource-inventory; while dd of=/dev/null bs=4096 count=1 status=none conv=noerror; do /opt/xensource/sm/mpathcount.py; done'
 Restart=always
