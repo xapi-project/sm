@@ -112,7 +112,7 @@ class TestMpathCount(unittest.TestCase):
                 print("del {}".format(key))
                 del store[key]
 
-        def fake_update_config(k, s, v, a, t):
+        def fake_update_config(k, s, v, a, t, p):
             store[k] = v
 
         update_config.side_effect = fake_update_config

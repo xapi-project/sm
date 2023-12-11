@@ -21,6 +21,7 @@ import sys
 import re
 import xs_errors
 import mpath_cli
+import json
 
 supported = ['iscsi', 'lvmoiscsi', 'rawhba', 'lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp', 'lvmofcoe', 'gfs2']
 
@@ -29,6 +30,8 @@ LOCK_NS1 = "mpathcount1"
 LOCK_NS2 = "mpathcount2"
 
 MAPPER_DIR = "/dev/mapper"
+MPATHS_DIR = "/dev/shm"
+MPATH_FILE_NAME = "/dev/shm/mpath_status"
 match_bySCSIid = False
 mpath_enabled = True
 SCSIid = 'NOTSUPPLIED'
@@ -113,7 +116,8 @@ def get_root_dev_major():
 # @entry:   string representing previous value
 # @remove:  callback to remove key
 # @add:     callback to add key/value pair
-def update_config(key, SCSIid, entry, remove, add):
+# @mpath_status:  map to record multipath status
+def update_config(key, SCSIid, entry, remove, add, mpath_status=None):
     path = os.path.join(MAPPER_DIR, SCSIid)
     util.SMlog("MPATH: Updating entry for [%s], current: %s" % (SCSIid, entry))
     if os.path.exists(path):
@@ -136,6 +140,8 @@ def update_config(key, SCSIid, entry, remove, add):
             add('multipathed', 'true')
             add(key, str(newentry))
             util.SMlog("MPATH: Set val: %s" % str(newentry))
+        if mpath_status != None:
+            mpath_status.update({str(key): f"{count}/{max}"})
     else:
         util.SMlog('MPATH: device %s gone' % (SCSIid))
         remove('multipathed')
@@ -175,7 +181,7 @@ def check_root_disk(config, maps, remove, add):
                 update_config(key, i, config[key], remove, add)
 
 
-def check_devconfig(devconfig, sm_config, config, remove, add):
+def check_devconfig(devconfig, sm_config, config, remove, add, mpath_status=None):
     SCSIidlist = get_SCSIidlist(devconfig, sm_config)
     if not len(SCSIidlist):
         return
@@ -189,9 +195,9 @@ def check_devconfig(devconfig, sm_config, config, remove, add):
             remove('multipathed')
         else:
             if key not in config:
-                update_config(key, i, "", remove, add)
+                update_config(key, i, "", remove, add, mpath_status)
             else:
-                update_config(key, i, config[key], remove, add)
+                update_config(key, i, config[key], remove, add, mpath_status)
 
 if __name__ == '__main__':
     try:
@@ -232,6 +238,7 @@ if __name__ == '__main__':
         mpc_exit(session, -1)
 
     try:
+        mpath_status = {}
         for pbd in pbds:
             def remove(key):
                 session.xenapi.PBD.remove_from_other_config(pbd, key)
@@ -246,7 +253,10 @@ if __name__ == '__main__':
             if srtype in supported:
                 devconfig = record["device_config"]
                 sm_config = session.xenapi.SR.get_sm_config(SR)
-                check_devconfig(devconfig, sm_config, config, remove, add)
+                check_devconfig(devconfig, sm_config, config, remove, add, mpath_status)
+        mpath_status = mpath_status if mpath_enabled else {}
+        util.atomicFileWrite(MPATH_FILE_NAME, MPATHS_DIR, json.dumps(mpath_status))
+        os.chmod(MPATH_FILE_NAME, 0o0644)
     except:
         util.SMlog("MPATH: Failure updating db. %s" % sys.exc_info())
         mpc_exit(session, -1)
