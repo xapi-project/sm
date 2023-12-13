@@ -480,13 +480,24 @@ def match_targetIQN(tgtIQN, s):
         return True
     # Extract IQN from iscsiadm -m session
     # Ex: tcp: [17] 10.220.98.9:3260,1 iqn.2009-01.xenrt.test:iscsi4181a93e
-    siqn = s.split(",")[1].split()[1]
+    siqn = s.split(",")[1].split()[1].strip()
     return (siqn == tgtIQN)
 
 
 def match_session(s):
     regex = re.compile("^tcp:")
     return regex.search(s, 0)
+
+
+def _compare_sessions_to_tgt(session_output, tgtIQN, tgt=''):
+    for line in session_output.split('\n'):
+        if match_targetIQN(tgtIQN, line) and match_session(line):
+            if len(tgt):
+                if match_target(tgt, line):
+                    return True
+            else:
+                return True
+    return False
 
 
 def _checkTGT(tgtIQN, tgt=''):
@@ -501,14 +512,7 @@ def _checkTGT(tgtIQN, tgt=''):
     except Exception as e:
         util.SMlog("%s failed with %s" % (cmd, e.args))
         stdout = ""
-    for line in stdout.split('\n'):
-        if match_targetIQN(tgtIQN, line) and match_session(line):
-            if len(tgt):
-                if match_target(tgt, line):
-                    return True
-            else:
-                return True
-    return False
+    return _compare_sessions_to_tgt(stdout, tgtIQN, tgt)
 
 
 def get_rootdisk_IQNs():
