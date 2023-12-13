@@ -228,7 +228,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 util.SMlog("path %s" % self.iscsi.path)
                 util.SMlog("iscsci data: targetIQN %s, portal %s" % (self.iscsi.targetIQN, self.iscsi.target))
                 iscsilib.ensure_daemon_running_ok(self.iscsi.localIQN)
-                if not iscsilib._checkTGT(self.iscsi.targetIQN):
+                if not iscsilib._checkTGT(self.iscsi.targetIQN, self.iscsi.target):
                     attempt_discovery = True
                     try:
                         # Ensure iscsi db has been populated

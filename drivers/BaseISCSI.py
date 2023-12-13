@@ -52,7 +52,7 @@ class BaseISCSISR(SR.SR):
     def attached(self):
         if not self._attached:
             self._attached = False
-            self._attached = iscsilib._checkTGT(self.targetIQN)
+            self._attached = iscsilib._checkTGT(self.targetIQN, self.target)
         return self._attached
 
     @attached.setter
@@ -331,7 +331,7 @@ class BaseISCSISR(SR.SR):
             iscsilib.ensure_daemon_running_ok(self.localIQN)
 
             # Check to see if auto attach was set
-            if not iscsilib._checkTGT(self.targetIQN) or multiTargets:
+            if not iscsilib._checkTGT(self.targetIQN, tgt=self.target) or multiTargets:
                 try:
                     iqn_map = []
                     if 'any' != self.targetIQN:
@@ -341,7 +341,10 @@ class BaseISCSISR(SR.SR):
                             # Pass the exception that is thrown, when there
                             # are no nodes
                             pass
-                    if len(iqn_map) == 0:
+
+                    # Check our current target is in the map
+                    portal = '%s:%d' % (self.target, self.port)
+                    if len(iqn_map) == 0 or not any([x[0] for x in iqn_map if x[0] == portal]):
                         iqn_map = iscsilib.discovery(self.target, self.port,
                                                   self.chapuser, self.chappassword,
                                                   self.targetIQN,
@@ -373,7 +376,7 @@ class BaseISCSISR(SR.SR):
                             else:
                                 pass
 
-                    if not iscsilib._checkTGT(self.targetIQN):
+                    if not iscsilib._checkTGT(self.targetIQN, tgt=self.target):
                         raise xs_errors.XenError('ISCSIDevice', \
                                                  opterr='during login')
 
@@ -394,6 +397,7 @@ class BaseISCSISR(SR.SR):
                     IQNs += iqn.split(',')[2]
         else:
             IQNs.append(self.targetIQN)
+
         sessions = 0
         paths = iscsilib.get_IQN_paths()
         for path in paths:
