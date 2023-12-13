@@ -15,6 +15,7 @@ import util
 import xs_errors
 
 import testlib
+from shared_iscsi_test_base import ISCSITestCase
 from test_ISCSISR import NonInitingISCSISR
 
 TEST_SR_UUID = 'test_uuid'
@@ -127,7 +128,9 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
         )
 
 
-class TestLVHDoISCSISR(unittest.TestCase):
+class TestLVHDoISCSISR(ISCSITestCase):
+
+    TEST_CLASS = 'LVHDoISCSISR'
 
     def setUp(self):
         util_patcher = mock.patch('LVHDoISCSISR.util', autospec=True)
@@ -142,15 +145,6 @@ class TestLVHDoISCSISR(unittest.TestCase):
         patched_baseiscsi = baseiscsi_patcher.start()
         patched_baseiscsi.side_effect = self.baseiscsi
         lvhdsr_patcher = mock.patch ('LVHDoISCSISR.LVHDSR')
-
-        iscsilib_patcher = mock.patch('LVHDoISCSISR.iscsilib',
-                                      autospec=True)
-        self.mock_iscsilib = iscsilib_patcher.start()
-        self.mock_iscsilib.discovery.side_effect = self.discovery
-        self.mock_iscsilib._checkTGT.side_effect = self._checkTGT
-        self.mock_iscsilib.login.side_effect = self.iscsi_login
-        self.discovery_data = {}
-        self.sessions = []
 
         self.mock_lvhdsr = lvhdsr_patcher.start()
         self.mock_session = mock.MagicMock()
@@ -173,20 +167,7 @@ class TestLVHDoISCSISR(unittest.TestCase):
 
         self.addCleanup(mock.patch.stopall)
 
-    def _checkTGT(self, tgtIQN, tgt=''):
-        all_sessions = '\n'.join(self.sessions)
-        matched = iscsilib._compare_sessions_to_tgt(all_sessions, tgtIQN, tgt)
-        return matched
-
-    def discovery(self, target, port, chapuser, chappassword,
-                  targetIQN="any", interfaceArray=["default"]):
-        return self.discovery_data.get(target, [])
-
-    def iscsi_login(self, target, target_iqn, chauser, chappassword,
-                    incoming_user, incoming_password, mpath):
-        print(f"Logging in {target} - {target_iqn}")
-        session_count = len(self.sessions)
-        self.sessions.append(f'tcp: [{session_count}] {target}:3260,1 {target_iqn}')
+        super().setUp()
 
     @property
     def mock_baseiscsi(self):
@@ -219,30 +200,6 @@ class TestLVHDoISCSISR(unittest.TestCase):
         self.sr_uuid = str(uuid4())
         self.subject = LVHDoISCSISR.LVHDoISCSISR(
             sr_cmd, self.sr_uuid)
-
-    def create_sr_command(
-            self, additional_dconf=None, cmd=None,
-            target_iqn='iqn.2009-01.example.test:iscsi085e938a'):
-
-        sr_cmd = mock.create_autospec(SRCommand)
-        sr_cmd.dconf = {
-            'SCSIid': '3600a098038313577792450384a4a6275',
-            'multihomelist': 'tgt1:3260,tgt2:3260',
-            'target': "10.70.89.34",
-            'targetIQN': target_iqn,
-            'localIQN': 'iqn.2018-05.com.example:0d312804'
-        }
-        if additional_dconf:
-            sr_cmd.dconf.update(additional_dconf)
-
-        sr_cmd.params = {
-            'command': 'nop',
-            'session_ref': 'test_session',
-            'host_ref': 'test_host',
-            'sr_ref': 'sr_ref'
-        }
-        sr_cmd.cmd = cmd
-        return sr_cmd
 
     def test_check_sr_pbd_not_found(self):
         # Arrange
