@@ -45,7 +45,7 @@ class BaseISCSISR(SR.SR):
     def attached(self):
         if not self._attached:
             self._attached = False
-            self._attached = iscsilib._checkTGT(self.targetIQN)
+            self._attached = iscsilib._checkTGT(self.targetIQN, self.target)
         return self._attached
 
     @attached.setter
@@ -325,27 +325,30 @@ class BaseISCSISR(SR.SR):
             iscsilib.ensure_daemon_running_ok(self.localIQN)
 
             # Check to see if auto attach was set
-            if not iscsilib._checkTGT(self.targetIQN) or multiTargets:
+            if not iscsilib._checkTGT(self.targetIQN, tgt=self.target) or multiTargets:
                 try:
-                    map = []
+                    iqn_map = []
                     if 'any' != self.targetIQN:
                         try:
-                            map = iscsilib.get_node_records(self.targetIQN)
+                            iqn_map = iscsilib.get_node_records(self.targetIQN)
                         except:
                             # Pass the exception that is thrown, when there
                             # are no nodes
                             pass
-                    if len(map) == 0:
-                        map = iscsilib.discovery(self.target, self.port,
+
+                    # Check our current target is in the map
+                    portal = '%s:%d' % (self.target, self.port)
+                    if len(iqn_map) == 0 or not any([x[0] for x in iqn_map if x[0] == portal]):
+                        iqn_map = iscsilib.discovery(self.target, self.port,
                                                   self.chapuser, self.chappassword,
                                                   self.targetIQN,
                                                   iscsilib.get_iscsi_interfaces())
-                    if len(map) == 0:
+                    if len(iqn_map) == 0:
                         self._scan_IQNs()
                         raise xs_errors.XenError('ISCSIDiscovery', 
                                                  opterr='check target settings')
-                    for i in range(0,len(map)):
-                        (portal,tpgt,iqn) = map[i]
+                    for i in range(0,len(iqn_map)):
+                        (portal,tpgt,iqn) = iqn_map[i]
                         try:
                             (ipaddr, port) = iscsilib.parse_IP_port(portal)
                             if not self.multihomed and ipaddr != self.target:
@@ -367,7 +370,7 @@ class BaseISCSISR(SR.SR):
                             else:
                                 pass
 
-                    if not iscsilib._checkTGT(self.targetIQN):
+                    if not iscsilib._checkTGT(self.targetIQN, tgt=self.target):
                         raise xs_errors.XenError('ISCSIDevice', \
                                                  opterr='during login')
                 
@@ -387,6 +390,7 @@ class BaseISCSISR(SR.SR):
                 if len(iqn): IQNs += iqn.split(',')[2]
         else:
             IQNs.append(self.targetIQN)
+
         sessions = 0
         paths = iscsilib.get_IQN_paths()
         for path in paths:
@@ -416,7 +420,7 @@ class BaseISCSISR(SR.SR):
             devs = os.listdir(dev_path)
             for dev in devs:
                 realdev = os.path.realpath(os.path.join(dev_path, dev))
-                util.set_scheduler(os.path.basename(realdev))
+                util.set_scheduler(os.path.basename(realdev), "noop")
 
     def detach(self, sr_uuid, delete=False):
         keys = []
