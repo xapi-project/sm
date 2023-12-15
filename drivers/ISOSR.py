@@ -546,12 +546,11 @@ class ISOSR(SR.SR):
 
             if not cifutils.containsCredentials(self.dconf, prefix="cifs"):
                 options.append('guest')
+                domain = None
+            else:
+                _, domain = cifutils.splitDomainAndUsername(self.dconf['username'])
 
             options.append(self.getSMBVersion())
-
-            username, domain = (
-                cifutils.splitDomainAndUsername(self.dconf['username'])
-            )
 
             if domain:
                 options.append('domain=' + domain)

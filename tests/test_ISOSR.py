@@ -194,16 +194,14 @@ class TestISOSR_overSMB(unittest.TestCase):
 
     def create_smbisosr(self, location='\\aServer\aLocation', atype=None,
                         sr_uuid='asr_uuid', server='\\aServer',
-                        serverpath='/aServerpath', username='aUsername',
-                        password='aPassword', vers=None, options='',
+                        serverpath='/aServerpath',
+                        vers=None, options='',
                         dconf_update={}):
         srcmd = mock.Mock()
         srcmd.dconf = {
             'location': location,
             'server': server,
             'serverpath': serverpath,
-            'username': username,
-            'password': password,
             'options': options
         }
         if vers:
@@ -252,7 +250,7 @@ class TestISOSR_overSMB(unittest.TestCase):
         Positive case, over XC/XE CLI with version 1.0.
         """
         context.setup_error_codes()
-        update = {'cifspassword': 'winter2019'}
+        update = {'username': 'dot', 'cifspassword': 'winter2019'}
         smbsr = self.create_smbisosr(atype='cifs', vers='1.0',
                                      dconf_update=update)
         _checkmount.side_effect = [False, True]
@@ -260,7 +258,7 @@ class TestISOSR_overSMB(unittest.TestCase):
         pread.assert_called_with(['mount.cifs', '\\aServer\x07Location',
                                   '/var/run/sr-mount/asr_uuid', '-o',
                                  'cache=none,vers=1.0'], True,
-                                 new_env={'PASSWD': 'winter2019', 'USER': 'aUsername'})
+                                 new_env={'PASSWD': 'winter2019', 'USER': 'dot'})
 
     @testlib.with_context
     @mock.patch('util.makedirs')
@@ -274,9 +272,8 @@ class TestISOSR_overSMB(unittest.TestCase):
         Positive case, over XC/XE CLI with version 1.0.
         """
         context.setup_error_codes()
-        update = {'cifspassword': 'winter2019'}
+        update = {'username': r'citrix\jsmith', 'cifspassword': 'winter2019'}
         smbsr = self.create_smbisosr(atype='cifs', vers='1.0',
-                                     username=r'citrix\jsmith',
                                      dconf_update=update)
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)
