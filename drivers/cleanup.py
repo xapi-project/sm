@@ -2942,6 +2942,9 @@ def _gcLoop(sr, dryRun=False, immediate=False):
     task_status = "success"
     try:
         # Check if any work needs to be done
+        if not sr.xapi.isPluggedHere():
+            Util.log("SR no longer attached, exiting")
+            return
         sr.scanLocked()
         if not sr.hasWork():
             Util.log("No work, exiting")
@@ -3087,7 +3090,29 @@ def init(srUuid):
         lockRunning = lock.Lock(LOCK_TYPE_RUNNING, srUuid)
     global lockActive
     if not lockActive:
-        lockActive = lock.Lock(LOCK_TYPE_GC_ACTIVE, srUuid)
+        lockActive = LockActive(srUuid)
+
+
+class LockActive:
+    """
+    Wraps the use of LOCK_TYPE_GC_ACTIVE such that the lock cannot be acquired
+    if another process holds the SR lock.
+    """
+    def __init__(self, srUuid):
+        self._lock = lock.Lock(LOCK_TYPE_GC_ACTIVE, srUuid)
+        self._srLock = lock.Lock(vhdutil.LOCK_TYPE_SR, srUuid)
+
+    def acquireNoblock(self):
+        if not self._srLock.acquireNoblock():
+            return False
+
+        try:
+            return self._lock.acquireNoblock()
+        finally:
+            self._srLock.release()
+
+    def release(self):
+        self._lock.release()
 
 
 def usage():
