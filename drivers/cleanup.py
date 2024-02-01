@@ -3033,7 +3033,7 @@ def _ensure_xapi_initialised(session):
             time.sleep(15)
     finally:
         if local_session is not None:
-            local_session.logout()
+            local_session.xenapi.session.logout()
 
 def _gc(session, srUuid, dryRun=False, immediate=False):
     init(srUuid)
