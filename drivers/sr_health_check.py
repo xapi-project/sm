@@ -34,26 +34,29 @@ def main():
         util.SMlog("Unable to open local XAPI session", priority=util.LOG_ERR)
         return
 
-    localhost = util.get_localhost_ref(session)
+    try:
+        localhost = util.get_localhost_ref(session)
 
-    sm_types = [x['type'] for x in session.xenapi.SM.get_all_records_where(
-        'field "required_api_version" = "1.0"').values()]
-    for sm_type in sm_types:
-        srs = session.xenapi.SR.get_all_records_where(
-            f'field "type" = "{sm_type}"')
-        for sr in srs:
-            pbds = session.xenapi.PBD.get_all_records_where(
-                f'field "SR" = "{sr}" and field "host" = "{localhost}"')
-            if not pbds:
-                continue
+        sm_types = [x['type'] for x in session.xenapi.SM.get_all_records_where(
+            'field "required_api_version" = "1.0"').values()]
+        for sm_type in sm_types:
+            srs = session.xenapi.SR.get_all_records_where(
+                f'field "type" = "{sm_type}"')
+            for sr in srs:
+                pbds = session.xenapi.PBD.get_all_records_where(
+                    f'field "SR" = "{sr}" and field "host" = "{localhost}"')
+                if not pbds:
+                    continue
 
-            pbd_ref, pbd = pbds.popitem()
-            if not pbd['currently_attached']:
-                continue
+                pbd_ref, pbd = pbds.popitem()
+                if not pbd['currently_attached']:
+                    continue
 
-            sr_uuid = srs[sr]['uuid']
-            sr_obj = SR.SR.from_uuid(session, sr_uuid)
-            sr_obj.check_sr(sr_uuid)
+                sr_uuid = srs[sr]['uuid']
+                sr_obj = SR.SR.from_uuid(session, sr_uuid)
+                sr_obj.check_sr(sr_uuid)
+    finally:
+        session.xenapi.session.logout()
 
 
 if __name__ == "__main__":

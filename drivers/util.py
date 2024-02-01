@@ -378,18 +378,19 @@ def ioretry_stat(path, maxretry=IORETRY_MAX):
 def sr_get_capability(sr_uuid):
     result = []
     session = get_localAPI_session()
-    sr_ref = session.xenapi.SR.get_by_uuid(sr_uuid)
-    sm_type = session.xenapi.SR.get_record(sr_ref)['type']
-    sm_rec = session.xenapi.SM.get_all_records_where(
-        "field \"type\" = \"%s\"" % sm_type)
+    try:
+        sr_ref = session.xenapi.SR.get_by_uuid(sr_uuid)
+        sm_type = session.xenapi.SR.get_record(sr_ref)['type']
+        sm_rec = session.xenapi.SM.get_all_records_where(
+            "field \"type\" = \"%s\"" % sm_type)
 
-    # SM expects at least one entry of any SR type
-    if len(sm_rec) > 0:
-        result = list(sm_rec.values())[0]['capabilities']
+        # SM expects at least one entry of any SR type
+        if len(sm_rec) > 0:
+            result = list(sm_rec.values())[0]['capabilities']
 
-    session.xenapi.logout()
-    return result
-
+        return result
+    finally:
+        session.xenapi.session.logout()
 
 def sr_get_driver_info(driver_info):
     results = {}
@@ -1274,11 +1275,15 @@ class FistPoint:
 
     def mark_sr(self, name, sruuid, started):
         session = get_localAPI_session()
-        sr = session.xenapi.SR.get_by_uuid(sruuid)
-        if started:
-            session.xenapi.SR.add_to_other_config(sr, name, "active")
-        else:
-            session.xenapi.SR.remove_from_other_config(sr, name)
+        try:
+            sr = session.xenapi.SR.get_by_uuid(sruuid)
+
+            if started:
+                session.xenapi.SR.add_to_other_config(sr, name, "active")
+            else:
+                session.xenapi.SR.remove_from_other_config(sr, name)
+        finally:
+            session.xenapi.session.logout()
 
     def activate(self, name, sruuid):
         if name in self.points:
