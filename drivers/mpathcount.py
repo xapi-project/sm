@@ -55,7 +55,7 @@ def get_dm_major():
 def mpc_exit(session, code):
     if session is not None:
         try:
-            session.xenapi.logout()
+            session.xenapi.session.logout()
         except:
             pass
     sys.exit(code)
