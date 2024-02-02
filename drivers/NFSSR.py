@@ -135,10 +135,16 @@ class NFSSR(FileSR.SharedFileSR):
 
     def attach(self, sr_uuid):
         if not self._checkmount():
-            self.validate_remotepath(False)
-            util._testHost(self.dconf['server'], NFSPORT, 'NFSTarget')
-            self.mount_remotepath(sr_uuid)
-            self._check_hardlinks()
+            try:
+                self.validate_remotepath(False)
+                util._testHost(self.dconf['server'], NFSPORT, 'NFSTarget')
+                self.mount_remotepath(sr_uuid)
+                self._check_writable()
+                self._check_hardlinks()
+            except:
+                if self._checkmount():
+                    nfs.unmount(self.path, True)
+                raise
         self.attached = True
 
     def mount_remotepath(self, sr_uuid):

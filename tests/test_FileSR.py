@@ -426,6 +426,7 @@ class FakeSharedFileSR(FileSR.SharedFileSR):
         self.lock = None
 
     def attach(self, sr_uuid):
+        self._check_writable()
         self._check_hardlinks()
 
     def _read_hardlink_conf(self):
@@ -518,6 +519,20 @@ class TestShareFileSR(unittest.TestCase):
         # Assert
         self.mock_session.xenapi.message.create.assert_called_with(
             'sr_does_not_support_hardlinks', 2, "SR", self.sr_uuid, mock.ANY)
+
+    @testlib.with_context
+    def test_attach_not_writable(self, context):
+        context.setup_error_codes()
+        test_sr = self.create_test_sr()
+
+        with mock.patch('FileSR.open') as mock_open:
+            mock_open.side_effect = OSError
+
+            with self.assertRaises(SR.SROSError) as cm:
+                test_sr.attach(self.sr_uuid)
+
+            self.assertEqual("The file system for SR cannot be written to.",
+                             str(cm.exception))
 
     def test_scan_load_vdis_scan_list_differ(self):
         """

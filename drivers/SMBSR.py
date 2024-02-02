@@ -195,9 +195,17 @@ class SMBSR(FileSR.SharedFileSR):
             try:
                 self.mount()
                 os.symlink(self.linkpath, self.path)
+                self._check_writable()
+                self._check_hardlinks()
             except SMBException as exc:
                 raise xs_errors.XenError('SMBMount', opterr=exc.errstr)
-            self._check_hardlinks()
+            except:
+                if util.pathexists(self.path):
+                    os.unlink(self.path)
+                if self.checkmount():
+                    self.unmount(self.mountpoint, True)
+                raise
+
         self.attached = True
 
     def probe(self):
