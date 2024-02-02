@@ -88,7 +88,7 @@ class LockQueue:
             self._queue_lock.acquire()
             queue = self.load_queue()
             front_pid, front_start_time = queue.pop(0)
-            print(f"Testing for PID {front_pid}")
+            debug_log(f"Testing for PID {front_pid}")
             if front_pid == os.getpid():
                 # We are at the front, it is now our turn to wait on the action lock
                 # and then do our work
