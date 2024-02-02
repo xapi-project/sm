@@ -1075,6 +1075,20 @@ class SharedFileSR(FileSR):
     FileSR subclass for SRs that use shared network storage
     """
 
+    def _check_writable(self):
+        """
+        Checks that the filesystem being used by the SR can be written to,
+        raising an exception if it can't.
+        """
+        test_name = os.path.join(self.path, str(uuid4()))
+        try:
+            open(test_name, 'ab').close()
+        except OSError as e:
+            util.SMlog("Cannot write to SR file system: %s" % e)
+            raise xs_errors.XenError('SharedFileSystemNoWrite')
+        finally:
+            util.force_unlink(test_name)
+
     def _raise_hardlink_error(self):
         raise OSError(524, "Unknown error 524")
 
