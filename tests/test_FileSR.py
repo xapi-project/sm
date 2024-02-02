@@ -119,6 +119,7 @@ class FakeSharedFileSR(FileSR.SharedFileSR):
         self.path = os.path.join(SR.MOUNT_BASE, sr_uuid)
 
     def attach(self, sr_uuid):
+        self._check_writable()
         self._check_hardlinks()
 
 

@@ -889,6 +889,12 @@
         </code>
 
         <code>
+            <name>SharedFileSystemNoWrite</name>
+            <description>The file system for SR cannot be written to.</description>
+            <value>461</value>
+        </code>
+
+        <code>
             <name>GenericException</name>
             <description>SM has thrown a generic python exception</description>
             <value>1200</value>

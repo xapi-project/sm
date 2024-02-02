@@ -106,6 +106,7 @@ class TestNFSSR(unittest.TestCase):
         with self.assertRaises(SR.SROSError):
             nfssr.create(sr_uuid, size)
 
+    @mock.patch('FileSR.SharedFileSR._check_writable', autospec=True)
     @mock.patch('FileSR.SharedFileSR._check_hardlinks', autospec=True)
     @mock.patch('util.makedirs', autospec=True)
     @mock.patch('NFSSR.Lock', autospec=True)
@@ -114,7 +115,8 @@ class TestNFSSR(unittest.TestCase):
     @mock.patch('nfs.check_server_tcp', autospec=True)
     @mock.patch('nfs.validate_nfsversion', autospec=True)
     def test_attach(self, validate_nfsversion, check_server_tcp, _testhost,
-                    soft_mount, Lock, makedirs, mock_checklinks):
+                    soft_mount, Lock, makedirs, mock_checklinks,
+                    mock_checkwritable):
         validate_nfsversion.return_value = "aNfsversionChanged"
         nfssr = self.create_nfssr(server='aServer', serverpath='/aServerpath',
                                   sr_uuid='UUID', useroptions='options')
