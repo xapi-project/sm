@@ -1602,20 +1602,24 @@ class VDI(object):
         """Wraps target.activate and adds a tapdisk"""
 
         #util.SMlog("VDI.activate %s" % vdi_uuid)
+        refresh = False
         if self.tap_wanted():
             if not self._add_tag(vdi_uuid, not options["rdonly"]):
                 return False
-            # it is possible that while the VDI was paused some of its
-            # attributes have changed (e.g. its size if it was inflated; or its
-            # path if it was leaf-coalesced onto a raw LV), so refresh the
-            # object completely
-            params = self.target.vdi.sr.srcmd.params
-            target = sm.VDI.from_uuid(self.target.vdi.session, vdi_uuid)
-            target.sr.srcmd.params = params
-            driver_info = target.sr.srcmd.driver_info
-            self.target = self.TargetDriver(target, driver_info)
+            refresh = True
 
         try:
+            if refresh:
+                # it is possible that while the VDI was paused some of its
+                # attributes have changed (e.g. its size if it was inflated; or its
+                # path if it was leaf-coalesced onto a raw LV), so refresh the
+                # object completely
+                params = self.target.vdi.sr.srcmd.params
+                target = sm.VDI.from_uuid(self.target.vdi.session, vdi_uuid)
+                target.sr.srcmd.params = params
+                driver_info = target.sr.srcmd.driver_info
+                self.target = self.TargetDriver(target, driver_info)
+
             util.fistpoint.activate_custom_fn(
                     "blktap_activate_inject_failure",
                     lambda: util.inject_failure())
