@@ -126,6 +126,78 @@ class Test_SMBSR(unittest.TestCase):
         # We mocked listdir as this calls pread and assert_called_with only records the last call.
         pread.assert_called_with(['mount.cifs', '\\aServer', "/var/mount", '-o', 'cache=loose,vers=3.0,actimeo=0,domain=citrix'], new_env={'PASSWD': 'winter2019', 'USER': 'jsmith'})
 
+    @mock.patch('FileSR.SharedFileSR._check_writable', autospec=True)
+    @mock.patch('FileSR.SharedFileSR._check_hardlinks', autospec=True)
+    @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
+    @mock.patch('SMBSR.SMBSR.mount', autospec=True)
+    @mock.patch('SMBSR.SMBSR.unmount', autospec=True)
+    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('os.symlink', autospec=True)
+    @mock.patch('os.unlink', autospec=True)
+    @mock.patch('util.pathexists', autospec=True)
+    def test_attach_not_writable(self, mock_pathexists, mock_unlink,
+                                 mock_symlink, mock_lock, mock_unmount,
+                                 mock_mount, mock_checkmount, mock_checklinks,
+                                 mock_checkwritable):
+        events = []
+
+        def is_mounted():
+            return len([ev for ev in events if ev.endswith("mount")]) % 2 == 1
+
+        def fake_mount(*args, **kwargs):
+            assert not is_mounted()
+            events.append("mount")
+
+        def fake_unmount(*args, **kwargs):
+            assert is_mounted()
+            events.append("unmount")
+
+        def link_exists():
+            return len([ev for ev in events if ev.endswith("link")]) % 2 == 1
+
+        def fake_symlink(*args, **kwargs):
+            assert not link_exists()
+            events.append("symlink")
+
+        def fake_unlink(*args, **kwargs):
+            assert link_exists()
+            events.append("unlink")
+
+        mock_checkmount.side_effect = lambda *args: is_mounted()
+        mock_mount.side_effect = fake_mount
+        mock_unmount.side_effect = fake_unmount
+        mock_pathexists.side_effect = lambda *args: link_exists()
+        mock_symlink.side_effect = fake_symlink
+        mock_unlink.side_effect = fake_unlink
+        mock_checkwritable.side_effect = SR.SRException("aFailure")
+
+        smbsr = self.create_smbsr()
+        with self.assertRaises(SR.SRException):
+            smbsr.attach('asr_uuid')
+        mock_mount.assert_called_once()
+        mock_unmount.assert_called_once_with(smbsr, smbsr.mountpoint, True)
+        mock_unlink.assert_called_once_with(smbsr.path)
+
+    @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
+    @mock.patch('SMBSR.SMBSR.mount', autospec=True)
+    @mock.patch('SMBSR.SMBSR.unmount', autospec=True)
+    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('os.unlink', autospec=True)
+    @mock.patch('util.pathexists', autospec=True)
+    def test_attach_misc_mount_failure(self, mock_pathexists, mock_unlink,
+                                       mock_lock, mock_unmount,
+                                       mock_mount, mock_checkmount):
+        mock_mount.side_effect = KeyError
+        mock_checkmount.return_value = False
+        mock_pathexists.return_value = False
+
+        smbsr = self.create_smbsr()
+        with self.assertRaises(KeyError):
+            smbsr.attach('asr_uuid')
+
+        mock_unmount.assert_not_called()
+        mock_unlink.assert_not_called()
+
     #Detach
     @testlib.with_context
     @mock.patch('SMBSR.SMBSR.checkmount', return_value=True, autospec=True)

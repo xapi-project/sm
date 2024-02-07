@@ -134,6 +134,78 @@ class TestNFSSR(unittest.TestCase):
                                            nfsversion='aNfsversionChanged',
                                            retrans=4)
 
+    @mock.patch('util.makedirs', autospec=True)
+    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('nfs.soft_mount', autospec=True)
+    @mock.patch('nfs.unmount', autospec=True)
+    @mock.patch('util._testHost', autospec=True)
+    @mock.patch('nfs.check_server_tcp', autospec=True)
+    @mock.patch('nfs.validate_nfsversion', autospec=True)
+    def test_attach_failure(self, validate_nfsversion, check_server_tcp,
+                            _testhost, unmount, soft_mount, Lock, makedirs):
+        soft_mount.side_effect = SR.SRException("aFailure")
+
+        nfssr = self.create_nfssr()
+
+        with self.assertRaises(SR.SRException):
+            nfssr.attach(None)
+
+        unmount.assert_not_called()
+
+    @mock.patch('FileSR.SharedFileSR._checkmount', autospec=True)
+    @mock.patch('util.makedirs', autospec=True)
+    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('nfs.soft_mount', autospec=True)
+    def test_attach_already_mounted(self, soft_mount, Lock, makedirs,
+                                    mock_checkmount):
+        mock_checkmount.return_value = True
+
+        nfssr = self.create_nfssr()
+
+        nfssr.attach(None)
+
+        soft_mount.assert_not_called()
+
+    @mock.patch('FileSR.SharedFileSR._checkmount', autospec=True)
+    @mock.patch('FileSR.SharedFileSR._check_writable', autospec=True)
+    @mock.patch('FileSR.SharedFileSR._check_hardlinks', autospec=True)
+    @mock.patch('util.makedirs', autospec=True)
+    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('nfs.soft_mount', autospec=True)
+    @mock.patch('nfs.unmount', autospec=True)
+    @mock.patch('util._testHost', autospec=True)
+    @mock.patch('nfs.check_server_tcp', autospec=True)
+    @mock.patch('nfs.validate_nfsversion', autospec=True)
+    def test_attach_not_writable(self, validate_nfsversion, check_server_tcp,
+                                 _testhost, unmount, soft_mount, Lock, makedirs,
+                                 mock_checklinks, mock_checkwritable,
+                                 mock_checkmount):
+        events = []
+
+        def is_mounted():
+            return len(events) % 2 == 1
+
+        def fake_soft_mount(*args, **kwargs):
+            assert not is_mounted()
+            events.append("mount")
+
+        def fake_unmount(*args, **kwargs):
+            assert is_mounted()
+            events.append("unmount")
+
+        mock_checkmount.side_effect = lambda *args: is_mounted()
+        soft_mount.side_effect = fake_soft_mount
+        unmount.side_effect = fake_unmount
+        mock_checkwritable.side_effect = SR.SRException("aFailure")
+
+        nfssr = self.create_nfssr(sr_uuid='UUID')
+
+        with self.assertRaises(SR.SRException):
+            nfssr.attach(None)
+
+        soft_mount.assert_called_once()
+        unmount.assert_called_once_with('/var/run/sr-mount/UUID', True)
+
     @mock.patch('NFSSR.Lock', autospec=True)
     def test_load_ipv6(self, mock_lock):
         nfssr = self.create_nfssr(server='::1')
