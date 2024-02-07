@@ -713,3 +713,68 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(util.unictrunc(t, 2), 1)
         self.assertEqual(util.unictrunc(t, 1), 1)
         self.assertEqual(util.unictrunc(t, 0), 0)
+
+
+class TestFistPoints(unittest.TestCase):
+    def setUp(self):
+        self.addCleanup(mock.patch.stopall)
+        sleep_patcher = mock.patch('util.time.sleep', autospec=True)
+        self.mock_sleep = sleep_patcher.start()
+
+        log_patcher = mock.patch('util.SMlog', autospec=True)
+        self.mock_log = log_patcher.start()
+
+        exists_patcher = mock.patch('util.os.path.exists', autospec=True)
+        self.mock_exists = exists_patcher.start()
+        self.mock_exists.side_effect = self.exists
+        self.existing_files = set()
+
+        xenapi_patcher = mock.patch('util.XenAPI', autospec=True)
+        patched_xenapi = xenapi_patcher.start()
+        self.mock_xenapi = mock.MagicMock()
+        patched_xenapi.xapi_local.return_value = self.mock_xenapi
+
+    def exists(self, path):
+        return path in self.existing_files
+    def test_activate_unknown(self):
+        test_uuid = str(uuid.uuid4())
+        valid_fp_name = "TestValidFP"
+        invalid_fp_name = "TestInvalidFP"
+
+        fistpoints = util.FistPoint([valid_fp_name])
+
+        fistpoints.activate(invalid_fp_name, test_uuid)
+
+        # Assert
+        self.assertIn('Unknown fist point: TestInvalidFP',
+                      self.mock_log.call_args[0][0])
+
+    def test_activate_not_active(self):
+        test_uuid = str(uuid.uuid4())
+        valid_fp_name = "TestValidFP"
+
+        fistpoints = util.FistPoint([valid_fp_name])
+
+        fistpoints.activate(valid_fp_name, test_uuid)
+
+        # Assert (no side effect should have happened
+        self.mock_xenapi.xenapi.SR.add_to_other_config.assert_not_called()
+        self.mock_xenapi.xenapi.SR.remove_from_other_config.assert_not_called()
+        self.mock_sleep.assert_not_called()
+
+    def test_activate_not_exit(self):
+        test_uuid = str(uuid.uuid4())
+        valid_fp_name = "TestValidFP"
+        self.existing_files.add(os.path.join('/tmp', f'fist_{valid_fp_name}'))
+
+        fistpoints = util.FistPoint([valid_fp_name])
+
+        fistpoints.activate(valid_fp_name, test_uuid)
+
+        # Assert
+        self.mock_xenapi.xenapi.SR.add_to_other_config.assert_called_once_with(
+            mock.ANY, valid_fp_name, "active")
+        self.mock_xenapi.xenapi.SR.remove_from_other_config.assert_called_once_with(
+            mock.ANY, valid_fp_name)
+        self.mock_xenapi.xenapi.session.logout.assert_has_calls([mock.call(), mock.call()])
+        self.mock_sleep.assert_called_once_with(util.FIST_PAUSE_PERIOD)

@@ -5,6 +5,7 @@ import unittest
 import unittest.mock as mock
 import mpathcount
 
+import XenAPI
 
 # pylint: disable=W0613; mocks don't need to be accessed
 # pylint: disable=R0201; methods must be instance for nose to work
@@ -30,7 +31,7 @@ class TestMpathCount(unittest.TestCase):
             "  |- 0:0:1:4  sdg  8:96   active ready  running",
             "  |- 7:0:0:4  sdab 65:176 failed faulty running",
             "  `- 7:0:1:4  sdam 66:96  failed faulty running"
-            ]
+        ]
         count, total = mpathcount.get_path_count('3600a098038303973743f486833396d44')
         self.assertEqual(4, total, msg='total count incorrect')
         self.assertEqual(2, count, msg='count count incorrect')
@@ -165,7 +166,7 @@ class TestMpathCount(unittest.TestCase):
         store = {
             'mpath-3600a098038303973743f486833396d40': '[2, 4]',
             'multipathed': True
-            }
+        }
         mpathcount.match_bySCSIid = False
         mpathcount.mpath_enabled = False
         mpathcount.check_devconfig(
@@ -175,3 +176,36 @@ class TestMpathCount(unittest.TestCase):
             remove, None)
         self.assertNotIn('multipathed', store)
         self.assertNotIn('mpath-3600a098038303973743f486833396d40', store)
+
+    @mock.patch('mpathcount.sys.exit', autospec=True)
+    def test_exit_logs_out(self, mock_exit):
+        # Arrange
+        session = mock.MagicMock()
+
+        # Act
+        mpathcount.mpc_exit(session, 0)
+
+        # Assert
+        mock_exit.assert_called_once_with(0)
+        session.xenapi.session.logout.assert_called_once()
+
+    @mock.patch('mpathcount.sys.exit', autospec=True)
+    def test_exit_no_session(self, mock_exit):
+        # Act
+        mpathcount.mpc_exit(None, 0)
+
+        # Assert
+        mock_exit.assert_called_once_with(0)
+
+    @mock.patch('mpathcount.sys.exit', autospec=True)
+    def test_exit_log_out_error(self, mock_exit):
+        # Arrange
+        session = mock.MagicMock()
+        session.xenapi.session.logout.side_effect = XenAPI.Failure
+
+        # Act
+        mpathcount.mpc_exit(session, 0)
+
+        # Assert
+        mock_exit.assert_called_once_with(0)
+        session.xenapi.session.logout.assert_called_once()
