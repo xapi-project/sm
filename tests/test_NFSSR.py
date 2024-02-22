@@ -1,9 +1,12 @@
+import errno
 import unittest.mock as mock
 import nfs
 import NFSSR
 import SR
 import unittest
 from uuid import uuid4
+
+import util
 
 
 class FakeNFSSR(NFSSR.NFSSR):
@@ -81,6 +84,62 @@ class TestNFSSR(unittest.TestCase):
         sr_uuid = str(uuid4())
         size = 100
         nfssr.create(sr_uuid, size)
+
+    @mock.patch('util.makedirs')
+    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('nfs.soft_mount')
+    @mock.patch('util._testHost')
+    @mock.patch('nfs.check_server_tcp')
+    @mock.patch('nfs.validate_nfsversion')
+    @mock.patch('SR.xs_errors.XML_DEFS', "drivers/XE_SR_ERRORCODES.xml")
+    def test_sr_create_readonly(self, validate_nfsversion, check_server_tcp, _testhost,
+                       soft_mount, Lock, makedirs):
+        # Arrange
+        nfssr = self.create_nfssr(server='aServer', serverpath='/aServerpath',
+                                  sr_uuid='UUID', useroptions='options')
+
+        sr_uuid = str(uuid4())
+        size = 100
+
+        def mock_makedirs(path):
+            raise util.CommandException(errno.EROFS)
+
+        makedirs.side_effect = mock_makedirs
+
+        # Act
+        with self.assertRaises(SR.SROSError) as srose:
+            nfssr.create(sr_uuid, size)
+
+        self.assertEqual(srose.exception.errno, 461)
+
+    @mock.patch('util.makedirs')
+    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('nfs.soft_mount')
+    @mock.patch('util._testHost')
+    @mock.patch('nfs.check_server_tcp')
+    @mock.patch('nfs.validate_nfsversion')
+    @mock.patch('SR.xs_errors.XML_DEFS', "drivers/XE_SR_ERRORCODES.xml")
+    def test_sr_create_noperm(self, validate_nfsversion, check_server_tcp, _testhost,
+                       soft_mount, Lock, makedirs):
+        # Arrange
+        nfssr = self.create_nfssr(server='aServer', serverpath='/aServerpath',
+                                  sr_uuid='UUID', useroptions='options')
+
+        sr_uuid = str(uuid4())
+        size = 100
+
+        def mock_makedirs(path):
+            raise util.CommandException(errno.EPERM)
+
+
+        makedirs.side_effect = mock_makedirs
+
+        # Act
+        with self.assertRaises(SR.SROSError) as srose:
+            nfssr.create(sr_uuid, size)
+
+        self.assertEqual(srose.exception.errno, 88)
+
 
     @mock.patch('NFSSR.os.rmdir')
     @mock.patch('NFSSR.Lock', autospec=True)
