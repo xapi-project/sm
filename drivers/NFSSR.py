@@ -226,9 +226,14 @@ class NFSSR(FileSR.SharedFileSR):
                 except util.CommandException, inst:
                     if inst.code != errno.EEXIST:
                         self.detach(sr_uuid)
-                        raise xs_errors.XenError('NFSCreate',
-                            opterr='remote directory creation error is %d'
-                            % inst.code)
+                        if inst.code == errno.EROFS:
+                            raise xs_errors.XenError('SharedFileSystemNoWrite',
+                                opterr='remote filesystem is read-only error is %d'
+                                % inst.code)
+                        else:
+                            raise xs_errors.XenError('NFSCreate',
+                                opterr='remote directory creation error is %d'
+                                % inst.code)
         self.detach(sr_uuid)
 
     def delete(self, sr_uuid):

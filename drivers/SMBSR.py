@@ -268,11 +268,17 @@ class SMBSR(FileSR.SharedFileSR):
                         self.unmount(self.mountpoint, True)
                     except SMBException:
                         util.logException('SMBSR.unmount()')
-                    raise xs_errors.XenError(
+
+                    if inst.code in [errno.EROFS, errno.EPERM, errno.EACCES]:
+                        raise xs_errors.XenError(
+                            'SharedFileSystemNoWrite',
+                            opterr='remote filesystem is read-only error is %d'
+                                   % inst.code)
+                    else:
+                        raise xs_errors.XenError(
                             'SMBCreate',
                             opterr="remote directory creation error: {}"
-                                    .format(os.strerror(inst.code))
-                    )
+                            .format(os.strerror(inst.code)))
         self.detach(sr_uuid)
 
     def delete(self, sr_uuid):

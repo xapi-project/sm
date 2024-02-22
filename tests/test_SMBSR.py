@@ -1,5 +1,7 @@
 import unittest
 import mock
+import uuid
+
 import SR
 import SMBSR
 import testlib
@@ -8,6 +10,7 @@ import XenAPI
 import vhdutil
 import util
 import errno
+import XenAPI
 
 class FakeSMBSR(SMBSR.SMBSR):
     uuid = None
@@ -30,7 +33,27 @@ class FakeSMBSR(SMBSR.SMBSR):
 
 class Test_SMBSR(unittest.TestCase):
 
-    def create_smbsr(self, sr_uuid='asr_uuid', server='\\aServer', serverpath = '/aServerpath', username = 'aUsername', password = 'aPassword', dconf_update={}):
+    def setUp(self):
+        self.addCleanup(mock.patch.stopall)
+
+        pread_patcher = mock.patch('SMBSR.util.pread', autospec=True)
+        self.mock_pread = pread_patcher.start()
+        self.mock_pread.side_effect = self.pread
+        self.pread_results = {}
+
+        listdir_patcher = mock.patch('SMBSR.util.listdir', autospec=True)
+        self.mock_list_dir = listdir_patcher.start()
+
+        rmdir_patcher = mock.patch('SMBSR.os.rmdir', autospec=True)
+        self.mock_rmdir = rmdir_patcher.start()
+
+    def arg_key(self, args):
+        return ':'.join(args)
+
+    def pread(self, args, new_env=None, quiet=False, text=False):
+        return self.pread_results.get(self.arg_key(args), None)
+
+    def create_smbsr(self, sr_uuid='asr_uuid', server='\\aServer', serverpath='/aServerpath', username='aUsername', password='aPassword', dconf_update={}):
         srcmd = mock.Mock()
         srcmd.dconf = {
             'server': server,
@@ -76,10 +99,8 @@ class Test_SMBSR(unittest.TestCase):
     @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
     @mock.patch('SMBSR.SMBSR.makeMountPoint', autospec=True)
     @mock.patch('SMBSR.Lock', autospec=True)
-    @mock.patch('util.pread', autospec=True)
     @mock.patch('os.symlink', autospec=True)
-    @mock.patch('util.listdir', autospec=True)
-    def test_attach_vanilla(self, listdir, symlink, pread, mock_lock,
+    def test_attach_vanilla(self, symlink, mock_lock,
                             makeMountPoint, mock_checkmount, mock_checklinks,
                             mock_checkwritable):
         mock_checkmount.return_value = False
@@ -87,37 +108,34 @@ class Test_SMBSR(unittest.TestCase):
         makeMountPoint.return_value = "/var/mount"
         smbsr.attach('asr_uuid')
         self.assertTrue(smbsr.attached)
-        pread.assert_called_with(['mount.cifs', '\\aServer', "/var/mount", '-o', 'cache=loose,vers=3.0,actimeo=0'],
-                                 new_env={'PASSWD': 'aPassword', 'USER': 'aUsername'})
+        self.mock_pread.assert_called_with(
+            ['mount.cifs', '\\aServer', "/var/mount", '-o', 'cache=loose,vers=3.0,actimeo=0'],
+            new_env={'PASSWD': 'aPassword', 'USER': 'aUsername'})
 
     @mock.patch('FileSR.SharedFileSR._check_writable', autospec=True)
     @mock.patch('FileSR.SharedFileSR._check_hardlinks', autospec=True)
     @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
     @mock.patch('SMBSR.SMBSR.makeMountPoint', autospec=True)
     @mock.patch('SMBSR.Lock', autospecd=True)
-    @mock.patch('util.pread', autospec=True)
     @mock.patch('os.symlink', autospec=True)
-    @mock.patch('util.listdir', autospec=True)
     def test_attach_with_cifs_password(
-            self, listdir, symlink, pread, mock_lock, makeMountPoint,
+            self, symlink, mock_lock, makeMountPoint,
             mock_checkmount, mock_checklinks, mock_checkwritable):
         smbsr = self.create_smbsr(dconf_update={"password": "winter2019"})
         mock_checkmount.return_value = False
         makeMountPoint.return_value = "/var/mount"
         smbsr.attach('asr_uuid')
         self.assertTrue(smbsr.attached)
-        pread.assert_called_with(['mount.cifs', '\\aServer', "/var/mount", '-o', 'cache=loose,vers=3.0,actimeo=0'], new_env={'PASSWD': 'winter2019', 'USER': 'aUsername'})
+        self.mock_pread.assert_called_with(['mount.cifs', '\\aServer', "/var/mount", '-o', 'cache=loose,vers=3.0,actimeo=0'], new_env={'PASSWD': 'winter2019', 'USER': 'aUsername'})
 
     @mock.patch('FileSR.SharedFileSR._check_writable', autospec=True)
     @mock.patch('FileSR.SharedFileSR._check_hardlinks', autospec=True)
     @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
     @mock.patch('SMBSR.SMBSR.makeMountPoint', autospec=True)
     @mock.patch('SMBSR.Lock', autospecd=True)
-    @mock.patch('util.pread', autospec=True)
     @mock.patch('os.symlink', autospec=True)
-    @mock.patch('util.listdir', autospec=True)
     def test_attach_with_cifs_password_and_domain(
-            self, listdir, symlink, pread, mock_lock, makeMountPoint,
+            self, symlink, mock_lock, makeMountPoint,
             mock_checkmount, mock_checklinks, mock_checkwritable):
         smbsr = self.create_smbsr(username="citrix\jsmith", dconf_update={"password": "winter2019"})
         mock_checkmount.return_value = False
@@ -125,7 +143,7 @@ class Test_SMBSR(unittest.TestCase):
         smbsr.attach('asr_uuid')
         self.assertTrue(smbsr.attached)
         # We mocked listdir as this calls pread and assert_called_with only records the last call.
-        pread.assert_called_with(['mount.cifs', '\\aServer', "/var/mount", '-o', 'cache=loose,vers=3.0,actimeo=0,domain=citrix'], new_env={'PASSWD': 'winter2019', 'USER': 'jsmith'})
+        self.mock_pread.assert_called_with(['mount.cifs', '\\aServer', "/var/mount", '-o', 'cache=loose,vers=3.0,actimeo=0,domain=citrix'], new_env={'PASSWD': 'winter2019', 'USER': 'jsmith'})
 
     #Detach
     @testlib.with_context
@@ -170,3 +188,83 @@ class Test_SMBSR(unittest.TestCase):
     def test_mount_mountpoint_empty_string(self, mock_lock):
         smbsr = self.create_smbsr()
         self.assertRaises(SMBSR.SMBException, smbsr.mount, "")
+
+    @mock.patch('util.makedirs', autospec=True)
+    @mock.patch('util.get_pool_restrictions', autospec=True)
+    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('SMBSR.os.symlink', autospec=True)
+    def test_create_success(self, symlink, lock, restrict, makedirs):
+        # Arrange
+        smbsr = self.create_smbsr()
+        smbsr.session = mock.MagicMock(spec=XenAPI)
+        restrict.return_value = []
+        sr_uuid = str(uuid.uuid4())
+        self.mock_list_dir.return_value = []
+
+        # Act
+        smbsr.create(sr_uuid, 10 * 1024 * 1024 * 1024)
+
+        # Assert
+        self.mock_pread.assert_called_with(
+            ['mount.cifs', '\\aServer', "/var/run/sr-mount/SMB/Server/asr_uuid",
+             '-o', 'cache=loose,vers=3.0,actimeo=0'],
+            new_env={'USER': 'aUsername', 'PASSWD': 'aPassword'})
+
+    @mock.patch('util.makedirs', autospec=True)
+    @mock.patch('util.get_pool_restrictions', autospec=True)
+    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('SMBSR.os.symlink', autospec=True)
+    @mock.patch('SR.xs_errors.XML_DEFS', "drivers/XE_SR_ERRORCODES.xml")
+    def test_create_read_only(self, symlink, lock, restrict, makedirs):
+        # Arrange
+        smbsr = self.create_smbsr()
+        smbsr.session = mock.MagicMock(spec=XenAPI)
+        restrict.return_value = []
+        sr_uuid = str(uuid.uuid4())
+        self.mock_list_dir.return_value = []
+
+        def mock_makedirs(path):
+            if path == '/var/run/sr-mount/SMB/Server/asr_uuid':
+                return
+
+            raise util.CommandException(errno.EACCES)
+
+        makedirs.side_effect = mock_makedirs
+
+        # Act
+        with self.assertRaises(SR.SROSError) as srose:
+            smbsr.create(sr_uuid, 10 * 1024 * 1024 * 1024)
+
+        # Assert
+        self.assertEqual(srose.exception.errno, 461)
+        self.assertEqual(0, symlink.call_count)
+
+
+    @mock.patch('util.makedirs', autospec=True)
+    @mock.patch('util.get_pool_restrictions', autospec=True)
+    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('SMBSR.os.symlink', autospec=True)
+    @mock.patch('SR.xs_errors.XML_DEFS', "drivers/XE_SR_ERRORCODES.xml")
+    def test_create_nospace(self, symlink, lock, restrict, makedirs):
+        # Arrange
+        smbsr = self.create_smbsr()
+        smbsr.session = mock.MagicMock(spec=XenAPI)
+        restrict.return_value = []
+        sr_uuid = str(uuid.uuid4())
+        self.mock_list_dir.return_value = []
+
+        def mock_makedirs(path):
+            if path == '/var/run/sr-mount/SMB/Server/asr_uuid':
+                return
+
+            raise util.CommandException(errno.ENOSPC)
+
+        makedirs.side_effect = mock_makedirs
+
+        # Act
+        with self.assertRaises(SR.SROSError) as srose:
+            smbsr.create(sr_uuid, 10 * 1024 * 1024 * 1024)
+
+        # Assert
+        self.assertEqual(srose.exception.errno, 116)
+        self.assertEqual(0, symlink.call_count)
