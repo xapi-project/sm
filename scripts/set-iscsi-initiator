@@ -64,11 +64,11 @@ touch $RUNNING_LOCK
         echo "InitiatorName=$INITIATORNAME" > $INITIATORFILE
         echo "InitiatorAlias=$INITIATORALIAS" >> $INITIATORFILE
 
-        systemctl is-active -q iscsid
+        systemctl is-active -q iscsid.service
         if [ $? -eq 0 ]
         then
             # iscsid is running so restart
-            systemctl restart iscsid
+            systemctl restart iscsid.service
         fi
 
 ) 200>$RUNNING_LOCK
