@@ -227,7 +227,7 @@ class TestMpathDmp(unittest.TestCase):
 
         self.assertEqual(1, mock_util.pread2.call_count)
         mock_util.pread2.assert_called_once_with(
-            ['service', 'multipathd', 'start'])
+            ['/usr/bin/systemctl', 'start', 'multipathd.service'])
 
     @testlib.with_context
     @mock.patch('mpath_dmp.iscsilib', autospec=True)

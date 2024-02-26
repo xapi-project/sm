@@ -378,14 +378,14 @@ def get_luns(targetIQN, portal):
 
 
 def is_iscsi_daemon_running():
-    cmd = ["/sbin/pidof", "-s", "/sbin/iscsid"]
+    cmd = ["/usr/bin/systemctl", "is-active", "iscsid.service"]
     (rc, stdout, stderr) = util.doexec(cmd)
     return (rc == 0)
 
 
 def stop_daemon():
     if is_iscsi_daemon_running():
-        cmd = ["service", "iscsid", "stop"]
+        cmd = ["/usr/bin/systemctl", "stop", "iscsid.service"]
         failuremessage = "Failed to stop iscsi daemon"
         exn_on_failure(cmd, failuremessage)
 
@@ -401,7 +401,7 @@ def restart_daemon():
             shutil.rmtree(os.path.join(_ISCSI_DB_PATH, 'send_targets'))
         except:
             pass
-    cmd = ["service", "iscsid", "start"]
+    cmd = ["/usr/bin/systemctl", "start", "iscsid.service"]
     failuremessage = "Failed to start iscsi daemon"
     exn_on_failure(cmd, failuremessage)
 

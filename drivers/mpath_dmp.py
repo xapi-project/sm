@@ -191,7 +191,7 @@ def activate():
 
     if not _is_mpath_daemon_running():
         util.SMlog("Warning: multipath daemon not running.  Starting daemon!")
-        cmd = ["service", "multipathd", "start"]
+        cmd = ["/usr/bin/systemctl", "start", "multipathd.service"]
         util.pread2(cmd)
 
     for i in range(0, 120):
