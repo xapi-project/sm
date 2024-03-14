@@ -3103,8 +3103,7 @@ class LockActive:
         self._srLock = lock.Lock(vhdutil.LOCK_TYPE_SR, srUuid)
 
     def acquireNoblock(self):
-        if not self._srLock.acquireNoblock():
-            return False
+        self._srLock.acquire()
 
         try:
             return self._lock.acquireNoblock()
