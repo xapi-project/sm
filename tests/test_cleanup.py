@@ -1,9 +1,7 @@
 import errno
-import os
 import unittest
 import unittest.mock as mock
 
-from tempfile import TemporaryDirectory
 from uuid import uuid4
 
 import cleanup
@@ -1787,81 +1785,52 @@ class TestSR(unittest.TestCase):
 
 
 class TestLockActive(unittest.TestCase):
-    # We mock flock.MockWriteLock so that we can easily fake
-    # up an lock being held by another process.
-    class MockWriteLock: # pragma: no cover
-        test_case = None
-
-        def __init__(self, fd):
-            self.fd = fd
-            self._held = False
-
-        def is_externally_locked(self):
-            return self.test_case.is_externally_locked(self.fd)
-
-        def lock(self):
-            if self.is_externally_locked():
-                raise AssertionError("Failed attempt to take out lock")
-            self._held = True
-
-        def trylock(self):
-            if self._held:
-                return False
-            if self.is_externally_locked():
-                return False
-            self._held = True
-            return True
-
-        def held(self):
-            return self._held
-
-        def unlock(self):
-            self._held = False
-
-        def test(self):
-            """Returns the PID of the process holding the lock or -1 if the lock
-            is not held."""
-            if self._held:
-                return os.getpid()
-            elif self.is_externally_locked():
-                return 1
-            else:
-                return -1
 
     def setUp(self):
-        tmp_dir = TemporaryDirectory()
-        self.addCleanup(tmp_dir.cleanup)
-        self.tmp_dir = tmp_dir.name
-
-        lock_dir_patcher = mock.patch("lock.Lock.BASE_DIR", self.tmp_dir)
-        lock_dir_patcher.start()
-
-        self.externally_locked_files = set()
-        self.files_by_fd = {}
-
-        def mock_open(path, *args, **kwargs):
-            f = open(path, *args, **kwargs)
-            self.files_by_fd[f.fileno()] = path
-            return f
-
-        open_patcher = mock.patch("lock.open", mock_open)
-        open_patcher.start()
-
-        self.MockWriteLock.test_case = self
-        write_lock_patcher = mock.patch("flock.WriteLock", self.MockWriteLock)
-        write_lock_patcher.start()
-
         self.addCleanup(mock.patch.stopall)
+
+        self.lock_patcher = mock.patch('cleanup.lock.Lock')
+        patched_lock = self.lock_patcher.start()
+        patched_lock.side_effect = self.create_lock
+        self.locks = {}
 
         self.sr_uuid = str(uuid4())
 
-    def is_externally_locked(self, fd):
-        path = self.files_by_fd[fd]
-        return path in self.externally_locked_files
+    class DummyLock:
+        def __init__(self, name):
+            self.name = name
+            self.held = False
+            self.count = 0
+            self.can_acquire = True
 
-    def lock_externally(self, lock_type):
-        lockpath = os.path.join(self.tmp_dir, self.sr_uuid, lock_type)
-        self.externally_locked_files.add(lockpath)
+        def acquire(self):
+            if not self.held:
+                if self.can_acquire:
+                    self.held = True
+                else:
+                    # In a real lock this would block, instead, error
+                    raise BlockingIOError()
+
+            self.count += 1
+
+        def acquireNoblock(self):
+            if self.held or self.can_acquire:
+                self.held = True
+                return True
+
+            return False
+
+        def release(self):
+            self.count -= 1
+            if not self.count:
+                self.held = False
+
+    def create_lock(self, lock_name, sr_uuid):
+        lock_key = f'{lock_name}/{sr_uuid}'
+        if lock_key not in self.locks:
+            self.locks[lock_key] = self.DummyLock(lock_key)
+
+        return self.locks[lock_key]
 
     def test_can_acquire(self):
         # Given
@@ -1876,6 +1845,7 @@ class TestLockActive(unittest.TestCase):
     def test_can_acquire_when_already_holding_sr_lock(self):
         # Given
         srLock = lock.Lock(vhdutil.LOCK_TYPE_SR, self.sr_uuid)
+        srLock.held = True
         gcLock = cleanup.LockActive(self.sr_uuid)
 
         # When
@@ -1901,7 +1871,7 @@ class TestLockActive(unittest.TestCase):
     def test_cannot_acquire_if_other_process_holds_gc_lock(self):
         # Given
         gcLock = cleanup.LockActive(self.sr_uuid)
-        self.lock_externally(cleanup.LOCK_TYPE_GC_ACTIVE)
+        gcLock._lock.can_acquire = False
 
         # When
         acquired = gcLock.acquireNoblock()
@@ -1912,10 +1882,8 @@ class TestLockActive(unittest.TestCase):
     def test_cannot_acquire_if_other_process_holds_sr_lock(self):
         # Given
         gcLock = cleanup.LockActive(self.sr_uuid)
-        self.lock_externally(vhdutil.LOCK_TYPE_SR)
+        gcLock._srLock.can_acquire = False
 
         # When
-        acquired = gcLock.acquireNoblock()
-
-        # Then
-        self.assertFalse(acquired)
+        with self.assertRaises(BlockingIOError):
+            gcLock.acquireNoblock()
