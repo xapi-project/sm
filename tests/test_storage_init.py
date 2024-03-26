@@ -287,6 +287,33 @@ sys.exit(resp.get("returncode", 0))
         self.assertListEqual([" ".join(call) for call in self.misc_xe_calls],
                              expected_xe_calls)
 
+    def test_install_with_other_sr_type(self):
+        with open(self.storage_config, "wt") as f:
+            f.write("TYPE=wtf\n")
+            f.write("PARTITIONS='/dev/sda4 /dev/sdb /dev/sdc'")
+
+        p = subprocess.Popen(["/bin/sh", self.script_path],
+                             env=self.make_env())
+
+        self.run_script_commands()
+
+        returncode = p.wait()
+
+        self.assertListEqual(self.unanticipated_xe_calls, [])
+        self.assertTrue(os.path.isfile(os.path.join(self.test_dir.name,
+                                                    "ran-storage-init")))
+        self.assertEqual(returncode, 0)
+
+        self.assertEqual(self.created_srs.keys(), {"wtf", "udev"})
+        self.assertEqual(1, len(self.created_srs["wtf"]))
+        self.assertEqual(self.created_srs["wtf"][0], {
+            "content-type": "user",
+            "device-config:device": "/dev/sda4,/dev/sdb,/dev/sdc",
+            "host-uuid": INSTALLATION_UUID,
+            "name-label": "Local storage",
+            "type": "wtf"
+        })
+
     def run_script_commands(self):
         while not self.script_exited:
             c, _ = self.socket.accept()
