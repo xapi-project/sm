@@ -36,8 +36,8 @@ class TestStorageInit(unittest.TestCase):
 
         # There are tweaks we need to make the to storage-init:
         # - Change the location of various key files
-        # - Add an alias for the shell's built-in '[' operator to a command we
-        #   can mock
+        # - Replace the uses of the shell's built-in '[' operator to a command
+        #   we can mock
         # - Ensure that the script calls a special command when it exits, so
         #   that the test knows when it is done.
 
@@ -61,7 +61,8 @@ class TestStorageInit(unittest.TestCase):
         script = re.sub(r"/var/lib/misc/ran-storage-init\b",
                         os.path.join(self.test_dir.name, "ran-storage-init"),
                         script)
-        script = f"trap on_exit EXIT\nalias [=mock_test\n{script}"
+        script = re.sub(r"(?<!\[)\[\s+([^]]*)\s+\]", r"mock_test \1", script)
+        script = f"trap on_exit EXIT\n{script}"
 
         self.script_path = self.write_file("storage-init", script)
 
@@ -156,7 +157,7 @@ sys.exit(resp.get("returncode", 0))
             f.write("TYPE=lvm\n")
             f.write("PARTITIONS='/dev/sda'")
 
-        p = subprocess.Popen(["/bin/sh", self.script_path],
+        p = subprocess.Popen(["/bin/bash", self.script_path],
                              env=self.make_env())
 
         self.run_script_commands()
@@ -222,7 +223,7 @@ sys.exit(resp.get("returncode", 0))
             f.write("TYPE=ext\n")
             f.write("PARTITIONS='/dev/sda4 /dev/sdb'")
 
-        p = subprocess.Popen(["/bin/sh", self.script_path],
+        p = subprocess.Popen(["/bin/bash", self.script_path],
                              env=self.make_env())
 
         self.run_script_commands()
@@ -292,7 +293,7 @@ sys.exit(resp.get("returncode", 0))
             f.write("TYPE=wtf\n")
             f.write("PARTITIONS='/dev/sda4 /dev/sdb /dev/sdc'")
 
-        p = subprocess.Popen(["/bin/sh", self.script_path],
+        p = subprocess.Popen(["/bin/bash", self.script_path],
                              env=self.make_env())
 
         self.run_script_commands()
@@ -341,9 +342,7 @@ sys.exit(resp.get("returncode", 0))
         elif re.match(r"! -b /dev/", combined_args):
             returncode = 1
         else:
-            # Use the standard test command (excluding the final arg, which is
-            # a ']')
-            proc = subprocess.run(["test"] + args[:-1])
+            proc = subprocess.run(["test"] + args)
             returncode = proc.returncode
 
         return CmdResult(returncode)
