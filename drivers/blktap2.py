@@ -995,13 +995,6 @@ class VDI(object):
 
     ATTACH_DETACH_RETRY_SECS = 120
 
-    # number of seconds on top of NFS timeo mount option the tapdisk should
-    # wait before reporting errors. This is to allow a retry to succeed in case
-    # packets were lost the first time around, which prevented the NFS client
-    # from returning before the timeo is reached even if the NFS server did
-    # come back earlier
-    TAPDISK_TIMEOUT_MARGIN = 30
-
     def __init__(self, uuid, target, driver_info):
         self.target = self.TargetDriver(target, driver_info)
         self._vdi_uuid = uuid
@@ -1583,11 +1576,6 @@ class VDI(object):
 
         sr_ref = self.target.vdi.sr.srcmd.params.get('sr_ref')
         sr_other_config = self._session.xenapi.SR.get_other_config(sr_ref)
-        timeout = nfs.get_nfs_timeout(sr_other_config)
-        if timeout:
-            # Note NFS timeout values are in deciseconds
-            timeout = int((timeout + 5) / 10)
-            options["timeout"] = timeout + self.TAPDISK_TIMEOUT_MARGIN
         for i in range(self.ATTACH_DETACH_RETRY_SECS):
             try:
                 if self._activate_locked(sr_uuid, vdi_uuid, options):
