@@ -167,33 +167,17 @@ mk_non_spanning_local_srs()
     done
 }
 
-
-mk_ext_sr()
-{
-    local partitions="$1"
-
-    for p in $partitions
-    do
-        diskprep "$p"
-    done
-
-    local partitions_cs=$(echo "$partitions" | sed "s/ /,/g")
-    sr_create "Local storage" "" "ext" "user" "local-storage" "" \
-        "device-config:device=$partitions_cs"
-}
-
-
-##
-# mk_lvm_sr partitions
+# mk_local_sr_from_partitions type partitions
 #
 # Create a single "Local storage" SR, with a single LVM volume spanning
 # the given partitions.
 #
 # partitions should be an IFS-separated string of partition names.
 #
-mk_lvm_sr()
+mk_local_sr_from_partitions()
 {
-    local partitions="$1"
+    local type="$1"
+    local partitions="$2"
 
     for p in $partitions
     do
@@ -201,7 +185,7 @@ mk_lvm_sr()
     done
 
     local partitions_cs=$(echo "$partitions" | sed "s/ /,/g")
-    sr_create "Local storage" "" "lvm" "user" "local-storage" "" \
+    sr_create "Local storage" "" "$type" "user" "local-storage" "" \
         "device-config:device=$partitions_cs"
 }
 
@@ -212,10 +196,7 @@ create_local_sr() {
         # the configuration file exists - load it and create storage
         # as required:
         source "$CONFIGURATION"
-        case "$TYPE" in
-            ext)    mk_ext_sr "$PARTITIONS" ;;
-            lvm)    mk_lvm_sr "$PARTITIONS" ;;
-        esac
+        mk_local_sr_from_partitions "$TYPE" "$PARTITIONS"
     else
         # CA-13146: upgrade Rio local storage
         uuid=`xe sr-list name-label="Local storage on $(hostname)" | sed -ne 's/^uuid .*: //p'`
