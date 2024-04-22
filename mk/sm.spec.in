@@ -8,7 +8,6 @@ Group:   System/Hypervisor
 License: LGPL
 URL:  http://www.citrix.com
 Source0: sm-@SM_VERSION@.tar.bz2
-BuildRoot: %{_tmppath}/%{name}-%{version}-root
 
 %define __python python3.6
 
@@ -33,10 +32,12 @@ This package contains storage backends used in XCP
 %autosetup -p1
 
 %build
-DESTDIR=$RPM_BUILD_ROOT make
+make
+make -C misc/fairlock
 
 %install
-DESTDIR=$RPM_BUILD_ROOT make install
+make install DESTDIR="%{buildroot}"
+make -C misc/fairlock install DESTDIR="%{buildroot}"
 
 %pre
 # Remove sm-multipath on install or upgrade, to ensure it goes
@@ -221,6 +222,19 @@ tests/run_python_unittests.sh
 %config /etc/logrotate.d/SMlog
 %config /etc/udev/rules.d/57-usb.rules
 %doc CONTRIB LICENSE MAINTAINERS README.md
+
+%package fairlock
+Summary: Fair locking subsystem
+
+%description fairlock
+This package provides the fair locking subsystem using by the Storage
+Manager and some other packages
+
+%files fairlock
+%{python3_sitelib}/__pycache__/fairlock*pyc
+%{python3_sitelib}/fairlock.py
+%{_unitdir}/fairlock@.service
+%{_libexecdir}/fairlock
 
 %changelog
 

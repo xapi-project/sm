@@ -21,5 +21,5 @@ jobs:
       - name: Test
         run: |
           make precheck
-          PYTHONPATH="./mocks:./drivers/" coverage3 run --branch --source='./drivers,./tests' -m unittest discover -s tests -p "*.py" -v
+          PYTHONPATH="./mocks:./drivers/:./misc/fairlock" coverage3 run --branch --source='./drivers,./tests,./misc/fairlock' -m unittest discover -s tests -p "*.py" -v
           coverage3 report --include='./*'
