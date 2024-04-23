@@ -22,8 +22,7 @@ import os
 import errno
 import time
 
-import lock
-import lock_queue
+from fairlock import Fairlock
 import util
 import xs_errors
 import xml.dom.minidom
@@ -112,47 +111,6 @@ def extract_vgname(str_in):
 
     return None
 
-class LvmLockContext(lock_queue.LockQueue):
-    """
-    Context manager around the LVM lock.
-
-    To allow for higher level operations, e.g. VDI snapshot to pre-emptively
-    acquire the lock to encapsulte a set of calls and avoid having to reacquire
-    the locks for each LVM call.
-    """
-
-    def __init__(self, cmd=None):
-        self.cmd = cmd
-        self.locked = False
-        try:
-            super().__init__(LVM_LOCK)
-        except Exception as e:
-            util.SMlog(f"===> LvmLockContext __init__ {e} {traceback.format_exc()}")
-            raise
-
-    def __enter__(self):
-        if self.cmd and '--readonly' in self.cmd:
-            return
-
-        while True:
-            try:
-                super().__enter__()
-            except Exception as e:
-                util.SMlog(f"===> LvmLockContext __enter__ {e} {traceback.format_exc()}")
-                continue
-            break
-
-        self.locked = True
-
-    def __exit__(self, exc_type, value, tbck):
-        if self.locked:
-            try:
-                super().__exit__(exc_type, value, tbck)
-            except Exception as e:
-                util.SMlog(f"===> LvmLockContext __exit__ {e} {traceback.format_exc()}")
-                raise
-
-
 LVM_RETRY_ERRORS = [
     "Incorrect checksum in metadata area header"
 ]
@@ -223,7 +181,7 @@ def cmd_lvm(cmd, pread_func=util.pread2, *args):
             util.SMlog("CMD_LVM: Not all lvm arguments are of type 'str'")
             return None
 
-    with LvmLockContext(cmd):
+    with Fairlock("multipath"):
         start_time = time.time()
         stdout = pread_func([os.path.join(LVM_BIN, lvm_cmd)] + lvm_args, * args)
         end_time = time.time()
