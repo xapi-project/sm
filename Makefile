@@ -100,7 +100,7 @@ precommit: build
 	CHANGED=$$(git status --porcelain $(SM_PY_FILES) | awk '{print $$2}'); \
 	for i in $$CHANGED; do \
 		echo Checking $${i} ...; \
-		PYTHONPATH=./drivers:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $${i}; \
+		PYTHONPATH=./drivers:./misc/fairlock:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $${i}; \
 		[ $$? -ne 0 ] && QUIT=1 ; \
 	done; \
 	if [ $$QUIT -ne 0 ]; then \
@@ -111,7 +111,7 @@ precommit: build
 
 .PHONY: precheck
 precheck: build
-	PYTHONPATH=./drivers:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $(SM_PY_FILES)
+	PYTHONPATH=./drivers:./misc/fairlock:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $(SM_PY_FILES)
 	echo "Precheck succeeded with no outstanding issues found."
 
 .PHONY: install

@@ -26,7 +26,7 @@ def with_lvm_subsystem(func):
 
 class TestCreate(unittest.TestCase):
     def setUp(self):
-        lock_patcher = mock.patch('lvutil.LvmLockContext', autospec=True)
+        lock_patcher = mock.patch('lvutil.Fairlock', autospec=True)
         self.addCleanup(lock_patcher.stop)
         self.mock_lock = lock_patcher.start()
 
@@ -99,7 +99,7 @@ class TestCreate(unittest.TestCase):
 
 class TestRemove(unittest.TestCase):
     def setUp(self):
-        lock_patcher = mock.patch('lvutil.LvmLockContext', autospec=True)
+        lock_patcher = mock.patch('lvutil.Fairlock', autospec=True)
         self.addCleanup(lock_patcher.stop)
         self.mock_lock = lock_patcher.start()
 
@@ -125,7 +125,7 @@ class TestRemove(unittest.TestCase):
 class TestDeactivate(unittest.TestCase):
 
     def setUp(self):
-        lock_patcher = mock.patch('lvutil.LvmLockContext', autospec=True)
+        lock_patcher = mock.patch('lvutil.Fairlock', autospec=True)
         pathexists_patcher = mock.patch('lvutil.util.pathexists', autospec=True)
         lexists_patcher = mock.patch('lvutil.os.path.lexists', autospec=True)
         unlink_patcher = mock.patch('lvutil.os.unlink', autospec=True)
@@ -211,7 +211,7 @@ class TestActivate(unittest.TestCase):
     def setUp(self):
         self.addCleanup(mock.patch.stopall)
 
-        lock_patcher = mock.patch('lvutil.LvmLockContext', autospec=True)
+        lock_patcher = mock.patch('lvutil.Fairlock', autospec=True)
         self.mock_lock = lock_patcher.start()
         pathexists_patcher = mock.patch('lvutil.util.pathexists', autospec=True)
         self.mock_exists = pathexists_patcher.start()
@@ -310,44 +310,9 @@ class TestActivate(unittest.TestCase):
 
         self.assertIn('LV not activated', ce.exception.reason)
 
-class TestLvmLockContext(unittest.TestCase):
-
-    @mock.patch('lock_queue.LockQueue.__enter__')
-    @mock.patch('lock_queue.LockQueue.__exit__')
-    @mock.patch('lock_queue.LockQueue.__init__')
-    def test_LvmLockContext(self, m_init, m_exit, m_enter):
-        """
-        LvmLockContext should act as a wrapper around LockQueue.
-        """
-        with lvutil.LvmLockContext("pancakes"):
-            self.assertEqual(m_init.call_count, 1)
-            self.assertEqual(m_enter.call_count, 1)
-            self.assertEqual(m_exit.call_count, 0)
-
-        self.assertEqual(m_init.call_count, 1)
-        self.assertEqual(m_enter.call_count, 1)
-        self.assertEqual(m_exit.call_count, 1)
-
-    @mock.patch('lock_queue.LockQueue.__enter__')
-    @mock.patch('lock_queue.LockQueue.__exit__')
-    @mock.patch('lock_queue.LockQueue.__init__')
-    def test_LvmLockContext_readlonly(self, m_init, m_exit, m_enter):
-        """
-        If the LVM command is readonly then LvmLockContext should not do any
-        actual locking.
-        """
-        with lvutil.LvmLockContext("waffles --readonly"):
-            self.assertEqual(m_init.call_count, 1)
-            self.assertEqual(m_enter.call_count, 0)
-            self.assertEqual(m_exit.call_count, 0)
-
-        self.assertEqual(m_init.call_count, 1)
-        self.assertEqual(m_enter.call_count, 0)
-        self.assertEqual(m_exit.call_count, 0)
-
 
 @mock.patch('util.pread', autospec=True) # m_pread
-@mock.patch('lvutil.LvmLockContext', autospec=True) # _1
+@mock.patch('lvutil.Fairlock', autospec=True) # _1
 class Test_cmd_lvm(unittest.TestCase):
 
     def test_refuse_to_run_empty_list(self, _1, m_pread):

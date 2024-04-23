@@ -54,7 +54,7 @@ class TestLVHDSR(unittest.TestCase, Stubs):
             sr_uuid = str(uuid.uuid4())
         return LVHDSR.LVHDSR(srcmd, sr_uuid)
 
-    @mock.patch('lvutil.LvmLockContext', autospec=True)
+    @mock.patch('lvutil.Fairlock', autospec=True)
     @mock.patch('lvhdutil.getVDIInfo', autospec=True)
     @mock.patch('LVHDSR.Lock', autospec=True)
     @mock.patch('SR.XenAPI')
