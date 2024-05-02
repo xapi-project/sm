@@ -8,6 +8,7 @@ import sys
 import syslog
 import uuid
 
+import SR
 import blktap2
 import util
 
@@ -26,6 +27,12 @@ class TestTapdisk(unittest.TestCase):
         subprocess_patcher = mock.patch("blktap2.subprocess")
         self.mock_subprocess = subprocess_patcher.start()
 
+        self.real_tapctl = blktap2.TapCtl
+        self.real_command_failure = blktap2.TapCtl.CommandFailure
+        tapctl_patcher = mock.patch('blktap2.TapCtl', autospec=True)
+        self.mock_tapctl = tapctl_patcher.start()
+        self.mock_tapctl.CommandFailure = self.real_command_failure
+
         self.addCleanup(mock.patch.stopall)
 
     @mock.patch('blktap2.util.pread2', autospec=True)
@@ -41,26 +48,14 @@ class TestTapdisk(unittest.TestCase):
         mock_pread2.assert_called_with(['cgclassify', '123'])
         self.assertEqual(mock_log.call_count, 1)
 
-    def test_cgclassify_called_by_launch_on_tap(self):
+    @mock.patch('blktap2.Tapdisk.cgclassify')
+    def test_cgclassify_called_by_launch_on_tap(self, mock_cgclassify):
         blktap = mock.MagicMock()
         blktap.minor = 2
 
-        # Record old functions
-        spawn_old = blktap2.Tapdisk.spawn
-        cgclassify_old = blktap2.Tapdisk.cgclassify
-        find_by_path_old = blktap2.Tapdisk.find_by_path
+        self.mock_tapctl.spawn.return_value = 123
 
-        # Begin monkey patching.
-        blktap2.Tapdisk.spawn = mock.MagicMock()
-        blktap2.Tapdisk.spawn.return_value = 123
-
-        # Raise an exception just so we dont have to bother mocking out the
-        # rest of the function.
-        blktap2.Tapdisk.cgclassify = mock.MagicMock()
-        blktap2.Tapdisk.cgclassify.side_effect = BogusException
-
-        blktap2.Tapdisk.find_by_path = mock.MagicMock()
-        blktap2.Tapdisk.find_by_path.return_value = None
+        mock_cgclassify.side_effect = BogusException
 
         with self.assertRaises(BogusException) as cf:
             tap = blktap2.Tapdisk.launch_on_tap(blktap,
@@ -68,14 +63,11 @@ class TestTapdisk(unittest.TestCase):
                                                 "not used",
                                                 "not used")
 
-        blktap2.Tapdisk.cgclassify.assert_called_with(123)
-
-        # Restor old functions.
-        blktap2.Tapdisk.spawn = spawn_old
-        blktap2.Tapdisk.cgclassify = cgclassify_old
-        blktap2.Tapdisk.find_by_path = find_by_path_old
+        mock_cgclassify.assert_called_with(123)
 
     def test_list(self):
+        # For this one we want the real TapCtl
+        blktap2.TapCtl = self.real_tapctl
         mock_process = mock.MagicMock(autospec='subprocess.Popen')
         mock_process.stdout = StringIO(
             "pid=705 minor=0 state=0 args=vhd:/dev/VG_XenStorage-2eeb9fd5-6545-8f0b-cf72-0378e413a31c/VHD-a7c0f37e-b7fb-4a44-a6fe-05067fb84c09")
@@ -90,13 +82,32 @@ class TestTapdisk(unittest.TestCase):
             stdout=mock.ANY, stderr=mock.ANY,
             universal_newlines=True)
         self.assertEqual(1, len(results))
-        print(f"Results are {results[0]}")
         self.assertEqual(705, results[0].pid)
         self.assertEqual(0, results[0].minor)
         self.assertEqual(0, results[0].state)
         self.assertEqual('/dev/VG_XenStorage-2eeb9fd5-6545-8f0b-cf72-0378e413a31c/VHD-a7c0f37e-b7fb-4a44-a6fe-05067fb84c09',
                          results[0].path)
         self.assertEqual('vhd', results[0].type)
+
+    @mock.patch('SR.xs_errors.XML_DEFS', "drivers/XE_SR_ERRORCODES.xml")
+    @mock.patch('blktap2.Tapdisk.cgclassify')
+    def test_open_empty_cd(self, mock_cgclassify):
+        blktap = mock.MagicMock()
+        blktap.minor = 2
+
+        def no_medium(pid, minor, type, path, options):
+            info = {'status': 123}
+            raise self.real_command_failure(
+                'dummy command', **info)
+
+        self.mock_tapctl.spawn.return_value = 123
+        self.mock_tapctl.open.side_effect = no_medium
+
+        with self.assertRaises(SR.SROSError) as srose:
+            blktap2.Tapdisk.launch_on_tap(
+                blktap, "/dev/sr0", "not used", "not used")
+
+        self.assertEqual(456, srose.exception.errno)
 
 
 class TestVDI(unittest.TestCase):

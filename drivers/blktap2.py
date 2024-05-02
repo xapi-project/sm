@@ -784,8 +784,8 @@ class Tapdisk(object):
         arg = cls.Arg.parse(arg)
         return cls.launch(arg.path, arg.type, False)
 
-    @classmethod
-    def cgclassify(cls, pid):
+    @staticmethod
+    def cgclassify(pid):
 
         # We dont provide any <controllers>:<path>
         # so cgclassify uses /etc/cgrules.conf which
@@ -797,10 +797,6 @@ class Tapdisk(object):
             util.logException(e)
 
     @classmethod
-    def spawn(cls):
-        return TapCtl.spawn()
-
-    @classmethod
     def launch_on_tap(cls, blktap, path, _type, options):
 
         tapdisk = cls.find_by_path(path)
@@ -808,9 +804,8 @@ class Tapdisk(object):
             raise TapdiskExists(tapdisk)
 
         minor = blktap.minor
-
         try:
-            pid = cls.spawn()
+            pid = TapCtl.spawn()
             cls.cgclassify(pid)
             try:
                 TapCtl.attach(pid, minor)
@@ -840,9 +835,8 @@ class Tapdisk(object):
 
         except TapCtl.CommandFailure as ctl:
             util.logException(ctl)
-            if ('/dev/xapi/cd/' in path and
-                    'status' in ctl.info and
-                    ctl.info['status'] == 123):  # ENOMEDIUM (No medium found)
+            if ((path.startswith('/dev/xapi/cd/') or path.startswith('/dev/sr')) and
+                    ctl.has_status and ctl.get_error_code() == 123):  # ENOMEDIUM (No medium found)
                 raise xs_errors.XenError('TapdiskDriveEmpty')
             else:
                 raise TapdiskFailed(cls.Arg(_type, path), ctl)
