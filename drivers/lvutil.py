@@ -653,7 +653,8 @@ def activateNoRefcount(path, refresh):
         text = cmd_lvm([CMD_LVCHANGE, "--refresh", path])
         mapperDevice = path[5:].replace("-", "--").replace("/", "-")
         cmd = [CMD_DMSETUP, "table", mapperDevice]
-        ret = util.pread(cmd)
+        with Fairlock("multipath"):
+            ret = util.pread(cmd)
         util.SMlog("DM table for %s: %s" % (path, ret.strip()))
         # Restore slave mode lvm.conf
         os.environ['LVM_SYSTEM_DIR'] = DEF_LVM_CONF
@@ -695,7 +696,8 @@ def _checkActive(path):
     mapperDevice = path[5:].replace("-", "--").replace("/", "-")
     cmd = [CMD_DMSETUP, "status", mapperDevice]
     try:
-        ret = util.pread2(cmd)
+        with Fairlock("multipath"):
+            ret = util.pread2(cmd)
         mapperDeviceExists = True
         util.SMlog("_checkActive: %s: %s" % (mapperDevice, ret))
     except util.CommandException:
@@ -734,7 +736,8 @@ def _lvmBugCleanup(path):
     cmd_rf = [CMD_DMSETUP, "remove", mapperDevice, "--force"]
 
     try:
-        util.pread(cmd_st, expect_rc=1)
+        with Fairlock("multipath"):
+            util.pread(cmd_st, expect_rc=1)
     except util.CommandException as e:
         if e.code == 0:
             nodeExists = True
@@ -749,13 +752,15 @@ def _lvmBugCleanup(path):
         util.SMlog("_lvmBugCleanup: removing dm device %s" % mapperDevice)
         for i in range(LVM_FAIL_RETRIES):
             try:
-                util.pread2(cmd_rm)
+                with Fairlock("multipath"):
+                    util.pread2(cmd_rm)
                 break
             except util.CommandException as e:
                 if i < LVM_FAIL_RETRIES - 1:
                     util.SMlog("Failed on try %d, retrying" % i)
                     try:
-                        util.pread(cmd_st, expect_rc=1)
+                        with Fairlock("multipath"):
+                            util.pread(cmd_st, expect_rc=1)
                         util.SMlog("_lvmBugCleanup: dm device {}"
                                    " removed".format(mapperDevice)
                                    )
@@ -799,7 +804,8 @@ def removeDevMapperEntry(path, strict=True):
         if not strict:
             cmd = [CMD_DMSETUP, "status", path]
             try:
-                util.pread(cmd, expect_rc=1)
+                with Fairlock("multipath"):
+                    util.pread(cmd, expect_rc=1)
                 return True
             except:
                 pass  # Continuining will fail and log the right way
