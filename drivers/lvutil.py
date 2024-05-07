@@ -181,7 +181,7 @@ def cmd_lvm(cmd, pread_func=util.pread2, *args):
             util.SMlog("CMD_LVM: Not all lvm arguments are of type 'str'")
             return None
 
-    with Fairlock("multipath"):
+    with Fairlock("devicemapper"):
         start_time = time.time()
         stdout = pread_func([os.path.join(LVM_BIN, lvm_cmd)] + lvm_args, * args)
         end_time = time.time()
@@ -653,7 +653,7 @@ def activateNoRefcount(path, refresh):
         text = cmd_lvm([CMD_LVCHANGE, "--refresh", path])
         mapperDevice = path[5:].replace("-", "--").replace("/", "-")
         cmd = [CMD_DMSETUP, "table", mapperDevice]
-        with Fairlock("multipath"):
+        with Fairlock("devicemapper"):
             ret = util.pread(cmd)
         util.SMlog("DM table for %s: %s" % (path, ret.strip()))
         # Restore slave mode lvm.conf
@@ -696,7 +696,7 @@ def _checkActive(path):
     mapperDevice = path[5:].replace("-", "--").replace("/", "-")
     cmd = [CMD_DMSETUP, "status", mapperDevice]
     try:
-        with Fairlock("multipath"):
+        with Fairlock("devicemapper"):
             ret = util.pread2(cmd)
         mapperDeviceExists = True
         util.SMlog("_checkActive: %s: %s" % (mapperDevice, ret))
@@ -736,7 +736,7 @@ def _lvmBugCleanup(path):
     cmd_rf = [CMD_DMSETUP, "remove", mapperDevice, "--force"]
 
     try:
-        with Fairlock("multipath"):
+        with Fairlock("devicemapper"):
             util.pread(cmd_st, expect_rc=1)
     except util.CommandException as e:
         if e.code == 0:
@@ -752,14 +752,14 @@ def _lvmBugCleanup(path):
         util.SMlog("_lvmBugCleanup: removing dm device %s" % mapperDevice)
         for i in range(LVM_FAIL_RETRIES):
             try:
-                with Fairlock("multipath"):
+                with Fairlock("devicemapper"):
                     util.pread2(cmd_rm)
                 break
             except util.CommandException as e:
                 if i < LVM_FAIL_RETRIES - 1:
                     util.SMlog("Failed on try %d, retrying" % i)
                     try:
-                        with Fairlock("multipath"):
+                        with Fairlock("devicemapper"):
                             util.pread(cmd_st, expect_rc=1)
                         util.SMlog("_lvmBugCleanup: dm device {}"
                                    " removed".format(mapperDevice)
@@ -804,7 +804,7 @@ def removeDevMapperEntry(path, strict=True):
         if not strict:
             cmd = [CMD_DMSETUP, "status", path]
             try:
-                with Fairlock("multipath"):
+                with Fairlock("devicemapper"):
                     util.pread(cmd, expect_rc=1)
                 return True
             except:

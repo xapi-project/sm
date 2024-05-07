@@ -78,7 +78,7 @@ def _resetDMP(sid, explicit_unmap=False):
 # tables. In that case, list_paths will return [], but remove_map might
 # throw an exception. Catch it and ignore it.
     if explicit_unmap:
-        with Fairlock("multipath"):
+        with Fairlock("devicemapper"):
             util.retry(lambda: util.pread2(['/usr/sbin/multipath', '-f', sid]),
                     maxretry=3, period=4)
             util.retry(lambda: util.pread2(['/usr/sbin/multipath', '-W']), maxretry=3,
@@ -111,13 +111,13 @@ def refresh(sid, npaths):
 def _is_valid_multipath_device(sid):
 
     # Check if device is already multipathed
-    with Fairlock("multipath"):
+    with Fairlock("devicemapper"):
         (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath', '-l', sid])
     if not stdout + stderr:
-        with Fairlock("multipath"):
+        with Fairlock("devicemapper"):
             (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath', '-ll', sid])
     if not stdout + stderr:
-        with Fairlock("multipath"):
+        with Fairlock("devicemapper"):
             (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath', '-a', sid])
         if ret < 0:
             util.SMlog("Failed to add {}: wwid could be explicitly "
@@ -136,7 +136,7 @@ def _is_valid_multipath_device(sid):
         for dev in devs:
             devpath = os.path.join(by_scsid_path, dev)
             real_path = util.get_real_path(devpath)
-            with Fairlock("multipath"):
+            with Fairlock("devicemapper"):
                 (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath', '-c', real_path])
                 if ret == 0:
                     break
@@ -150,7 +150,7 @@ def _is_valid_multipath_device(sid):
             if not stdout + stderr:
                 # Attempt to cleanup wwids file before raising
                 try:
-                    with Fairlock("multipath"):
+                    with Fairlock("devicemapper"):
                         (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath', '-w', sid])
                 except OSError:
                     util.SMlog("Error removing {} from wwids file".format(sid))
@@ -170,7 +170,7 @@ def _refresh_DMP(sid, npaths):
     path = os.path.join(DEVMAPPERPATH, sid)
     # If the mapper path doesn't exist force a reload in multipath
     if not os.path.exists(path):
-        with Fairlock("multipath"):
+        with Fairlock("devicemapper"):
             util.retry(lambda: util.pread2(['/usr/sbin/multipath', '-r', sid]), maxretry=3, period=4)
         util.wait_for_path(path, 30)
     if not os.path.exists(path):
