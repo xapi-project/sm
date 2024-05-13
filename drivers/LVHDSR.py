@@ -51,6 +51,7 @@ from metadata import retrieveXMLfromFile, _parseXML
 from xmlrpc.client import DateTime
 import glob
 from constants import CBTLOG_TAG
+from fairlock import Fairlock
 DEV_MAPPER_ROOT = os.path.join('/dev/mapper', lvhdutil.VG_PREFIX)
 
 geneology = {}
@@ -601,13 +602,15 @@ class LVHDSR(SR.SR):
             if util.extractSRFromDevMapper(fileName) != self.uuid:
                 continue
 
-            #   check if any file has open handles
-            if util.doesFileHaveOpenHandles(fileName):
-                #   if yes, log this and signal failure
-                util.SMlog("LVHDSR.detach: The dev mapper entry %s has open " \
-                           "handles" % fileName)
-                success = False
-                continue
+            with Fairlock('devicemapper'):
+                # check if any file has open handles
+                if util.doesFileHaveOpenHandles(fileName):
+                    # if yes, log this and signal failure
+                    util.SMlog(
+                        f"LVHDSR.detach: The dev mapper entry {fileName} has "
+                        "open handles")
+                    success = False
+                    continue
 
             # Now attempt to remove the dev mapper entry
             if not lvutil.removeDevMapperEntry(fileName, False):
