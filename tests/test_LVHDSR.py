@@ -104,7 +104,7 @@ class TestLVHDSR(unittest.TestCase, Stubs):
     @mock.patch('LVHDSR.Lock', autospec=True)
     @mock.patch('SR.XenAPI')
     @testlib.with_context
-    def test_attach_success(self,
+    def test_srlifecycle_success(self,
                             context,
                             mock_xenapi,
                             mock_lock,
@@ -196,7 +196,35 @@ class TestLVHDSR(unittest.TestCase, Stubs):
         # Arrange (2)
         sr = self.create_LVHDSR(master=True, command='sr_detach',
                                 sr_uuid=sr_uuid)
+
+        # Arrange for detach
+        self.stubout('LVHDSR.Fairlock')
+        mock_remove_device = self.stubout(
+            'LVHDSR.lvutil.removeDevMapperEntry')
+        mock_glob = self.stubout('glob.glob')
+        mock_vdi_uuid = "72101dbd-bd62-4a14-a03c-afca8cceec86"
+        mock_filepath = os.path.join(
+            '/dev/mapper/', 'VG_XenStorage'
+            f'--{sr_uuid.replace("-", "--")}-'
+            f'{mock_vdi_uuid.replace("-", "--")}')
+        mock_glob.return_value = [mock_filepath]
+        mock_open_handles = self.stubout(
+            'LVHDSR.util.doesFileHaveOpenHandles')
+
+        # Act (Detach)
+        with self.assertRaises(Exception):
+            # Fail the first one with busy handles
+            mock_open_handles.return_value = True
+            sr.detach(sr.uuid)
+
+        # Now succeed
+        mock_open_handles.return_value = False
         sr.detach(sr.uuid)
+
+        # Assert for detach
+        mock_remove_device.assert_called_once_with(mock_filepath, False)
+
+        # Create new SR
         mock_lvm_cache.return_value.checkLV.return_value = True
         sr = self.create_LVHDSR(master=True, command='sr_attach',
                                 sr_uuid=sr_uuid)
