@@ -1496,7 +1496,7 @@ def findRunningProcessOrOpenFile(name, process=True):
         # There is no specific guarantee of when a PID's /proc directory will disappear
         # when it exits, particularly relative to filedescriptor cleanup, so we want to
         # make sure we're not reporting a false positive.
-        processandpids = [ x for x in processandpids if pid_is_alive(x[1]) ]
+        processandpids = [x for x in processandpids if pid_is_alive(int(x[1]))]
         for pp in processandpids:
             SMlog(f"File {name} has an open handle with process {pp[0]} with pid {pp[1]}")
 
