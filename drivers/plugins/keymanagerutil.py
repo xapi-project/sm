@@ -14,7 +14,11 @@ import hashlib
 import json
 import argparse
 import string
+import sys
 from random import SystemRandom
+
+sys.path.append('/opt/xensource/sm/')
+import util
 
 import XenAPI
 
@@ -93,6 +97,7 @@ def _read_keystore():
                 key_store[key_hash] = key
             return key_store
     else:
+        util.SMlog(f'Keystore path {KEYSTORE_PATH} not found')
         return {}
 
 
@@ -156,14 +161,17 @@ class KeyManager(object):
         Hash the generated key
         Update the key store with key and hash
         """
+        util.SMlog('Generating key')
         self.key = _get_key_generator(key_length=self.key_length, key_type=self.key_type).generate()
         self.key_hash = self.__hash_key()
         _print_key_info(key=self.key, key_hash=self.key_hash)
+        util.SMlog(f'Generated key, hash {self.key_hash}')
         self.__add_to_keystore()
 
     def get_key(self, log_key_info=True):
         """Fetch the key from the key store based on the key_hash - requires key hash"""
         if not self.key_hash:
+            util.SMlog('No key hash set, cannot retrieve unknown key')
             raise InputError("Need key hash to get the key from the key store")
 
         key_store = _read_keystore()
@@ -171,6 +179,7 @@ class KeyManager(object):
         if key and log_key_info:
             _print_key_info(key=key)
         if not key:
+            util.SMlog(f'No key found in keystore for hash {self.key_hash}, known hashes {key_store.keys()}')
             raise KeyLookUpError("No keys in the keystore which matches the given key hash")
 
         return key
@@ -181,7 +190,8 @@ class KeyManager(object):
             raise InputError("Need key to get the key hash from the key store")
         key_store = _read_keystore()
         try:
-            key_hash = key_store.keys()[key_store.values().index(self.key)]
+            hashes = [x for x in key_store.keys() if key_store[x] == self.key]
+            key_hash = hashes[0] if hashes else None
             _print_key_info(key_hash=key_hash)
         except ValueError:
             raise KeyLookUpError("No key hash in the keystore which matches the given key")
