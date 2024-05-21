@@ -3198,6 +3198,12 @@ def gc(session, srUuid, inBackground, dryRun=False):
         _gc(session, srUuid, dryRun, immediate=True)
 
 
+def start_gc(sr_uuid):
+    util.SMlog(f"Starting GC file is {__file__}")
+    subprocess.run([__file__, '-b', '-u', sr_uuid, '-g'],
+                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+
+
 def gc_force(session, srUuid, force=False, dryRun=False, lockSR=False):
     """Garbage collect all deleted VDIs in SR "srUuid". The caller must ensure
     the SR lock is held.
