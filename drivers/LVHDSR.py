@@ -1311,7 +1311,7 @@ class LVHDSR(SR.SR):
             lockRunning.release()
 
         util.SMlog("Kicking GC")
-        cleanup.gc(self.session, self.uuid, True)
+        cleanup.start_gc(self.uuid)
 
     def ensureCBTSpace(self):
         # Ensure we have space for at least one LV

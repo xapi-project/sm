@@ -402,7 +402,7 @@ class FileSR(SR.SR):
             lockRunning.release()
 
         util.SMlog("Kicking GC")
-        cleanup.gc(self.session, self.uuid, True)
+        cleanup.start_gc(self.uuid)
 
     def _isbind(self):
         # os.path.ismount can't deal with bind mount
