@@ -2937,6 +2937,15 @@ def _gcLoop(sr, dryRun=False, immediate=False):
     if not lockActive.acquireNoblock():
         Util.log("Another GC instance already active, exiting")
         return
+
+    # Check we're still attached after acquiring locks
+    if not sr.xapi.isPluggedHere():
+        Util.log("SR no longer attached, exiting")
+        return
+
+    # Clean up Intellicache files
+    sr.cleanupCache()
+
     # Track how many we do
     coalesced = 0
     task_status = "success"
@@ -3045,7 +3054,6 @@ def _gc(session, srUuid, dryRun=False, immediate=False):
     if not sr.gcEnabled(False):
         return
 
-    sr.cleanupCache()
     try:
         _gcLoop(sr, dryRun, immediate=immediate)
     finally:
