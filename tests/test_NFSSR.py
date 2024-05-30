@@ -7,6 +7,7 @@ import unittest
 from uuid import uuid4
 
 import util
+import xs_errors
 
 
 class FakeNFSSR(NFSSR.NFSSR):
@@ -107,7 +108,7 @@ class TestNFSSR(unittest.TestCase):
         makedirs.side_effect = mock_makedirs
 
         # Act
-        with self.assertRaises(SR.SROSError) as srose:
+        with self.assertRaises(xs_errors.SROSError) as srose:
             nfssr.create(sr_uuid, size)
 
         self.assertEqual(srose.exception.errno, 461)
@@ -135,7 +136,7 @@ class TestNFSSR(unittest.TestCase):
         makedirs.side_effect = mock_makedirs
 
         # Act
-        with self.assertRaises(SR.SROSError) as srose:
+        with self.assertRaises(xs_errors.SROSError) as srose:
             nfssr.create(sr_uuid, size)
 
         self.assertEqual(srose.exception.errno, 88)
@@ -162,7 +163,7 @@ class TestNFSSR(unittest.TestCase):
 
         sr_uuid = str(uuid4())
         size = 100
-        with self.assertRaises(SR.SROSError):
+        with self.assertRaises(xs_errors.SROSError):
             nfssr.create(sr_uuid, size)
 
     @mock.patch('FileSR.SharedFileSR._check_writable', autospec=True)
@@ -202,11 +203,11 @@ class TestNFSSR(unittest.TestCase):
     @mock.patch('nfs.validate_nfsversion', autospec=True)
     def test_attach_failure(self, validate_nfsversion, check_server_tcp,
                             _testhost, unmount, soft_mount, Lock, makedirs):
-        soft_mount.side_effect = SR.SRException("aFailure")
+        soft_mount.side_effect = xs_errors.SRException("aFailure")
 
         nfssr = self.create_nfssr()
 
-        with self.assertRaises(SR.SRException):
+        with self.assertRaises(xs_errors.SRException):
             nfssr.attach(None)
 
         unmount.assert_not_called()
@@ -255,11 +256,11 @@ class TestNFSSR(unittest.TestCase):
         mock_checkmount.side_effect = lambda *args: is_mounted()
         soft_mount.side_effect = fake_soft_mount
         unmount.side_effect = fake_unmount
-        mock_checkwritable.side_effect = SR.SRException("aFailure")
+        mock_checkwritable.side_effect = xs_errors.SRException("aFailure")
 
         nfssr = self.create_nfssr(sr_uuid='UUID')
 
-        with self.assertRaises(SR.SRException):
+        with self.assertRaises(xs_errors.SRException):
             nfssr.attach(None)
 
         soft_mount.assert_called_once()

@@ -4,6 +4,7 @@ import unittest
 import SR
 import xml.dom.minidom
 import util
+import xs_errors
 
 
 def mock_init(self):
@@ -152,7 +153,7 @@ class TestHBASR(unittest.TestCase):
         sr = HBASR.HBASR()
         mock_probe_hba.return_value = "blah"
         mock_parseString.side_effect = Exception("bad xml")
-        with self.assertRaises(SR.SROSError) as cm:
+        with self.assertRaises(xs_errors.SROSError) as cm:
             sr._init_hba_hostname()
         self.assertEqual(str(cm.exception),
                          "Unable to parse XML "
@@ -174,7 +175,7 @@ class TestHBASR(unittest.TestCase):
         sr = HBASR.HBASR()
         mock_probe_hba.return_value = "blah"
         mock_parseString.side_effect = Exception("bad xml")
-        with self.assertRaises(SR.SROSError) as cm:
+        with self.assertRaises(xs_errors.SROSError) as cm:
             sr._init_hbas()
         self.assertEqual(str(cm.exception),
                          "Unable to parse XML "
@@ -195,7 +196,7 @@ class TestHBASR(unittest.TestCase):
     def test__probe_hba_assert(self, mock_pread):
         sr = HBASR.HBASR()
         mock_pread.side_effect = Exception("bad")
-        with self.assertRaises(SR.SROSError) as cm:
+        with self.assertRaises(xs_errors.SROSError) as cm:
             sr._probe_hba()
         self.assertEqual(str(cm.exception),
                          "Unable to parse XML "

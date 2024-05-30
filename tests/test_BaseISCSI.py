@@ -3,16 +3,13 @@ Unit tests for the Base ISCSI SR
 """
 
 from unittest import mock
-import unittest
 from uuid import uuid4
 
 import util
 from BaseISCSI import BaseISCSISR
-import SR
-import SRCommand
 from shared_iscsi_test_base import ISCSITestCase
 from util import CommandException
-
+import xs_errors
 
 class TestBaseISCSI(ISCSITestCase):
 
@@ -102,7 +99,7 @@ class TestBaseISCSI(ISCSITestCase):
             target_iqn='iqn.2009-11.com.infinidat:storage:infinibox-sn-3393'))
 
         # Act
-        with self.assertRaises(SR.SROSError) as srose:
+        with self.assertRaises(xs_errors.SROSError) as srose:
             self.subject.attach(self.sr_uuid)
 
         # Assert

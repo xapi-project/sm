@@ -9,8 +9,7 @@ import testlib
 import util
 
 import mpath_dmp
-import SR
-from SR import SROSError
+from xs_errors import SROSError
 
 from queue import Queue
 
@@ -64,7 +63,7 @@ class TestMpathDmp(unittest.TestCase):
         mock_os.listdir.side_effect = [['sdc']]
         util_mod.doexec.side_effect = [(0, "", ""), (0, "", ""), (0, "out", "err"),
                                        (1, "", ""), OSError()]
-        with self.assertRaises(SR.SROSError) as exc:
+        with self.assertRaises(SROSError) as exc:
             mpath_dmp._is_valid_multipath_device("xx")
         self.assertEqual(exc.exception.errno, 431)
 
@@ -374,7 +373,7 @@ class TestMpathDmp(unittest.TestCase):
         # Setup error codes
         context.setup_error_codes()
 
-        with self.assertRaises(SR.SROSError):
+        with self.assertRaises(SROSError):
             mpath_dmp.refresh("", 0)
 
     @mock.patch('mpath_dmp._refresh_DMP', autospec=True)
@@ -429,5 +428,5 @@ class TestMpathDmp(unittest.TestCase):
         mock_exists.side_effect = exists
         mock_wait.return_value = False
 
-        with self.assertRaises(SR.SROSError):
+        with self.assertRaises(SROSError):
             mpath_dmp.refresh('360a98000534b4f4e46704f5270674d70', 0)

@@ -97,7 +97,7 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
             'Raise XenError'
         )
 
-        with self.assertRaises(SR.SROSError) as cm:
+        with self.assertRaises(xs_errors.SROSError) as cm:
             self.lvhd_o_iscsi_sr.load(self.fake_uuid)
 
         self.assertEqual(cm.exception.errno, 70)
@@ -118,7 +118,7 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
             'Raise RandomError'
         )
 
-        with self.assertRaises(SR.SROSError) as cm:
+        with self.assertRaises(xs_errors.SROSError) as cm:
             self.lvhd_o_iscsi_sr.load(self.fake_uuid)
 
         self.assertEqual(cm.exception.errno, 202)

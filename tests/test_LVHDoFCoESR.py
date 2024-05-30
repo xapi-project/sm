@@ -1,8 +1,8 @@
 import unittest.mock as mock
 import LVHDoFCoESR
-import SR
 import unittest
 import testlib
+import xs_errors
 
 
 class FakeFCoESR(LVHDoFCoESR.LVHDoFCoESR):
@@ -47,7 +47,7 @@ class TestFCoESR(unittest.TestCase):
         find_my_pbd.return_value = ['pbd_ref', 'pbd']
         parameters = {}
         parameters['device_config'] = ""
-        self.assertRaises(SR.SROSError, self.create_fcoesr, SCSIid="", params=parameters)
+        self.assertRaises(xs_errors.SROSError, self.create_fcoesr, SCSIid="", params=parameters)
 
     @mock.patch('SR.driver', autospec=True)
     @mock.patch('util.find_my_pbd', autospec=True)

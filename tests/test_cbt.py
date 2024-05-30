@@ -173,7 +173,7 @@ class TestCBT(unittest.TestCase):
         self.vdi = VDI.VDI(self.sr, self.vdi_uuid)
         self.vdi.path = "/mock/sr_path/" + str(self.vdi_uuid)
 
-        with self.assertRaises(SR.SROSError):
+        with self.assertRaises(xs_errors.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
     @testlib.with_context
@@ -184,7 +184,7 @@ class TestCBT(unittest.TestCase):
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self.xenapi.VDI.get_is_a_snapshot.return_value = True
 
-        with self.assertRaises(SR.SROSError):
+        with self.assertRaises(xs_errors.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
     @testlib.with_context
@@ -200,7 +200,7 @@ class TestCBT(unittest.TestCase):
         self._set_initial_state(self.vdi, False)
         mock_bt_vdi.tap_pause.return_value = False
 
-        with self.assertRaises(SR.SROSError):
+        with self.assertRaises(xs_errors.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
     @testlib.with_context
@@ -215,7 +215,7 @@ class TestCBT(unittest.TestCase):
         self._set_initial_state(self.vdi, True)
         mock_bt_vdi.tap_pause.return_value = False
 
-        with self.assertRaises(SR.SROSError):
+        with self.assertRaises(xs_errors.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, False)
 
     @testlib.with_context
@@ -229,7 +229,7 @@ class TestCBT(unittest.TestCase):
 
         self._set_initial_state(self.vdi, False)
 
-        with self.assertRaises(SR.SROSError):
+        with self.assertRaises(xs_errors.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
     @testlib.with_context
@@ -243,7 +243,7 @@ class TestCBT(unittest.TestCase):
         self._set_initial_state(self.vdi, False)
         self.vdi.state_mock._get_cbt_logpath.side_effect = [xs_errors.XenError('CBTActivateFailed')]
 
-        with self.assertRaises(SR.SROSError):
+        with self.assertRaises(xs_errors.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
         self._check_tapdisk_not_modified(mock_bt_vdi)
@@ -260,7 +260,7 @@ class TestCBT(unittest.TestCase):
         self._set_initial_state(self.vdi, False)
         mock_cbt.create_cbt_log.side_effect = Exception(errno.EIO)
 
-        with self.assertRaises(SR.SROSError):
+        with self.assertRaises(xs_errors.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
         self._check_tapdisk_not_modified(mock_bt_vdi)
@@ -277,7 +277,7 @@ class TestCBT(unittest.TestCase):
         self._set_initial_state(self.vdi, True)
         self.vdi.state_mock._delete_cbt_log.side_effect = [xs_errors.XenError('CBTDeactivateFailed')]
 
-        with self.assertRaises(SR.SROSError):
+        with self.assertRaises(xs_errors.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, False)
 
         #self._check_tapdisk_not_modified(mock_bt_vdi)
@@ -625,7 +625,7 @@ class TestCBT(unittest.TestCase):
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         self.xenapi.VDI.get_uuid.return_value = self.vdi_uuid
 
-        with self.assertRaises(SR.SROSError) as exc:
+        with self.assertRaises(xs_errors.SROSError) as exc:
             self.vdi.list_changed_blocks()
         # Test CBTChangedBlocksError is raised
         self.assertEqual(exc.exception.errno, 460)
@@ -640,7 +640,7 @@ class TestCBT(unittest.TestCase):
         # Terminate the chain before target_uuid is reached
         mock_log.side_effect = [True, False]
 
-        with self.assertRaises(SR.SROSError) as exc:
+        with self.assertRaises(xs_errors.SROSError) as exc:
             self.vdi.list_changed_blocks()
         # Test CBTChangedBlocksError is raised
         self.assertEqual(exc.exception.errno, 460)
@@ -653,7 +653,7 @@ class TestCBT(unittest.TestCase):
         self._set_initial_state(self.vdi, False)
         self.xenapi.VDI.get_uuid.return_value = "target_uuid"
 
-        with self.assertRaises(SR.SROSError) as exc:
+        with self.assertRaises(xs_errors.SROSError) as exc:
             self.vdi.list_changed_blocks()
         # Test CBTChangedBlocksError is raised
         self.assertEqual(exc.exception.errno, 460)
@@ -743,7 +743,7 @@ class TestCBT(unittest.TestCase):
         mock_cbt.get_cbt_bitmap.side_effect = [bitmap1.tobytes(),
                                                bitmap2.tobytes()]
 
-        with self.assertRaises(SR.SROSError) as exc:
+        with self.assertRaises(xs_errors.SROSError) as exc:
             self.vdi.list_changed_blocks()
         # Test CBTChangedBlocksError is raised
         self.assertEqual(exc.exception.errno, 459)
@@ -767,7 +767,7 @@ class TestCBT(unittest.TestCase):
                                                bitmap2.tobytes()]
         mock_cbt.get_cbt_size.return_value = 16777216
 
-        with self.assertRaises(SR.SROSError) as exc:
+        with self.assertRaises(xs_errors.SROSError) as exc:
             self.vdi.list_changed_blocks()
         # Test CBTChangedBlocksError is raised
         self.assertEqual(exc.exception.errno, 459)

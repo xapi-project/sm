@@ -1430,7 +1430,7 @@ class LVHDVDI(VDI.VDI):
         util.SMlog("LVHDVDI.delete for %s" % self.uuid)
         try:
             self._loadThis()
-        except SR.SRException as e:
+        except xs_errors.SRException as e:
             # Catch 'VDI doesn't exist' exception
             if e.errno == 46:
                 return super(LVHDVDI, self).delete(sr_uuid, vdi_uuid, data_only)
@@ -1462,7 +1462,7 @@ class LVHDVDI(VDI.VDI):
             self.sr.lvmCache.remove(self.lvname)
             self.sr.lock.cleanup(vdi_uuid, lvhdutil.NS_PREFIX_LVM + sr_uuid)
             self.sr.lock.cleanupAll(vdi_uuid)
-        except SR.SRException as e:
+        except xs_errors.SRException as e:
             util.SMlog(
                 "Failed to remove the volume (maybe is leaf coalescing) "
                 "for %s err:%d" % (self.uuid, e.errno))

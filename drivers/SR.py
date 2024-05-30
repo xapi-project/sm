@@ -20,7 +20,6 @@
 
 import VDI
 import xml.dom.minidom
-import errno
 import xs_errors
 import XenAPI # pylint: disable=import-error
 import xmlrpc.client
@@ -38,23 +37,7 @@ MASTER_LVM_CONF = '/etc/lvm/master'
 LUNPERVDI = "LUNperVDI"
 
 
-class SRException(Exception):
-    """Exception raised by storage repository operations"""
-    errno = errno.EINVAL
 
-    def __init__(self, reason):
-        Exception.__init__(self, reason)
-
-    def toxml(self):
-        return xmlrpc.client.dumps(xmlrpc.client.Fault(int(self.errno), str(self)), "", True)
-
-
-class SROSError(SRException):
-    """Wrapper for OSError"""
-
-    def __init__(self, errno, reason):
-        self.errno = errno
-        Exception.__init__(self, reason)
 
 
 def deviceCheck(op):

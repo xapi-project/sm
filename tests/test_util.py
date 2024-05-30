@@ -8,8 +8,8 @@ import unittest.mock as mock
 import uuid
 import xmlrpc.client
 
-import SR
 import util
+import xs_errors
 
 DD_CMD = "/bin/dd"
 
@@ -584,7 +584,7 @@ class TestUtil(unittest.TestCase):
         self.mock_socket.getaddrinfo.side_effect = socket.gaierror(errno.ENOENT)
 
         # Act
-        with self.assertRaises(SR.SROSError) as sroe:
+        with self.assertRaises(xs_errors.SROSError) as sroe:
             util._testHost("test-server", 3260, "ISCSITarget")
 
         self.assertEqual(140, sroe.exception.errno)
@@ -599,7 +599,7 @@ class TestUtil(unittest.TestCase):
         open_socket.connect.side_effect = socket.error("Timed out")
 
         # Act
-        with self.assertRaises(SR.SROSError) as sroe:
+        with self.assertRaises(xs_errors.SROSError) as sroe:
             util._testHost("test-server", 3260, "ISCSITarget")
 
         # Assert

@@ -7,7 +7,6 @@ import uuid
 import xmlrpc.client
 
 from xml.dom.minidom import parseString
-import EXTSR
 
 import FileSR
 import SR
@@ -15,6 +14,7 @@ import SRCommand
 import testlib
 import util
 import vhdutil
+import xs_errors
 
 
 class FakeFileVDI(FileSR.FileVDI):
@@ -254,7 +254,7 @@ class TestFileVDI(unittest.TestCase):
             return real_stat(tgt)
 
         # Act
-        with self.assertRaises(SR.SROSError) as srose, mock.patch('FileSR.os.stat') as mock_stat:
+        with self.assertRaises(xs_errors.SROSError) as srose, mock.patch('FileSR.os.stat') as mock_stat:
             mock_stat.side_effect = my_stat
             clone_xml = vdi.clone(sr_uuid, vdi_uuid)
 
@@ -301,7 +301,7 @@ class TestFileVDI(unittest.TestCase):
             return real_stat(tgt)
 
         # Act
-        with self.assertRaises(SR.SROSError) as srose, mock.patch('FileSR.os.stat') as mock_stat:
+        with self.assertRaises(xs_errors.SROSError) as srose, mock.patch('FileSR.os.stat') as mock_stat:
             mock_stat.side_effect = my_stat
             clone_xml = vdi.clone(sr_uuid, vdi_uuid)
 
@@ -528,7 +528,7 @@ class TestShareFileSR(unittest.TestCase):
         with mock.patch('FileSR.open') as mock_open:
             mock_open.side_effect = OSError
 
-            with self.assertRaises(SR.SROSError) as cm:
+            with self.assertRaises(xs_errors.SROSError) as cm:
                 test_sr.attach(self.sr_uuid)
 
             self.assertEqual("The file system for SR cannot be written to.",
@@ -630,7 +630,7 @@ class TestFileSR(unittest.TestCase):
 
         sr.path = "pancakes"
 
-        with self.assertRaises(SR.SROSError):
+        with self.assertRaises(xs_errors.SROSError):
             sr.attach(None)
 
     @mock.patch("FileSR.util.makedirs", autospec=True)
@@ -644,7 +644,7 @@ class TestFileSR(unittest.TestCase):
         sr.path = "pancakes"
         sr.remotepath = "blueberries"
 
-        with self.assertRaises(SR.SROSError):
+        with self.assertRaises(xs_errors.SROSError):
             sr.attach(None)
 
     @mock.patch("FileSR.util.makedirs", autospec=True)

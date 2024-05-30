@@ -2,10 +2,11 @@ import unittest.mock as mock
 import LVHDoHBASR
 import unittest
 import xmlrpc.client
-import SR
 import SRCommand
+import xs_errors
 
 from uuid import uuid4
+
 
 def mock_init(self, sr, sr_uuid):
     self.sr = sr
@@ -66,7 +67,7 @@ class TestLVHDoHBAVDI(unittest.TestCase):
         vdi = LVHDoHBASR.LVHDoHBAVDI(sr, sr_uuid)
         vdi.path = "blahblah"
 
-        with self.assertRaises(SR.SROSError) as cm:
+        with self.assertRaises(xs_errors.SROSError) as cm:
             stuff = vdi.generate_config(sr_uuid, vdi_uuid)
 
         self.assertEqual(str(cm.exception), "The VDI is not available")
