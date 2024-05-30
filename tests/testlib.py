@@ -17,16 +17,6 @@ class ContextSetupError(Exception):
     pass
 
 
-def get_error_codes():
-    this_dir = os.path.dirname(__file__)
-    drivers_dir = os.path.join(this_dir, '..', 'drivers')
-    error_codes_path = os.path.join(drivers_dir, 'XE_SR_ERRORCODES.xml')
-    error_code_catalog = open(error_codes_path, 'r')
-    contents = error_code_catalog.read()
-    error_code_catalog.close()
-    return contents.encode('utf-8')
-
-
 class SCSIDisk(object):
     def __init__(self, adapter):
         self.adapter = adapter
@@ -93,7 +83,6 @@ class Subprocess(object):
 class TestContext(object):
     def __init__(self):
         self.patchers = []
-        self.error_codes = get_error_codes()
         self.inventory = {
             'PRIMARY_DISK': '/dev/disk/by-id/primary'
         }
@@ -168,11 +157,6 @@ class TestContext(object):
 
     def setup_modinfo(self):
         self.add_executable('/sbin/modinfo', self.fake_modinfo)
-
-    def setup_error_codes(self):
-        self._path_content['/opt/xensource/sm/XE_SR_ERRORCODES.xml'] = (
-            self.error_codes
-        )
 
     def fake_modinfo(self, args, stdin_data):
         assert len(args) == 3
@@ -329,14 +313,6 @@ class TestContext(object):
     def add_adapter(self, adapter):
         self.scsi_adapters.append(adapter)
         return adapter
-
-    def get_error_code(self, error_name):
-        xml = parseString(self.error_codes)
-        for code in xml.getElementsByTagName('code'):
-            name = code.getElementsByTagName('name')[0].firstChild.nodeValue
-            if name == error_name:
-                return int(code.getElementsByTagName('value')[0].firstChild.nodeValue)
-        return None
 
     @staticmethod
     def is_binary(mode):

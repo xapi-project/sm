@@ -148,15 +148,6 @@ class TestTestContext(unittest.TestCase):
         os.stat('/existingstuff')
 
     @testlib.with_context
-    def test_error_codes_read(self, context):
-        context.setup_error_codes()
-        errorcodes_file = open('/opt/xensource/sm/XE_SR_ERRORCODES.xml', 'rb')
-        errorcodes = errorcodes_file.read()
-        errorcodes_file.close()
-
-        self.assertTrue("<SM-errorcodes>" in errorcodes.decode())
-
-    @testlib.with_context
     def test_executable_shows_up_on_filesystem(self, context):
         context.add_executable('/something', None)
 
@@ -217,13 +208,6 @@ class TestTestContext(unittest.TestCase):
         os.makedirs('/blah/subdir')
 
         self.assertRaises(OSError, os.makedirs, '/blah/subdir')
-
-    @testlib.with_context
-    def test_setup_error_codes(self, context):
-        context.setup_error_codes()
-
-        self.assertTrue(
-            os.path.exists('/opt/xensource/sm/XE_SR_ERRORCODES.xml'))
 
     @testlib.with_context
     def test_write_a_file(self, context):
@@ -362,18 +346,6 @@ class TestTestContext(unittest.TestCase):
         with self.assertRaises(OSError) as cm:
             context.fake_rmdir('/existing_dir')
         self.assertEqual(errno.ENOTEMPTY, cm.exception.errno)
-
-    def test_get_error_code(self):
-        context = testlib.TestContext()
-        self.assertEqual(context.get_error_code("SMBMount"), 111)
-
-    def test_get_error_code_not_found(self):
-        """
-        When error code can't be found then None is returned.
-        This test is to keep 100% coverage on tests.
-        """
-        context = testlib.TestContext()
-        self.assertEqual(context.get_error_code("PANCAKES"), None)
 
 
 class TestFilesystemFor(unittest.TestCase):

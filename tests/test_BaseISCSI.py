@@ -85,7 +85,6 @@ class TestBaseISCSI(ISCSITestCase):
         self.subject.attach(self.sr_uuid)
 
     @mock.patch('BaseISCSI.BaseISCSISR._initPaths', autospec=True)
-    @mock.patch('BaseISCSI.xs_errors.XML_DEFS', "drivers/XE_SR_ERRORCODES.xml")
     def test_attach_tgt_present_path_not_found(self, mock_init_paths):
         # Arrange
         self.mock_util._testHost.return_value = None

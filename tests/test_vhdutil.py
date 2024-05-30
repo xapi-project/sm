@@ -32,15 +32,11 @@ class TestVhdUtil(unittest.TestCase):
 
         self.assertTrue(size == vhdutil.MAX_VHD_SIZE)
 
-    @testlib.with_context
-    def test_validate_and_round_negative(self, context):
-        context.setup_error_codes()
+    def test_validate_and_round_negative(self):
         with self.assertRaises(xs_errors.SROSError):
             vhdutil.validate_and_round_vhd_size(-1)
 
-    @testlib.with_context
-    def test_validate_and_round_too_large(self, context):
-        context.setup_error_codes()
+    def test_validate_and_round_too_large(self):
         with self.assertRaises(xs_errors.SROSError):
             vhdutil.validate_and_round_vhd_size(vhdutil.MAX_VHD_SIZE + 1)
 

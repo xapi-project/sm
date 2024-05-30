@@ -92,7 +92,6 @@ class TestNFSSR(unittest.TestCase):
     @mock.patch('util._testHost')
     @mock.patch('nfs.check_server_tcp')
     @mock.patch('nfs.validate_nfsversion')
-    @mock.patch('SR.xs_errors.XML_DEFS', "drivers/XE_SR_ERRORCODES.xml")
     def test_sr_create_readonly(self, validate_nfsversion, check_server_tcp, _testhost,
                        soft_mount, Lock, makedirs):
         # Arrange
@@ -119,7 +118,6 @@ class TestNFSSR(unittest.TestCase):
     @mock.patch('util._testHost')
     @mock.patch('nfs.check_server_tcp')
     @mock.patch('nfs.validate_nfsversion')
-    @mock.patch('SR.xs_errors.XML_DEFS', "drivers/XE_SR_ERRORCODES.xml")
     def test_sr_create_noperm(self, validate_nfsversion, check_server_tcp, _testhost,
                        soft_mount, Lock, makedirs):
         # Arrange
@@ -148,8 +146,6 @@ class TestNFSSR(unittest.TestCase):
     @mock.patch('util._testHost')
     @mock.patch('nfs.check_server_tcp')
     @mock.patch('nfs.validate_nfsversion')
-    @mock.patch('NFSSR.xs_errors.XML_DEFS',
-                'drivers/XE_SR_ERRORCODES.xml')
     def test_sr_create_mount_error(
             self, validate_nfsversion, check_server_tcp, _testhost,
             soft_mount, Lock, mock_rmdir):

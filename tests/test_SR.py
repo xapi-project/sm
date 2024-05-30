@@ -40,14 +40,13 @@ class TestSR(unittest.TestCase):
 
         checker.verify()
 
-    @mock.patch('SR.xs_errors.XML_DEFS', "drivers/XE_SR_ERRORCODES.xml")
     def test_device_check_nodevice(self):
         """
         Test the device check decorator with no device configured
         """
         checker = TestSR.deviceTest()
 
-        with self.assertRaises(xs_errors.SROSError) as sre:
+        with self.assertRaises(xs_errors.SROSError):
             checker.verify()
 
     @mock.patch('SR.SR.scan', autospec=True)
@@ -74,7 +73,8 @@ class TestSR(unittest.TestCase):
         sr1 = self.create_SR("sr_create", {'ISCSIid': '12333423'},
             {'session_ref': 'session1'})
 
-        mock_scan.side_effect = xs_errors.SROSError(46, "The VDI is not available")
+        mock_scan.side_effect = xs_errors.SROSError(
+            46, "The VDI is not available")
 
         sr1.after_master_attach('dummy uuid')
 

@@ -155,14 +155,14 @@ class TestISOSR_overNFS(unittest.TestCase):
                                   sr_uuid='asr_uuid')
 
         _checkmount.side_effect = [False]
-        testHost.side_effect = xs_errors.SROSError(140, 'Incorrect DNS name, unable to resolve.')
+        testHost.side_effect = xs_errors.SROSError(
+            140, 'Incorrect DNS name, unable to resolve.')
 
         with self.assertRaises(xs_errors.SROSError) as ose:
             isosr.attach(None)
 
         self.assertEqual(140, ose.exception.errno)
 
-    @testlib.with_context
     @mock.patch('util.gen_uuid', autospec=True)
     @mock.patch('nfs.soft_mount', autospec=True)
     @mock.patch('util._convertDNS', autospec=True)
@@ -173,10 +173,8 @@ class TestISOSR_overNFS(unittest.TestCase):
     # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('ISOSR.ISOSR._checkmount')
     def test_attach_nfs_wrong_version(
-            self, context, _checkmount, check_server_tcp, testHost, makedirs,
+            self, _checkmount, check_server_tcp, testHost, makedirs,
             validate_nfsversion, convertDNS, soft_mount, gen_uuid):
-        context.setup_error_codes()
-
         isosr = self.create_isosr(location='aServer:/aLocation', atype='nfs_iso',
                                   sr_uuid='asr_uuid')
 
@@ -231,7 +229,6 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         Positive case, over XC/XE CLI with version 1.0.
         """
-        context.setup_error_codes()
         smbsr = self.create_smbisosr(atype='cifs', vers='1.0')
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)
@@ -250,7 +247,6 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         Positive case, over XC/XE CLI with version 1.0.
         """
-        context.setup_error_codes()
         update = {'username': 'dot', 'cifspassword': 'winter2019'}
         smbsr = self.create_smbisosr(atype='cifs', vers='1.0',
                                      dconf_update=update)
@@ -272,7 +268,6 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         Positive case, over XC/XE CLI with version 1.0.
         """
-        context.setup_error_codes()
         update = {'username': r'citrix\jsmith', 'cifspassword': 'winter2019'}
         smbsr = self.create_smbisosr(atype='cifs', vers='1.0',
                                      dconf_update=update)
@@ -293,7 +288,6 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         Positive case, over XC/XE CLI with version 3.0.
         """
-        context.setup_error_codes()
         smbsr = self.create_smbisosr(atype='cifs', vers='3.0')
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)
@@ -314,7 +308,6 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         Positive case, over XC/XE CLI without version.
         """
-        context.setup_error_codes()
         smbsr = self.create_smbisosr(atype='cifs')
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)
@@ -333,7 +326,6 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         Positive case, over xe-sr-mount CLI with version 1.0.
         """
-        context.setup_error_codes()
         smbsr = self.create_smbisosr(options='-o username=administrator,password=password,vers=1.0')
         smbsr.attach(None)
         self.assertEqual(0, pread.call_count)
@@ -350,7 +342,6 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         Positive case, over xe-sr-mount CLI with version 3.0.
         """
-        context.setup_error_codes()
         smbsr = self.create_smbisosr(options='-o username=administrator,password=password,vers=3.0')
         smbsr.attach(None)
         self.assertEqual(0, pread.call_count)
@@ -370,24 +361,20 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         Positive case, without version from xe-sr-mount.
         """
-        context.setup_error_codes()
         smbsr = self.create_smbisosr(options='-o username=administrator,password=password')
         smbsr.attach(None)
         self.assertEqual(0, pread.call_count)
 
-    @testlib.with_context
     @mock.patch('util.gen_uuid')
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
     @mock.patch('util.pread', autospec=True)
-    def test_attach_smb_wrongversion(self, context, pread, _checkTargetStr,
+    def test_attach_smb_wrongversion(self, pread, _checkTargetStr,
                                      makedirs, gen_uuid):
         """
         Unsupported version from XC/XE CLI.
         """
-        context.setup_error_codes()
         smbsr = self.create_smbisosr(atype='cifs', vers='2.0')
-        raised_exception = None
         with self.assertRaises(xs_errors.SROSError) as context:
             smbsr.attach(None)
         self.assertEqual(context.exception.errno, 227)
@@ -396,17 +383,15 @@ class TestISOSR_overSMB(unittest.TestCase):
             'Given SMB version is not allowed. Choose either 1.0 or 3.0'
         )
 
-    @testlib.with_context
     @mock.patch('util.gen_uuid')
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    def test_attach_smb_wrongversion_via_xemount(self, context,
+    def test_attach_smb_wrongversion_via_xemount(self,
                                                  _checkTargetStr, makedirs,
                                                  gen_uuid):
         """
         Unsupported version from xe-sr-mount.
         """
-        context.setup_error_codes()
         smbsr = self.create_smbisosr(options='-o vers=2.0')
         with self.assertRaises(xs_errors.SROSError) as context:
             smbsr.attach(None)
@@ -428,7 +413,6 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         Fall back scenario from XC/XE CLI with smb3 diabled and smb1 enabled.
         """
-        context.setup_error_codes()
         smbsr = self.create_smbisosr(atype='cifs')
         pread.side_effect = iter([util.CommandException(errno.EHOSTDOWN), " "])
         _checkmount.side_effect = [False, True]
@@ -437,13 +421,12 @@ class TestISOSR_overSMB(unittest.TestCase):
                                   '/var/run/sr-mount/asr_uuid', '-o',
                                   'cache=none,guest,vers=1.0'], True, new_env=None)
 
-    @testlib.with_context
     @mock.patch('util.gen_uuid')
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
     @mock.patch('util.pread', autospec=True)
     @mock.patch('ISOSR.ISOSR._checkmount')
-    def test_attach_smb_version_fallback_with_smb_1_3_disabled(self, context,
+    def test_attach_smb_version_fallback_with_smb_1_3_disabled(self,
                                                                _checkmount,
                                                                pread,
                                                                _checkTargetStr,
@@ -452,7 +435,6 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         Fall back scenario from XC/XE CLI with smb3 diabled and smb1 disabled.
         """
-        context.setup_error_codes()
         smbsr = self.create_smbisosr(atype='cifs')
         pread.side_effect = iter([util.CommandException(errno.EHOSTDOWN), \
                 util.CommandException(errno.EHOSTDOWN), util.CommandException(errno.EHOSTDOWN)])
@@ -465,20 +447,18 @@ class TestISOSR_overSMB(unittest.TestCase):
             'Could not mount the directory specified in Device Configuration [opterr=exec failed]'
         )
 
-    @testlib.with_context
     @mock.patch('util.gen_uuid')
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
     @mock.patch('util.pread', autospec=True)
     @mock.patch('ISOSR.ISOSR._checkmount')
-    def test_attach_smb_via_xemount_no_version_fallback(self, context,
+    def test_attach_smb_via_xemount_no_version_fallback(self,
                                                         _checkmount, pread,
                                                         _checkTargetStr,
                                                         makedirs, gen_uuid):
         """
         Fall back scenario from xe-sr-mount with smb3 diabled and smb1 enabled.
         """
-        context.setup_error_codes()
         smbsr = self.create_smbisosr(options='-o username=administrator,password=password')
         pread.side_effect = iter([util.CommandException(errno.EHOSTDOWN), " "])
 
@@ -493,7 +473,6 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         Fall back scenario negative case from xe-sr-mount with smb3 diabled and smb1 disabled.
         """
-        context.setup_error_codes()
         smbsr = self.create_smbisosr(atype='cifs')
         pread.side_effect = iter([util.CommandException(errno.EHOSTDOWN),
                              util.CommandException(errno.EHOSTDOWN)])
@@ -501,23 +480,22 @@ class TestISOSR_overSMB(unittest.TestCase):
         with self.assertRaises(Exception):
             smbsr.attach(None)
 
-    @testlib.with_context
     @mock.patch('util.makedirs')
     @mock.patch('ISOSR.ISOSR._checkTargetStr')
     @mock.patch('util.pread', autospec=True)
     @mock.patch('util.find_my_pbd')
     @mock.patch('ISOSR.ISOSR._checkmount')
-    def test_mountoversmb_will_raise_on_error(self, context, _checkmount, find_my_pbd, pread, _checkTargetStr, makedirs):
+    def test_mountoversmb_will_raise_on_error(
+            self, _checkmount, find_my_pbd, pread, _checkTargetStr, makedirs):
         """
         Test failure to store SMB version inside PBD config will raise exception
         """
-        context.setup_error_codes()
         smbsr = self.create_smbisosr(atype='cifs')
         find_my_pbd.return_value = None
         _checkmount.side_effect = [False, True]
         with self.assertRaises(xs_errors.SROSError) as exp:
             smbsr.attach(None)
-        self.assertEqual(exp.exception.errno, context.get_error_code("SMBMount"))
+        self.assertEqual(exp.exception.errno, 111)
 
 
 class TestISOSR_functions(unittest.TestCase):

@@ -71,13 +71,11 @@ class Test_SMBSR(unittest.TestCase):
         return smbsr
 
     #Attach
-    @testlib.with_context
     @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
     @mock.patch('SMBSR.SMBSR.mount', autospec=True)
     @mock.patch('SMBSR.Lock', autospec=True)
-    def test_attach_smbexception_raises_xenerror(self, context, mock_lock, mock_mount, mock_checkmount):
-        context.setup_error_codes()
-
+    def test_attach_smbexception_raises_xenerror(
+            self, mock_lock, mock_mount, mock_checkmount):
         smbsr = self.create_smbsr()
         mock_mount.side_effect = SMBSR.SMBException("mount raised SMBException")
         mock_checkmount.return_value = False
@@ -218,15 +216,14 @@ class Test_SMBSR(unittest.TestCase):
         mock_unlink.assert_not_called()
 
     #Detach
-    @testlib.with_context
     @mock.patch('SMBSR.SMBSR.checkmount', return_value=True, autospec=True)
     @mock.patch('SMBSR.SMBSR.unmount', autospec=True)
     @mock.patch('SMBSR.Lock', autospec=True)
     @mock.patch('SMBSR.os.chdir', autospec=True)
     @mock.patch('SMBSR.cleanup', autospec=True)
-    def test_detach_smbexception_raises_xenerror(self, context, mock_cleanup, mock_chdir, mock_lock, mock_unmount, mock_checkmount):
-        context.setup_error_codes()
-
+    def test_detach_smbexception_raises_xenerror(
+            self, mock_cleanup, mock_chdir, mock_lock,
+            mock_unmount, mock_checkmount):
         smbsr = self.create_smbsr()
         mock_unmount.side_effect = SMBSR.SMBException("unmount raised SMBException")
         with self.assertRaises(xs_errors.SROSError) as cm:
@@ -286,7 +283,6 @@ class Test_SMBSR(unittest.TestCase):
     @mock.patch('util.get_pool_restrictions', autospec=True)
     @mock.patch('SMBSR.Lock', autospec=True)
     @mock.patch('SMBSR.os.symlink', autospec=True)
-    @mock.patch('SR.xs_errors.XML_DEFS', "drivers/XE_SR_ERRORCODES.xml")
     def test_create_read_only(self, symlink, lock, restrict, makedirs):
         # Arrange
         smbsr = self.create_smbsr()
@@ -316,7 +312,6 @@ class Test_SMBSR(unittest.TestCase):
     @mock.patch('util.get_pool_restrictions', autospec=True)
     @mock.patch('SMBSR.Lock', autospec=True)
     @mock.patch('SMBSR.os.symlink', autospec=True)
-    @mock.patch('SR.xs_errors.XML_DEFS', "drivers/XE_SR_ERRORCODES.xml")
     def test_create_nospace(self, symlink, lock, restrict, makedirs):
         # Arrange
         smbsr = self.create_smbsr()
