@@ -569,8 +569,7 @@ class ISOSR(SR.SR):
 
     def detach(self, sr_uuid):
         """Std. detach"""
-        # This handles legacy mode too, so no need to check
-        if not self._checkmount():
+        if 'legacy_mode' in self.dconf or not self._checkmount():
             return
 
         try:
