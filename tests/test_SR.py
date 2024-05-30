@@ -2,6 +2,7 @@ import unittest
 import unittest.mock as mock
 import SR
 from SR import deviceCheck
+import xs_errors
 
 
 class TestSR(unittest.TestCase):
@@ -46,7 +47,7 @@ class TestSR(unittest.TestCase):
         """
         checker = TestSR.deviceTest()
 
-        with self.assertRaises(SR.SROSError) as sre:
+        with self.assertRaises(xs_errors.SROSError) as sre:
             checker.verify()
 
     @mock.patch('SR.SR.scan', autospec=True)
@@ -73,7 +74,7 @@ class TestSR(unittest.TestCase):
         sr1 = self.create_SR("sr_create", {'ISCSIid': '12333423'},
             {'session_ref': 'session1'})
 
-        mock_scan.side_effect = SR.SROSError(46, "The VDI is not available")
+        mock_scan.side_effect = xs_errors.SROSError(46, "The VDI is not available")
 
         sr1.after_master_attach('dummy uuid')
 

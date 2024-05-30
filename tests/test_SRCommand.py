@@ -62,12 +62,12 @@ class TestStandaloneFunctions(unittest.TestCase):
             mock_run_statics,
             mock_logException):
 
-        """ If an SR.SRException is thrown, assert that print <SR.SRException instance>.toxml()" is called.
+        """ If an SRException is thrown, assert that print <SRException instance>.toxml()" is called.
         """
 
         import sys
         from io import StringIO
-        from SR import SRException
+        from xs_errors import SRException
         from DummySR import DRIVER_INFO
 
         # Save original sys.stdout file object.

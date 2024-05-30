@@ -177,7 +177,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
         try:
             self.iscsi = self.iscsiSRs[0]
         except IndexError as exc:
-            if isinstance(saved_exc, SR.SROSError):
+            if isinstance(saved_exc, xs_errors.SROSError):
                 raise saved_exc  # pylint: disable-msg=E0702
             elif isinstance(saved_exc, Exception):
                 raise xs_errors.XenError('SMGeneral', str(saved_exc))
@@ -453,7 +453,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
             for i in self.iscsiSRs:
                 try:
                     i.attach(sr_uuid)
-                except SR.SROSError as inst:
+                except xs_errors.SROSError as inst:
                     # Some iscsi objects can fail login/discovery but not all. Storing exception
                     if inst.errno in [141, 83]:
                         util.SMlog("Connection failed for target %s, continuing.." % i.target)
@@ -495,7 +495,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
             for i in self.iscsiSRs:
                 try:
                     i.attach(sr_uuid)
-                except SR.SROSError:
+                except xs_errors.SROSError:
                     util.SMlog("Connection failed for target %s, continuing.." % i.target)
         LVHDSR.LVHDSR.scan(self, sr_uuid)
 
@@ -532,7 +532,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                     for iscsi in self.iscsiSRs:
                         try:
                             iscsi.attach(sr_uuid)
-                        except SR.SROSError:
+                        except xs_errors.SROSError:
                             util.SMlog("Failed to attach iSCSI target")
 
     def vdi(self, uuid):

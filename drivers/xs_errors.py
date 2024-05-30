@@ -16,12 +16,32 @@
 # Xensource error codes
 #
 
+import errno
 import os
 import xml.dom.minidom
-import SR
 import util
+import xmlrpc.client
 
 XML_DEFS = '/opt/xensource/sm/XE_SR_ERRORCODES.xml'
+
+
+class SRException(Exception):
+    """Exception raised by storage repository operations"""
+    errno = errno.EINVAL
+
+    def __init__(self, reason):
+        Exception.__init__(self, reason)
+
+    def toxml(self):
+        return xmlrpc.client.dumps(xmlrpc.client.Fault(int(self.errno), str(self)), "", True)
+
+
+class SROSError(SRException):
+    """Wrapper for OSError"""
+
+    def __init__(self, errno, reason):
+        self.errno = errno
+        Exception.__init__(self, reason)
 
 
 class XenError(Exception):
@@ -49,10 +69,10 @@ class XenError(Exception):
             if opterr is not None:
                 errormessage += " [opterr=%s]" % opterr
             util.SMlog("Raising exception [%d, %s]" % (errorcode, errormessage))
-            return SR.SROSError(errorcode, errormessage)
+            return SROSError(errorcode, errormessage)
 
         # development error
-        return SR.SROSError(1, "Error reporting error, unknown key %s" % key)
+        return SROSError(1, "Error reporting error, unknown key %s" % key)
 
     @staticmethod
     def _fromxml(tag):

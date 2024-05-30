@@ -8,9 +8,9 @@ import sys
 import syslog
 import uuid
 
-import SR
 import blktap2
 import util
+import xs_errors
 
 
 class BogusException(Exception):
@@ -103,7 +103,7 @@ class TestTapdisk(unittest.TestCase):
         self.mock_tapctl.spawn.return_value = 123
         self.mock_tapctl.open.side_effect = no_medium
 
-        with self.assertRaises(SR.SROSError) as srose:
+        with self.assertRaises(xs_errors.SROSError) as srose:
             blktap2.Tapdisk.launch_on_tap(
                 blktap, "/dev/sr0", "not used", "not used")
 

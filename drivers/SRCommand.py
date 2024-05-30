@@ -389,7 +389,7 @@ def run(driver, driver_info):
         else:
             print(ret)
 
-    except (Exception, SR.SRException) as e:
+    except (Exception, xs_errors.SRException) as e:
         try:
             util.logException(driver_info['name'])
         except KeyError:
@@ -400,7 +400,7 @@ def run(driver, driver_info):
         # If exception is of type SR.SRException, pass to Xapi.
         # If generic python Exception, print a generic xmlrpclib
         # dump and pass to XAPI.
-        if isinstance(e, SR.SRException):
+        if isinstance(e, xs_errors.SRException):
             print(e.toxml())
         else:
             print(xmlrpc.client.dumps(xmlrpc.client.Fault(1200, str(e)), "", True))

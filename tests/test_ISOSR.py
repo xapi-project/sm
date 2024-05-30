@@ -9,6 +9,7 @@ import os
 import sys
 import tempfile
 import testlib
+import xs_errors
 
 
 class FakeISOSR(ISOSR.ISOSR):
@@ -154,9 +155,9 @@ class TestISOSR_overNFS(unittest.TestCase):
                                   sr_uuid='asr_uuid')
 
         _checkmount.side_effect = [False]
-        testHost.side_effect = SR.SROSError(140, 'Incorrect DNS name, unable to resolve.')
+        testHost.side_effect = xs_errors.SROSError(140, 'Incorrect DNS name, unable to resolve.')
 
-        with self.assertRaises(SR.SROSError) as ose:
+        with self.assertRaises(xs_errors.SROSError) as ose:
             isosr.attach(None)
 
         self.assertEqual(140, ose.exception.errno)
@@ -183,7 +184,7 @@ class TestISOSR_overNFS(unittest.TestCase):
         validate_nfsversion.return_value = '4'
         check_server_tcp.return_value = False
 
-        with self.assertRaises(SR.SROSError) as cm:
+        with self.assertRaises(xs_errors.SROSError) as cm:
             isosr.attach(None)
 
         self.assertRegex(str(cm.exception),
@@ -387,7 +388,7 @@ class TestISOSR_overSMB(unittest.TestCase):
         context.setup_error_codes()
         smbsr = self.create_smbisosr(atype='cifs', vers='2.0')
         raised_exception = None
-        with self.assertRaises(SR.SROSError) as context:
+        with self.assertRaises(xs_errors.SROSError) as context:
             smbsr.attach(None)
         self.assertEqual(context.exception.errno, 227)
         self.assertEqual(
@@ -407,7 +408,7 @@ class TestISOSR_overSMB(unittest.TestCase):
         """
         context.setup_error_codes()
         smbsr = self.create_smbisosr(options='-o vers=2.0')
-        with self.assertRaises(SR.SROSError) as context:
+        with self.assertRaises(xs_errors.SROSError) as context:
             smbsr.attach(None)
         self.assertEqual(context.exception.errno, 227)
         self.assertEqual(
@@ -456,7 +457,7 @@ class TestISOSR_overSMB(unittest.TestCase):
         pread.side_effect = iter([util.CommandException(errno.EHOSTDOWN), \
                 util.CommandException(errno.EHOSTDOWN), util.CommandException(errno.EHOSTDOWN)])
         _checkmount.side_effect = [False, True]
-        with self.assertRaises(SR.SROSError) as context:
+        with self.assertRaises(xs_errors.SROSError) as context:
             smbsr.attach(None)
         self.assertEqual(context.exception.errno, 222)
         self.assertEqual(
@@ -514,7 +515,7 @@ class TestISOSR_overSMB(unittest.TestCase):
         smbsr = self.create_smbisosr(atype='cifs')
         find_my_pbd.return_value = None
         _checkmount.side_effect = [False, True]
-        with self.assertRaises(SR.SROSError) as exp:
+        with self.assertRaises(xs_errors.SROSError) as exp:
             smbsr.attach(None)
         self.assertEqual(exp.exception.errno, context.get_error_code("SMBMount"))
 

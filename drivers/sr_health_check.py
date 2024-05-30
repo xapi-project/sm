@@ -22,7 +22,7 @@ SR implementation type dependent.
 
 import SR
 import util
-
+import xs_errors
 
 def main():
     """
@@ -30,7 +30,7 @@ def main():
     """
     try:
         session = util.get_localAPI_session()
-    except SR.SROSError:
+    except xs_errors.SROSError:
         util.SMlog("Unable to open local XAPI session", priority=util.LOG_ERR)
         return
 

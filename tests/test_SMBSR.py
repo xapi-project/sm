@@ -8,6 +8,7 @@ import testlib
 import util
 import errno
 import XenAPI
+import xs_errors
 
 
 class FakeSMBSR(SMBSR.SMBSR):
@@ -80,7 +81,7 @@ class Test_SMBSR(unittest.TestCase):
         smbsr = self.create_smbsr()
         mock_mount.side_effect = SMBSR.SMBException("mount raised SMBException")
         mock_checkmount.return_value = False
-        with self.assertRaises(SR.SROSError) as cm:
+        with self.assertRaises(xs_errors.SROSError) as cm:
             smbsr.attach('asr_uuid')
         # Check that we get the SMBMount error from XE_SR_ERRORCODES.xml
         self.assertEqual(cm.exception.errno, 111)
@@ -187,10 +188,10 @@ class Test_SMBSR(unittest.TestCase):
         mock_pathexists.side_effect = lambda *args: link_exists()
         mock_symlink.side_effect = fake_symlink
         mock_unlink.side_effect = fake_unlink
-        mock_checkwritable.side_effect = SR.SRException("aFailure")
+        mock_checkwritable.side_effect = xs_errors.SRException("aFailure")
 
         smbsr = self.create_smbsr()
-        with self.assertRaises(SR.SRException):
+        with self.assertRaises(xs_errors.SRException):
             smbsr.attach('asr_uuid')
         mock_mount.assert_called_once()
         mock_unmount.assert_called_once_with(smbsr, smbsr.mountpoint, True)
@@ -228,7 +229,7 @@ class Test_SMBSR(unittest.TestCase):
 
         smbsr = self.create_smbsr()
         mock_unmount.side_effect = SMBSR.SMBException("unmount raised SMBException")
-        with self.assertRaises(SR.SROSError) as cm:
+        with self.assertRaises(xs_errors.SROSError) as cm:
             smbsr.detach('asr_uuid')
         # Check that we get the SMBUnMount error from XE_SR_ERRORCODES.xml
         self.assertEqual(cm.exception.errno, 112)
@@ -303,7 +304,7 @@ class Test_SMBSR(unittest.TestCase):
         makedirs.side_effect = mock_makedirs
 
         # Act
-        with self.assertRaises(SR.SROSError) as srose:
+        with self.assertRaises(xs_errors.SROSError) as srose:
             smbsr.create(sr_uuid, 10 * 1024 * 1024 * 1024)
 
         # Assert
@@ -333,7 +334,7 @@ class Test_SMBSR(unittest.TestCase):
         makedirs.side_effect = mock_makedirs
 
         # Act
-        with self.assertRaises(SR.SROSError) as srose:
+        with self.assertRaises(xs_errors.SROSError) as srose:
             smbsr.create(sr_uuid, 10 * 1024 * 1024 * 1024)
 
         # Assert
