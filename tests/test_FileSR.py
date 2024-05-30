@@ -47,10 +47,6 @@ class TestFileVDI(unittest.TestCase):
         gethidden_patch = mock.patch('FileSR.vhdutil.getHidden')
         self.mock_gethidden = gethidden_patch.start()
 
-        errors_patcher = mock.patch('FileSR.xs_errors.XML_DEFS',
-                "drivers/XE_SR_ERRORCODES.xml")
-        errors_patcher.start()
-
         fist_patcher = mock.patch('FileSR.util.FistPoint.is_active',
                                   autospec=True)
         self.mock_fist = fist_patcher.start()
@@ -254,7 +250,8 @@ class TestFileVDI(unittest.TestCase):
             return real_stat(tgt)
 
         # Act
-        with self.assertRaises(xs_errors.SROSError) as srose, mock.patch('FileSR.os.stat') as mock_stat:
+        with self.assertRaises(xs_errors.SROSError), \
+                mock.patch('FileSR.os.stat') as mock_stat:
             mock_stat.side_effect = my_stat
             clone_xml = vdi.clone(sr_uuid, vdi_uuid)
 
@@ -301,7 +298,8 @@ class TestFileVDI(unittest.TestCase):
             return real_stat(tgt)
 
         # Act
-        with self.assertRaises(xs_errors.SROSError) as srose, mock.patch('FileSR.os.stat') as mock_stat:
+        with self.assertRaises(xs_errors.SROSError), \
+                mock.patch('FileSR.os.stat') as mock_stat:
             mock_stat.side_effect = my_stat
             clone_xml = vdi.clone(sr_uuid, vdi_uuid)
 
@@ -520,9 +518,7 @@ class TestShareFileSR(unittest.TestCase):
         self.mock_session.xenapi.message.create.assert_called_with(
             'sr_does_not_support_hardlinks', 2, "SR", self.sr_uuid, mock.ANY)
 
-    @testlib.with_context
-    def test_attach_not_writable(self, context):
-        context.setup_error_codes()
+    def test_attach_not_writable(self):
         test_sr = self.create_test_sr()
 
         with mock.patch('FileSR.open') as mock_open:
@@ -565,10 +561,6 @@ class TestFileSR(unittest.TestCase):
     def setUp(self):
         pread_patcher = mock.patch('FileSR.util.pread')
         self.mock_pread = pread_patcher.start()
-
-        errors_patcher = mock.patch('FileSR.xs_errors.XML_DEFS',
-                "drivers/XE_SR_ERRORCODES.xml")
-        errors_patcher.start()
 
         sr_init_patcher = mock.patch('SR.SR.__init__')
         def fake_sr_init(self, srcmd, sr_uuid):

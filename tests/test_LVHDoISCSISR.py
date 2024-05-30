@@ -85,13 +85,9 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
         self.addCleanup(mock.patch.stopall)
 
     @mock.patch('iscsilib.ensure_daemon_running_ok')
-    @testlib.with_context
     def test_1st_try_block_raise_XenError(
             self,
-            context,
             mock_iscsilib_ensure_daemon_running_ok):
-        context.setup_error_codes()
-
         mock_iscsilib_ensure_daemon_running_ok.side_effect = xs_errors.XenError(
             'ISCSIInitiator',
             'Raise XenError'
@@ -107,13 +103,9 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
         )
 
     @mock.patch('iscsilib.ensure_daemon_running_ok')
-    @testlib.with_context
     def test_1st_try_block_raise_RandomError(
             self,
-            context,
             mock_iscsilib_ensure_daemon_running_ok):
-        context.setup_error_codes()
-
         mock_iscsilib_ensure_daemon_running_ok.side_effect = RandomError(
             'Raise RandomError'
         )

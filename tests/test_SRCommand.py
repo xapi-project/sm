@@ -62,7 +62,8 @@ class TestStandaloneFunctions(unittest.TestCase):
             mock_run_statics,
             mock_logException):
 
-        """ If an SRException is thrown, assert that print <SRException instance>.toxml()" is called.
+        """ If an SRException is thrown, assert that print
+         <SRException instance>.toxml() is called.
         """
 
         import sys

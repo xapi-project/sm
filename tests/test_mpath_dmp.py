@@ -34,17 +34,12 @@ class TestMpathDmp(unittest.TestCase):
 
         self.addCleanup(mock.patch.stopall)
 
-    @testlib.with_context
     @mock.patch('mpath_dmp.util', autospec=True)
     @mock.patch('mpath_dmp.os', autospec=True)
-    def test_is_valid_multipath_device(self, context, mock_os, util_mod):
+    def test_is_valid_multipath_device(self, mock_os, util_mod):
         """
         Tests for checking validity of multipath device
         """
-
-        # Setup errors codes
-        context.setup_error_codes()
-
         # Test 'multipath -ll' success
         util_mod.doexec.side_effect = [(0, "out", "err")]
         self.assertTrue(mpath_dmp._is_valid_multipath_device("fake_dev"))
@@ -145,16 +140,12 @@ class TestMpathDmp(unittest.TestCase):
             msg='wait_for_path not called with expected mapper path')
         mock_activate.assert_called_with(test_id, mock.ANY)
 
-    @testlib.with_context
     @mock.patch('mpath_dmp._is_valid_multipath_device', autospec=True)
     @mock.patch('mpath_dmp.util', autospec=True)
-    def test_refresh_dmp_device_not_found(self, context, mock_util, mock_valid):
+    def test_refresh_dmp_device_not_found(self, mock_util, mock_valid):
         """
         Test refresh DMP device not found
         """
-        # Setup error codes
-        context.setup_error_codes()
-
         mock_valid.return_value = True
 
         test_id = '360871234'
@@ -231,17 +222,13 @@ class TestMpathDmp(unittest.TestCase):
         mock_util.pread2.assert_called_once_with(
             ['/usr/bin/systemctl', 'start', 'multipathd.service'])
 
-    @testlib.with_context
     @mock.patch('mpath_dmp.iscsilib', autospec=True)
     @mock.patch('mpath_dmp.util', autospec=True)
     def test_activate_noiscsi_mpath_not_working(
-            self, context, mock_util, mock_iscsilib):
+            self, mock_util, mock_iscsilib):
         """
         MPATH activate, mpath not running
         """
-        # Setup error codes
-        context.setup_error_codes()
-
         mock_iscsilib.is_iscsi_daemon_running.return_value = False
         mock_util.doexec.return_value = (0, "", "")
         self.mock_mpath_cli.is_working.side_effect = [False] * 120
@@ -368,11 +355,7 @@ class TestMpathDmp(unittest.TestCase):
 
         self.assertEqual(1, mock_iscsilib.restart_daemon.call_count)
 
-    @testlib.with_context
-    def test_refresh_no_sid(self, context):
-        # Setup error codes
-        context.setup_error_codes()
-
+    def test_refresh_no_sid(self):
         with self.assertRaises(SROSError):
             mpath_dmp.refresh("", 0)
 
@@ -408,16 +391,11 @@ class TestMpathDmp(unittest.TestCase):
         mock_exists.assert_called_once_with(
             '/dev/disk/by-id/scsi-360a98000534b4f4e46704f5270674d70')
 
-    @testlib.with_context
     @mock.patch('mpath_dmp.util.wait_for_path', autospec=True)
     @mock.patch('mpath_dmp.scsiutil', autospec=True)
     @mock.patch('mpath_dmp.os.path.exists', autospec=True)
     def test_refresh_refresh_error(
-            self, context, mock_exists, mock_scsiutil, mock_wait):
-
-        # Setup error codes
-        context.setup_error_codes()
-
+            self, mock_exists, mock_scsiutil, mock_wait):
         def exists(path):
             print('Exists %s' % path)
             if path.startswith('/dev/'):

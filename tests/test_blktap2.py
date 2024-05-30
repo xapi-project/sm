@@ -89,7 +89,6 @@ class TestTapdisk(unittest.TestCase):
                          results[0].path)
         self.assertEqual('vhd', results[0].type)
 
-    @mock.patch('SR.xs_errors.XML_DEFS', "drivers/XE_SR_ERRORCODES.xml")
     @mock.patch('blktap2.Tapdisk.cgclassify')
     def test_open_empty_cd(self, mock_cgclassify):
         blktap = mock.MagicMock()

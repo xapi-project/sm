@@ -578,7 +578,6 @@ class TestUtil(unittest.TestCase):
         open_socket.connect.assert_called_with(("192.168.1.2", 3260))
         open_socket.send.assert_called_once_with(b"\n")
 
-    @mock.patch('SR.xs_errors.XML_DEFS', "drivers/XE_SR_ERRORCODES.xml")
     def test_host_dns_lookup_failure(self):
         # Arrange
         self.mock_socket.getaddrinfo.side_effect = socket.gaierror(errno.ENOENT)
@@ -589,7 +588,6 @@ class TestUtil(unittest.TestCase):
 
         self.assertEqual(140, sroe.exception.errno)
 
-    @mock.patch('SR.xs_errors.XML_DEFS', "drivers/XE_SR_ERRORCODES.xml")
     def test_host_connect_failure(self):
         # Arrange
         sock_addr = (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP,

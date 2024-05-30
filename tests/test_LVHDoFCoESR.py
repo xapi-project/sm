@@ -41,13 +41,12 @@ class TestFCoESR(unittest.TestCase):
     @mock.patch('SR.driver', autospec=True)
     @mock.patch('util.find_my_pbd', autospec=True)
     @mock.patch('LVHDoFCoESR.LVHDoHBASR.HBASR.HBASR.print_devs', autospec=True)
-    @testlib.with_context
-    def test_load_no_scsiid(self, context, print_devs, find_my_pbd, driver):
-        context.setup_error_codes()
+    def test_load_no_scsiid(self, print_devs, find_my_pbd, driver):
         find_my_pbd.return_value = ['pbd_ref', 'pbd']
         parameters = {}
         parameters['device_config'] = ""
-        self.assertRaises(xs_errors.SROSError, self.create_fcoesr, SCSIid="", params=parameters)
+        self.assertRaises(xs_errors.SROSError, self.create_fcoesr,
+                          SCSIid="", params=parameters)
 
     @mock.patch('SR.driver', autospec=True)
     @mock.patch('util.find_my_pbd', autospec=True)

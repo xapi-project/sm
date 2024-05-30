@@ -145,8 +145,6 @@ class TestHBASR(unittest.TestCase):
         self.assertEqual(sr2.devs, "123445")
 
     @mock.patch('HBASR.HBASR.__init__', mock_init)
-    @mock.patch('LVHDoHBASR.xs_errors.XML_DEFS',
-                "drivers/XE_SR_ERRORCODES.xml")
     @mock.patch('HBASR.HBASR._probe_hba', autospec=True)
     @mock.patch('HBASR.xml.dom.minidom.parseString', autospec=True)
     def test__init_hbahostname_assert(self, mock_parseString, mock_probe_hba):
@@ -167,8 +165,6 @@ class TestHBASR(unittest.TestCase):
         self.assertEqual(res, "20-00-00-e0-8b-18-20-8b")
 
     @mock.patch('HBASR.HBASR.__init__', mock_init)
-    @mock.patch('LVHDoHBASR.xs_errors.XML_DEFS',
-                "drivers/XE_SR_ERRORCODES.xml")
     @mock.patch('HBASR.HBASR._probe_hba', autospec=True)
     @mock.patch('HBASR.xml.dom.minidom.parseString', autospec=True)
     def test__init_hbas_assert(self, mock_parseString, mock_probe_hba):
@@ -190,8 +186,6 @@ class TestHBASR(unittest.TestCase):
                                'host1': '50-01-43-80-24-26-ba-f4'})
 
     @mock.patch('HBASR.HBASR.__init__', mock_init)
-    @mock.patch('LVHDoHBASR.xs_errors.XML_DEFS',
-                "drivers/XE_SR_ERRORCODES.xml")
     @mock.patch('HBASR.util.pread', autospec=True)
     def test__probe_hba_assert(self, mock_pread):
         sr = HBASR.HBASR()
@@ -203,8 +197,6 @@ class TestHBASR(unittest.TestCase):
                          "[opterr=HBA probe failed]")
 
     @mock.patch('HBASR.HBASR.__init__', mock_init)
-    @mock.patch('LVHDoHBASR.xs_errors.XML_DEFS',
-                "drivers/XE_SR_ERRORCODES.xml")
     @mock.patch('HBASR.util.pread', autospec=True)
     @mock.patch('HBASR.util.listdir', autospec=True)
     def test__probe_hba(self, mock_listdir, mock_pread):

@@ -1,22 +1,20 @@
 import unittest
-
-import testlib
+from unittest import mock
 
 import xs_errors
 
 
 class TestXenError(unittest.TestCase):
-    @testlib.with_context
-    def test_without_xml_defs(self, context):
+    @mock.patch('xs_errors.os.path.exists', autospec=True)
+    def test_without_xml_defs(self, mock_exists):
+        mock_exists.return_value = False
+
         with self.assertRaises(Exception) as e:
             xs_errors.XenError('blah')
 
         self.assertTrue("No XML def file found" in str(e.exception))
 
-    @testlib.with_context
-    def test_xml_defs(self, context):
-        context.setup_error_codes()
-
+    def test_xml_defs(self):
         with self.assertRaises(Exception) as e:
             raise xs_errors.XenError('SRInUse')
 

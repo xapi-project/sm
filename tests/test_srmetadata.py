@@ -451,7 +451,6 @@ class LVMMetadataTestContext(testlib.TestContext):
 
     def __init__(self):
         super().__init__()
-        self.setup_error_codes()
         self._metadata_file_content = b'\x00' * 4 * 1024 * 1024
 
     def start(self):
@@ -459,8 +458,6 @@ class LVMMetadataTestContext(testlib.TestContext):
         self.patch("util.gen_uuid", new=genuuid)
 
     def generate_device_paths(self):
-        for path in super().generate_device_paths():
-            yield path
         yield self.METADATA_PATH
 
     def fake_open(self, fname, mode='r'):

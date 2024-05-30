@@ -47,8 +47,6 @@ class TestLVHDoHBAVDI(unittest.TestCase):
                          mpath_handle)
 
     @mock.patch('LVHDoHBASR.LVHDoHBASR', autospec=True)
-    @mock.patch('LVHDoHBASR.xs_errors.XML_DEFS',
-                "drivers/XE_SR_ERRORCODES.xml")
     @mock.patch('LVHDoHBASR.LVHDoHBAVDI.__init__', mock_init)
     @mock.patch('LVHDoHBASR.lvutil._checkLV', autospec=True)
     def test_generate_config_bad_path_assert(self,
@@ -125,8 +123,6 @@ class TestLVHDoHBASR(unittest.TestCase):
             srcmd.parse()
         return srcmd
 
-    @mock.patch('LVHDoHBASR.xs_errors.XML_DEFS',
-                "drivers/XE_SR_ERRORCODES.xml")
     @mock.patch("builtins.open", new_callable=mock.mock_open())
     @mock.patch('LVHDoHBASR.glob.glob', autospec=True)
     def test_sr_delete_no_multipath(self, mock_glob, mock_open):

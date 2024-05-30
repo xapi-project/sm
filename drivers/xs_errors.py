@@ -22,7 +22,8 @@ import xml.dom.minidom
 import util
 import xmlrpc.client
 
-XML_DEFS = '/opt/xensource/sm/XE_SR_ERRORCODES.xml'
+DEF_LOC = os.path.dirname(__file__)
+XML_DEFS = os.path.join(DEF_LOC, 'XE_SR_ERRORCODES.xml')
 
 
 class SRException(Exception):
@@ -33,7 +34,8 @@ class SRException(Exception):
         Exception.__init__(self, reason)
 
     def toxml(self):
-        return xmlrpc.client.dumps(xmlrpc.client.Fault(int(self.errno), str(self)), "", True)
+        return xmlrpc.client.dumps(xmlrpc.client.Fault(
+            int(self.errno), str(self)), "", True)
 
 
 class SROSError(SRException):
@@ -68,7 +70,8 @@ class XenError(Exception):
             errormessage = subdict['description']
             if opterr is not None:
                 errormessage += " [opterr=%s]" % opterr
-            util.SMlog("Raising exception [%d, %s]" % (errorcode, errormessage))
+            util.SMlog("Raising exception [%d, %s]" %
+                       (errorcode, errormessage))
             return SROSError(errorcode, errormessage)
 
         # development error

@@ -35,7 +35,6 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                                    context,
                                                    sr_get_capability):
         sr_get_capability.return_value = []
-        context.setup_error_codes()
 
         result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
@@ -64,7 +63,6 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                                  sleep):
         MockLock.return_value = AlwaysBusyLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
-        context.setup_error_codes()
 
         result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
@@ -93,7 +91,6 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                                           sleep):
         MockLock.return_value = AlwaysBusyLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
-        context.setup_error_codes()
 
         trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
@@ -120,7 +117,6 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                            'freespace': EMPTY_VG_SPACE}
         MockLock.return_value = AlwaysFreeLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
-        context.setup_error_codes()
 
         trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
@@ -147,7 +143,6 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         lvutil.exists.return_value = False
         MockLock.return_value = AlwaysFreeLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
-        context.setup_error_codes()
 
         trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
@@ -167,7 +162,6 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         lvutil.exists.return_value = False
         sr_lock = MockLock.return_value = AlwaysFreeLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
-        context.setup_error_codes()
 
         trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
@@ -185,7 +179,6 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         lvutil.exists.return_value = True
         MockLock.return_value = AlwaysFreeLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
-        context.setup_error_codes()
 
         trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
@@ -208,7 +201,6 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         srlock = AlwaysFreeLock()
         MockLock.return_value = srlock
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
-        context.setup_error_codes()
 
         trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
@@ -231,7 +223,6 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         srlock = AlwaysFreeLock()
         MockLock.return_value = srlock
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
-        context.setup_error_codes()
 
         result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
@@ -266,7 +257,6 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                            'freespace': EMPTY_VG_SPACE}
         MockLock.return_value = AlwaysFreeLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
-        context.setup_error_codes()
 
         result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
@@ -328,7 +318,6 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                            'freespace': 0}
         MockLock.return_value = AlwaysFreeLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
-        context.setup_error_codes()
 
         result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
 
@@ -366,7 +355,6 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                            'freespace': EMPTY_VG_SPACE}
         mock_lock.return_value = AlwaysFreeLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
-        context.setup_error_codes()
 
         # Act
         result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
@@ -394,7 +382,6 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                                            'freespace': EMPTY_VG_SPACE}
         mock_lock.return_value = AlwaysFreeLock()
         sr_get_capability.return_value = [trim_util.TRIM_CAP]
-        context.setup_error_codes()
 
         # Act
         result = trim_util.do_trim(None, {'sr_uuid': 'some-uuid'})
