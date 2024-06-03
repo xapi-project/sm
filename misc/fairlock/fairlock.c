@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <errno.h>
+#include <syslog.h>
 
 int main(int argc, char *argv[]) {
      struct sockaddr_un addr;
@@ -31,6 +32,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "listen(64) failed on socket %s: %s", argv[1], strerror(errno));
         exit(1);
     }
+    openlog("fairlock", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL2);
 
     /* Now we have a socket, enter an endless loop of:
      * 1) Accept a connection
@@ -50,8 +52,14 @@ int main(int argc, char *argv[]) {
         while ((fd = accept(sock, NULL, NULL)) > -1) {
             char buffer[128];
 
-            do {} while (read(fd, buffer, sizeof(buffer)) > 0);
+            syslog(LOG_INFO, "%s acquired\n", argv[1]);
+            while (read(fd, buffer, sizeof(buffer)) > 0) {
+                buffer[127]='\0';
+                syslog(LOG_INFO, "%s sent '%s'\n", argv[1], buffer);
+            }
             close(fd);
+            syslog(LOG_INFO, "%s released\n", argv[1]);
         }
     }
+    closelog();
 }
