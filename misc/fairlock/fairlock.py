@@ -57,6 +57,8 @@ class Fairlock(metaclass=SingletonWithArgs):
         except (FileNotFoundError, ConnectionRefusedError):
             self._ensure_service()
             self.sock.connect(self.sockname)
+
+        self.sock.send(f'{os.getpid()} - {time.monotonic()}'.encode())
         self.connected = True
         return self
 
