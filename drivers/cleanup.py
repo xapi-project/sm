@@ -62,13 +62,12 @@ FLAG_TYPE_ABORT = "abort"     # flag to request aborting of GC/coalesce
 # process "lock", used simply as an indicator that a process already exists
 # that is doing GC/coalesce on this SR (such a process holds the lock, and we
 # check for the fact by trying the lock).
-LOCK_TYPE_RUNNING = "running"
-lockRunning = None
+lockGCRunning = None
 
 # process "lock" to indicate that the GC process has been activated but may not
 # yet be running, stops a second process from being started.
 LOCK_TYPE_GC_ACTIVE = "gc_active"
-lockActive = None
+lockGCActive = None
 
 # Default coalesce error rate limit, in messages per minute. A zero value
 # disables throttling, and a negative value disables error reporting.
@@ -2934,7 +2933,7 @@ def _gcLoopPause(sr, dryRun=False, immediate=False):
 
 
 def _gcLoop(sr, dryRun=False, immediate=False):
-    if not lockActive.acquireNoblock():
+    if not lockGCActive.acquireNoblock():
         Util.log("Another GC instance already active, exiting")
         return
 
@@ -2971,7 +2970,7 @@ def _gcLoop(sr, dryRun=False, immediate=False):
                 Util.log("No work, exiting")
                 break
 
-            if not lockRunning.acquireNoblock():
+            if not lockGCRunning.acquireNoblock():
                 Util.log("Unable to acquire GC running lock.")
                 return
             try:
@@ -3013,7 +3012,7 @@ def _gcLoop(sr, dryRun=False, immediate=False):
                     continue
 
             finally:
-                lockRunning.release()
+                lockGCRunning.release()
     except:
         task_status = "failure"
         raise
@@ -3021,7 +3020,7 @@ def _gcLoop(sr, dryRun=False, immediate=False):
         sr.xapi.set_task_status(task_status)
         Util.log("GC process exiting, no work left")
         _create_init_file(sr.uuid)
-        lockActive.release()
+        lockGCActive.release()
 
 
 def _xapi_enabled(session, hostref):
@@ -3069,19 +3068,19 @@ def _abort(srUuid, soft=False):
     soft: If set to True and there is a pending abort signal, the function
     doesn't do anything. If set to False, a new abort signal is issued.
 
-    returns: If soft is set to False, we return True holding lockActive. If
+    returns: If soft is set to False, we return True holding lockGCActive. If
     soft is set to False and an abort signal is pending, we return False
-    without holding lockActive. An exception is raised in case of error."""
+    without holding lockGCActive. An exception is raised in case of error."""
     Util.log("=== SR %s: abort ===" % (srUuid))
     init(srUuid)
-    if not lockActive.acquireNoblock():
+    if not lockGCActive.acquireNoblock():
         gotLock = False
         Util.log("Aborting currently-running instance (SR %s)" % srUuid)
         abortFlag = IPCFlag(srUuid)
         if not abortFlag.set(FLAG_TYPE_ABORT, soft):
             return False
         for i in range(SR.LOCK_RETRY_ATTEMPTS):
-            gotLock = lockActive.acquireNoblock()
+            gotLock = lockGCActive.acquireNoblock()
             if gotLock:
                 break
             time.sleep(SR.LOCK_RETRY_INTERVAL)
@@ -3093,12 +3092,12 @@ def _abort(srUuid, soft=False):
 
 
 def init(srUuid):
-    global lockRunning
-    if not lockRunning:
-        lockRunning = lock.Lock(LOCK_TYPE_RUNNING, srUuid)
-    global lockActive
-    if not lockActive:
-        lockActive = LockActive(srUuid)
+    global lockGCRunning
+    if not lockGCRunning:
+        lockGCRunning = lock.Lock(lock.LOCK_TYPE_GC_RUNNING, srUuid)
+    global lockGCActive
+    if not lockGCActive:
+        lockGCActive = LockActive(srUuid)
 
 
 class LockActive:
@@ -3166,7 +3165,7 @@ def abort(srUuid, soft=False):
     """
     if _abort(srUuid, soft):
         Util.log("abort: releasing the process lock")
-        lockActive.release()
+        lockGCActive.release()
         return True
     else:
         return False
@@ -3224,7 +3223,7 @@ def gc_force(session, srUuid, force=False, dryRun=False, lockSR=False):
     Util.log("=== SR %s: gc_force ===" % srUuid)
     init(srUuid)
     sr = SR.getInstance(srUuid, session, lockSR, True)
-    if not lockActive.acquireNoblock():
+    if not lockGCActive.acquireNoblock():
         abort(srUuid)
     else:
         Util.log("Nothing was running, clear to proceed")
@@ -3240,7 +3239,7 @@ def gc_force(session, srUuid, force=False, dryRun=False, lockSR=False):
     finally:
         sr.cleanup()
         sr.logFilter.logState()
-        lockActive.release()
+        lockGCActive.release()
 
 
 def get_state(srUuid):
@@ -3249,8 +3248,8 @@ def get_state(srUuid):
     locking.
     """
     init(srUuid)
-    if lockActive.acquireNoblock():
-        lockActive.release()
+    if lockGCActive.acquireNoblock():
+        lockGCActive.release()
         return False
     return True
 
@@ -3323,9 +3322,9 @@ def abort_optional_reenable(uuid):
     ret = _abort(uuid)
     input("Press enter to re-enable...")
     print("GC/coalesce re-enabled")
-    lockRunning.release()
+    lockGCRunning.release()
     if ret:
-        lockActive.release()
+        lockGCActive.release()
 
 
 ##############################################################################
