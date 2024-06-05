@@ -83,11 +83,11 @@ class TestSR(unittest.TestCase):
                                createLock=False, force=False)
 
     def mock_cleanup_locks(self):
-        cleanup.lockActive = TestRelease()
-        cleanup.lockActive.release = mock.Mock(return_value=None)
+        cleanup.lockGCActive = TestRelease()
+        cleanup.lockGCActive.release = mock.Mock(return_value=None)
 
-        cleanup.lockRunning = TestRelease()
-        cleanup.lockRunning.release = mock.Mock(return_value=None)
+        cleanup.lockGCRunning = TestRelease()
+        cleanup.lockGCRunning.release = mock.Mock(return_value=None)
 
     def test_lock_if_already_locked(self):
         """
@@ -281,25 +281,25 @@ class TestSR(unittest.TestCase):
             mock_abort,
             mock_sr):
         """
-        If _abort returns True make sure we release the lockActive which will
+        If _abort returns True make sure we release the lockGCActive which will
         have been held by _abort, also check that we return True.
         """
         self.setup_mock_sr(mock_sr)
 
-        # Fake that abort returns True, so we hold lockActive.
+        # Fake that abort returns True, so we hold lockGCActive.
         mock_abort.return_value = True
 
         # Setup mock of release function.
-        cleanup.lockActive = TestRelease()
-        cleanup.lockActive.release = mock.Mock(return_value=None)
+        cleanup.lockGCActive = TestRelease()
+        cleanup.lockGCActive.release = mock.Mock(return_value=None)
 
         ret = cleanup.abort(mock_sr, False)
 
         # Pass on the return from _abort.
         self.assertEqual(True, ret)
 
-        # We hold lockActive so make sure we release it.
-        self.assertEqual(cleanup.lockActive.release.call_count, 1)
+        # We hold lockGCActive so make sure we release it.
+        self.assertEqual(cleanup.lockGCActive.release.call_count, 1)
 
     @mock.patch('cleanup.SR', autospec=True)
     @mock.patch('cleanup._abort')
@@ -308,7 +308,7 @@ class TestSR(unittest.TestCase):
             mock_abort,
             mock_sr):
         """
-        If _abort returns False don't release lockActive and ensure that
+        If _abort returns False don't release lockGCActive and ensure that
         False returned by _abort is passed on.
         """
         self.setup_mock_sr(mock_sr)
@@ -317,8 +317,8 @@ class TestSR(unittest.TestCase):
         mock_abort.return_value = False
 
         # Mock lock release function.
-        cleanup.lockActive = TestRelease()
-        cleanup.lockActive.release = mock.Mock(return_value=None)
+        cleanup.lockGCActive = TestRelease()
+        cleanup.lockGCActive.release = mock.Mock(return_value=None)
 
         ret = cleanup.abort(mock_sr, False)
 
@@ -326,7 +326,7 @@ class TestSR(unittest.TestCase):
         self.assertEqual(False, ret)
 
         # Make sure we did not release the lock as we don't have it.
-        self.assertEqual(cleanup.lockActive.release.call_count, 0)
+        self.assertEqual(cleanup.lockGCActive.release.call_count, 0)
 
     @mock.patch('cleanup._abort')
     @mock.patch('cleanup.input')
@@ -345,11 +345,11 @@ class TestSR(unittest.TestCase):
 
         cleanup.abort_optional_reenable(None)
 
-        # Make sure released lockActive
-        self.assertEqual(cleanup.lockActive.release.call_count, 1)
+        # Make sure released lockGCActive
+        self.assertEqual(cleanup.lockGCActive.release.call_count, 1)
 
         # Make sure released lockRunning
-        self.assertEqual(cleanup.lockRunning.release.call_count, 1)
+        self.assertEqual(cleanup.lockGCRunning.release.call_count, 1)
 
     @mock.patch('cleanup._abort')
     @mock.patch('cleanup.input')
@@ -368,11 +368,11 @@ class TestSR(unittest.TestCase):
 
         cleanup.abort_optional_reenable(None)
 
-        # Don't release lockActive, we don't hold it.
-        self.assertEqual(cleanup.lockActive.release.call_count, 0)
+        # Don't release lockGCActive, we don't hold it.
+        self.assertEqual(cleanup.lockGCActive.release.call_count, 0)
 
         # Make sure released lockRunning
-        self.assertEqual(cleanup.lockRunning.release.call_count, 1)
+        self.assertEqual(cleanup.lockGCRunning.release.call_count, 1)
 
     @mock.patch('cleanup.init')
     def test__abort_returns_true_when_get_lock(
@@ -380,9 +380,9 @@ class TestSR(unittest.TestCase):
             mock_init):
         """
         _abort should return True when it can get
-        the lockActive straight off the bat.
+        the lockGCActive straight off the bat.
         """
-        cleanup.lockActive = AlwaysFreeLock()
+        cleanup.lockGCActive = AlwaysFreeLock()
         ret = cleanup._abort(None)
         self.assertEqual(ret, True)
 
@@ -399,7 +399,7 @@ class TestSR(unittest.TestCase):
         self.mock_IPCFlag.return_value.set.return_value = False
 
         # Not important for this test but we call it so mock it.
-        cleanup.lockActive = AlwaysLockedLock()
+        cleanup.lockGCActive = AlwaysLockedLock()
 
         ret = cleanup._abort(None)
 
@@ -410,7 +410,7 @@ class TestSR(unittest.TestCase):
     def test__abort_should_raise_if_cant_get_lock(self, mock_init):
         """
         _abort should raise an exception if it completely
-        fails to get lockActive.
+        fails to get lockGCActive.
         """
         mock_init.return_value = None
 
@@ -418,7 +418,7 @@ class TestSR(unittest.TestCase):
         self.mock_IPCFlag.return_value.set.return_value = True
 
         # Fake never getting the lock.
-        cleanup.lockActive = AlwaysLockedLock()
+        cleanup.lockGCActive = AlwaysLockedLock()
 
         with self.assertRaises(util.CommandException):
             cleanup._abort(None)
@@ -441,7 +441,7 @@ class TestSR(unittest.TestCase):
         mocked_lock = AlwaysLockedLock()
         mocked_lock.acquireNoblock = mock.Mock()
         mocked_lock.acquireNoblock.side_effect = [False, True]
-        cleanup.lockActive = mocked_lock
+        cleanup.lockGCActive = mocked_lock
 
         ret = cleanup._abort(None)
 
@@ -474,7 +474,7 @@ class TestSR(unittest.TestCase):
         side_effect.append(True)
 
         mocked_lock.acquireNoblock.side_effect = side_effect
-        cleanup.lockActive = mocked_lock
+        cleanup.lockGCActive = mocked_lock
 
         # We've failed repeatedly to gain the lock so raise exception.
         with self.assertRaises(util.CommandException) as te:
@@ -489,7 +489,7 @@ class TestSR(unittest.TestCase):
     @mock.patch('cleanup.init')
     def test__abort_succeeds_if_gets_lock_on_final_attempt(self, mock_init):
         """
-        _abort succeeds if we get the lockActive on the final retry
+        _abort succeeds if we get the lockGCActive on the final retry
         """
         mock_init.return_value = None
         self.mock_IPCFlag.return_value.set.return_value = True
@@ -504,7 +504,7 @@ class TestSR(unittest.TestCase):
         side_effect.append(True)
 
         mocked_lock.acquireNoblock.side_effect = side_effect
-        cleanup.lockActive = mocked_lock
+        cleanup.lockGCActive = mocked_lock
 
         ret = cleanup._abort(None)
         self.assertEqual(mocked_lock.acquireNoblock.call_count,
@@ -1670,7 +1670,7 @@ class TestSR(unittest.TestCase):
         sr_uuid, mock_sr = self.init_gc_loop_sr()
 
         mock_sr.hasWork.return_value = False
-        cleanup.lockActive.acquireNoblock = mock.Mock(return_value=True)
+        cleanup.lockGCActive.acquireNoblock = mock.Mock(return_value=True)
 
         ## Act
         cleanup._gcLoop(mock_sr, dryRun=False)
@@ -1709,8 +1709,8 @@ class TestSR(unittest.TestCase):
         mock_sr.findLeafCoalesceable.side_effect = [
             vdis['vdi']]
 
-        cleanup.lockActive.acquireNoblock = mock.Mock(return_value=True)
-        cleanup.lockRunning.acquireNoblock = mock.Mock(return_value=True)
+        cleanup.lockGCActive.acquireNoblock = mock.Mock(return_value=True)
+        cleanup.lockGCRunning.acquireNoblock = mock.Mock(return_value=True)
 
         ## Act
         cleanup._gcLoop(mock_sr, dryRun=False)
@@ -1784,7 +1784,7 @@ class TestSR(unittest.TestCase):
         self.assertIsNotNone(sr)
 
 
-class TestLockActive(unittest.TestCase):
+class TestLockGCActive(unittest.TestCase):
 
     def setUp(self):
         self.addCleanup(mock.patch.stopall)

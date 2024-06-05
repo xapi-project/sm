@@ -26,7 +26,6 @@ import xs_errors
 import lock
 import glob
 import tempfile
-from cleanup import LOCK_TYPE_RUNNING
 from configparser import RawConfigParser
 import io
 
@@ -54,7 +53,7 @@ def doexec_locked(cmd):
     """Executes via util.doexec the command specified whilst holding lock"""
     _lock = None
     if os.path.basename(cmd[0]) == 'iscsiadm':
-        _lock = lock.Lock(LOCK_TYPE_RUNNING, 'iscsiadm')
+        _lock = lock.Lock(lock.LOCK_TYPE_GC_RUNNING, 'iscsiadm')
         _lock.acquire()
     # util.SMlog("%s" % cmd)
     (rc, stdout, stderr) = util.doexec(cmd)

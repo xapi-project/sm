@@ -23,6 +23,8 @@ import util
 
 VERBOSE = True
 
+# Still just called "running" for backwards compatibility
+LOCK_TYPE_GC_RUNNING = "running"
 
 class LockException(util.SMException):
     pass

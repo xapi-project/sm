@@ -36,7 +36,7 @@ import xs_errors
 import cleanup
 import blktap2
 from journaler import Journaler
-from lock import Lock
+from lock import Lock, LOCK_TYPE_GC_RUNNING
 from refcounter import RefCounter
 from ipc import IPCFlag
 from lvmanager import LVActivator
@@ -1292,7 +1292,7 @@ class LVHDSR(SR.SR):
         # don't bother if an instance already running (this is just an
         # optimization to reduce the overhead of forking a new process if we
         # don't have to, but the process will check the lock anyways)
-        lockRunning = Lock(cleanup.LOCK_TYPE_RUNNING, self.uuid)
+        lockRunning = Lock(LOCK_TYPE_GC_RUNNING, self.uuid)
         if not lockRunning.acquireNoblock():
             if cleanup.should_preempt(self.session, self.uuid):
                 util.SMlog("Aborting currently-running coalesce of garbage VDI")

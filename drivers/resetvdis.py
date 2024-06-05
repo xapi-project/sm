@@ -26,11 +26,10 @@ import XenAPI # pylint: disable=import-error
 
 def reset_sr(session, host_uuid, sr_uuid, is_sr_master):
     from vhdutil import LOCK_TYPE_SR
-    from cleanup import LOCK_TYPE_RUNNING
 
     cleanup.abort(sr_uuid)
 
-    gc_lock = lock.Lock(LOCK_TYPE_RUNNING, sr_uuid)
+    gc_lock = lock.Lock(lock.LOCK_TYPE_GC_RUNNING, sr_uuid)
     sr_lock = lock.Lock(LOCK_TYPE_SR, sr_uuid)
     gc_lock.acquire()
     sr_lock.acquire()
