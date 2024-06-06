@@ -3205,7 +3205,27 @@ def gc(session, srUuid, inBackground, dryRun=False):
         _gc(session, srUuid, dryRun, immediate=True)
 
 
-def start_gc(sr_uuid):
+def start_gc(session, sr_uuid):
+    # don't bother if an instance already running (this is just an
+    # optimization to reduce the overhead of forking a new process if we
+    # don't have to, but the process will check the lock anyways)
+    lockRunning = lock.Lock(lock.LOCK_TYPE_GC_RUNNING, sr_uuid)
+    if not lockRunning.acquireNoblock():
+        if should_preempt(session, sr_uuid):
+            util.SMlog("Aborting currently-running coalesce of garbage VDI")
+            try:
+                if not abort(sr_uuid, soft=True):
+                    util.SMlog("The GC has already been scheduled to re-start")
+            except util.CommandException as e:
+                if e.code != errno.ETIMEDOUT:
+                    raise
+                util.SMlog('failed to abort the GC')
+        else:
+            util.SMlog("A GC instance already running, not kicking")
+            return
+    else:
+        lockRunning.release()
+
     util.SMlog(f"Starting GC file is {__file__}")
     subprocess.run([__file__, '-b', '-u', sr_uuid, '-g'],
                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
