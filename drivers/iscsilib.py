@@ -53,7 +53,7 @@ def doexec_locked(cmd):
     """Executes via util.doexec the command specified whilst holding lock"""
     _lock = None
     if os.path.basename(cmd[0]) == 'iscsiadm':
-        _lock = lock.Lock(lock.LOCK_TYPE_GC_RUNNING, 'iscsiadm')
+        _lock = lock.Lock(lock.LOCK_TYPE_ISCSIADM_RUNNING, 'iscsiadm')
         _lock.acquire()
     # util.SMlog("%s" % cmd)
     (rc, stdout, stderr) = util.doexec(cmd)
