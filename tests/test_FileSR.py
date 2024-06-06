@@ -450,6 +450,9 @@ class TestShareFileSR(unittest.TestCase):
         lock_patcher = mock.patch('FileSR.Lock')
         self.mock_lock = lock_patcher.start()
 
+        lock_patcher_cleanup = mock.patch('cleanup.lock.Lock')
+        self.mock_lock_cleanup = lock_patcher_cleanup.start()
+
         xapi_patcher = mock.patch('SR.XenAPI')
         self.mock_xapi = xapi_patcher.start()
         self.mock_session = mock.MagicMock()

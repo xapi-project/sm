@@ -36,7 +36,7 @@ import xs_errors
 import cleanup
 import blktap2
 from journaler import Journaler
-from lock import Lock, LOCK_TYPE_GC_RUNNING
+from lock import Lock
 from refcounter import RefCounter
 from ipc import IPCFlag
 from lvmanager import LVActivator
@@ -1289,29 +1289,8 @@ class LVHDSR(SR.SR):
             util.SMlog("Setting env %s" % self.ENV_VAR_VHD_TEST[self.testMode])
 
     def _kickGC(self):
-        # don't bother if an instance already running (this is just an
-        # optimization to reduce the overhead of forking a new process if we
-        # don't have to, but the process will check the lock anyways)
-        lockRunning = Lock(LOCK_TYPE_GC_RUNNING, self.uuid)
-        if not lockRunning.acquireNoblock():
-            if cleanup.should_preempt(self.session, self.uuid):
-                util.SMlog("Aborting currently-running coalesce of garbage VDI")
-                try:
-                    if not cleanup.abort(self.uuid, soft=True):
-                        util.SMlog("The GC has already been scheduled to "
-                                "re-start")
-                except util.CommandException as e:
-                    if e.code != errno.ETIMEDOUT:
-                        raise
-                    util.SMlog('failed to abort the GC')
-            else:
-                util.SMlog("A GC instance already running, not kicking")
-                return
-        else:
-            lockRunning.release()
-
         util.SMlog("Kicking GC")
-        cleanup.start_gc(self.uuid)
+        cleanup.start_gc(self.session, self.uuid)
 
     def ensureCBTSpace(self):
         # Ensure we have space for at least one LV
