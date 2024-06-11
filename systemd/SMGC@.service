@@ -1,0 +1,12 @@
+[Unit]
+Description=Garbage Collector for SR %I
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+Restart=no
+ExecStart=/opt/xensource/sm/cleanup.py -g -u %I
+# This is the default, but just to make it clear we may run this
+# service multiple times. When running, it will show as "activating";
+# when not running, it will show as "dead"
+RemainAfterExit=no
