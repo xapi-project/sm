@@ -379,7 +379,7 @@ class FileSR(SR.SR):
 
     def _kickGC(self):
         util.SMlog("Kicking GC")
-        cleanup.start_gc(self.session, self.uuid)
+        cleanup.start_gc_service(self.uuid)
 
     def _isbind(self):
         # os.path.ismount can't deal with bind mount

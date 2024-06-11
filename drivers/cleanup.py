@@ -3206,6 +3206,10 @@ def gc(session, srUuid, inBackground, dryRun=False):
 
 
 def start_gc(session, sr_uuid):
+    """
+    This function is used to try to start a backgrounded GC session by forking
+    the current process. If using the systemd version, call start_gc_service() instead.
+    """
     # don't bother if an instance already running (this is just an
     # optimization to reduce the overhead of forking a new process if we
     # don't have to, but the process will check the lock anyways)
@@ -3229,6 +3233,24 @@ def start_gc(session, sr_uuid):
     util.SMlog(f"Starting GC file is {__file__}")
     subprocess.run([__file__, '-b', '-u', sr_uuid, '-g'],
                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+
+def start_gc_service(sr_uuid, wait=False):
+    """
+    This starts the templated systemd service which runs GC on the given SR UUID.
+    If the service was already started, this is a no-op.
+
+    Because the service is a one-shot with RemainAfterExit=no, when called with
+    wait=True this will run the service synchronously and will not return until the
+    run has finished. This is used to force a run of the GC instead of just kicking it
+    in the background.
+    """
+    sr_uuid_esc = sr_uuid.replace("-", "\\x2d")
+    util.SMlog(f"Kicking SMGC@{sr_uuid}...")
+    cmd=[ "/usr/bin/systemctl", "--quiet" ]
+    if not wait:
+        cmd.append("--no-block")
+    cmd += ["start", f"SMGC@{sr_uuid_esc}"]
+    subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
 
 
 def gc_force(session, srUuid, force=False, dryRun=False, lockSR=False):
@@ -3263,15 +3285,17 @@ def gc_force(session, srUuid, force=False, dryRun=False, lockSR=False):
 
 
 def get_state(srUuid):
-    """Return whether GC/coalesce is currently running or not. The information
-    is not guaranteed for any length of time if the call is not protected by
-    locking.
+    """Return whether GC/coalesce is currently running or not. This asks systemd for
+    the state of the templated SMGC service and will return True if it is "activating"
+    or "running" (for completeness, as in practice it will never achieve the latter state)
     """
-    init(srUuid)
-    if lockGCActive.acquireNoblock():
-        lockGCActive.release()
-        return False
-    return True
+    sr_uuid_esc = srUuid.replace("-", "\\x2d")
+    cmd=[ "/usr/bin/systemctl", "is-active", f"SMGC@{sr_uuid_esc}"]
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+    state = result.stdout.decode('utf-8').rstrip()
+    if state == "activating" or state == "running":
+        return True
+    return False
 
 
 def should_preempt(session, srUuid):

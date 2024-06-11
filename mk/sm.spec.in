@@ -212,6 +212,7 @@ tests/run_python_unittests.sh
 %{_unitdir}/usb-scan.socket
 %{_unitdir}/mpathcount.service
 %{_unitdir}/mpathcount.socket
+%{_unitdir}/SMGC@.service
 %config /etc/udev/rules.d/65-multipath.rules
 %config /etc/udev/rules.d/55-xs-mpath-scsidev.rules
 %config /etc/udev/rules.d/58-xapi.rules
