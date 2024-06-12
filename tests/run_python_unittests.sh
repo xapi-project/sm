@@ -28,7 +28,7 @@ fi
 
 (
     cd "$SMROOT"
-    PYTHONPATH="$SMROOT/tests/mocks:$SMROOT/drivers/" \
+    PYTHONPATH="$SMROOT/mocks:$SMROOT/drivers/" \
         coverage run --branch \
             --source="$SMROOT/drivers,$SMROOT/tests" \
             -m unittest discover -s "$TESTS" -p "$FILES" -v
