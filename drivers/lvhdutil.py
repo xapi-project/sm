@@ -213,25 +213,11 @@ def setSizeVirt(journaler, srUuid, vdiUuid, size, jFile):
     vhdutil.setSizeVirt(path, size, jFile)
 
 
-def _tryAcquire(lock):
-    """We must give up if the SR is locked because it could be locked by the
-    coalesce thread trying to acquire the VDI lock we're holding, so as to
-    avoid deadlock"""
-    for i in range(LOCK_RETRY_ATTEMPTS):
-        gotLock = lock.acquireNoblock()
-        if gotLock:
-            return
-        time.sleep(1)
-    raise util.SRBusyException()
-
-
 def attachThin(journaler, srUuid, vdiUuid):
     """Ensure that the VDI LV is expanded to the fully-allocated size"""
     lvName = LV_PREFIX[vhdutil.VDI_TYPE_VHD] + vdiUuid
     vgName = VG_PREFIX + srUuid
-    lock = Lock(vhdutil.LOCK_TYPE_SR, srUuid)
     lvmCache = journaler.lvmCache
-    _tryAcquire(lock)
     lvmCache.refresh()
     vhdInfo = vhdutil.getVHDInfoLVM(lvName, extractUuid, vgName)
     newSize = calcSizeVHDLV(vhdInfo.sizeVirt)
@@ -243,15 +229,12 @@ def attachThin(journaler, srUuid, vdiUuid):
         inflate(journaler, srUuid, vdiUuid, newSize)
     finally:
         lvmCache.deactivate(NS_PREFIX_LVM + srUuid, vdiUuid, lvName, False)
-    lock.release()
 
 
 def detachThin(session, lvmCache, srUuid, vdiUuid):
     """Shrink the VDI to the minimal size if no one is using it"""
     lvName = LV_PREFIX[vhdutil.VDI_TYPE_VHD] + vdiUuid
     path = os.path.join(VG_LOCATION, VG_PREFIX + srUuid, lvName)
-    lock = Lock(vhdutil.LOCK_TYPE_SR, srUuid)
-    _tryAcquire(lock)
 
     vdiRef = session.xenapi.VDI.get_by_uuid(vdiUuid)
     vbds = session.xenapi.VBD.get_all_records_where( \
@@ -270,7 +253,6 @@ def detachThin(session, lvmCache, srUuid, vdiUuid):
         deflate(lvmCache, lvName, newSize)
     finally:
         lvmCache.deactivate(NS_PREFIX_LVM + srUuid, vdiUuid, lvName, False)
-    lock.release()
 
 
 def createVHDJournalLV(lvmCache, jName, size):
