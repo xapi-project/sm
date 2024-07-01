@@ -355,3 +355,41 @@ class Test_cmd_lvm(unittest.TestCase):
         self.assertIn("Long LVM call", m_smlog.call_args[0][0])
         self.assertIn(f"took {lvutil.MAX_OPERATION_DURATION*2}", m_smlog.call_args[0][0])
 
+@mock.patch('lvutil.cmd_lvm')
+@mock.patch('util.SMlog', autospec=True)
+class TestGetPVsInVG(unittest.TestCase):
+
+    def test_pvs_in_vg(self, mock_smlog, mock_cmd_lvm):
+        # Normal case
+        mock_cmd_lvm.return_value = "pv1 vg1\npv2 vg1\npv3 vg2"
+        result = lvutil.getPVsInVG("vg1")
+        self.assertEqual(result, ["pv1", "pv2"])
+        mock_smlog.assert_called_once_with("PVs in VG vg1: ['pv1', 'pv2']")
+    
+    def test_no_pvs(self, mock_smlog, mock_cmd_lvm):
+        # Test when no PVs are returned
+        mock_cmd_lvm.return_value = ""
+        result = lvutil.getPVsInVG("vg1")
+        self.assertEqual(result, [])
+        mock_smlog.assert_has_calls([
+            mock.call("Warning: Invalid or empty line in pvs output: "),
+            mock.call("PVs in VG vg1: []")
+        ])
+
+    def test_no_pvs_in_vg(self, mock_smlog, mock_cmd_lvm):
+        # Test when no PVs belong to the specified VG
+        mock_cmd_lvm.return_value = "pv1 vg2\npv2 vg2"
+        result = lvutil.getPVsInVG("vg1")
+        self.assertEqual(result, [])
+        mock_smlog.assert_called_once_with("PVs in VG vg1: []")
+
+    def test_command_error(self, mock_smlog, mock_cmd_lvm):
+        # Test invalid return value from cmd_lvm
+        mock_cmd_lvm.return_value = "Invalid retrun value."
+        result = lvutil.getPVsInVG("vg1")
+        self.assertEqual(result, [])
+        mock_smlog.assert_has_calls([
+            mock.call("Warning: Invalid or empty line in pvs output: Invalid retrun value."),
+            mock.call("PVs in VG vg1: []")
+        ])
+        mock_smlog.assert_called_with("PVs in VG vg1: []")
