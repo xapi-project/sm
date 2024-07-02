@@ -529,6 +529,27 @@ def createVG(root, vgname):
 
     # End block
 
+def getPVsInVG(vgname):
+    # Get PVs in a specific VG
+    pvs_ret = cmd_lvm([CMD_PVS, '--separator', ' ', '--noheadings', '-o', 'pv_name,vg_name'])
+    
+    # Parse each line to extract PV and VG information
+    # No need to handle exceptions here, return empty list if any error
+    pvs_in_vg = []
+    lines = pvs_ret.strip().split('\n')
+    for line in lines:
+        # To avoid invalid return format
+        parts = line.split()
+        if len(parts) != 2:
+            util.SMlog("Warning: Invalid or empty line in pvs output: %s" % line)
+            continue
+        pv, vg = parts
+        if vg == vgname:
+            pvs_in_vg.append(pv)
+    
+    util.SMlog("PVs in VG %s: %s" % (vgname, pvs_in_vg))
+    return pvs_in_vg
+
 def removeVG(root, vgname):
     # Check PVs match VG
     try:
@@ -542,9 +563,11 @@ def removeVG(root, vgname):
               opterr='error is %d' % inst.code)
 
     try:
+        # Get PVs in VG before removing the VG
+        devs_in_vg = getPVsInVG(vgname)
         cmd_lvm([CMD_VGREMOVE, vgname])
 
-        for dev in root.split(','):
+        for dev in devs_in_vg:
             cmd_lvm([CMD_PVREMOVE, dev])
     except util.CommandException as inst:
         raise xs_errors.XenError('LVMDelete', \
