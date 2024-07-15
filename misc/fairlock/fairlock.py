@@ -36,6 +36,7 @@ class Fairlock(metaclass=SingletonWithArgs):
         self.name = name
         self.sockname = os.path.join(SOCKDIR, name)
         self.connected = False
+        self.sock = None
 
     def _ensure_service(self):
         service=f"fairlock@{self.name}.service"
@@ -52,11 +53,16 @@ class Fairlock(metaclass=SingletonWithArgs):
             raise FairlockDeadlock(f"Deadlock on Fairlock resource '{self.name}'")
 
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.setblocking(True)
         try:
-            self.sock.connect(self.sockname)
+            ret = self.sock.connect(self.sockname)
+            # Merely being connected is not enough. Read a small blob of data.
+            read = self.sock.recv(10)
         except (FileNotFoundError, ConnectionRefusedError):
             self._ensure_service()
-            self.sock.connect(self.sockname)
+            ret = self.sock.connect(self.sockname)
+            # Merely being connected is not enough. Read a small blob of data.
+            read = self.sock.recv(10)
 
         self.sock.send(f'{os.getpid()} - {time.monotonic()}'.encode())
         self.connected = True
@@ -64,6 +70,7 @@ class Fairlock(metaclass=SingletonWithArgs):
 
     def __exit__(self, type, value, traceback):
         self.sock.close()
+        self.sock = None
         self.connected = False
         return False
 

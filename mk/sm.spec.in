@@ -237,5 +237,14 @@ Manager and some other packages
 %{_unitdir}/fairlock@.service
 %{_libexecdir}/fairlock
 
+%posttrans fairlock
+## On upgrade, shut down existing lock services so new ones will
+## be started. There should be no locks held during upgrade operations
+## so this is safe.
+if [ $1 -gt 1 ];
+then
+    systemctl stop $(systemctl list-units fairlock@* --all --no-legend | cut -d' ' -f1)
+fi
+
 %changelog
 
