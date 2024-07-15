@@ -5,6 +5,7 @@
 #include <sys/un.h>
 #include <errno.h>
 #include <syslog.h>
+#include <signal.h>
 
 int main(int argc, char *argv[]) {
      struct sockaddr_un addr;
@@ -32,6 +33,11 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "listen(64) failed on socket %s: %s", argv[1], strerror(errno));
         exit(1);
     }
+    /* We write 5 bytes to the connection when we get it from the client, but we do not
+     * care if the client ever reads this. If they don't, we will get a SIGPIPE when we
+     * close the socket, which we will ignore. */
+    signal(SIGPIPE, SIG_IGN);
+
     openlog("fairlock", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL2);
 
     /* Now we have a socket, enter an endless loop of:
@@ -51,9 +57,15 @@ int main(int argc, char *argv[]) {
     while (1) {
         while ((fd = accept(sock, NULL, NULL)) > -1) {
             char buffer[128];
+            ssize_t br;
 
             syslog(LOG_INFO, "%s acquired\n", argv[1]);
-            while (read(fd, buffer, sizeof(buffer)) > 0) {
+            /* We do not care about the return code of this write() and will ignore any
+             * SIGPIPE it might generate. The buffer is big enough that this will complete
+             * even though the socket is blocking */
+            write(fd, "LOCK", 5);
+            while ((br = read(fd, buffer, sizeof(buffer)-1)) > 0) {
+                buffer[br]='\0';
                 buffer[127]='\0';
                 syslog(LOG_INFO, "%s sent '%s'\n", argv[1], buffer);
             }
