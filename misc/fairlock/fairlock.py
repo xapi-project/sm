@@ -55,14 +55,14 @@ class Fairlock(metaclass=SingletonWithArgs):
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.sock.setblocking(True)
         try:
-            ret = self.sock.connect(self.sockname)
+            self.sock.connect(self.sockname)
             # Merely being connected is not enough. Read a small blob of data.
-            read = self.sock.recv(10)
+            self.sock.recv(10)
         except (FileNotFoundError, ConnectionRefusedError):
             self._ensure_service()
-            ret = self.sock.connect(self.sockname)
+            self.sock.connect(self.sockname)
             # Merely being connected is not enough. Read a small blob of data.
-            read = self.sock.recv(10)
+            self.sock.recv(10)
 
         self.sock.send(f'{os.getpid()} - {time.monotonic()}'.encode())
         self.connected = True
