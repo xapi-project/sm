@@ -2016,7 +2016,7 @@ class SR:
             if (self.its > self.GRACE_ITERATIONS and
                 (not res) and (curSize > maxSizeFromMin)):
                 self.reason = "Unexpected bump in size," \
-                              " compared to minimum acheived"
+                              " compared to minimum achieved"
                 res = True
 
             return res
@@ -2030,7 +2030,7 @@ class SR:
                      .format(size=self.startSize))
             Util.log("Final size was            {size}"
                      .format(size=self.finishSize))
-            Util.log("Minimum size acheived was {size}"
+            Util.log("Minimum size achieved was {size}"
                      .format(size=self.minSize))
 
     def _coalesceLeaf(self, vdi):
