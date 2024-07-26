@@ -1259,7 +1259,7 @@ class TestSR(unittest.TestCase):
                          "            {size}".format(size=finish))
         pos += 1
         self.assertEqual(FakeUtil.record[pos],
-                         "Minimum size acheived"
+                         "Minimum size achieved"
                          " was {size}".format(size=minimum))
         FakeUtil.record = []
         cleanup.Util = _before
@@ -1301,7 +1301,7 @@ class TestSR(unittest.TestCase):
             "Iteration: 2 -- Initial size 100 --> Final size 121",
         ]
         expectedReason = "Unexpected bump in size," \
-                         " compared to minimum acheived"
+                         " compared to minimum achieved"
         res = tracker.abortCoalesce(100, 100)
         self.assertFalse(res)
         res = tracker.abortCoalesce(100, 121)
