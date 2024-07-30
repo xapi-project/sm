@@ -27,6 +27,7 @@ import time
 import errno
 import glob
 import mpath_cli
+import traceback
 
 PREFIX_LEN = 4
 SUFFIX_LEN = 12
@@ -601,8 +602,7 @@ def refresh_lun_size_by_SCSIid(SCSIid):
                        "find any devices for the SCSIid." % SCSIid)
         return True
     except:
-        util.logException("Error in scsiutil.refresh_lun_size_by_SCSIid(%s)"
-                          % SCSIid)
+        util.logException(f"Error in scsiutil.refresh_lun_size_by_SCSIid({SCSIid}: {traceback.format_exc()})")
         return False
 
 
