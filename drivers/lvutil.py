@@ -704,6 +704,13 @@ def deactivateNoRefcount(path):
 
 @lvmretry
 def _deactivate(path):
+    # Records what is using the LVM path in case there is an issue.
+    # In most cases this should be nothing.
+    try:
+        (rc, stdout, stderr) = util.doexec(['/usr/sbin/fuser', "-v", path])
+        util.SMlog(f"fuser {path} => {rc} / '{stdout}' / '{stderr}'")
+    except:
+        pass
     text = cmd_lvm([CMD_LVCHANGE, "-an", path])
 
 
