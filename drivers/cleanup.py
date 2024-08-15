@@ -1957,7 +1957,7 @@ class SR:
         self.deleteVDI(vdi)
 
     class CoalesceTracker:
-        GRACE_ITERATIONS = 1
+        GRACE_ITERATIONS = 2
         MAX_ITERATIONS_NO_PROGRESS = 3
         MAX_ITERATIONS = 10
         MAX_INCREASE_FROM_MINIMUM = 1.2
@@ -1973,10 +1973,9 @@ class SR:
             self.startSize = None
             self.finishSize = None
             self.sr = sr
+            self.grace_remaining = self.GRACE_ITERATIONS
 
         def abortCoalesce(self, prevSize, curSize):
-            res = False
-
             self.its += 1
             self.history.append(self.HISTORY_STRING.format(its=self.its,
                                                            initSize=prevSize,
@@ -1993,33 +1992,38 @@ class SR:
             if prevSize < self.minSize:
                 self.minSize = prevSize
 
+            if self.its == 1:
+                # Skip evaluating conditions on first iteration
+                return False
+
             if prevSize < curSize:
                 self.itsNoProgress += 1
                 Util.log("No progress, attempt:"
                          " {attempt}".format(attempt=self.itsNoProgress))
                 util.fistpoint.activate("cleanup_tracker_no_progress", self.sr.uuid)
 
-            if (not res) and (self.its > self.MAX_ITERATIONS):
+            if self.its > self.MAX_ITERATIONS:
                 max = self.MAX_ITERATIONS
                 self.reason = \
                     "Max iterations ({max}) exceeded".format(max=max)
-                res = True
+                return True
 
-            if (not res) and (self.itsNoProgress >
-                              self.MAX_ITERATIONS_NO_PROGRESS):
+            if self.itsNoProgress > self.MAX_ITERATIONS_NO_PROGRESS:
                 max = self.MAX_ITERATIONS_NO_PROGRESS
                 self.reason = \
                     "No progress made for {max} iterations".format(max=max)
-                res = True
+                return True
 
             maxSizeFromMin = self.MAX_INCREASE_FROM_MINIMUM * self.minSize
-            if (self.its > self.GRACE_ITERATIONS and
-                (not res) and (curSize > maxSizeFromMin)):
-                self.reason = "Unexpected bump in size," \
-                              " compared to minimum achieved"
-                res = True
+            if curSize > maxSizeFromMin:
+                self.grace_remaining -= 1
+                if self.grace_remaining == 0:
+                    self.reason = "Unexpected bump in size," \
+                        " compared to minimum achieved"
 
-            return res
+                    return True
+
+            return False
 
         def printReasoning(self):
             Util.log("Aborted coalesce")
