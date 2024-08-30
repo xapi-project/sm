@@ -103,7 +103,8 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
         self.iscsiSRs = []
         self.iscsiSRs.append(iscsi)
         saved_exc = None
-        if self.dconf['target'].find(',') == 0 or self.dconf['targetIQN'] == "*":
+        targets = self.dconf['target'].split(',')
+        if len(targets) > 1 or self.dconf['targetIQN'] == "*":
             # Instantiate multiple sessions
             self.iscsiSRs = []
             if self.dconf['targetIQN'] == "*":
@@ -129,7 +130,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                     # IQNstring cannot be built with a dictionary iteration because of this
                     IQNstring = self.dconf['multiSession']
                 else:
-                    for tgt in self.dconf['target'].split(','):
+                    for tgt in targets:
                         try:
                             tgt_ip = util._convertDNS(tgt)
                         except:
