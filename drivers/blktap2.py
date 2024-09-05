@@ -1446,8 +1446,14 @@ class VDI(object):
         if 'paused' in sm_config:
             util.SMlog("Paused or host_ref key found [%s]" % sm_config)
             return False
-        self._session.xenapi.VDI.add_to_sm_config(
-            vdi_ref, 'activating', 'True')
+        try:
+            self._session.xenapi.VDI.add_to_sm_config(
+                vdi_ref, 'activating', 'True')
+        except XenAPI.Failure as e:
+            if e.details[0] == 'MAP_DUPLICATE_KEY' and not writable:
+                # Someone else is activating - a retry might succeed
+                return False
+            raise
         host_key = "host_%s" % host_ref
         assert host_key not in sm_config
         self._session.xenapi.VDI.add_to_sm_config(vdi_ref, host_key,

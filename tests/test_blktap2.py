@@ -11,6 +11,7 @@ import uuid
 import blktap2
 import util
 import xs_errors
+import XenAPI
 
 
 class BogusException(Exception):
@@ -334,6 +335,77 @@ class TestVDI(unittest.TestCase):
             [mock.call('vref1', 'host_href1'),
              mock.call('vref1', 'activating')],
             any_order=True)
+
+    @mock.patch('blktap2.time.sleep', autospec=True)
+    @mock.patch('blktap2.util.get_this_host', autospec=True)
+    @mock.patch('blktap2.VDI._attach', autospec=True)
+    @mock.patch('blktap2.VDI.PhyLink', autospec=True)
+    @mock.patch('blktap2.VDI.BackendLink', autospec=True)
+    @mock.patch('blktap2.VDI.NBDLink', autospec=True)
+    @mock.patch('blktap2.Tapdisk')
+    def test_activate_ro_already_activating_retry(
+            self, mock_tapdisk, mock_nbd_link, mock_backend,
+            mock_phy, mock_attach,
+            mock_this_host, mock_sleep):
+        """
+        If we're activating for read-only access, with someone else (let's
+        say, another host in the pool) also being in the process of
+        activating, should result in a retry.
+        """
+        mock_this_host.return_value = str(uuid.uuid4())
+
+        self.mock_session.xenapi.VDI.get_sm_config.return_value = {}
+        self.mock_session.xenapi.host.get_by_uuid.return_value = 'href1'
+        self.mock_session.xenapi.VDI.get_by_uuid.return_value = 'vref1'
+
+        self.mock_session.xenapi.VDI.add_to_sm_config.side_effect = [
+            XenAPI.Failure(['MAP_DUPLICATE_KEY', 'VDI', 'sm_config',
+                            'href1', 'activating']),
+            None,
+            None
+        ]
+
+        self.vdi.activate(self.sr_uuid, self.vdi_uuid, False, {})
+
+        self.mock_session.xenapi.VDI.add_to_sm_config.assert_has_calls(
+            [mock.call('vref1', 'activating', 'True'),
+             mock.call('vref1', 'activating', 'True'),
+             mock.call('vref1', 'host_href1', "RO")])
+        self.mock_session.xenapi.VDI.remove_from_sm_config.assert_has_calls(
+            [mock.call('vref1', 'activating')])
+
+    @mock.patch('blktap2.time.sleep', autospec=True)
+    @mock.patch('blktap2.util.get_this_host', autospec=True)
+    @mock.patch('blktap2.VDI._attach', autospec=True)
+    @mock.patch('blktap2.VDI.PhyLink', autospec=True)
+    @mock.patch('blktap2.VDI.BackendLink', autospec=True)
+    @mock.patch('blktap2.VDI.NBDLink', autospec=True)
+    @mock.patch('blktap2.Tapdisk')
+    def test_activate_rw_already_activating_fail(
+            self, mock_tapdisk, mock_nbd_link, mock_backend,
+            mock_phy, mock_attach,
+            mock_this_host, mock_sleep):
+        """
+        If we're activating for read-write access, with someone else (let's
+        say, another host in the pool) also being in the process of
+        activating, should result in a failure.
+        """
+        mock_this_host.return_value = str(uuid.uuid4())
+
+        self.mock_session.xenapi.VDI.get_sm_config.return_value = {}
+        self.mock_session.xenapi.host.get_by_uuid.return_value = 'href1'
+        self.mock_session.xenapi.VDI.get_by_uuid.return_value = 'vref1'
+
+        self.mock_session.xenapi.VDI.add_to_sm_config.side_effect = [
+            XenAPI.Failure(['MAP_DUPLICATE_KEY', 'VDI', 'sm_config',
+                            'href1', 'activating']),
+        ]
+
+        with self.assertRaises(xs_errors.SROSError) as srose:
+            self.vdi.activate(self.sr_uuid, self.vdi_uuid, True, {})
+
+        self.assertEqual(46, srose.exception.errno)
+        self.assertIn( 'MAP_DUPLICATE_KEY', str(srose.exception))
 
 
 class TestTapCtl(unittest.TestCase):
