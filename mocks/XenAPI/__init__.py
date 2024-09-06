@@ -1,6 +1,6 @@
 class Failure(Exception):
     def __init__(self, details):
-        pass
+        self.details = details
 
 def xapi_local():
     # Mock stub
