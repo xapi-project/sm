@@ -91,3 +91,15 @@ class TestSrHealthCheck(unittest.TestCase):
 
         # Assert
         mock_sr.check_sr.assert_called_with(SR_UUID)
+
+    def test_check_xapi_enabled_no(self):
+        # Arrange
+        self.mock_session.xenapi.host.get_record.return_value = {'enabled': False}
+        mock_sr = mock.create_autospec(SR)
+        self.mock_sr.from_uuid.return_value = mock_sr
+
+        # Act
+        sr_health_check.main()
+
+        # Assert
+        mock_sr.check_sr.assert_not_called()
