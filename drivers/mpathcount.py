@@ -199,6 +199,14 @@ def check_devconfig(devconfig, sm_config, config, remove, add, mpath_status=None
             else:
                 update_config(key, i, config[key], remove, add, mpath_status)
 
+
+def check_xapi_is_enabled(session, hostref):
+    host = session.xenapi.host.get_record(hostref)
+    if not host['enabled']:
+        util.SMlog("Xapi is not enabled, exiting")
+        mpc_exit(session, 0)
+
+
 if __name__ == '__main__':
     try:
         session = util.get_localAPI_session()
@@ -207,6 +215,7 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     localhost = session.xenapi.host.get_by_uuid(get_localhost_uuid())
+    check_xapi_is_enabled(session, localhost)
     # Check whether multipathing is enabled (either for root dev or SRs)
     try:
         if get_root_dev_major() != get_dm_major():
