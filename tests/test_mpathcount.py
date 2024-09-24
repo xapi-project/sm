@@ -209,3 +209,29 @@ class TestMpathCount(unittest.TestCase):
         # Assert
         mock_exit.assert_called_once_with(0)
         session.xenapi.session.logout.assert_called_once()
+
+    @mock.patch('mpathcount.sys.exit', autospec=True)
+    def test_check_xapi_enabled_yes(self, mock_exit):
+        # Arrange
+        session = mock.MagicMock()
+        session.xenapi.host.get_record.return_value = {'enabled': True}
+        hostref = mock.MagicMock()
+
+        # Act
+        mpathcount.check_xapi_is_enabled(session, hostref)
+
+        # Assert
+        mock_exit.assert_not_called()
+
+    @mock.patch('mpathcount.sys.exit', autospec=True)
+    def test_check_xapi_enabled_no(self, mock_exit):
+        # Arrange
+        session = mock.MagicMock()
+        session.xenapi.host.get_record.return_value = {'enabled': False}
+        hostref = mock.MagicMock()
+
+        # Act
+        mpathcount.check_xapi_is_enabled(session, hostref)
+
+        # Assert
+        mock_exit.assert_called_once_with(0)
