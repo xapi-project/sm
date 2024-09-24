@@ -24,6 +24,11 @@ import SR
 import util
 import xs_errors
 
+def check_xapi_is_enabled(session, hostref):
+    host = session.xenapi.host.get_record(hostref)
+    return host['enabled']
+
+
 def main():
     """
     For all locally plugged SRs check that they are healthy
@@ -36,6 +41,9 @@ def main():
 
     try:
         localhost = util.get_localhost_ref(session)
+        if not check_xapi_is_enabled(session, localhost):
+            # Xapi not enabled, skip and let the next timer trigger this
+            return
 
         sm_types = [x['type'] for x in session.xenapi.SM.get_all_records_where(
             'field "required_api_version" = "1.0"').values()]
