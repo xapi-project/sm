@@ -1,4 +1,5 @@
 import errno
+import signal
 import unittest
 import unittest.mock as mock
 
@@ -40,7 +41,8 @@ class AlwaysFreeLock(object):
 
 
 class TestRelease(object):
-    pass
+    def acquireNoblock(self):
+        return True
 
 
 class IrrelevantLock(object):
@@ -72,6 +74,9 @@ class TestSR(unittest.TestCase):
 
         self.addCleanup(mock.patch.stopall)
 
+    def tearDown(self):
+        cleanup.SIGTERM = False
+
     def setup_abort_flag(self, ipc_mock, should_abort=False):
         flag = mock.Mock()
         flag.test = mock.Mock(return_value=should_abort)
@@ -88,6 +93,26 @@ class TestSR(unittest.TestCase):
 
         cleanup.lockGCRunning = TestRelease()
         cleanup.lockGCRunning.release = mock.Mock(return_value=None)
+
+    def test_term_handler(self):
+        self.assertFalse(cleanup.SIGTERM)
+
+        cleanup.receiveSignal(signal.SIGTERM, None)
+
+        self.assertTrue(cleanup.SIGTERM)
+
+    @mock.patch('cleanup._create_init_file', autospec=True)
+    @mock.patch('cleanup.SR', autospec=True)
+    @mock.patch('cleanup._ensure_xapi_initialised', autospec=True)
+    def test_loop_exits_on_term(self, mock_init, mock_sr, mock_check_xapi):
+        # Set the term signel
+        cleanup.receiveSignal(signal.SIGTERM, None)
+        mock_session = mock.MagicMock(name='MockSession')
+        sr_uuid = str(uuid4())
+        self.mock_cleanup_locks()
+
+        # Trigger GC
+        cleanup.gc(mock_session, sr_uuid, inBackground=False)
 
     def test_lock_if_already_locked(self):
         """

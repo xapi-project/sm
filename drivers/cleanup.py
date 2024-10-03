@@ -82,9 +82,20 @@ N_RUNNING_AVERAGE = 10
 
 NON_PERSISTENT_DIR = '/run/nonpersistent/sm'
 
+# Signal Handler
+SIGTERM = False
+
 
 class AbortException(util.SMException):
     pass
+
+
+def receiveSignal(signalNumber, frame):
+    global SIGTERM
+
+    util.SMlog("GC: recieved SIGTERM")
+    SIGTERM = True
+    return
 
 
 ################################################################################
@@ -167,7 +178,7 @@ class Util:
                     if resultFlag.test("failure"):
                         resultFlag.clear("failure")
                         raise util.SMException("Child process exited with error")
-                    if abortTest() or abortSignaled:
+                    if abortTest() or abortSignaled or SIGTERM:
                         os.killpg(pid, signal.SIGKILL)
                         raise AbortException("Aborting due to signal")
                     if timeOut and _time() - startTime > timeOut:
@@ -2966,6 +2977,10 @@ def _gcLoop(sr, dryRun=False, immediate=False):
             "Garbage collection for SR %s" % sr.uuid)
         _gcLoopPause(sr, dryRun, immediate=immediate)
         while True:
+            if SIGTERM:
+                Util.log("Term requested")
+                return
+
             if not sr.xapi.isPluggedHere():
                 Util.log("SR no longer attached, exiting")
                 break
@@ -3191,6 +3206,9 @@ def gc(session, srUuid, inBackground, dryRun=False):
     6. If there is something to coalesce, coalesce one pair, then goto 3
     """
     Util.log("=== SR %s: gc ===" % srUuid)
+
+    signal.signal(signal.SIGTERM, receiveSignal)
+
     if inBackground:
         if daemonize():
             # we are now running in the background. Catch & log any errors
