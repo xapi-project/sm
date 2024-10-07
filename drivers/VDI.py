@@ -16,6 +16,7 @@
 # VDI: Base class for virtual disk instances
 #
 
+import cleanup
 import SR
 import xmlrpc.client
 import xs_errors
@@ -27,6 +28,7 @@ import base64
 from constants import CBTLOG_TAG
 from bitarray import bitarray
 import uuid
+
 
 SM_CONFIG_PASS_THROUGH_FIELDS = ["base_mirror", "key_hash"]
 
@@ -902,3 +904,14 @@ class VDI(object):
                                               alert_prio_warning,
                                               alert_obj, alert_uuid,
                                               alert_str)
+
+    def disable_leaf_on_secondary(self, vdi_uuid, secondary=None):
+        vdi_ref = self.session.xenapi.VDI.get_by_uuid(vdi_uuid)
+        self.session.xenapi.VDI.remove_from_other_config(
+            vdi_ref, cleanup.VDI.DB_LEAFCLSC)
+        if secondary is not None:
+            util.SMlog(f"We have secondary for {vdi_uuid}, "
+                       "blocking leaf coalesce")
+            self.session.xenapi.VDI.add_to_other_config(
+                vdi_ref, cleanup.VDI.DB_LEAFCLSC,
+                cleanup.VDI.LEAFCLSC_DISABLED)

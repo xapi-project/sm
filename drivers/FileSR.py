@@ -707,7 +707,7 @@ class FileVDI(VDI.VDI):
         vhdutil.killData(self.path)
 
     def _do_snapshot(self, sr_uuid, vdi_uuid, snap_type,
-                     secondary=None, cbtlog=None):
+                     _=False, secondary=None, cbtlog=None):
         # If cbt enabled, save file consistency state
         if cbtlog is not None:
             if blktap2.VDI.tap_status(self.session, vdi_uuid):
@@ -727,6 +727,7 @@ class FileVDI(VDI.VDI):
         try:
             return self._snapshot(snap_type, cbtlog, consistency_state)
         finally:
+            self.disable_leaf_on_secondary(vdi_uuid, secondary=secondary)
             blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
 
     def _rename(self, src, dst):

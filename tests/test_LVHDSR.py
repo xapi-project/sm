@@ -4,6 +4,7 @@ import unittest.mock as mock
 
 import uuid
 
+import cleanup
 import LVHDSR
 import lvhdutil
 import lvutil
@@ -423,3 +424,46 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         # Assert
         self.assertIsNotNone(snap)
         self.assertEqual(self.mock_cbtutil.set_cbt_child.call_count, 3)
+
+    @mock.patch('LVHDSR.Lock', autospec=True)
+    @mock.patch('SR.XenAPI')
+    def test_snapshot_secondary_success(self, mock_xenapi, mock_lock):
+        """
+        LVHDSR.snapshot, attached on host with secondary mirror
+        """
+        # Arrange
+        xapi_session = mock_xenapi.xapi_local.return_value
+        xapi_session.xenapi.VDI.get_sm_config.return_value = {}
+
+        vdi_ref = mock.MagicMock()
+        xapi_session.xenapi.VDI.get_by_uuid.return_value = vdi_ref
+        vdi_uuid = 'some VDI UUID'
+        self.get_dummy_vdi(vdi_uuid)
+        self.get_dummy_vhd(vdi_uuid, False)
+
+        sr = self.create_LVHDSR()
+        sr.isMaster = True
+        sr.legacyMode = False
+        sr.srcmd.params = {
+            'vdi_ref': 'test ref',
+            'driver_params': {
+                'type': 'double',
+                'mirror': 'nbd:mirror_vbd/5/xvda'}
+            }
+        sr.cmd = "vdi_snapshot"
+
+        vdi = sr.vdi('some VDI UUID')
+        vdi.vdi_type = vhdutil.VDI_TYPE_VHD
+        self.mock_sr_util.pathexists.return_value = True
+        self.mock_sr_util.get_hosts_attached_on.return_value = ["hostref2"]
+        self.mock_sr_util.get_this_host_ref.return_value = ["hostref1"]
+        self.mock_vhdutil.getDepth.return_value = 1
+
+        # Act
+        with mock.patch('lock.Lock'):
+            snap = vdi.snapshot(sr.uuid, "Dummy UUID")
+
+        # Assert
+        self.assertIsNotNone(snap)
+        xapi_session.xenapi.VDI.add_to_other_config.assert_called_once_with(
+            vdi_ref, cleanup.VDI.DB_LEAFCLSC, cleanup.VDI.LEAFCLSC_DISABLED)
