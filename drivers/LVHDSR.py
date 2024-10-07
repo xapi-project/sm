@@ -1656,6 +1656,7 @@ class LVHDVDI(VDI.VDI):
                 util.SMlog('WARNING: failed to clean up failed snapshot: '
                         '%s (error ignored)' % e2)
             raise
+        self.disable_leaf_on_secondary(vdi_uuid, secondary=secondary)
         blktap2.VDI.tap_unpause(self.session, sr_uuid, vdi_uuid, secondary)
         unpause_time = time.time()
         if (unpause_time - pause_time) > LONG_SNAPTIME:
