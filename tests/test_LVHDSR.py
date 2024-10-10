@@ -1,3 +1,4 @@
+import copy
 import os
 import unittest
 import unittest.mock as mock
@@ -247,6 +248,49 @@ class TestLVHDSR(unittest.TestCase, Stubs):
         mock_cmd_lvm.side_effect = cmd
         mock_scsi_get_size.return_value = device_size + (2 * 1024 * 1024 * 1024)
         sr.scan(sr.uuid)
+
+        # Find new VDI during scan
+        extended_vdi_data = copy.deepcopy(vdi_data)
+        extended_vdi_data.update({
+            'vdi3_ref': {
+                'uuid': str(uuid.uuid4()),
+                'name_label': "VDI3",
+                'name_description': "Third  VDI",
+                'is_a_snapshot': False,
+                'snapshot_of': None,
+                'snapshot_time': None,
+                'type': 'User',
+                'metadata-of-pool': None,
+                'sm-config': {
+                    'vdi_type': 'vhd'
+                }
+            }})
+        with mock.patch('LVHDSR.LVMMetadataHandler', autospec=True) as m, \
+             mock.patch('LVHDSR.vhdutil', autotspec=True) as v:
+            m.return_value.getMetadata.return_value = [
+                None, self.convert_vdi_to_meta(extended_vdi_data)]
+            v._getVHDParentNoCheck.return_value = None
+            sr.scan(sr.uuid)
+
+            lvm_cache = mock_lvm_cache.return_value
+            self.assertEqual(1, lvm_cache.activate.call_count)
+            self.assertEqual(1, lvm_cache.deactivate.call_count)
+
+    def convert_vdi_to_meta(self, vdi_data):
+        metadata = {}
+        for item in vdi_data.items():
+            metadata[item[0]] = {
+                'uuid': item[1]['uuid'],
+                'is_a_snapshot': item[1]['is_a_snapshot'],
+                'snapshot_of': item[1]['snapshot_of'],
+                'vdi_type': item[1]['sm-config']['vdi_type'],
+                'name_label': item[1]['name_label'],
+                'name_description': item[1]['name_description'],
+                'type': item[1]['type'],
+                'read_only': False,
+                'managed': True,
+            }
+        return metadata
 
 
 class TestLVHDVDI(unittest.TestCase, Stubs):

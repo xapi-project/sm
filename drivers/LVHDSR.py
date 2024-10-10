@@ -655,9 +655,8 @@ class LVHDSR(SR.SR):
         super(LVHDSR, self).forget_vdi(uuid)
 
     def scan(self, uuid):
-        activated = True
+        activated_lvs = set()
         try:
-            lvname = ''
             util.SMlog("LVHDSR.scan for %s" % self.uuid)
             if not self.isMaster:
                 util.SMlog('sr_scan blocked for non-master')
@@ -699,8 +698,9 @@ class LVHDSR(SR.SR):
                         sm_config['vdi_type'] = Dict[vdi][VDI_TYPE_TAG]
                         lvname = "%s%s" % \
                             (lvhdutil.LV_PREFIX[sm_config['vdi_type']], vdi_uuid)
-                        self.lvmCache.activateNoRefcount(lvname)
-                        activated = True
+                        self.lvActivator.activate(
+                            vdi_uuid, lvname, LVActivator.NORMAL)
+                        activated_lvs.add(vdi_uuid)
                         lvPath = os.path.join(self.path, lvname)
 
                         if Dict[vdi][VDI_TYPE_TAG] == vhdutil.VDI_TYPE_RAW:
@@ -799,8 +799,9 @@ class LVHDSR(SR.SR):
             self._kickGC()
 
         finally:
-            if lvname != '' and activated:
-                self.lvmCache.deactivateNoRefcount(lvname)
+            for vdi in activated_lvs:
+                self.lvActivator.deactivate(
+                    vdi, LVActivator.NORMAL, False)
 
     def update(self, uuid):
         if not lvutil._checkVG(self.vgname):
