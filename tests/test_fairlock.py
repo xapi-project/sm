@@ -23,6 +23,7 @@ class TestFairlock(unittest.TestCase):
         mock_sock = mock.MagicMock()
         self.mock_socket.socket.return_value = mock_sock
         mock_sock.connect.side_effect = [FileNotFoundError(), 0]
+        mock_sock.recv.side_effect = [b'Foop']
         self.mock_os.system.side_effect = [0, 1, 0]
         self.mock_time.time.side_effect = [0, 0, 0]
 
@@ -38,6 +39,7 @@ class TestFairlock(unittest.TestCase):
         mock_sock = mock.MagicMock()
         self.mock_socket.socket.return_value = mock_sock
         mock_sock.connect.side_effect = [FileNotFoundError(), 0]
+        mock_sock.recv.side_effect = [b'Foop']
         self.mock_os.system.side_effect = [0, 1, 1, 1, 0]
         self.mock_time.time.side_effect = [0, 1, 3]
 
@@ -53,6 +55,7 @@ class TestFairlock(unittest.TestCase):
         mock_sock = mock.MagicMock()
         self.mock_socket.socket.return_value = mock_sock
         mock_sock.connect.side_effect = [0]
+        mock_sock.recv.side_effect = [b'Foop']
 
         with Fairlock("test"):
             print("Hello World")
@@ -68,6 +71,8 @@ class TestFairlock(unittest.TestCase):
         self.mock_socket.socket.side_effect = [mock_sock1, mock_sock2]
         mock_sock1.connect.side_effect = [FileNotFoundError(), 0]
         mock_sock2.connect.side_effect = [FileNotFoundError(), 0]
+        mock_sock1.recv.side_effect = [b'Foop']
+        mock_sock2.recv.side_effect = [b'Foop']
         self.mock_os.system.side_effect = [0, 1, 0, 0, 1, 0]
         self.mock_time.time.side_effect = [0, 0, 0, 0, 0, 0]
 
@@ -81,15 +86,16 @@ class TestFairlock(unittest.TestCase):
         Test double usage of the same lock
         """
         mock_sock = mock.MagicMock()
-        self.mock_socket.socket.side_effect = [mock_sock]
+        self.mock_socket.socket.side_effect = [mock_sock]        
         mock_sock.connect.side_effect = [FileNotFoundError(), 0]
+        mock_sock.recv.side_effect = [b'Foop', b'Foop']
         self.mock_os.system.side_effect = [0, 1, 0, 0, 1, 0]
         self.mock_time.time.side_effect = [0, 0, 0, 0, 0, 0]
 
         with self.assertRaises(FairlockDeadlock) as err:
             with Fairlock("test") as l:
                 n = Fairlock("test")
-                self.assertEquals(l, n)
+                self.assertEqual(l, n)
                 # Real code would use another 'with Fairlock("test")' here but we cannot
                 # do that because it insists on having a code block as a body, which would
                 # then not be reached, causing a "Test code not fully covered" failure
