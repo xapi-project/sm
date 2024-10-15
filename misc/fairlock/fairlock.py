@@ -48,6 +48,18 @@ class Fairlock(metaclass=SingletonWithArgs):
             if time.time() > timeout:
                 raise FairlockServiceTimeout(f"Timed out starting service {service}")
 
+    def _connect_and_recv(self):
+        while True:
+            self.sock.connect(self.sockname)
+            # Merely being connected is not enough. Read a small blob of data.
+            b = self.sock.recv(10)
+            if len(b) > 0:
+                return True
+            # If we got a zero-length return, it means the service exited while we
+            # were waiting. Any timeout we put here would be a max wait time to acquire
+            # the lock, which is dangerous.
+            self._ensure_service()
+
     def __enter__(self):
         if self.connected:
             raise FairlockDeadlock(f"Deadlock on Fairlock resource '{self.name}'")
@@ -55,14 +67,10 @@ class Fairlock(metaclass=SingletonWithArgs):
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.sock.setblocking(True)
         try:
-            self.sock.connect(self.sockname)
-            # Merely being connected is not enough. Read a small blob of data.
-            self.sock.recv(10)
+            self._connect_and_recv()
         except (FileNotFoundError, ConnectionRefusedError):
             self._ensure_service()
-            self.sock.connect(self.sockname)
-            # Merely being connected is not enough. Read a small blob of data.
-            self.sock.recv(10)
+            self._connect_and_recv()
 
         self.sock.send(f'{os.getpid()} - {time.monotonic()}'.encode())
         self.connected = True
