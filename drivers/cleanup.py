@@ -2039,17 +2039,34 @@ class SR:
 
             return False
 
-        def printReasoning(self):
-            Util.log("Aborted coalesce")
-            for hist in self.history:
-                Util.log(hist)
-            Util.log(self.reason)
+        def printSizes(self):
             Util.log("Starting size was         {size}"
                      .format(size=self.startSize))
             Util.log("Final size was            {size}"
                      .format(size=self.finishSize))
             Util.log("Minimum size achieved was {size}"
                      .format(size=self.minSize))
+
+        def printReasoning(self):
+            Util.log("Aborted coalesce")
+            for hist in self.history:
+                Util.log(hist)
+            Util.log(self.reason)
+            self.printSizes()
+
+        def printSummary(self):
+            if self.its == 0:
+                return
+
+            if self.reason:
+                Util.log("Aborted coalesce")
+                Util.log(self.reason)
+            else:
+                Util.log("Coalesce summary")
+
+            Util.log(f"Performed {self.its} iterations")
+            self.printSizes()
+
 
     def _coalesceLeaf(self, vdi):
         """Leaf-coalesce VDI vdi. Return true if we succeed, false if we cannot
@@ -2064,6 +2081,7 @@ class SR:
                 tracker.printReasoning()
                 raise util.SMException("VDI {uuid} could not be coalesced"
                                        .format(uuid=vdi.uuid))
+        tracker.printSummary()
         return self._liveLeafCoalesce(vdi)
 
     def calcStorageSpeed(self, startTime, endTime, vhdSize):
