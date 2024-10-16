@@ -2012,6 +2012,9 @@ class SR:
                 Util.log("No progress, attempt:"
                          " {attempt}".format(attempt=self.itsNoProgress))
                 util.fistpoint.activate("cleanup_tracker_no_progress", self.sr.uuid)
+            else:
+                # We made progress
+                return False
 
             if self.its > self.MAX_ITERATIONS:
                 max = self.MAX_ITERATIONS
