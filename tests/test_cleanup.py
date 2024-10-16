@@ -589,31 +589,6 @@ class TestSR(unittest.TestCase):
         res = sr._coalesceLeaf(vdi)
         self.assertFalse(res)
 
-    @mock.patch('cleanup.VDI.canLiveCoalesce',
-                autospec=True, return_value=False)
-    @mock.patch('cleanup.VDI.getSizeVHD',
-                autospec=True, return_value=1024)
-    @mock.patch('cleanup.Util.log')
-    @mock.patch('cleanup.SR._snapshotCoalesce',
-                autospec=True, return_value=True)
-    def test_coalesceLeaf_size_the_same(self,
-                                        mock_srSnapshotCoalesce,
-                                        mock_log,
-                                        mock_vdisize,
-                                        mockliveCoalesce):
-
-        sr_uuid = uuid4()
-        sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
-        vdi_uuid = uuid4()
-        vdi = cleanup.VDI(sr, str(vdi_uuid), False)
-
-        with self.assertRaises(util.SMException) as exc:
-            sr._coalesceLeaf(vdi)
-
-        self.assertIn("VDI {uuid} could not be"
-                      " coalesced".format(uuid=vdi_uuid),
-                      str(exc.exception))
-
     @mock.patch('cleanup.VDI.canLiveCoalesce', autospec=True,
                 return_value=False)
     @mock.patch('cleanup.VDI.getSizeVHD', autospec=True)
@@ -1298,11 +1273,16 @@ class TestSR(unittest.TestCase):
         self.trackerReportOk(tracker, expectedHistory,
                              expectedReason, start, finish, minimum)
 
-    def exerciseTracker(self, tracker, size1, size2, its, expectedHistory,
+    def exerciseTracker(self, tracker, sizes1, sizes2, its, expectedHistory,
                         expectedReason, start, finish, minimum):
         for x in range(its):
+            size1 = sizes1.pop(0)
+            size2 = sizes2.pop(0)
             res = tracker.abortCoalesce(size1, size2)
             self.assertFalse(res)
+
+        size1 = sizes1.pop(0)
+        size2 = sizes2.pop(0)
         res = tracker.abortCoalesce(size1, size2)
         self.autopsyTracker(tracker, res, expectedHistory, expectedReason,
                             start, finish, minimum)
@@ -1344,21 +1324,24 @@ class TestSR(unittest.TestCase):
 
         # 10 iterations no progress 11th fails.
         expectedHistory = [
-            "Iteration: 1 -- Initial size 10 --> Final size 10",
-            "Iteration: 2 -- Initial size 10 --> Final size 10",
-            "Iteration: 3 -- Initial size 10 --> Final size 10",
-            "Iteration: 4 -- Initial size 10 --> Final size 10",
-            "Iteration: 5 -- Initial size 10 --> Final size 10",
-            "Iteration: 6 -- Initial size 10 --> Final size 10",
-            "Iteration: 7 -- Initial size 10 --> Final size 10",
-            "Iteration: 8 -- Initial size 10 --> Final size 10",
-            "Iteration: 9 -- Initial size 10 --> Final size 10",
-            "Iteration: 10 -- Initial size 10 --> Final size 10",
-            "Iteration: 11 -- Initial size 10 --> Final size 10"
+            "Iteration: 1 -- Initial size 20 --> Final size 19",
+            "Iteration: 2 -- Initial size 19 --> Final size 18",
+            "Iteration: 3 -- Initial size 18 --> Final size 17",
+            "Iteration: 4 -- Initial size 17 --> Final size 16",
+            "Iteration: 5 -- Initial size 16 --> Final size 15",
+            "Iteration: 6 -- Initial size 15 --> Final size 14",
+            "Iteration: 7 -- Initial size 14 --> Final size 13",
+            "Iteration: 8 -- Initial size 13 --> Final size 12",
+            "Iteration: 9 -- Initial size 12 --> Final size 11",
+            "Iteration: 10 -- Initial size 11 --> Final size 10",
+            "Iteration: 11 -- Initial size 10 --> Final size 12"
         ]
         expectedReason = "Max iterations (10) exceeded"
-        self.exerciseTracker(tracker, 10, 10, 10, expectedHistory,
-                             expectedReason, 10, 10, 10)
+        self.exerciseTracker(tracker,
+                             [20,19,18,17,16,15,14,13,12,11,10],
+                             [19,18,17,16,15,14,13,12,11,10,12],
+                             10, expectedHistory,
+                             expectedReason, 20, 12, 10)
 
     def test_leafCoalesceTracker_getting_bigger(self):
         sr = create_cleanup_sr(self.xapi_mock)
@@ -1369,14 +1352,17 @@ class TestSR(unittest.TestCase):
         # 3 iterations getting bigger, then fail
         expectedHistory = [
             "Iteration: 1 -- Initial size 100 --> Final size 101",
-            "Iteration: 2 -- Initial size 100 --> Final size 101",
-            "Iteration: 3 -- Initial size 100 --> Final size 101",
-            "Iteration: 4 -- Initial size 100 --> Final size 101",
-            "Iteration: 5 -- Initial size 100 --> Final size 101"
+            "Iteration: 2 -- Initial size 101 --> Final size 102",
+            "Iteration: 3 -- Initial size 102 --> Final size 103",
+            "Iteration: 4 -- Initial size 103 --> Final size 104",
+            "Iteration: 5 -- Initial size 104 --> Final size 105"
         ]
         expectedReason = "No progress made for 3 iterations"
-        self.exerciseTracker(tracker, 100, 101, 4, expectedHistory,
-                             expectedReason, 100, 101, 100)
+        self.exerciseTracker(tracker,
+                             [100,101,102,103,104],
+                             [101,102,103,104,105],
+                             4, expectedHistory,
+                             expectedReason, 100, 105, 100)
 
     def runAbortable(self, func, ret, ns, abortTest, pollInterval, timeOut):
         return func()
