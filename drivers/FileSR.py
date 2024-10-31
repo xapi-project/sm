@@ -803,7 +803,10 @@ class FileVDI(VDI.VDI):
                 "FileSR_fail_snap1",
                 self.__fist_enospace)
             util.ioretry(lambda: self._snap(tmpsrc, newsrcname))
-            self._rename(tmpsrc, src)
+            # SMB3 can return EACCES if we attempt to rename over the
+            # hardlink leaf too quickly after creating it.
+            util.ioretry(lambda: self._rename(tmpsrc, src),
+                         errlist=[errno.EIO, errno.EACCES])
             if snap_type == VDI.SNAPSHOT_DOUBLE:
                 # Fault injection site to fail the snapshot with ENOSPACE
                 util.fistpoint.activate_custom_fn(
