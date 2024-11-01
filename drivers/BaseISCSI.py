@@ -422,6 +422,10 @@ class BaseISCSISR(SR.SR):
                 self.mpathmodule.refresh(self.dconf['SCSIid'], 0)
             dev_path = os.path.join("/dev/disk/by-scsid", self.dconf['SCSIid'])
             if not os.path.exists(dev_path):
+                # LUN may have been added to the SAN since the session was created
+                iscsilib.refresh_luns(self.targetIQN, self.target)
+
+            if not os.path.exists(dev_path):
                 raise xs_errors.XenError('ConfigSCSIid')
 
             devs = os.listdir(dev_path)
