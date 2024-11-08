@@ -304,6 +304,10 @@ class XAPI:
         if self.sessionPrivate:
             self.session.xenapi.session.logout()
 
+    @property
+    def srRef(self):
+        return self._srRef
+
     def isPluggedHere(self):
         pbds = self.getAttachedPBDs()
         for pbdRec in pbds:
@@ -496,6 +500,7 @@ class VDI:
     DB_GC = "gc"
     DB_COALESCE = "coalesce"
     DB_LEAFCLSC = "leaf-coalesce"  # config key
+    DB_GC_NO_SPACE = "gc_no_space"
     LEAFCLSC_DISABLED = "false"  # set by user; means do not leaf-coalesce
     LEAFCLSC_FORCE = "force"     # set by user; means skip snap-coalesce
     LEAFCLSC_OFFLINE = "offline"  # set here for informational purposes: means
@@ -518,6 +523,7 @@ class VDI:
             DB_LEAFCLSC: XAPI.CONFIG_OTHER,
             DB_ONBOOT: XAPI.CONFIG_ON_BOOT,
             DB_ALLOW_CACHING: XAPI.CONFIG_ALLOW_CACHING,
+            DB_GC_NO_SPACE: XAPI.CONFIG_SM
     }
 
     LIVE_LEAF_COALESCE_MAX_SIZE = 20 * 1024 * 1024  # bytes
@@ -1579,6 +1585,55 @@ class SR:
         elif not self.xapi.isMaster():
             raise util.SMException("This host is NOT master, will not run")
 
+        self.no_space_candidates = {}
+
+    def msg_cleared(self, xapi_session, msg_ref):
+        try:
+            msg = xapi_session.xenapi.message.get_record(msg_ref)
+        except XenAPI.Failure:
+            return True
+
+        return msg is None
+
+    def check_no_space_candidates(self):
+        xapi_session = self.xapi.getSession()
+
+        msg_id = self.xapi.srRecord["sm_config"].get(VDI.DB_GC_NO_SPACE)
+        if self.no_space_candidates:
+            if msg_id is None or self.msg_cleared(xapi_session, msg_id):
+                util.SMlog("Could not coalesce due to a lack of space "
+                           f"in SR {self.uuid}")
+                msg_body = ("Unable to perform data coalesce due to a lack "
+                            f"of space in SR {self.uuid}")
+                msg_id = xapi_session.xenapi.message.create(
+                    'SM_GC_NO_SPACE',
+                    3,
+                    "SR",
+                    self.uuid,
+                    msg_body)
+                xapi_session.xenapi.SR.remove_from_sm_config(
+                    self.xapi.srRef, VDI.DB_GC_NO_SPACE)
+                xapi_session.xenapi.SR.add_to_sm_config(
+                    self.xapi.srRef, VDI.DB_GC_NO_SPACE, msg_id)
+
+            for candidate in self.no_space_candidates.values():
+                candidate.setConfig(VDI.DB_GC_NO_SPACE, msg_id)
+        elif msg_id is not None:
+            # Everything was coalescable, remove the message
+            xapi_session.xenapi.message.destroy(msg_id)
+
+    def clear_no_space_msg(self, vdi):
+        msg_id = None
+        try:
+            msg_id = vdi.getConfig(VDI.DB_GC_NO_SPACE)
+        except XenAPI.Failure:
+            pass
+
+        self.no_space_candidates.pop(vdi.uuid, None)
+        if msg_id is not None:
+            vdi.delConfig(VDI.DB_GC_NO_SPACE)
+
+
     def wait_for_plug(self):
         for _ in range(1, 10):
             time.sleep(2)
@@ -1664,8 +1719,10 @@ class SR:
                 spaceNeeded = c._calcExtraSpaceForCoalescing()
                 if spaceNeeded <= freeSpace:
                     Util.log("Coalesce candidate: %s (tree height %d)" % (c, h))
+                    self.clear_no_space_msg(c)
                     return c
                 else:
+                    self.no_space_candidates[c.uuid] = c
                     Util.log("No space to coalesce %s (free space: %d)" % \
                             (c, freeSpace))
         return None
@@ -1716,6 +1773,7 @@ class SR:
 
             if spaceNeeded <= freeSpace:
                 Util.log("Leaf-coalesce candidate: %s" % candidate)
+                self.clear_no_space_msg(candidate)
                 return candidate
             else:
                 Util.log("No space to leaf-coalesce %s (free space: %d)" % \
@@ -1723,7 +1781,8 @@ class SR:
                 if spaceNeededLive <= freeSpace:
                     Util.log("...but enough space if skip snap-coalesce")
                     candidate.setConfig(VDI.DB_LEAFCLSC,
-                            VDI.LEAFCLSC_OFFLINE)
+                                        VDI.LEAFCLSC_OFFLINE)
+                self.no_space_candidates[candidate.uuid] = candidate
 
         return None
 
@@ -3096,6 +3155,7 @@ def _gc(session, srUuid, dryRun=False, immediate=False):
     try:
         _gcLoop(sr, dryRun, immediate=immediate)
     finally:
+        sr.check_no_space_candidates()
         sr.cleanup()
         sr.logFilter.logState()
         del sr.xapi

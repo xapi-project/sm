@@ -2,6 +2,7 @@ import errno
 import signal
 import unittest
 import unittest.mock as mock
+import uuid
 
 from uuid import uuid4
 
@@ -12,6 +13,8 @@ import util
 import vhdutil
 
 import ipc
+
+import XenAPI
 
 
 class FakeFile(object):
@@ -71,6 +74,8 @@ class TestSR(unittest.TestCase):
         self.xapi_mock.srRecord = {'name_label': 'dummy'}
         self.xapi_mock.isPluggedHere.return_value = True
         self.xapi_mock.isMaster.return_value = True
+        self.mock_xapi_session = mock.MagicMock(name="MockSession")
+        self.xapi_mock.getSession.return_value = self.mock_xapi_session
 
         self.addCleanup(mock.patch.stopall)
 
@@ -93,6 +98,82 @@ class TestSR(unittest.TestCase):
 
         cleanup.lockGCRunning = TestRelease()
         cleanup.lockGCRunning.release = mock.Mock(return_value=None)
+
+    def test_check_no_space_candidates_none(self):
+        sr = create_cleanup_sr(self.xapi_mock)
+        sr.xapi.srRecord.update({
+            "sm_config": {}
+        })
+
+        sr.check_no_space_candidates()
+
+        self.mock_xapi_session.xenapi.message.create.assert_not_called()
+
+    def test_check_no_space_candidates_one_not_reported(self):
+        sr = create_cleanup_sr(self.xapi_mock)
+        vdi_uuid = str(uuid.uuid4())
+        mock_vdi = mock.MagicMock()
+        mock_vdi.uuid = vdi_uuid
+
+        sr.no_space_candidates = {
+            vdi_uuid: mock_vdi
+        }
+        sr.xapi.srRecord.update({
+            "sm_config": {}
+        })
+        self.mock_xapi_session.xenapi.VDI.get_other_config.return_value = {}
+        xapi_message = self.mock_xapi_session.xenapi.message
+        xapi_message.get_record.side_effect = XenAPI.Failure(
+            details='No such message')
+
+        sr.check_no_space_candidates()
+
+        self.mock_xapi_session.xenapi.message.create.assert_called_once_with(
+            'SM_GC_NO_SPACE', 3, 'SR', sr.uuid,
+            "Unable to perform data coalesce "
+            f"due to a lack of space in SR {sr.uuid}")
+
+    def test_check_no_space_candidates_one_already_reported(self):
+        sr = create_cleanup_sr(self.xapi_mock)
+        vdi_uuid = str(uuid.uuid4())
+        mock_vdi = mock.MagicMock()
+        mock_vdi.uuid = vdi_uuid
+
+        sr.no_space_candidates = {
+            vdi_uuid: mock_vdi
+        }
+        sr.xapi.srRecord.update({
+            "sm_config": {"gc_no_space": "dummy ref"}
+        })
+        self.mock_xapi_session.xenapi.VDI.get_other_config.return_value = {}
+        self.mock_xapi_session.xenapi.message.get_record.side_effect = {
+            'name': 'SM_GC_NO_SPACE'
+        }
+
+        sr.check_no_space_candidates()
+
+        self.mock_xapi_session.xenapi.message.create.assert_not_called()
+
+    def test_check_no_space_candidates_none_clear_message(self):
+        sr = create_cleanup_sr(self.xapi_mock)
+        vdi_uuid = str(uuid.uuid4())
+        mock_vdi = mock.MagicMock()
+        mock_vdi.uuid = vdi_uuid
+
+        sr.no_space_candidates = {}
+        sr.xapi.srRecord.update({
+            "sm_config": {"gc_no_space": "dummy ref"}
+        })
+        self.mock_xapi_session.xenapi.VDI.get_other_config.return_value = {}
+        self.mock_xapi_session.xenapi.message.get_record.side_effect = {
+            'name': 'SM_GC_NO_SPACE'
+        }
+
+        sr.check_no_space_candidates()
+
+        self.mock_xapi_session.xenapi.message.destroy.assert_called_once_with(
+            "dummy ref"
+        )
 
     def test_term_handler(self):
         self.assertFalse(cleanup.SIGTERM)
