@@ -89,7 +89,7 @@ class TestFairlock(unittest.TestCase):
         with self.assertRaises(FairlockDeadlock) as err:
             with Fairlock("test") as l:
                 n = Fairlock("test")
-                self.assertEquals(l, n)
+                self.assertEqual(l, n)
                 # Real code would use another 'with Fairlock("test")' here but we cannot
                 # do that because it insists on having a code block as a body, which would
                 # then not be reached, causing a "Test code not fully covered" failure
