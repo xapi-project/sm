@@ -1970,7 +1970,7 @@ class VDI(object):
             blktap = Blktap.allocate()
             child_options = copy.deepcopy(options)
             child_options["rdonly"] = False
-            child_options["lcache"] = False
+            child_options["lcache"] = (not scratch_mode)
             child_options["existing_prt"] = prt_tapdisk.minor
             child_options["secondary"] = secondary
             child_options["standby"] = scratch_mode
