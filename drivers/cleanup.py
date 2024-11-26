@@ -1177,6 +1177,11 @@ class FileVDI(VDI):
             raise util.SMException("os.unlink(%s) failed" % self.path)
         VDI.delete(self)
 
+    def getAllocatedSize(self):
+        if self._sizeAllocated == -1:
+            self._sizeAllocated = vhdutil.getAllocatedSize(self.path)
+        return self._sizeAllocated
+
 
 class LVHDVDI(VDI):
     """Object representing a VDI in an LVHD SR"""
