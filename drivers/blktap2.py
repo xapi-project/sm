@@ -1010,10 +1010,6 @@ class VDI(object):
         elif not ((self.target.vdi.sr.handles("nfs") or self.target.vdi.sr.handles("ext") or self.target.vdi.sr.handles("smb"))):
             self.__o_direct = True
             self.__o_direct_reason = "SR_NOT_SUPPORTED"
-        elif not (options.get("rdonly") or self.target.vdi.parent):
-            util.SMlog(self.target.vdi)
-            self.__o_direct = True
-            self.__o_direct_reason = "NO_RO_IMAGE"
         elif options.get("rdonly") and not self.target.vdi.parent:
             self.__o_direct = True
             self.__o_direct_reason = "RO_WITH_NO_PARENT"
