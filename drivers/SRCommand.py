@@ -240,7 +240,8 @@ class SRCommand:
 
         elif self.cmd == 'vdi_delete':
             if 'VDI_CONFIG_CBT' in util.sr_get_capability(
-                                        self.params['sr_uuid']):
+                    self.params['sr_uuid'],
+                    session=sr.session):
                 return target.delete(self.params['sr_uuid'],
                                      self.vdi_uuid, data_only=False)
             else:

@@ -98,7 +98,7 @@ def do_trim(session, args):
     sr_uuid = args["sr_uuid"]
     os.environ['LVM_SYSTEM_DIR'] = MASTER_LVM_CONF
 
-    if TRIM_CAP not in util.sr_get_capability(sr_uuid):
+    if TRIM_CAP not in util.sr_get_capability(sr_uuid, session=session):
         util.SMlog("Trim command ignored on unsupported SR %s" % sr_uuid)
         err_msg = {ERROR_CODE_KEY: 'UnsupportedSRForTrim',
                    ERROR_MSG_KEY: 'Trim on [%s] not supported' % sr_uuid}

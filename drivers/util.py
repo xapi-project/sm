@@ -375,9 +375,13 @@ def ioretry_stat(path, maxretry=IORETRY_MAX):
     raise CommandException(errno.EIO, "os.statvfs")
 
 
-def sr_get_capability(sr_uuid):
+def sr_get_capability(sr_uuid, session=None):
     result = []
-    session = get_localAPI_session()
+    local_session = None
+    if session is None:
+        local_session = get_localAPI_session()
+        session = local_session
+
     try:
         sr_ref = session.xenapi.SR.get_by_uuid(sr_uuid)
         sm_type = session.xenapi.SR.get_record(sr_ref)['type']
@@ -390,7 +394,8 @@ def sr_get_capability(sr_uuid):
 
         return result
     finally:
-        session.xenapi.session.logout()
+        if local_session:
+            local_session.xenapi.session.logout()
 
 def sr_get_driver_info(driver_info):
     results = {}
