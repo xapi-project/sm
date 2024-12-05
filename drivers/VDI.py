@@ -812,7 +812,8 @@ class VDI(object):
             uuid = self.uuid
         if self.vdi_type == vhdutil.VDI_TYPE_RAW:
             return False
-        elif 'VDI_CONFIG_CBT' not in util.sr_get_capability(self.sr.uuid):
+        elif 'VDI_CONFIG_CBT' not in util.sr_get_capability(
+                self.sr.uuid, session=self.sr.session):
             return False
         logpath = self._get_cbt_logpath(uuid)
         return self._cbt_log_exists(logpath)
