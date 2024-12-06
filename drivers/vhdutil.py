@@ -94,6 +94,11 @@ def ioretry(cmd, text=True):
                         errlist=[errno.EIO, errno.EAGAIN])
 
 
+def convertAllocatedSizeToBytes(size):
+    # Assume we have standard 2MB allocation blocks
+    return size * 2 * 1024 * 1024
+
+
 def getVHDInfo(path, extractUuidFunction, includeParent=True):
     """Get the VHD info. The parent info may optionally be omitted: vhd-util
     tries to verify the parent by opening it, which results in error if the VHD
@@ -115,7 +120,7 @@ def getVHDInfo(path, extractUuidFunction, includeParent=True):
             vhdInfo.parentUuid = extractUuidFunction(fields[nextIndex])
         nextIndex += 1
     vhdInfo.hidden = int(fields[nextIndex].replace("hidden: ", ""))
-    vhdInfo.sizeAllocated = int(fields[nextIndex+1])
+    vhdInfo.sizeAllocated = convertAllocatedSizeToBytes(int(fields[nextIndex+1]))
     vhdInfo.path = path
     return vhdInfo
 
@@ -274,8 +279,7 @@ def setSizePhys(path, size, debug=True):
 def getAllocatedSize(path):
     cmd = [VHD_UTIL, "query", OPT_LOG_ERR, '-a', '-n', path]
     ret = ioretry(cmd)
-    # Assume we have standard 2MB allocation blocks
-    return int(ret) * 2 * 1024 * 1024
+    return convertAllocatedSizeToBytes(int(ret))
 
 def killData(path):
     "zero out the disk (kill all data inside the VHD file)"
