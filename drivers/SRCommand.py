@@ -17,11 +17,13 @@
 #
 # SRCommand: parse SR command-line objects
 #
+import traceback
 
 import XenAPI # pylint: disable=import-error
 import sys
 import xs_errors
 import xmlrpc.client
+from xmlrpc.client import ProtocolError
 import SR
 import util
 import blktap2
@@ -390,6 +392,14 @@ def run(driver, driver_info):
         else:
             print(ret)
 
+    except ProtocolError:
+        # xs_errors.XenError.__new__ returns a different class
+        # pylint: disable-msg=E1101
+        exception_trace = traceback.format_exc()
+        util.SMlog(f'XenAPI Protocol error {exception_trace}')
+        print(xs_errors.XenError(
+            'APIProtocolError',
+            opterr=exception_trace).toxml())
     except (Exception, xs_errors.SRException) as e:
         try:
             util.logException(driver_info['name'])

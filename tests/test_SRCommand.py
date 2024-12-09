@@ -1,6 +1,9 @@
 import unittest
 import unittest.mock as mock
+import uuid
+import xmlrpc.client
 
+import SR
 import SRCommand
 
 
@@ -122,6 +125,39 @@ class TestStandaloneFunctions(unittest.TestCase):
         mock_driver = mock.Mock(side_effect=SomeException)
 
         SRCommand.run(mock_driver, DRIVER_INFO)
+
+    @mock.patch("sys.exit", autospec=True)
+    @mock.patch('util.logException', autospec=True)
+    @mock.patch('SRCommand.SRCommand', autospec=True)
+    def test_run_reports_protocol_error(
+            self,
+            mock_sr_command,
+            mock_logException,
+            mock_exit):
+
+        """
+        If XenAPI raises a protocol error convert to error code
+        """
+        from DummySR import DRIVER_INFO
+
+        def raise_error(sr):
+            raise xmlrpc.client.ProtocolError(
+                'XapiUrl', 500,
+                'Internal Error', {})
+
+        # Create function to raise exception in SRCommand.run()
+        mock_cmd = mock.MagicMock()
+        mock_cmd.run.side_effect = raise_error
+        mock_cmd.sr_uuid = str(uuid.uuid4())
+        mock_sr_command.return_value = mock_cmd
+
+        mock_driver = mock.MagicMock(autospec=SR.SR)
+
+        with mock.patch('builtins.print') as mock_print:
+            SRCommand.run(mock_driver, DRIVER_INFO)
+
+        self.assertIn('<value><int>154</int></value>',
+                      mock_print.call_args[0][0])
 
     @mock.patch("os.fsencode",
                 new=lambda s: s.encode("ascii", "surrogateescape"))
