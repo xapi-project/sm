@@ -362,3 +362,43 @@ class TestVhdUtil(unittest.TestCase):
 
         # Act/Assert
         self.assertEqual(25, vhdutil.coalesce(TEST_VHD_PATH))
+
+    @testlib.with_context
+    def test_get_vhd_info_allocated_size(self, context):
+        """
+        Test that vhdutil.getVHDInfo return the allocated size in byte
+        """
+        # Arrange
+        def test_function(args, inp):
+            return 0, "51200\n39621239296\nd90f890c-d173-4eaf-ba09-fc2d6e50f6c0.vhd has no parent\nhidden: 0\n18856", ""
+
+        context.add_executable(VHD_UTIL, test_function)
+        import FileSR
+        vhdinfo = vhdutil.getVHDInfo(TEST_VHD_PATH, FileSR.FileVDI.extractUuid)
+
+        # Act/Assert
+        self.assertEqual(18856*2*1024*1024 , vhdinfo.sizeAllocated)
+
+    @testlib.with_context
+    def test_get_allocated_size(self, context):
+        """
+        Test that vhdutil.getAllocatedSize return the size in byte
+        """
+        # Arrange
+        call_args = None
+        def test_function(args, inp):
+            nonlocal call_args
+            call_args = args
+            return 0, b"18856", b""
+
+        context.add_executable(VHD_UTIL, test_function)
+
+        # Act
+        result = vhdutil.getAllocatedSize(TEST_VHD_NAME)
+
+        # Assert
+        self.assertEqual(18856*2*1024*1024, result)
+        self.assertEqual(
+            [VHD_UTIL, "query", "--debug", "-a",
+             "-n", TEST_VHD_NAME],
+            call_args)
