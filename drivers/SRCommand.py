@@ -182,12 +182,16 @@ class SRCommand:
         dconf_type = sr.dconf.get("type")
         if not dconf_type or not NO_LOGGING.get(dconf_type) or \
                 self.cmd not in NO_LOGGING[dconf_type]:
-            if 'device_config' in self.params:
-                util.SMlog("%s %s" % (
-                    self.cmd, util.hidePasswdInParams(
-                        self.params, 'device_config')))
-            else:
-                util.SMlog("%s %s" % (self.cmd, repr(self.params)))
+            params_to_log = self.params
+
+            if 'device_config' in params_to_log:
+                params_to_log = util.hidePasswdInParams(
+                    self.params, 'device_config')
+
+            if 'session_ref' in params_to_log:
+                params_to_log['session_ref'] = '******'
+
+            util.SMlog("%s %s" % (self.cmd, repr(params_to_log)))
 
         caching_params = dict((k, self.params.get(k)) for k in
                               [blktap2.VDI.CONF_KEY_ALLOW_CACHING,
