@@ -213,7 +213,7 @@ class TapCtl(object):
         return cls(cmd, p)
 
     def _errmsg(self):
-        output = map(str.rstrip, self._p.stderr)
+        output = (line.rstrip() if isinstance(line, str) else line.decode('utf-8').rstrip() for line in self._p.stderr)
         return "; ".join(output)
 
     def _wait(self, quiet=False):
