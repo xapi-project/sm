@@ -56,8 +56,6 @@ SOCKPATH = "/var/xapi/xcp-rrdd"
 
 NUM_PAGES_PER_RING = 32 * 11
 MAX_FULL_RINGS = 8
-POOL_NAME_KEY = "mem-pool"
-POOL_SIZE_KEY = "mem-pool-size-rings"
 
 ENABLE_MULTIPLE_ATTACH = "/etc/xensource/allow_multiple_vdi_attach"
 NO_MULTIPLE_ATTACH = not (os.path.exists(ENABLE_MULTIPLE_ATTACH))
@@ -572,7 +570,6 @@ class Blktap(ClassDevice):
 
     def __init__(self, minor):
         self.minor = minor
-        self._pool = None
         self._task = None
 
     @classmethod
@@ -592,29 +589,6 @@ class Blktap(ClassDevice):
 
     def sysfs_devname(self):
         return "blktap!blktap%d" % self.minor
-
-    class Pool(Attribute):
-        SYSFS_NODENAME = "pool"
-
-    def get_pool_attr(self):
-        if not self._pool:
-            self._pool = self.Pool.from_kobject(self)
-        return self._pool
-
-    def get_pool_name(self):
-        return self.get_pool_attr().readline()
-
-    def set_pool_name(self, name):
-        self.get_pool_attr().writeline(name)
-
-    def set_pool_size(self, pages):
-        self.get_pool().set_size(pages)
-
-    def get_pool(self):
-        return BlktapControl.get_pool(self.get_pool_name())
-
-    def set_pool(self, pool):
-        self.set_pool_name(pool.name)
 
     class Task(Attribute):
         SYSFS_NODENAME = "task"
@@ -1231,7 +1205,7 @@ class VDI(object):
 
 
     @staticmethod
-    def _tap_activate(phy_path, vdi_type, sr_uuid, options, pool_size=None):
+    def _tap_activate(phy_path, vdi_type, sr_uuid, options):
 
         tapdisk = Tapdisk.find_by_path(phy_path)
         if not tapdisk:
@@ -1416,41 +1390,6 @@ class VDI(object):
         else:
             util.SMlog("_remove_tag: host key %s not found, ignore" % host_key)
 
-    def _get_pool_config(self, pool_name):
-        pool_info = dict()
-        vdi_ref = self.target.vdi.sr.srcmd.params.get('vdi_ref')
-        if not vdi_ref:
-            # attach_from_config context: HA disks don't need to be in any
-            # special pool
-            return pool_info
-
-        sr_ref = self.target.vdi.sr.srcmd.params.get('sr_ref')
-        sr_config = self._session.xenapi.SR.get_other_config(sr_ref)
-        vdi_config = self._session.xenapi.VDI.get_other_config(vdi_ref)
-        pool_size_str = sr_config.get(POOL_SIZE_KEY)
-        pool_name_override = vdi_config.get(POOL_NAME_KEY)
-        if pool_name_override:
-            pool_name = pool_name_override
-            pool_size_override = vdi_config.get(POOL_SIZE_KEY)
-            if pool_size_override:
-                pool_size_str = pool_size_override
-        pool_size = 0
-        if pool_size_str:
-            try:
-                pool_size = int(pool_size_str)
-                if pool_size < 1 or pool_size > MAX_FULL_RINGS:
-                    raise ValueError("outside of range")
-                pool_size = NUM_PAGES_PER_RING * pool_size
-            except ValueError:
-                util.SMlog("Error: invalid mem-pool-size %s" % pool_size_str)
-                pool_size = 0
-
-        pool_info["mem-pool"] = pool_name
-        if pool_size:
-            pool_info["mem-pool-size"] = str(pool_size)
-
-        return pool_info
-
     def linkNBD(self, sr_uuid, vdi_uuid):
         if self.tap:
             nbd_path = '/run/blktap-control/nbd%d.%d' % (int(self.tap.pid),
@@ -1459,7 +1398,6 @@ class VDI(object):
 
     def attach(self, sr_uuid, vdi_uuid, writable, activate=False, caching_params={}):
         """Return attach details to allow access to storage datapath"""
-        self.xenstore_data.update(self._get_pool_config(sr_uuid))
         if not self.target.has_cap("ATOMIC_PAUSE") or activate:
             util.SMlog("Attach & activate")
             self._attach(sr_uuid, vdi_uuid)
@@ -1610,8 +1548,7 @@ class VDI(object):
                 if vdi_options:
                     options.update(vdi_options)
                 dev_path, self.tap = self._tap_activate(phy_path, vdi_type,
-                        sr_uuid, options,
-                        self._get_pool_config(sr_uuid).get("mem-pool-size"))
+                        sr_uuid, options)
             else:
                 dev_path = phy_path  # Just reuse phy
 
@@ -1854,9 +1791,6 @@ class VDI(object):
 
             blktap = Blktap.allocate()
             try:
-                blktap.set_pool_name("lcache-parent-pool-%s" % blktap.minor)
-                # no need to change pool_size since each parent tapdisk is in
-                # its own pool
                 prt_tapdisk = \
                     Tapdisk.launch_on_tap(blktap, read_cache_path,
                             'vhd', parent_options)
@@ -2042,73 +1976,12 @@ class __BlktapControl(ClassDevice):
 
     def __init__(self):
         ClassDevice.__init__(self)
-        self._default_pool = None
 
     def sysfs_devname(self):
         return "blktap!control"
 
-    class DefaultPool(Attribute):
-        SYSFS_NODENAME = "default_pool"
-
-    def get_default_pool_attr(self):
-        if not self._default_pool:
-            self._default_pool = self.DefaultPool.from_kobject(self)
-        return self._default_pool
-
-    def get_default_pool_name(self):
-        return self.get_default_pool_attr().readline()
-
-    def set_default_pool_name(self, name):
-        self.get_default_pool_attr().writeline(name)
-
-    def get_default_pool(self):
-        return BlktapControl.get_pool(self.get_default_pool_name())
-
-    def set_default_pool(self, pool):
-        self.set_default_pool_name(pool.name)
-
-    class NoSuchPool(Exception):
-        def __init__(self, name):
-            self.name = name
-
-        def __str__(self):
-            return "No such pool: {}".format(self.name)
-
-    def get_pool(self, name):
-        path = "%s/pools/%s" % (self.sysfs_path(), name)
-
-        if not os.path.isdir(path):
-            raise self.NoSuchPool(name)
-
-        return PagePool(path)
 
 BlktapControl = __BlktapControl()
-
-
-class PagePool(KObject):
-
-    def __init__(self, path):
-        self.path = path
-        self._size = None
-
-    def sysfs_path(self):
-        return self.path
-
-    class Size(Attribute):
-        SYSFS_NODENAME = "size"
-
-    def get_size_attr(self):
-        if not self._size:
-            self._size = self.Size.from_kobject(self)
-        return self._size
-
-    def set_size(self, pages):
-        pages = str(pages)
-        self.get_size_attr().writeline(pages)
-
-    def get_size(self):
-        pages = self.get_size_attr().readline()
-        return int(pages)
 
 
 class BusDevice(KObject):
@@ -2747,10 +2620,6 @@ if __name__ == '__main__':
             for tapdisk in Tapdisk.list( ** attrs):
                 blktap = tapdisk.get_blktap()
                 print(tapdisk, end=' ')
-                print("%s: task=%s pool=%s" % \
-                    (blktap,
-                     blktap.get_task_pid(),
-                     blktap.get_pool_name()))
 
         elif cmd == 'tap.vbds':
             # Find all Blkback instances for a given tapdisk
