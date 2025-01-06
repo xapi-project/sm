@@ -1556,12 +1556,12 @@ class VDI(object):
                   'xenstore_data': self.xenstore_data}
         util.SMlog('result: %s' % struct)
 
-        try:
-            f = open("%s.attach_info" % back_path, 'a')
-            f.write(xmlrpc.client.dumps((struct, ), "", True))
-            f.close()
-        except:
-            pass
+        # try:
+        #     f = open("%s.attach_info" % back_path, 'a')
+        #     f.write(xmlrpc.client.dumps((struct, ), "", True))
+        #     f.close()
+        # except:
+        #     pass
 
         return xmlrpc.client.dumps((struct, ), "", True)
 
@@ -1753,11 +1753,11 @@ class VDI(object):
             util.SMlog("Backend path %s does not exist" % back_link.path())
             return
 
-        try:
-            attach_info_path = "%s.attach_info" % (back_link.path())
-            os.unlink(attach_info_path)
-        except:
-            util.SMlog("unlink of attach_info failed")
+        # try:
+        #     attach_info_path = "%s.attach_info" % (back_link.path())
+        #     os.unlink(attach_info_path)
+        # except:
+        #     util.SMlog("unlink of attach_info failed")
 
         try:
             major, minor = back_link.rdev()
