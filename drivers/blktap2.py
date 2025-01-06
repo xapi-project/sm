@@ -566,6 +566,7 @@ class ClassDevice(KObject):
 class Blktap(ClassDevice):
 
     DEV_BASEDIR = '/dev/xen/blktap-2'
+    TAP_MINOR_BASE = '/run/blktap-control/tapdisk'
 
     SYSFS_CLASSTYPE = "blktap2"
 
@@ -813,10 +814,7 @@ class Tapdisk(object):
                 try:
                     TapCtl.open(pid, minor, _type, path, options)
                     try:
-                        tapdisk = cls.__from_blktap(blktap)
-                        node = '/sys/dev/block/%d:%d' % (tapdisk.major(), tapdisk.minor)
-                        util.set_scheduler_sysfs_node(node, ['none', 'noop'])
-                        return tapdisk
+                        return cls.__from_blktap(blktap)
                     except:
                         TapCtl.close(pid, minor)
                         raise
@@ -944,14 +942,14 @@ class Tapdisk(object):
 
     @staticmethod
     def _parse_minor(devpath):
-        regex = r'%s/(blktap|tapdev)(\d+)$' % Blktap.DEV_BASEDIR
+        regex = r'%s/tapdisk-(\d+)$' % Blktap.TAP_MINOR_BASE
         pattern = re.compile(regex)
         groups = pattern.search(devpath)
         if not groups:
             raise Exception("malformed tap device: '%s' (%s) " % (devpath, regex))
 
-        minor = groups.group(2)
-        return int(minor)
+        minor = int(groups.group(1))
+        return minor
 
     _major = None
 
@@ -1214,86 +1212,23 @@ class VDI(object):
         def _equals(self, target):
             return self.readlink() == target
 
-    class DeviceNode(Link):
-        """Relink a block device node to a common name"""
-
-        @classmethod
-        def _real_stat(cls, target):
-            """stat() not on @target, but its realpath()"""
-            _target = os.path.realpath(target)
-            return os.stat(_target)
-
-        @classmethod
-        def is_block(cls, target):
-            """Whether @target refers to a block device."""
-            return S_ISBLK(cls._real_stat(target).st_mode)
-
-        def _mklink(self, target):
-
-            st = self._real_stat(target)
-            if not S_ISBLK(st.st_mode):
-                raise self.NotABlockDevice(target, st)
-
-            # set group read for disk group as well as root
-            os.mknod(self.path(), st.st_mode | stat.S_IRGRP, st.st_rdev)
-            os.chown(self.path(), st.st_uid, grp.getgrnam("disk").gr_gid)
-
-        def _equals(self, target):
-            target_rdev = self._real_stat(target).st_rdev
-            return self.stat().st_rdev == target_rdev
-
-        def rdev(self):
-            st = self.stat()
-            assert S_ISBLK(st.st_mode)
-            return os.major(st.st_rdev), os.minor(st.st_rdev)
-
-        class NotABlockDevice(Exception):
-
-            def __init__(self, path, st):
-                self.path = path
-                self.st = st
-
-            def __str__(self):
-                return "%s is not a block device: %s" % (self.path, self.st)
-
-    class Hybrid(Link):
-
-        def __init__(self, path):
-            VDI.Link.__init__(self, path)
-            self._devnode = VDI.DeviceNode(path)
-            self._symlink = VDI.SymLink(path)
-
-        def rdev(self):
-            st = self.stat()
-            if S_ISBLK(st.st_mode):
-                return self._devnode.rdev()
-            raise self._devnode.NotABlockDevice(self.path(), st)
-
-        def mklink(self, target):
-            if self._devnode.is_block(target):
-                self._obj = self._devnode
-            else:
-                self._obj = self._symlink
-            self._obj.mklink(target)
-
-        def _equals(self, target):
-            return self._obj._equals(target)
 
     class PhyLink(SymLink):
         BASEDIR = "/dev/sm/phy"
-    # NB. Cannot use DeviceNodes, e.g. FileVDIs aren't bdevs.
+
 
     class NBDLink(SymLink):
 
         BASEDIR = "/run/blktap-control/nbd"
 
-    class BackendLink(Hybrid):
-        BASEDIR = "/dev/sm/backend"
-    # NB. Could be SymLinks as well, but saving major,minor pairs in
-    # Links enables neat state capturing when managing Tapdisks.  Note
-    # that we essentially have a tap-ctl list replacement here. For
-    # now make it a 'Hybrid'. Likely to collapse into a DeviceNode as
-    # soon as ISOs are tapdisks.
+        def read_minor_from_path(self):
+            regex = r'.*/nbd\d+.(\d+)$'
+            match = re.search(regex, os.path.realpath(self._path))
+            if not match:
+                raise Exception("Failed to parse minor from %s" % self._path)
+
+            return int(match.group(1))
+
 
     @staticmethod
     def _tap_activate(phy_path, vdi_type, sr_uuid, options, pool_size=None):
@@ -1301,9 +1236,6 @@ class VDI(object):
         tapdisk = Tapdisk.find_by_path(phy_path)
         if not tapdisk:
             blktap = Blktap.allocate()
-            blktap.set_pool_name(sr_uuid)
-            if pool_size:
-                blktap.set_pool_size(pool_size)
 
             try:
                 tapdisk = \
@@ -1526,18 +1458,16 @@ class VDI(object):
             VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid).mklink(nbd_path)
 
     def attach(self, sr_uuid, vdi_uuid, writable, activate=False, caching_params={}):
-        """Return/dev/sm/backend symlink path"""
+        """Return attach details to allow access to storage datapath"""
         self.xenstore_data.update(self._get_pool_config(sr_uuid))
         if not self.target.has_cap("ATOMIC_PAUSE") or activate:
             util.SMlog("Attach & activate")
             self._attach(sr_uuid, vdi_uuid)
             dev_path = self._activate(sr_uuid, vdi_uuid,
                     {"rdonly": not writable})
-            self.BackendLink.from_uuid(sr_uuid, vdi_uuid).mklink(dev_path)
             self.linkNBD(sr_uuid, vdi_uuid)
 
-        # Return backend/ link
-        back_path = self.BackendLink.from_uuid(sr_uuid, vdi_uuid).path()
+        # Return NBD link
         if self.tap_wanted():
             # Only have NBD if we also have a tap
             nbd_path = "nbd:unix:{}:exportname={}".format(
@@ -1554,13 +1484,6 @@ class VDI(object):
                   'o_direct_reason': o_direct_reason,
                   'xenstore_data': self.xenstore_data}
         util.SMlog('result: %s' % struct)
-
-        # try:
-        #     f = open("%s.attach_info" % back_path, 'a')
-        #     f.write(xmlrpc.client.dumps((struct, ), "", True))
-        #     f.close()
-        # except:
-        #     pass
 
         return xmlrpc.client.dumps((struct, ), "", True)
 
@@ -1671,7 +1594,6 @@ class VDI(object):
             util.SMlog("Removed activating flag from %s" % vdi_uuid)
 
         # Link result to backend/
-        self.BackendLink.from_uuid(sr_uuid, vdi_uuid).mklink(dev_path)
         self.linkNBD(sr_uuid, vdi_uuid)
         return True
 
@@ -1743,33 +1665,19 @@ class VDI(object):
             pass  # nothing to do
 
     def _deactivate(self, sr_uuid, vdi_uuid, caching_params):
-        import VDI as sm
-
         # Shutdown tapdisk
-        back_link = self.BackendLink.from_uuid(sr_uuid, vdi_uuid)
+        nbd_link = self.NBDLink.from_uuid(sr_uuid, vdi_uuid)
 
-        if not util.pathexists(back_link.path()):
-            util.SMlog("Backend path %s does not exist" % back_link.path())
+        if not util.pathexists(nbd_link.path()):
+            util.SMlog("Nbd path %s does not exist" % nbd_link.path())
             return
 
-        # try:
-        #     attach_info_path = "%s.attach_info" % (back_link.path())
-        #     os.unlink(attach_info_path)
-        # except:
-        #     util.SMlog("unlink of attach_info failed")
-
-        try:
-            major, minor = back_link.rdev()
-        except self.DeviceNode.NotABlockDevice:
-            pass
-        else:
-            if major == Tapdisk.major():
-                self._tap_deactivate(minor)
-                self.remove_cache(sr_uuid, vdi_uuid, caching_params)
+        minor = nbd_link.read_minor_from_path()
+        self._tap_deactivate(minor)
+        self.remove_cache(sr_uuid, vdi_uuid, caching_params)
 
         # Remove the backend link
-        back_link.unlink()
-        VDI.NBDLink.from_uuid(sr_uuid, vdi_uuid).unlink()
+        nbd_link.unlink()
 
         # Deactivate & detach the physical node
         if self.tap_wanted() and self.target.vdi.session is not None:
