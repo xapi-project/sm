@@ -1549,8 +1549,7 @@ class VDI(object):
         options = {"rdonly": not writable}
         options.update(caching_params)
         o_direct, o_direct_reason = self.get_o_direct_capability(options)
-        struct = {'params': back_path,
-                  'params_nbd': nbd_path,
+        struct = {'params_nbd': nbd_path,
                   'o_direct': o_direct,
                   'o_direct_reason': o_direct_reason,
                   'xenstore_data': self.xenstore_data}
