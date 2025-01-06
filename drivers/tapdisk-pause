@@ -29,7 +29,7 @@ import lvhdutil
 import vhdutil
 import lvmcache
 
-TAPDEV_BACKPATH_PFX = "/dev/sm/backend"
+NBD_BACKPATH_PFX = "/run/blktap-control/nbd/"
 TAPDEV_PHYPATH_PFX = "/dev/sm/phy"
 
 def locking(excType, override=True):
@@ -63,10 +63,6 @@ def locking(excType, override=True):
         return wrapper
     return locking2
 
-def _getDevMajor_minor(dev):
-    st = os.stat(dev)
-    return [os.major(st.st_rdev),os.minor(st.st_rdev)]
-
 def _mkphylink(sr_uuid, vdi_uuid, path):
     sympath = "/dev/sm/phy/%s/%s" % (sr_uuid,vdi_uuid)
     cmd = ['ln', '-sf', path, sympath]
@@ -98,7 +94,7 @@ class Tapdisk:
         else:
             self.failfast = False
         self.session = session
-        self.path = os.path.join(TAPDEV_BACKPATH_PFX,self.sr_uuid,self.vdi_uuid)
+        self.path = os.path.join(NBD_BACKPATH_PFX,self.sr_uuid,self.vdi_uuid)
         self.phypath = os.path.join(TAPDEV_PHYPATH_PFX,self.sr_uuid,self.vdi_uuid)
         self.lock = Lock("vdi", self.vdi_uuid)
         self.realpath = None
@@ -137,10 +133,7 @@ class Tapdisk:
         if not os.path.exists(self.path):
             util.SMlog("No %s: nothing to pause" % self.path)
             return str(True)
-        self.major, self.minor = _getDevMajor_minor(self.path)
-        if self.major != blktap2.Tapdisk.major():
-            util.SMlog("Non-tap major number: %d" % self.major)
-            return str(False)
+        self.minor = blktap2.VDI.NBDLink(self.path).read_minor_from_path()
         tapargs = {"minor":self.minor}
         util.SMlog("Calling tap pause with minor %d" % self.minor)
         tapdisk = blktap2.Tapdisk.get(**tapargs)
@@ -154,10 +147,7 @@ class Tapdisk:
             util.SMlog("No %s: nothing to unpause" % self.path)
             return str(True)
         self._pathRefresh()
-        self.major, self.minor = _getDevMajor_minor(self.path)    
-        if self.major != blktap2.Tapdisk.major():
-            util.SMlog("Non-tap major number: %d" % self.major)
-            return str(False)
+        self.minor = blktap2.VDI.NBDLink(self.path).read_minor_from_path()
         if self.activate_parents:
             util.SMlog("Activating parents of %s" % self.vdi_uuid)
             vg_name = lvhdutil.VG_PREFIX + self.sr_uuid
