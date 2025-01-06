@@ -13,7 +13,6 @@ SM_DRIVERS += LVHDoISCSI
 SM_DRIVERS += LVHDoHBA
 SM_DRIVERS += SHM
 SM_DRIVERS += SMB
-SM_DRIVERS += LVHDoFCoE
 
 SM_LIBS := SR
 SM_LIBS += SRCommand
@@ -56,7 +55,6 @@ SM_LIBS += resetvdis
 SM_LIBS += wwid_conf
 SM_LIBS += trim_util
 SM_LIBS += pluginutil
-SM_LIBS += fcoelib
 SM_LIBS += constants
 SM_LIBS += cbtutil
 SM_LIBS += sr_health_check
@@ -183,7 +181,6 @@ install: precheck
 	cd $(SM_STAGING)$(SM_DEST) && rm -f RawISCSISR && ln -sf RawISCSISR.py ISCSISR
 	cd $(SM_STAGING)$(SM_DEST) && rm -f LVHDoISCSISR && ln -sf LVHDoISCSISR.py LVMoISCSISR
 	cd $(SM_STAGING)$(SM_DEST) && rm -f LVHDoHBASR && ln -sf LVHDoHBASR.py LVMoHBASR
-	cd $(SM_STAGING)$(SM_DEST) && rm -f LVHDoFCoESR && ln -sf LVHDoFCoESR.py LVMoFCoESR
 	ln -sf $(SM_DEST)mpathutil.py $(SM_STAGING)/sbin/mpathutil
 	install -m 755 drivers/02-vhdcleanup $(SM_STAGING)$(MASTER_SCRIPT_DEST)
 	install -m 755 drivers/lvhd-thin $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
@@ -195,7 +192,6 @@ install: precheck
 	install -m 755 drivers/intellicache-clean $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/trim $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/iscsilib.py $(SM_STAGING)$(SM_DEST)
-	install -m 755 drivers/fcoelib.py $(SM_STAGING)$(SM_DEST)
 	mkdir -p $(SM_STAGING)$(LIBEXEC)
 	install -m 755 scripts/local-device-change $(SM_STAGING)$(LIBEXEC)
 	install -m 755 scripts/check-device-sharing $(SM_STAGING)$(LIBEXEC)

@@ -20,7 +20,6 @@ import util
 import xml.dom.minidom
 import xs_errors
 import glob
-import fcoelib
 
 DEVPATH = '/dev/disk/by-id'
 DMDEVPATH = '/dev/mapper'
@@ -50,39 +49,17 @@ def adapters(filterstr="any"):
     dict = {}
     devs = {}
     adt = {}
-    fcoe_eth_info = {}
-    fcoe_port_info = []
-
-    fcoe_port_info = fcoelib.parse_fcoe_port_name_info()
-    if filterstr == "fcoe":
-        fcoe_eth_info = fcoelib.parse_fcoe_eth_info()
-
     for a in os.listdir(SYSFS_PATH1):
         proc = match_hbadevs(a, filterstr)
         if not proc:
             continue
 
-        #Special casing for fcoe
         port_name_path = os.path.join(SYSFS_PATH1, a, 'device', \
                          'fc_host', a, 'port_name')
         port_name_path_exists = os.path.exists(port_name_path)
         util.SMlog("Port name path exists %s" % port_name_path_exists)
-        if filterstr == "fcoe" and not port_name_path_exists:
-            continue
         if port_name_path_exists:
             port_name = _get_port_name(port_name_path)
-            #If we are probing for fcoe luns/ adapters and if the port name
-            #in /sys/class/scsi_host/a/device/fc_host/a/port_name does not match
-            #one in the output of 'fcoeadm -i', then we shouldn't display that
-            #lun/adapter.
-            #On the other hand, if we are probing for hba luns, and if the
-            #port name in /sys/class/scsi_host/a/device/fc_host/a/port_name
-            #matches one in the output of 'fcoeadm -i', then we shouldn't
-            #display that lun/adapter, because that would have been discovered
-            #via the FCoE protocol.
-            if (filterstr == "fcoe" and port_name not in fcoe_port_info) or \
-                (filterstr != "fcoe" and port_name in fcoe_port_info):
-                continue
 
         adt[a] = proc
         id = a.replace("host", "")
@@ -96,7 +73,6 @@ def adapters(filterstr="any"):
             for p in [os.path.join(SYSFS_PATH1, a, "device", "session*"), os.path.join(SYSFS_PATH1, a, "device"), \
                           os.path.join(SYSFS_PATH2, "%s:*" % id)]:
                 paths += glob.glob(p)
-
         if not len(paths):
             continue
         for path in paths:
@@ -124,12 +100,8 @@ def adapters(filterstr="any"):
                     for lun in os.listdir(sysfs):
                         if not match_LUNs(lun, tgt):
                             continue
-                        #Special casing for fcoe, populating eth information
-                        eth = ""
-                        if i in fcoe_eth_info.keys():
-                            eth = fcoe_eth_info[i]
-                        dir = os.path.join(sysfs, lun, "device")
-                        (dev, entry) = _extract_dev(dir, proc, id, lun, eth)
+                        dir = os.path.join(sysfs,lun,"device")
+                        (dev, entry) = _extract_dev(dir, proc, id, lun)
                         update_devs_dict(devs, dev, entry)
 
             # for new mptsas sysfs entries, check for phy* node
@@ -218,9 +190,8 @@ def _parseHostId(str):
 def match_hbadevs(s, filterstr):
     driver_name = _get_driver_name(s)
     if match_host(s) and not match_blacklist(driver_name) \
-                and (filterstr == "any" or filterstr == "fcoe" or \
-                match_filterstr(filterstr, driver_name)):
-        return driver_name
+        and ( filterstr == "any" or match_filterstr(filterstr, driver_name) ):
+            return driver_name
     else:
         return ""
 
@@ -275,15 +246,13 @@ def _get_block_device_name_with_kernel_3x(device_dir):
     else:
         return INVALID_DEVICE_NAME
 
-
-def _extract_dev(device_dir, procname, host, target, eths=""):
+def _extract_dev(device_dir, procname, host, target):
     """Returns device name and creates dictionary entry for it"""
     dev = _extract_dev_name(device_dir)
     entry = {}
     entry['procname'] = procname
     entry['host'] = host
     entry['target'] = target
-    entry['eth'] = eths
     return (dev, entry)
 
 
@@ -349,8 +318,6 @@ def scan(srobj):
         obj.id = ids[3]
         obj.lun = ids[4]
         obj.hba = hba['procname']
-        if 'eth' in hba and hba['eth']:
-            obj.eth = hba['eth']
         obj.numpaths = 1
         if obj.SCSIid in vdis:
             vdis[obj.SCSIid].numpaths += 1
@@ -363,12 +330,10 @@ def scan(srobj):
         d = dom.createElement("BlockDevice")
         e.appendChild(d)
 
-        for attr in ['path', 'numpaths', 'SCSIid', 'vendor', 'serial', 'size', 'adapter', 'channel', 'id', 'lun', 'hba', 'eth']:
+        for attr in ['path', 'numpaths', 'SCSIid', 'vendor', 'serial', 'size', 'adapter', 'channel', 'id', 'lun', 'hba']:
             try:
                 aval = getattr(obj, attr)
             except AttributeError:
-                if attr in ['eth']:
-                    continue
                 raise xs_errors.XenError('InvalidArg',
                       opterr='Missing required field [%s]' % attr)
             entry = dom.createElement(attr)
