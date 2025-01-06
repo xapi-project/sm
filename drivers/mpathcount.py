@@ -23,7 +23,7 @@ import xs_errors
 import mpath_cli
 import json
 
-supported = ['iscsi', 'lvmoiscsi', 'rawhba', 'lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp', 'lvmofcoe', 'gfs2']
+supported = ['iscsi', 'lvmoiscsi', 'rawhba', 'lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp', 'gfs2']
 
 LOCK_TYPE_HOST = "host"
 LOCK_NS1 = "mpathcount1"
