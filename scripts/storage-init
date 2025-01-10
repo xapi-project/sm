@@ -50,8 +50,8 @@ diskprep() {
     done
 
     # erase the start of the volume to get rid of other metadata:
-    echo "* Erasing start of volume"
-    dd if=/dev/zero of=${disk} count=10 bs=1024k &>/dev/null
+    echo "* Erasing any filesystems on volume"
+    wipefs -a ${disk}
 
     echo "Complete."
 }

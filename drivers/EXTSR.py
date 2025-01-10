@@ -190,6 +190,7 @@ class EXTSR(FileSR.FileSR):
                 size_mb = stats['freespace'] // (1024 * 1024)
             assert(size_mb > 0)
             cmd += ["-L", str(size_mb), self.vgname]
+            cmd += ["-W", "y", "--yes"]
             text = util.pread(cmd)
 
             cmd = ["lvchange", "-ay", self.remotepath]

@@ -599,7 +599,7 @@ def create(name, size, vgname, tag=None, size_in_percentage=None):
     if tag:
         cmd.extend(["--addtag", tag])
 
-    cmd.extend(['-W', 'n'])
+    cmd.extend(['-W', 'y', '--yes'])
     cmd_lvm(cmd)
 
 

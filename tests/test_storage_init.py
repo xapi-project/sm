@@ -89,6 +89,7 @@ class TestStorageInit(unittest.TestCase):
         self.create_mock_command("xe")
 
         self.create_dummy_command("dd")
+        self.create_dummy_command("wipefs")
         self.create_dummy_command("logger")
         self.create_dummy_command("pvremove")
         self.create_dummy_command("pvs")
