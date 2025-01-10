@@ -79,6 +79,7 @@ class LVSubsystem(object):
         parser.add_argument("--inactive", dest='inactive', action='store_true')
         parser.add_argument("--zero", dest='zero', default='y')
         parser.add_argument("-W", dest='wipe_sig')
+        parser.add_argument("--yes", dest='all_yes', action="store_true")
         parser.add_argument('vgname')
         try:
             args = parser.parse_args(args[1:])
