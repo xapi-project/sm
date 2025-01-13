@@ -205,7 +205,7 @@ class EXTSR(FileSR.FileSR):
                 opterr='Insufficient space in VG %s' % self.vgname)
 
         try:
-            util.pread2(["mkfs.ext4", "-F", self.remotepath])
+            util.pread2(["mkfs.ext4", "-m", "0", "-F", self.remotepath])
         except util.CommandException as inst:
             raise xs_errors.XenError('LVMFilesystem',
                                      opterr='mkfs failed error %d' % inst.code)
