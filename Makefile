@@ -59,7 +59,7 @@ SM_LIBS += constants
 SM_LIBS += cbtutil
 SM_LIBS += sr_health_check
 
-UDEV_RULES = 65-multipath 55-xs-mpath-scsidev 57-usb 58-xapi
+UDEV_RULES = 65-multipath 55-xs-mpath-scsidev 57-usb 58-xapi 99-purestorage
 MPATH_DAEMON = sm-multipath
 MPATH_CONF = multipath.conf
 MPATH_CUSTOM_CONF = custom.conf
