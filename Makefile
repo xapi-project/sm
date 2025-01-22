@@ -60,7 +60,6 @@ SM_LIBS += cbtutil
 SM_LIBS += sr_health_check
 
 UDEV_RULES = 65-multipath 55-xs-mpath-scsidev 57-usb 58-xapi
-MPATH_DAEMON = sm-multipath
 MPATH_CONF = multipath.conf
 MPATH_CUSTOM_CONF = custom.conf
 SMLOG_CONF = SMlog
@@ -143,8 +142,6 @@ install: precheck
 	  $(SM_STAGING)/$(MPATH_CONF_DIR)
 	install -m 644 multipath/$(MPATH_CUSTOM_CONF) \
 	  $(SM_STAGING)/$(MPATH_CUSTOM_CONF_DIR)
-	install -m 755 multipath/sm-multipath \
-	  $(SM_STAGING)/$(INIT_DIR)
 	install -m 755 multipath/multipath-root-setup \
 	  $(SM_STAGING)/$(SM_DEST)
 	install -m 644 etc/logrotate.d/$(SMLOG_CONF) \

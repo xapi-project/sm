@@ -40,10 +40,6 @@ make -C misc/fairlock
 make install DESTDIR="%{buildroot}"
 make -C misc/fairlock install DESTDIR="%{buildroot}"
 
-%pre
-# Remove sm-multipath on install or upgrade, to ensure it goes
-[ ! -x /sbin/chkconfig ] || chkconfig --del sm-multipath || :
-
 %post
 %systemd_post make-dummy-sr.service
 %systemd_post mpcount.service
@@ -88,8 +84,6 @@ update-alternatives --install /etc/multipath.conf multipath.conf /etc/multipath.
 %systemd_preun storage-init.service
 %systemd_preun usb-scan.socket
 %systemd_preun mpathcount.socket
-# Remove sm-multipath on upgrade or uninstall, to ensure it goes
-[ ! -x /sbin/chkconfig ] || chkconfig --del sm-multipath || :
 # only remove in case of erase (but not at upgrade)
 if [ $1 -eq 0 ] ; then
     update-alternatives --remove multipath.conf /etc/multipath.xenserver/multipath.conf
@@ -203,7 +197,6 @@ tests/run_python_unittests.sh
 %dir /opt/xensource/sm/plugins
 /opt/xensource/sm/plugins/__init__.py*
 /sbin/mpathutil
-/etc/rc.d/init.d/sm-multipath
 %{_unitdir}/make-dummy-sr.service
 %{_unitdir}/xs-sm.service
 %{_unitdir}/sm-mpath-root.service
