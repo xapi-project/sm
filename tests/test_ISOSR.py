@@ -24,6 +24,65 @@ class FakeISOSR(ISOSR.ISOSR):
         self.dconf = srcmd.dconf
         self.srcmd = srcmd
 
+class TestISOSR_overLocal(unittest.TestCase):
+    def create_isosr(self, location='/local_sr', sr_uuid='asr_uuid'):
+        srcmd = mock.Mock()
+        srcmd.dconf = {
+            'location': location,
+            'type': 'iso',
+            'legacy_mode': True
+        }
+        srcmd.params = {
+            'command': 'some_command'
+        }
+        isosr = FakeISOSR(srcmd, None)
+        isosr.load(sr_uuid)
+        return isosr
+
+    @mock.patch('util.pread')
+    def test_load(self, pread):
+        self.create_isosr()
+        # Check `mount/umount` is never called.
+        self.assertFalse(pread.called)
+
+    @mock.patch('os.path.exists', autospec=True)
+    @mock.patch('util.pread')
+    def test_attach_and_detach_local(self, pread, exists):
+        isosr = self.create_isosr()
+        isosr.attach(None)
+        self.assertFalse(pread.called)
+        isosr.detach(None)
+        self.assertFalse(pread.called)
+
+    @mock.patch('os.path.exists', autospec=True)
+    @mock.patch('util.pread')
+    @mock.patch('ISOSR.ISOSR._checkmount')
+    def test_attach_and_detach_local_with_mounted_path(
+        self, _checkmount, pread, exists
+    ):
+        _checkmount.return_value = True
+
+        isosr = self.create_isosr()
+        isosr.attach(None)
+        self.assertFalse(pread.called)
+        isosr.detach(None)
+        self.assertFalse(pread.called)
+
+    @testlib.with_context
+    @mock.patch('os.path.exists')
+    @mock.patch('util.pread')
+    def test_attach_local_with_bad_path(self, context, pread, exists):
+        context.setup_error_codes()
+
+        # Local path doesn't exist, but error list yes.
+        exists.side_effect = [False, True]
+
+        isosr = self.create_isosr()
+        with self.assertRaises(SR.SROSError) as ose:
+            isosr.attach(None)
+        self.assertEquals(ose.exception.errno, 226)
+        self.assertFalse(pread.called)
+
 
 class TestISOSR_overNFS(unittest.TestCase):
 
