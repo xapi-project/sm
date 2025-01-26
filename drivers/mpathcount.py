@@ -22,6 +22,7 @@ import re
 import xs_errors
 import mpath_cli
 import json
+import subprocess
 
 supported = ['iscsi', 'lvmoiscsi', 'rawhba', 'lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp', 'gfs2']
 
@@ -35,6 +36,7 @@ MPATH_FILE_NAME = "/dev/shm/mpath_status"
 match_bySCSIid = False
 mpath_enabled = True
 SCSIid = 'NOTSUPPLIED'
+XAPI_HEALTH_CHECK = '/opt/xensource/libexec/xapi-health-check'
 
 cached_DM_maj = None
 
@@ -199,13 +201,31 @@ def check_devconfig(devconfig, sm_config, config, remove, add, mpath_status=None
             else:
                 update_config(key, i, config[key], remove, add, mpath_status)
 
+def check_xapi_is_enabled():
+    """Check XAPI health status"""
+    def _run_command(command, timeout):
+        try:
+            process = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                universal_newlines=True
+            )
+            try:
+                stdout, stderr = process.communicate(timeout=timeout)
+                return process.returncode, stdout, stderr
+            except subprocess.TimeoutExpired:
+                process.kill()
+                util.SMlog(f"Command execution timeout after {timeout}s: {' '.join(command)}")
+                return -1, "", "Timeout"
+        except Exception as e:
+            util.SMlog(f"Error executing command: {e}")
+            return -1, "", str(e)
 
-def check_xapi_is_enabled(session, hostref):
-    host = session.xenapi.host.get_record(hostref)
-    if not host['enabled']:
-        util.SMlog("Xapi is not enabled, exiting")
-        mpc_exit(session, 0)
-
+    returncode, _, stderr = _run_command([XAPI_HEALTH_CHECK], timeout=120)
+    if returncode != 0:
+        util.SMlog(f"XAPI health check failed: {stderr}")
+    return returncode == 0
 
 if __name__ == '__main__':
     try:
@@ -215,7 +235,7 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     localhost = session.xenapi.host.get_by_uuid(get_localhost_uuid())
-    check_xapi_is_enabled(session, localhost)
+    check_xapi_is_enabled()
     # Check whether multipathing is enabled (either for root dev or SRs)
     try:
         if get_root_dev_major() != get_dm_major():
