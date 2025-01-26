@@ -211,27 +211,37 @@ class TestMpathCount(unittest.TestCase):
         session.xenapi.session.logout.assert_called_once()
 
     @mock.patch('mpathcount.sys.exit', autospec=True)
-    def test_check_xapi_enabled_yes(self, mock_exit):
+    @mock.patch('mpathcount.util.SMlog', autospec=True)
+    @mock.patch('mpathcount.subprocess.Popen', autospec=True)
+    def test_check_xapi_enabled_yes(self, mock_popen, mock_smlog, mock_exit):
         # Arrange
-        session = mock.MagicMock()
-        session.xenapi.host.get_record.return_value = {'enabled': True}
-        hostref = mock.MagicMock()
+        process_mock = mock.Mock()
+        attrs = {'communicate.return_value': ('output', ''), 'returncode': 0}
+        process_mock.configure_mock(**attrs)
+        mock_popen.return_value = process_mock
 
         # Act
-        mpathcount.check_xapi_is_enabled(session, hostref)
+        result = mpathcount.check_xapi_is_enabled()
 
         # Assert
+        self.assertTrue(result)
         mock_exit.assert_not_called()
+        mock_smlog.assert_not_called()
 
     @mock.patch('mpathcount.sys.exit', autospec=True)
-    def test_check_xapi_enabled_no(self, mock_exit):
+    @mock.patch('mpathcount.util.SMlog', autospec=True)
+    @mock.patch('mpathcount.subprocess.Popen', autospec=True)
+    def test_check_xapi_enabled_no(self, mock_popen, mock_smlog, mock_exit):
         # Arrange
-        session = mock.MagicMock()
-        session.xenapi.host.get_record.return_value = {'enabled': False}
-        hostref = mock.MagicMock()
+        process_mock = mock.Mock()
+        attrs = {'communicate.return_value': ('', 'error'), 'returncode': 1}
+        process_mock.configure_mock(**attrs)
+        mock_popen.return_value = process_mock
 
         # Act
-        mpathcount.check_xapi_is_enabled(session, hostref)
+        result = mpathcount.check_xapi_is_enabled()
 
         # Assert
-        mock_exit.assert_called_once_with(0)
+        self.assertFalse(result)
+        mock_exit.assert_not_called()
+        mock_smlog.assert_called_once_with('XAPI health check failed: error')
