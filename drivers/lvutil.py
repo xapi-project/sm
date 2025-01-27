@@ -446,15 +446,15 @@ def _openExclusive(dev, retry):
     try:
         return os.open("%s" % dev, os.O_RDWR | os.O_EXCL)
     except OSError as ose:
-        opened_by = ''
+        ret = util.pread2(["lsof", dev])
         if ose.errno == 16:
             if retry:
-                util.SMlog('Device %s is busy, settle and one shot retry' %
-                           dev)
+                util.SMlog('Device %s is busy, opened by %s. Settle and one shot retry' %
+                           (dev, ret))
                 util.pread2(['/usr/sbin/udevadm', 'settle'])
                 return _openExclusive(dev, False)
             else:
-                util.SMlog('Device %s is busy after retry' % dev)
+                util.SMlog('Device %s is busy after retry, opened by %s' % (dev, ret))
 
         util.SMlog('Opening device %s failed with %d' % (dev, ose.errno))
         raise xs_errors.XenError(
