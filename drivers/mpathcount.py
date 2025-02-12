@@ -84,6 +84,7 @@ def match_dmpLUN(s):
 
 
 def match_pathup(s):
+    path_status = None
     match = re.match(r'.*\d+:\d+:\d+:\d+\s+\S+\s+\S+\s+\S+\s+(\S+)', s)
     if match:
         path_status = match.group(1)

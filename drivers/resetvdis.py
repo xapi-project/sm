@@ -21,6 +21,7 @@
 import cleanup
 import util
 import lock
+import sys
 import XenAPI # pylint: disable=import-error
 
 
