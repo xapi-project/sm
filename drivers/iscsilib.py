@@ -248,7 +248,7 @@ def get_node_config (portal, targetIQN):
     ini_sec = "root"
     str_fp = io.StringIO("[%s]\n%s" % (ini_sec, stdout))
     parser = RawConfigParser()
-    parser.readfp(str_fp)
+    parser.read_file(str_fp)
     str_fp.close()
     return dict(parser.items(ini_sec))
 

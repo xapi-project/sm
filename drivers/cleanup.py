@@ -3489,6 +3489,7 @@ def main():
     background = False
     force = False
     dryRun = False
+    maxAge = 0
     debug_cmd = ""
     vdi_uuid = ""
     shortArgs = "gGc:aqxu:bfdt:v:"

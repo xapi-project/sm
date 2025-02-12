@@ -205,6 +205,7 @@ class LVHDSR(SR.SR):
             re.compile("^.*[0-9a-f]{8}-(([0-9a-f]{4})-){3}[0-9a-f]{12}.*")
         self.storageVDIs = {}
 
+        vdi = None
         for key in self.lvmCache.lvs.keys():
             # if the lvname has a uuid in it
             type = None
@@ -969,6 +970,7 @@ class LVHDSR(SR.SR):
         origRefcountNormal = 0
 
         # un-hide the parent
+        vhdInfo = None
         if base.vdiType == vhdutil.VDI_TYPE_VHD:
             self.lvActivator.activate(baseUuid, base.name, False)
             origRefcountNormal = 1

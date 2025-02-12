@@ -82,6 +82,7 @@ class RAWVDI(VDI.VDI):
         VDIs = util._getVDIs(self.sr)
         self.sr._loadvdis()
         smallest = 0
+        v = None
         for vdi in VDIs:
             if not vdi['managed'] \
                    and int(vdi['virtual_size']) >= int(size) \
