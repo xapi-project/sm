@@ -681,15 +681,62 @@ def remove_stale_luns(hostids, lunid, expectedPath, mpath):
                    " up properly! Error: %s" % str(e))
 
 
+def sg_return_check(rc, logmsg, stderr):
+    """
+    Return true if the return code indicates success, false if it is not success
+    but is retryable, and raise a util.SMException if it is not retryable using the
+    logmessage and stderr provided.
+
+    In the event that a delay is desirable before a retry, that delay is
+    baked into this function.
+    """
+    if rc == 0:
+        return True
+    if rc == 2:
+        # This is "device not ready", so sleep and try again
+        util.SMlog(f"{logmsg}: not ready")
+        time.sleep(1)
+        return False
+    if rc == 6:
+        # retry without a wait for "unit attention".
+        util.SMlog(f"{logmsg}: unit attention")
+        return False
+    if rc == 11:
+        # Aborted command. Retryable without delay
+        util.SMlog(f"{logmsg}: command aborted")
+        return False
+    if rc == 14:
+        # Sense miscompare. Retryable without delay until proven otherwise
+        util.SMlog(f"{logmsg}: sense miscompare")
+        return False
+    if rc == 21:
+        # An error was recovered. This is a success but we would not normally
+        # expect to see it. Log if it happens.
+        util.SMlog(f"{logmsg}: recovered error: {stderr}")
+        return True
+    if rc == 33:
+        # Timed out. Retryable without delay
+        util.SMlog(f"{logmsg}: timed out")
+        return False
+
+    raise util.SMException(f"{logmsg}: RC={rc}, STDERR={stderr}")
+
+
 def sg_readcap(device):
     device = os.path.join('/dev', getdev(device))
     readcapcommand = ['/usr/bin/sg_readcap', '-b', device]
-    (rc, stdout, stderr) = util.doexec(readcapcommand)
-    if rc == 6:
-        # retry one time for "Capacity data has changed"
+    attempts = 3
+    succeeded = False
+    while attempts > 0:
+        attempts -=  1
         (rc, stdout, stderr) = util.doexec(readcapcommand)
-    if rc != 0:
-        raise util.SMException("scsiutil.sg_readcap(%s) failed" % (device))
+        if sg_return_check(rc, f"scsiutil.sg_readcap({device})", stderr):
+            succeeded = True
+            break
+
+    if not succeeded:
+        raise util.SMException(f"scsiutil.sg_readcap({device}): too many failures")
+
     match = re.search('(^|.*\n)(0x[0-9a-fA-F]+) (0x[0-9a-fA-F]+)\n$', stdout)
     if not match:
         raise util.SMException("scsiutil.sg_readcap(%s) failed to parse: %s"
