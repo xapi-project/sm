@@ -2316,7 +2316,6 @@ class SR:
         # garbage
 
         # update the VDI record
-        vdi.parent.delConfig(VDI.DB_VHD_PARENT)
         if vdi.parent.raw:
             vdi.parent.setConfig(VDI.DB_VDI_TYPE, vhdutil.VDI_TYPE_RAW)
         vdi.parent.delConfig(VDI.DB_VHD_BLOCKS)
