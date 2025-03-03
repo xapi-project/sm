@@ -1,8 +1,5 @@
 [Unit]
 Description=Ensure symlinks for multipathed rootdev
-Wants=basic.target multipathd.service
-After=basic.target
-Before=multipathd.service
 
 [Service]
 Type=oneshot
@@ -10,4 +7,4 @@ RemainAfterExit=yes
 ExecStart=/opt/xensource/sm/multipath-root-setup
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=sysinit.target
