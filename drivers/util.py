@@ -500,17 +500,6 @@ def get_secret(session, uuid):
         raise xs_errors.XenError('InvalidSecret', opterr='Unable to look up secret [%s]' % uuid)
 
 
-def get_real_path(path):
-    "Follow symlinks to the actual file"
-    absPath = path
-    directory = ''
-    while os.path.islink(absPath):
-        directory = os.path.dirname(absPath)
-        absPath = os.readlink(absPath)
-        absPath = os.path.join(directory, absPath)
-    return absPath
-
-
 def wait_for_path(path, timeout):
     for i in range(0, timeout):
         if len(glob.glob(path)):

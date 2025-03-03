@@ -135,7 +135,7 @@ def _is_valid_multipath_device(sid):
         # Some paths might be down, check all associated devices
         for dev in devs:
             devpath = os.path.join(by_scsid_path, dev)
-            real_path = util.get_real_path(devpath)
+            real_path = os.path.realpath(devpath)
             with Fairlock("devicemapper"):
                 (ret, stdout, stderr) = util.doexec(['/usr/sbin/multipath', '-c', real_path])
                 if ret == 0:

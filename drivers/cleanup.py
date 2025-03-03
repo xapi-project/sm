@@ -250,13 +250,6 @@ class Util:
         return count
     countBits = staticmethod(countBits)
 
-    def getThisScript():
-        thisScript = util.get_real_path(__file__)
-        if thisScript.endswith(".pyc"):
-            thisScript = thisScript[:-1]
-        return thisScript
-    getThisScript = staticmethod(getThisScript)
-
 
 ################################################################################
 #
