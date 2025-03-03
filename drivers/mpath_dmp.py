@@ -219,6 +219,7 @@ def deactivate():
     if iscsilib.is_iscsi_daemon_running() and not iscsilib._checkAnyTGT():
         iscsilib.restart_daemon()
 
+    util.kickpipe_mpathcount()
     util.SMlog("MPATH: multipath deactivated.")
 
 

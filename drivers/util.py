@@ -62,6 +62,7 @@ LOG_DEBUG = syslog.LOG_DEBUG
 ISCSI_REFDIR = '/var/run/sr-ref'
 
 CMD_DD = "/bin/dd"
+CMD_KICKPIPE = '/opt/xensource/libexec/kickpipe'
 
 FIST_PAUSE_PERIOD = 30  # seconds
 
@@ -967,6 +968,16 @@ def remove_mpathcount_field(session, host_ref, sr_ref, SCSIid):
     except:
         pass
 
+
+def kickpipe_mpathcount():
+    """
+    Issue a kick to the mpathcount service. This will ensure that mpathcount runs
+    shortly to update the multipath config records, if it was not already activated
+    by a UDEV event.
+    """
+    cmd = [CMD_KICKPIPE, "mpathcount"]
+    (rc, stdout, stderr) = doexec(cmd)
+    return (rc == 0)
 
 
 def _testHost(hostname, port, errstring):
