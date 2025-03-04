@@ -3,7 +3,7 @@ import HBASR
 import unittest
 import SR
 import xml.dom.minidom
-import util
+from sm.core import util
 import xs_errors
 
 

@@ -23,7 +23,7 @@ import xml.dom.minidom
 import xs_errors
 import XenAPI # pylint: disable=import-error
 import xmlrpc.client
-import util
+from sm.core import util
 import copy
 import os
 import traceback

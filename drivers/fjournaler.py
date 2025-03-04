@@ -18,7 +18,7 @@
 import os
 import errno
 
-import util
+from sm.core import util
 
 SEPARATOR = "_"
 

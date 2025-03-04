@@ -20,7 +20,7 @@
 import SR
 import SRCommand
 import FileSR
-import util
+from sm.core import util
 import errno
 import os
 import xmlrpc.client

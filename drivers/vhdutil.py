@@ -17,7 +17,7 @@
 #
 
 import os
-import util
+from sm.core import util
 import errno
 import zlib
 import re

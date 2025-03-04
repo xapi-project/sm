@@ -22,15 +22,15 @@ import socket
 import SR
 import SRCommand
 import FileSR
-import util
+from sm.core import util
 import errno
 import os
 import sys
 import xmlrpc.client
-import xs_errors
+from sm.core import xs_errors
 import nfs
 import vhdutil
-from lock import Lock
+from sm.core.lock import Lock
 import cleanup
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_CACHING",

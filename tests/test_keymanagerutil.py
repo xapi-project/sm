@@ -11,7 +11,7 @@ import unittest.mock as mock
 
 import plugins.keymanagerutil as keymanagerutil
 
-import util
+from sm.core import util
 
 
 class TestKeymanagerutil(unittest.TestCase):

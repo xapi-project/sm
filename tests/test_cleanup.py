@@ -7,9 +7,9 @@ import uuid
 from uuid import uuid4
 
 import cleanup
-import lock
+from sm.core import lock
 
-import util
+from sm.core import util
 import vhdutil
 
 import ipc
@@ -278,7 +278,7 @@ class TestSR(unittest.TestCase):
         """
         self.assertTrue(util.fistpoint.is_legal(util.GCPAUSE_FISTPOINT))
 
-    @mock.patch('util.fistpoint', autospec=True)
+    @mock.patch('cleanup.util.fistpoint', autospec=True)
     @mock.patch('cleanup.SR', autospec=True)
     @mock.patch('cleanup.Util.runAbortable')
     def test_gcPause_calls_fist_point(
@@ -306,10 +306,10 @@ class TestSR(unittest.TestCase):
         # And don't call abortable sleep
         mock_abortable.assert_not_called()
 
-    @mock.patch('util.fistpoint', autospec=True)
+    @mock.patch('cleanup.util.fistpoint', autospec=True)
     @mock.patch('cleanup.SR', autospec=True)
     @mock.patch('cleanup.Util.runAbortable')
-    @mock.patch('os.path.exists', autospec=True)
+    @mock.patch('cleanup.os.path.exists', autospec=True)
     def test_gcPause_calls_abortable_sleep(
             self,
             mock_exists,
@@ -336,10 +336,10 @@ class TestSR(unittest.TestCase):
                                           mock.ANY, cleanup.VDI.POLL_INTERVAL,
                                           cleanup.GCPAUSE_DEFAULT_SLEEP * 1.1)
 
-    @mock.patch('util.fistpoint', autospec=True)
+    @mock.patch('cleanup.util.fistpoint', autospec=True)
     @mock.patch('cleanup.SR', autospec=True)
     @mock.patch('cleanup.Util.runAbortable')
-    @mock.patch('os.path.exists', autospec=True)
+    @mock.patch('cleanup.os.path.exists', autospec=True)
     def test_gcPause_skipped_on_first_run(
             self,
             mock_exists,
@@ -1116,8 +1116,8 @@ class TestSR(unittest.TestCase):
 
     @mock.patch("builtins.open",
                 autospec=True)
-    @mock.patch("os.path.isfile", autospec=True)
-    @mock.patch("util.atomicFileWrite", autospec=True)
+    @mock.patch("cleanup.os.path.isfile", autospec=True)
+    @mock.patch("cleanup.util.atomicFileWrite", autospec=True)
     @mock.patch("cleanup.SR.lock", autospec=True)
     @mock.patch("cleanup.SR.unlock", autospec=True)
     def test_writeSpeedToFile(self, mock_lock, mock_unlock, mock_atomicWrite,

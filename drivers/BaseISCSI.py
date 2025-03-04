@@ -19,7 +19,7 @@
 #
 
 import SR
-import util
+from sm.core import util
 import time
 import LUNperVDI
 import os
@@ -27,9 +27,9 @@ import sys
 import re
 import glob
 import xml.dom.minidom
-import scsiutil
-import iscsilib
-import xs_errors
+from sm.core import scsiutil
+from sm.core import libiscsi as iscsilib
+from sm.core import xs_errors
 
 INITIATORNAME_FILE = '/etc/iscsi/initiatorname.iscsi'
 SECTOR_SHIFT = 9

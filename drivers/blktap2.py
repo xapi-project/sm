@@ -24,7 +24,7 @@ import stat
 import time
 import copy
 from lock import Lock
-import util
+from sm.core import util
 import xmlrpc.client
 import http.client
 import errno

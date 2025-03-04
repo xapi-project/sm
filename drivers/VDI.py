@@ -20,7 +20,8 @@ import cleanup
 import SR
 import xmlrpc.client
 import xs_errors
-import util
+from sm.core import util
+from sm.core.lock import Lock
 import vhdutil
 import cbtutil
 import os
@@ -306,7 +307,6 @@ class VDI(object):
         disk is still attached.
         """
         import blktap2
-        from lock import Lock
 
         if data_only == False and self._get_blocktracking_status():
             logpath = self._get_cbt_logpath(vdi_uuid)
@@ -415,7 +415,6 @@ class VDI(object):
                     # don't attach metadata log file
                     return None
 
-            from lock import Lock
             lock = Lock("cbtlog", str(vdi_uuid))
             lock.acquire()
 
@@ -446,7 +445,6 @@ class VDI(object):
     def deactivate(self, sr_uuid, vdi_uuid):
         """Deactivate VDI - called post tapdisk close"""
         if self._get_blocktracking_status():
-            from lock import Lock
             lock = Lock("cbtlog", str(vdi_uuid))
             lock.acquire()
 
@@ -615,7 +613,6 @@ class VDI(object):
                     raise xs_errors.XenError('CBTActivateFailed',
                                              opterr=str(error))
             else:
-                from lock import Lock
                 lock = Lock("cbtlog", str(vdi_uuid))
                 lock.acquire()
                 try:
@@ -879,7 +876,6 @@ class VDI(object):
 
     def _cbt_op(self, uuid, func, *args):
         # Lock cbtlog operations
-        from lock import Lock
         lock = Lock("cbtlog", str(uuid))
         lock.acquire()
 

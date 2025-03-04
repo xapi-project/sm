@@ -2,7 +2,7 @@ import unittest
 import unittest.mock as mock
 
 import os
-import util
+from sm.core import util
 import errno
 
 
@@ -36,12 +36,12 @@ class TestCreate(unittest.TestCase):
                                           'NewVar1': 'yadayada'}, stdout=-1,
                                      universal_newlines=True)
 
-    @mock.patch("os.fsync", autospec=True)
-    @mock.patch("os.rename", autospec=True)
-    @mock.patch("os.path.isfile", autospec=True)
-    @mock.patch("os.remove", autospec=True)
-    @mock.patch("tempfile.mkstemp", autospec=True)
-    @mock.patch("util.SMlog", autospec=True)
+    @mock.patch("sm.core.util.os.fsync", autospec=True)
+    @mock.patch("sm.core.util.os.rename", autospec=True)
+    @mock.patch("sm.core.util.os.path.isfile", autospec=True)
+    @mock.patch("sm.core.util.os.remove", autospec=True)
+    @mock.patch("sm.core.util.tempfile.mkstemp", autospec=True)
+    @mock.patch("sm.core.util.SMlog", autospec=True)
     def test_atomicFileWrite_normal(self, mock_log, mock_mtemp, mock_remove,
                                     mock_isfile, mock_rename, mock_fsync):
         opener_mock = mock.mock_open()
@@ -65,12 +65,12 @@ class TestCreate(unittest.TestCase):
             mock_isfile.assert_called_with("/var/run/random_temp.txt")
             self.assertEqual(mock_remove.call_count, 0)
 
-    @mock.patch("os.fsync", autospec=True)
-    @mock.patch("os.rename", autospec=True)
-    @mock.patch("os.path.isfile", autospec=True)
-    @mock.patch("os.remove", autospec=True)
-    @mock.patch("tempfile.mkstemp", autospec=True)
-    @mock.patch("util.SMlog", autospec=True)
+    @mock.patch("sm.core.util.os.fsync", autospec=True)
+    @mock.patch("sm.core.util.os.rename", autospec=True)
+    @mock.patch("sm.core.util.os.path.isfile", autospec=True)
+    @mock.patch("sm.core.util.os.remove", autospec=True)
+    @mock.patch("sm.core.util.tempfile.mkstemp", autospec=True)
+    @mock.patch("sm.core.util.SMlog", autospec=True)
     def test_atomicFileWrite_exception(self, mock_log, mock_mtemp, mock_remove,
                                        mock_isfile, mock_rename, mock_fsync):
 

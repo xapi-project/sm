@@ -20,9 +20,9 @@
 
 import os
 import VDI
-import util
-import scsiutil
-import xs_errors
+from sm.core import util
+from sm.core import scsiutil
+from sm.core import xs_errors
 
 MAX_TIMEOUT = 15
 

@@ -455,7 +455,7 @@ class LVMMetadataTestContext(testlib.TestContext):
 
     def start(self):
         super().start()
-        self.patch("util.gen_uuid", new=genuuid)
+        self.patch("srmetadata.util.gen_uuid", new=genuuid)
 
     def generate_device_paths(self):
         yield self.METADATA_PATH

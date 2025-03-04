@@ -22,7 +22,7 @@ from xml.dom import minidom, Node
 import struct
 import sys
 import string
-import util
+from sm.core import util
 
 HDR_STRING = "XSSM"
 STRUCT_FMT = "%dsIHH" % len(HDR_STRING)

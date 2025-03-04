@@ -8,8 +8,8 @@ import unittest.mock as mock
 import uuid
 import xmlrpc.client
 
-import util
-import xs_errors
+from sm.core import util
+from sm.core import xs_errors
 
 DD_CMD = "/bin/dd"
 
@@ -45,23 +45,23 @@ class TestUtil(unittest.TestCase):
 
     def setUp(self):
         # OS Patchers
-        statvfs_patcher = mock.patch("util.os.statvfs", autospec=True)
+        statvfs_patcher = mock.patch('sm.core.util.os.statvfs', autospec=True)
         self.mock_statvfs = statvfs_patcher.start()
-        exists_patcher = mock.patch('util.os.path.exists', autospec=True)
+        exists_patcher = mock.patch('sm.core.util.os.path.exists', autospec=True)
         self.mock_exists = exists_patcher.start()
-        mkdir_patcher = mock.patch('util.os.mkdir', autospec=True)
+        mkdir_patcher = mock.patch('sm.core.util.os.mkdir', autospec=True)
         self.mock_mkdir = mkdir_patcher.start()
-        unlink_patcher = mock.patch('util.os.unlink', autospec=True)
+        unlink_patcher = mock.patch('sm.core.util.os.unlink', autospec=True)
         self.mock_unlink = unlink_patcher.start()
         self.dir_contents = {}
-        listdir_patcher = mock.patch('util.os.listdir', autospec=True)
+        listdir_patcher = mock.patch('sm.core.util.os.listdir', autospec=True)
         self.mock_listdir = listdir_patcher.start()
         self.mock_listdir.side_effect = self.list_dir
-        readlink_patcher = mock.patch('util.os.readlink', autospec=True)
+        readlink_patcher = mock.patch('sm.core.util.os.readlink', autospec=True)
         self.mock_readlink = readlink_patcher.start()
         self.mock_readlink.side_effect = self.readlink
 
-        socket_patcher = mock.patch('util.socket', autospec=True)
+        socket_patcher = mock.patch('sm.core.util.socket', autospec=True)
         self.mock_socket = socket_patcher.start()
         self.mock_socket.AF_INET = socket.AF_INET
         self.mock_socket.SOCK_STREAM = socket.SOCK_STREAM
@@ -69,16 +69,16 @@ class TestUtil(unittest.TestCase):
         self.mock_socket.error = socket.error
         self.mock_socket.gaierror = socket.gaierror
 
-        sleep_patcher = mock.patch("util.time.sleep", autospec=True)
+        sleep_patcher = mock.patch("sm.core.util.time.sleep", autospec=True)
         self.mock_sleep = sleep_patcher.start()
 
-        xenapi_patcher = mock.patch("util.XenAPI")
+        xenapi_patcher = mock.patch("sm.core.util.XenAPI")
         self.mock_xenapi = xenapi_patcher.start()
         self.mock_session = mock.MagicMock()
         self.mock_xenapi.xapi_local.return_value = self.mock_session
 
         self.processes = {}
-        popen_patcher = mock.patch('util.subprocess.Popen', autospec=True)
+        popen_patcher = mock.patch('sm.core.util.subprocess.Popen', autospec=True)
         self.mock_popen = popen_patcher.start()
         self.mock_popen.side_effect = self.popen
 
@@ -294,7 +294,7 @@ class TestUtil(unittest.TestCase):
 
         self.assertEqual(4096 * (39059200 - 20000), result)
 
-    @mock.patch('util.get_this_host', autospec=True)
+    @mock.patch('sm.core.util.get_this_host', autospec=True)
     def test_get_slaves_attached_on_none(self, mock_get_this_host):
         # Arrange
         vdi_uuids = [str(uuid.uuid4())]
@@ -310,7 +310,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(0, len(attached_on))
         xenapi.VDI.get_by_uuid.assert_called_once_with(vdi_uuids[0])
 
-    @mock.patch('util.get_this_host', autospec=True)
+    @mock.patch('sm.core.util.get_this_host', autospec=True)
     def test_get_slaves_attached_on_master_only(self, mock_get_this_host):
         # Arrange
         master_ref = "OpaqueRef:dc038e5d-4bed-4c9c-b3c6-7af9ed16b339"
@@ -331,7 +331,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(0, len(attached_on))
         xenapi.VDI.get_by_uuid.assert_called_once_with(vdi_uuids[0])
 
-    @mock.patch('util.get_this_host', autospec=True)
+    @mock.patch('sm.core.util.get_this_host', autospec=True)
     def test_get_slaves_attached(self, mock_get_this_host):
         # Arrange
         master_ref = "OpaqueRef:dc038e5d-4bed-4c9c-b3c6-7af9ed16b339"
@@ -353,7 +353,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(1, len(attached_on))
         xenapi.VDI.get_by_uuid.assert_called_once_with(vdi_uuids[0])
 
-    @mock.patch('util.get_this_host', autospec=True)
+    @mock.patch('sm.core.util.get_this_host', autospec=True)
     def test_get_all_slaves_none(self, mock_get_this_host):
         # Arrange
         master_ref = "OpaqueRef:dc038e5d-4bed-4c9c-b3c6-7af9ed16b339"
@@ -378,7 +378,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(0, len(slaves))
         xenapi.host_metrics.get_record.assert_called_once_with(metrics_ref)
 
-    @mock.patch('util.get_this_host', autospec=True)
+    @mock.patch('sm.core.util.get_this_host', autospec=True)
     def test_get_all_slaves_one_offline(self, mock_get_this_host):
         # Arrange
         master_ref = "OpaqueRef:dc038e5d-4bed-4c9c-b3c6-7af9ed16b339"
@@ -420,7 +420,7 @@ class TestUtil(unittest.TestCase):
             mock.call(metrics_ref), mock.call(slave_metrics_ref)],
             any_order=True)
 
-    @mock.patch('util.get_this_host', autospec=True)
+    @mock.patch('sm.core.util.get_this_host', autospec=True)
     def test_get_all_slaves_one_online(self, mock_get_this_host):
         # Arrange
         master_ref = "OpaqueRef:dc038e5d-4bed-4c9c-b3c6-7af9ed16b339"
@@ -716,24 +716,25 @@ class TestUtil(unittest.TestCase):
 class TestFistPoints(unittest.TestCase):
     def setUp(self):
         self.addCleanup(mock.patch.stopall)
-        sleep_patcher = mock.patch('util.time.sleep', autospec=True)
+        sleep_patcher = mock.patch('sm.core.util.time.sleep', autospec=True)
         self.mock_sleep = sleep_patcher.start()
 
-        log_patcher = mock.patch('util.SMlog', autospec=True)
+        log_patcher = mock.patch('sm.core.util.SMlog', autospec=True)
         self.mock_log = log_patcher.start()
 
-        exists_patcher = mock.patch('util.os.path.exists', autospec=True)
+        exists_patcher = mock.patch('sm.core.util.os.path.exists', autospec=True)
         self.mock_exists = exists_patcher.start()
         self.mock_exists.side_effect = self.exists
         self.existing_files = set()
 
-        xenapi_patcher = mock.patch('util.XenAPI', autospec=True)
+        xenapi_patcher = mock.patch('sm.core.util.XenAPI', autospec=True)
         patched_xenapi = xenapi_patcher.start()
         self.mock_xenapi = mock.MagicMock()
         patched_xenapi.xapi_local.return_value = self.mock_xenapi
 
     def exists(self, path):
         return path in self.existing_files
+
     def test_activate_unknown(self):
         test_uuid = str(uuid.uuid4())
         valid_fp_name = "TestValidFP"

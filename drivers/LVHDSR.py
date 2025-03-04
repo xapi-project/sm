@@ -22,7 +22,7 @@ import SR
 from SR import deviceCheck
 import VDI
 import SRCommand
-import util
+from sm.core import util
 import lvutil
 import lvmcache
 import vhdutil
@@ -32,11 +32,11 @@ import os
 import sys
 import time
 import errno
-import xs_errors
+from sm.core import xs_errors
 import cleanup
 import blktap2
 from journaler import Journaler
-from lock import Lock
+from sm.core.lock import Lock
 from refcounter import RefCounter
 from ipc import IPCFlag
 from lvmanager import LVActivator

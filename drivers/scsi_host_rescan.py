@@ -20,7 +20,7 @@
 # - we have as few rescans as possible
 
 import lock
-import util
+from sm.core import util
 import os
 import time
 import glob

@@ -17,10 +17,10 @@
 #
 from io import SEEK_SET
 
-import util
+from sm.core import util
 import metadata
 import os
-import xs_errors
+from sm.core import xs_errors
 import lvutil
 import xml.sax.saxutils
 

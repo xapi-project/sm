@@ -9,7 +9,7 @@ import syslog
 import uuid
 
 import blktap2
-import util
+from sm.core import util
 import xs_errors
 import XenAPI
 

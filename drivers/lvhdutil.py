@@ -21,7 +21,7 @@ import os
 import sys
 import time
 
-import util
+from sm.core import util
 import vhdutil
 from lock import Lock
 from refcounter import RefCounter

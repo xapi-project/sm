@@ -19,7 +19,7 @@ import sys
 import time
 
 import lock
-import util
+from sm.core import util
 
 
 DEBUG_LOG = True

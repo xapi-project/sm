@@ -15,7 +15,7 @@
 #
 # nfs.py: NFS related utility functions
 
-import util
+from sm.core import util
 import errno
 import os
 import xml.dom.minidom

@@ -17,7 +17,7 @@
 #
 
 import os
-import util
+from sm.core import util
 import lvutil
 import lvhdutil
 from lock import Lock

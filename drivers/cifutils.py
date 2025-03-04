@@ -15,7 +15,7 @@
 #
 # cifutils: Extract credentials from SR (e.g ISOSR, SMBSR) dconf
 
-import util
+from sm.core import util
 import xs_errors
 
 

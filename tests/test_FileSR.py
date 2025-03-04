@@ -12,9 +12,9 @@ import FileSR
 import SR
 import SRCommand
 import testlib
-import util
+from sm.core import util
+from sm.core import xs_errors
 import vhdutil
-import xs_errors
 
 
 class FakeFileVDI(FileSR.FileVDI):

@@ -18,7 +18,7 @@
 """Communication for processes"""
 
 import os
-import util
+from sm.core import util
 import errno
 
 

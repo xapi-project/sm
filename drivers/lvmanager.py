@@ -17,7 +17,7 @@
 #
 
 import time
-import util
+from sm.core import util
 import lvhdutil
 
 

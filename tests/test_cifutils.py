@@ -62,7 +62,7 @@ class TestCreate(unittest.TestCase):
         self.assertEqual(credentials, expected_credentials)
         self.assertEqual(domain, "citrix")
 
-    @mock.patch('util.get_secret', autospec=True)
+    @mock.patch('cifutils.util.get_secret', autospec=True)
     def test_password_secret_and_username(self, get_secret):
         junk_dconf = {"cifspassword_secret": "123", "username": "jsmith"}
         junk_session = 123
@@ -75,7 +75,7 @@ class TestCreate(unittest.TestCase):
         self.assertEqual(credentials, expected_credentials)
         self.assertEqual(domain, None)
 
-    @mock.patch('util.get_secret', autospec=True)
+    @mock.patch('cifutils.util.get_secret', autospec=True)
     def test_password_secret_and_username_smbsr(self, get_secret):
         junk_dconf = {"password_secret": "123", "username": "jsmith"}
         junk_session = 123
@@ -87,7 +87,7 @@ class TestCreate(unittest.TestCase):
         self.assertEqual(credentials, expected_credentials)
         self.assertEqual(domain, None)
 
-    @mock.patch('util.get_secret', autospec=True)
+    @mock.patch('cifutils.util.get_secret', autospec=True)
     def test_password_secret_and_username_also_domain(self, get_secret):
         junk_dconf = {"cifspassword_secret": "123",
                       "username": "citrix\jsmith"}
@@ -101,7 +101,7 @@ class TestCreate(unittest.TestCase):
         self.assertEqual(credentials, expected_credentials)
         self.assertEqual(domain, "citrix")
 
-    @mock.patch('util.get_secret', autospec=True)
+    @mock.patch('cifutils.util.get_secret', autospec=True)
     def test_password_secret_and_username_also_domain_smbsr(self, get_secret):
         junk_dconf = {"password_secret": "123",
                       "username": "citrix\jsmith"}
