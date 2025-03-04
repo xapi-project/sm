@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-import iscsilib
+from sm.core import libiscsi as iscsilib
 from SRCommand import SRCommand
 
 

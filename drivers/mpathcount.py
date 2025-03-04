@@ -15,12 +15,12 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-import util
+from sm.core import util
 import os
 import sys
 import re
-import xs_errors
-import mpath_cli
+from sm.core import xs_errors
+from sm.core import mpath_cli
 import json
 import subprocess
 

@@ -19,7 +19,7 @@
 # Additionally, reset the paused state if this host is the master.
 
 import cleanup
-import util
+from sm.core import util
 import lock
 import sys
 import XenAPI # pylint: disable=import-error

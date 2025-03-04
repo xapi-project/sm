@@ -183,7 +183,7 @@ class CacheFileSR(object):
 
     @classmethod
     def from_session(cls, session):
-        import util
+        from sm.core import util
         import SR as sm
 
         host_ref = util.get_localhost_ref(session)
@@ -223,7 +223,7 @@ class CacheFileSR(object):
         return list(found)
 
     def xapi_vfs_stats(self):
-        import util
+        from sm.core import util
 
         f = self.statvfs()
         if not f.f_frsize:

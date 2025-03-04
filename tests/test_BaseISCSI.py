@@ -5,11 +5,11 @@ Unit tests for the Base ISCSI SR
 from unittest import mock
 from uuid import uuid4
 
-import util
+from sm.core import util
 from BaseISCSI import BaseISCSISR
 from shared_iscsi_test_base import ISCSITestCase
 from util import CommandException
-import xs_errors
+from sm.core import xs_errors
 
 class TestBaseISCSI(ISCSITestCase):
 

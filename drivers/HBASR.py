@@ -22,12 +22,12 @@
 import SR
 import SRCommand
 import devscan
-import scsiutil
-import util
+from sm.core import scsiutil
+from sm.core import util
 import LUNperVDI
 import os
 import time
-import xs_errors
+from sm.core import xs_errors
 import xml.dom.minidom
 
 CAPABILITIES = ["SR_PROBE", "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH",

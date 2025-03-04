@@ -8,10 +8,10 @@ from uuid import uuid4
 
 import SR
 import LVHDoISCSISR
-import iscsilib
+from sm.core import libiscsi as iscsilib
 from BaseISCSI import BaseISCSISR
 import SRCommand
-import util
+from sm.core import util
 import xs_errors
 
 import testlib
@@ -68,7 +68,7 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
                 'BaseISCSI.BaseISCSISR',
                 return_value=NonInitingISCSISR()
             ),
-            mock.patch('util._convertDNS', return_value='127.0.0.1'),
+            mock.patch('LVHDoISCSISR.util._convertDNS', return_value='127.0.0.1'),
             mock.patch('SR.driver'),
         ]
 
@@ -84,7 +84,7 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
 
         self.addCleanup(mock.patch.stopall)
 
-    @mock.patch('iscsilib.ensure_daemon_running_ok')
+    @mock.patch('LVHDoISCSISR.iscsilib.ensure_daemon_running_ok')
     def test_1st_try_block_raise_XenError(
             self,
             mock_iscsilib_ensure_daemon_running_ok):
@@ -102,7 +102,7 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
             'Failed to set ISCSI initiator [opterr=Raise XenError]'
         )
 
-    @mock.patch('iscsilib.ensure_daemon_running_ok')
+    @mock.patch('LVHDoISCSISR.iscsilib.ensure_daemon_running_ok')
     def test_1st_try_block_raise_RandomError(
             self,
             mock_iscsilib_ensure_daemon_running_ok):

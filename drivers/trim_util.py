@@ -19,8 +19,8 @@
 import xml
 import os
 import time
-import util
-import lock
+from sm.core import util
+from sm.core import lock
 import lvhdutil
 import vhdutil
 import lvutil

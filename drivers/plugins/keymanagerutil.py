@@ -18,7 +18,7 @@ import sys
 from random import SystemRandom
 
 sys.path.append('/opt/xensource/sm/')
-import util
+from sm.core import util
 
 import XenAPI
 

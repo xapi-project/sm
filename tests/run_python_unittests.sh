@@ -20,9 +20,9 @@ fi
 
 (
     cd "$SMROOT"
-    PYTHONPATH="$SMROOT/mocks:$SMROOT/drivers:$SMROOT/misc/fairlock" \
+    PYTHONPATH="$SMROOT/mocks:$SMROOT/drivers:$SMROOT/libs:$SMROOT/misc/fairlock" \
         $COVERAGE run --branch \
-            --source="$SMROOT/drivers,$SMROOT/tests,$SMROOT/misc/fairlock" \
+            --source="$SMROOT/drivers,$SMROOT/libs/sm/core,$SMROOT/tests,$SMROOT/misc/fairlock" \
             -m unittest discover -f -s "$TESTS" -p "$FILES" -v
 
     echo "Test coverage"

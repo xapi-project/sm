@@ -22,19 +22,18 @@ import SR
 import LVHDSR
 import BaseISCSI
 import SRCommand
-import util
-import scsiutil
+from sm.core import util
+from sm.core import scsiutil
 import lvutil
 import time
 import os
 import sys
-import xs_errors
+from sm.core import xs_errors
 import xmlrpc.client
-import mpath_cli
-import iscsilib
+from sm.core import mpath_cli
+from sm.core import libiscsi as iscsilib
 import glob
 import copy
-import scsiutil
 import xml.dom.minidom
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_METADATA", "SR_TRIM",

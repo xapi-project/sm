@@ -21,7 +21,7 @@ import SR
 from SR import deviceCheck
 import SRCommand
 import FileSR
-import util
+from sm.core import util
 import lvutil
 import scsiutil
 

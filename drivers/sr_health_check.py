@@ -21,7 +21,7 @@ SR implementation type dependent.
 """
 
 import SR
-import util
+from sm.core import util
 import xs_errors
 
 def check_xapi_is_enabled(session, hostref):

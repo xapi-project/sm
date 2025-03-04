@@ -29,7 +29,7 @@ import re
 import sys
 import xs_errors
 import xmlrpc.client
-import util
+from sm.core import util
 import scsiutil
 import mpath_cli
 import glob

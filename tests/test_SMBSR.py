@@ -5,7 +5,7 @@ import uuid
 import SR
 import SMBSR
 import testlib
-import util
+from sm.core import util
 import errno
 import XenAPI
 import xs_errors
@@ -151,7 +151,7 @@ class Test_SMBSR(unittest.TestCase):
     @mock.patch('SMBSR.Lock', autospec=True)
     @mock.patch('os.symlink', autospec=True)
     @mock.patch('os.unlink', autospec=True)
-    @mock.patch('util.pathexists', autospec=True)
+    @mock.patch('SMBSR.util.pathexists', autospec=True)
     def test_attach_not_writable(self, mock_pathexists, mock_unlink,
                                  mock_symlink, mock_lock, mock_unmount,
                                  mock_mount, mock_checkmount, mock_checklinks,
@@ -200,7 +200,7 @@ class Test_SMBSR(unittest.TestCase):
     @mock.patch('SMBSR.SMBSR.unmount', autospec=True)
     @mock.patch('SMBSR.Lock', autospec=True)
     @mock.patch('os.unlink', autospec=True)
-    @mock.patch('util.pathexists', autospec=True)
+    @mock.patch('SMBSR.util.pathexists', autospec=True)
     def test_attach_misc_mount_failure(self, mock_pathexists, mock_unlink,
                                        mock_lock, mock_unmount,
                                        mock_mount, mock_checkmount):
@@ -243,7 +243,7 @@ class Test_SMBSR(unittest.TestCase):
     #Mount
     @mock.patch('SMBSR.util.isdir', autospec=True)
     @mock.patch('SMBSR.Lock', autospec=True)
-    @mock.patch('util.time', autospec=True)
+    @mock.patch('SMBSR.util.time', autospec=True)
     def test_mount_mountpoint_isdir(self, mock_time, mock_lock, mock_isdir):
         # Not sure that the code rerying in an ioretry loop in the case of a
         # missing dir is correct?
@@ -258,8 +258,8 @@ class Test_SMBSR(unittest.TestCase):
         smbsr = self.create_smbsr()
         self.assertRaises(SMBSR.SMBException, smbsr.mount, "")
 
-    @mock.patch('util.makedirs', autospec=True)
-    @mock.patch('util.get_pool_restrictions', autospec=True)
+    @mock.patch('SMBSR.util.makedirs', autospec=True)
+    @mock.patch('SMBSR.util.get_pool_restrictions', autospec=True)
     @mock.patch('SMBSR.Lock', autospec=True)
     @mock.patch('SMBSR.os.symlink', autospec=True)
     def test_create_success(self, symlink, lock, restrict, makedirs):
@@ -279,8 +279,8 @@ class Test_SMBSR(unittest.TestCase):
              '-o', 'cache=loose,vers=3.0,actimeo=0'],
             new_env={'USER': 'aUsername', 'PASSWD': 'aPassword'})
 
-    @mock.patch('util.makedirs', autospec=True)
-    @mock.patch('util.get_pool_restrictions', autospec=True)
+    @mock.patch('SMBSR.util.makedirs', autospec=True)
+    @mock.patch('SMBSR.util.get_pool_restrictions', autospec=True)
     @mock.patch('SMBSR.Lock', autospec=True)
     @mock.patch('SMBSR.os.symlink', autospec=True)
     def test_create_read_only(self, symlink, lock, restrict, makedirs):
@@ -308,8 +308,8 @@ class Test_SMBSR(unittest.TestCase):
         symlink.assert_not_called()
 
 
-    @mock.patch('util.makedirs', autospec=True)
-    @mock.patch('util.get_pool_restrictions', autospec=True)
+    @mock.patch('SMBSR.util.makedirs', autospec=True)
+    @mock.patch('SMBSR.util.get_pool_restrictions', autospec=True)
     @mock.patch('SMBSR.Lock', autospec=True)
     @mock.patch('SMBSR.os.symlink', autospec=True)
     def test_create_nospace(self, symlink, lock, restrict, makedirs):

@@ -17,7 +17,7 @@
 # Helper functions pertaining to VHD operations
 #
 
-import util
+from sm.core import util
 import uuid
 from constants import CBT_UTIL
 

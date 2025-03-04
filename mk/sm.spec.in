@@ -22,6 +22,7 @@ Requires(preun): systemd
 Requires(postun): systemd
 Requires: xenserver-multipath
 Requires: python3-bitarray
+Requires: python%{python3_pkgversion}-sm-libs = %{version}-%{release}
 Requires: python3-future
 Conflicts: kernel < 4.19.19-5.0.0
 Conflicts: blktap < 4.0.0
@@ -152,7 +153,6 @@ tests/run_python_unittests.sh
 /opt/xensource/sm/SR.py
 /opt/xensource/sm/SRCommand.py
 /opt/xensource/sm/VDI.py
-/opt/xensource/sm/XE_SR_ERRORCODES.xml
 /opt/xensource/sm/blktap2.py
 /opt/xensource/sm/cleanup.py
 /opt/xensource/sm/devscan.py
@@ -242,6 +242,19 @@ then
         /usr/bin/systemctl stop "$service"
     done
 fi
+
+%package -n python%{python3_pkgversion}-sm-libs
+Summary: SM core libraries
+Provides: python%{python3_pkgversion}-sm-core-libs = 1.1.3-1
+Obsoletes: python%{python3_pkgversion}-sm-core-libs < 1.1.3-2
+
+%description -n python%{python3_pkgversion}-sm-libs
+This package contains common core libraries for SM.
+
+It obsoletes and replaces the old sm-core-libs package.
+
+%files -n python%{python3_pkgversion}-sm-libs
+%{python3_sitelib}/sm
 
 %changelog
 

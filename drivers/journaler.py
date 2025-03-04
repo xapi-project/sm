@@ -17,7 +17,7 @@
 #
 # LVM-based journaling
 
-import util
+from sm.core import util
 import xs_errors
 from srmetadata import open_file, file_read_wrapper, file_write_wrapper
 

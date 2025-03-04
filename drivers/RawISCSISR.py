@@ -22,7 +22,7 @@ import SR
 import SRCommand
 import BaseISCSI
 import LUNperVDI
-import util
+from sm.core import util
 
 CAPABILITIES = ["SR_PROBE", "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH",
                 "VDI_DETACH", "VDI_INTRODUCE"]

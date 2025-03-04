@@ -20,11 +20,11 @@
 import SR
 import VDI
 import SRCommand
-import util
+from sm.core import util
 import nfs
 import os
 import re
-import xs_errors
+from sm.core import xs_errors
 import cifutils
 
 CAPABILITIES = ["VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",

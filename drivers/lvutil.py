@@ -23,7 +23,7 @@ import errno
 import time
 
 from fairlock import Fairlock
-import util
+from sm.core import util
 import xs_errors
 import xml.dom.minidom
 from lvhdutil import VG_LOCATION, VG_PREFIX

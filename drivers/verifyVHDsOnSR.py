@@ -22,7 +22,7 @@
 
 import os
 import sys
-import util
+from sm.core import util
 import lvutil
 import lvhdutil
 import vhdutil

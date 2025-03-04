@@ -86,9 +86,9 @@ class TestLVHDSR(unittest.TestCase, Stubs):
         """No LV refresh on slaves when Cleaning up local LVHD SR's journal"""
 
         self.stubout('journaler.Journaler.remove')
-        self.stubout('util.zeroOut')
+        self.stubout('LVHDSR.util.zeroOut')
         self.stubout('lvhdutil.deflate')
-        self.stubout('util.SMlog', new_callable=SMLog)
+        self.stubout('LVHDSR.util.SMlog', new_callable=SMLog)
         self.stubout('lvmcache.LVMCache')
 
         vdi_uuid = 'some VDI UUID'
@@ -462,7 +462,7 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         self.mock_vhdutil.getDepth.return_value = 1
 
         # Act
-        with mock.patch('lock.Lock'):
+        with mock.patch('VDI.Lock'):
             snap = vdi.snapshot(sr.uuid, "Dummy UUID")
 
         # Assert

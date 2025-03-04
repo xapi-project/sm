@@ -33,16 +33,16 @@ import errno
 import stat
 
 import XenAPI # pylint: disable=import-error
-import util
+from sm.core import util
 import lvutil
 import vhdutil
 import lvhdutil
 import lvmcache
 import journaler
 import fjournaler
-import lock
+from sm.core import lock
 import blktap2
-import xs_errors
+from sm.core import xs_errors
 from refcounter import RefCounter
 from ipc import IPCFlag
 from lvmanager import LVActivator

@@ -5,7 +5,7 @@ import unittest
 
 import testlib
 import lvmlib
-import util
+from sm.core import util
 
 import lvutil
 
@@ -88,7 +88,7 @@ class TestCreate(unittest.TestCase):
         created_lv, = lvsystem.get_logical_volumes_with_name('volume')
         self.assertEqual('hello', created_lv.tag)
 
-    @mock.patch('util.pread', autospec=True)
+    @mock.patch('lvutil.util.pread', autospec=True)
     def test_create_percentage_has_precedence_over_size(self, mock_pread):
         lvutil.create('volume', ONE_MEGABYTE, 'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7',
                       size_in_percentage="10%F")
@@ -113,7 +113,7 @@ class TestRemove(unittest.TestCase):
         self.assertEqual([], lvsystem.get_logical_volumes_with_name('volume'))
 
     @mock.patch('lvutil._lvmBugCleanup', autospec=True)
-    @mock.patch('util.pread', autospec=True)
+    @mock.patch('lvutil.util.pread', autospec=True)
     def test_remove_additional_config_param(self, mock_pread, _bugCleanup):
         lvutil.remove('VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume', config_param="blah")
         mock_pread.assert_called_once_with(
@@ -311,7 +311,7 @@ class TestActivate(unittest.TestCase):
         self.assertIn('LV not activated', ce.exception.reason)
 
 
-@mock.patch('util.pread', autospec=True) # m_pread
+@mock.patch('lvutil.util.pread', autospec=True) # m_pread
 @mock.patch('lvutil.Fairlock', autospec=True) # _1
 class Test_cmd_lvm(unittest.TestCase):
 
@@ -347,7 +347,7 @@ class Test_cmd_lvm(unittest.TestCase):
         self.assertEqual("muffins", r)
 
     @mock.patch('time.time', autospec=True) # m_time
-    @mock.patch('util.SMlog', autospec=True) # m_smlog
+    @mock.patch('lvutil.util.SMlog', autospec=True) # m_smlog
     def test_warning_if_cmd_takes_too_long(self, m_smlog, m_time, _1, m_pread):
         m_time.side_effect = [0, lvutil.MAX_OPERATION_DURATION*2]
         lvutil.cmd_lvm([lvutil.CMD_LVDISPLAY])
@@ -356,7 +356,7 @@ class Test_cmd_lvm(unittest.TestCase):
         self.assertIn(f"took {lvutil.MAX_OPERATION_DURATION*2}", m_smlog.call_args[0][0])
 
 @mock.patch('lvutil.cmd_lvm')
-@mock.patch('util.SMlog', autospec=True)
+@mock.patch('lvutil.util.SMlog', autospec=True)
 class TestGetPVsInVG(unittest.TestCase):
 
     def test_pvs_in_vg(self, mock_smlog, mock_cmd_lvm):

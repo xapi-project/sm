@@ -20,12 +20,12 @@
 import SR
 import VDI
 import SRCommand
-import util
-import scsiutil
+from sm.core import util
+from sm.core import scsiutil
 import vhdutil
 import os
 import errno
-import xs_errors
+from sm.core import xs_errors
 import cleanup
 import blktap2
 import time
