@@ -496,8 +496,7 @@ class SR(object):
             self.session.xenapi.SR.set_sm_config(self.sr_ref, sm_config)
 
             if self.mpath == "true" and len(SCSIid):
-                cmd = ['/opt/xensource/sm/mpathcount.py', SCSIid]
-                util.pread2(cmd)
+                util.kickpipe_mpathcount()
         except:
             pass
 
