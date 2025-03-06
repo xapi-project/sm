@@ -530,8 +530,8 @@ def createVG(root, vgname):
     # End block
 
 def getPVsInVG(vgname):
-    # Get PVs in a specific VG
-    pvs_ret = cmd_lvm([CMD_PVS, '--separator', ' ', '--noheadings', '-o', 'pv_name,vg_name'])
+    # Get PVs in a specific VG, returns PV uuids
+    pvs_ret = cmd_lvm([CMD_PVS, '--noheadings', '-o', 'pv_uuid,vg_name'])
     
     # Parse each line to extract PV and VG information
     # No need to handle exceptions here, return empty list if any error
@@ -543,11 +543,31 @@ def getPVsInVG(vgname):
         if len(parts) != 2:
             util.SMlog("Warning: Invalid or empty line in pvs output: %s" % line)
             continue
-        pv, vg = parts
+        pv_uuid, vg = parts
         if vg == vgname:
-            pvs_in_vg.append(pv)
+            pvs_in_vg.append(pv_uuid)
     
     util.SMlog("PVs in VG %s: %s" % (vgname, pvs_in_vg))
+    return pvs_in_vg
+
+def getPVsWithUUID(pv_uuid):
+    # Get PVs with a specific UUID, returns PV device names
+    pvs_ret = cmd_lvm([CMD_PVS, '--noheadings', '-o', 'pv_name,pv_uuid'])
+
+    # No need to handle exceptions here, return empty list if any error
+    pvs_in_vg = []
+    lines = pvs_ret.strip().split('\n')
+    for line in lines:
+        # To avoid invalid return format
+        parts = line.split()
+        if len(parts) != 2:
+            util.SMlog("Warning: Invalid or empty line in pvs output: %s" % line)
+            continue
+        pv, uuid = parts
+        if uuid == pv_uuid:
+            pvs_in_vg.append(pv)
+    
+    util.SMlog("PVs with uuid %s: %s" % (pv_uuid, pvs_in_vg))
     return pvs_in_vg
 
 def removeVG(root, vgname):
@@ -563,12 +583,16 @@ def removeVG(root, vgname):
               opterr='error is %d' % inst.code)
 
     try:
-        # Get PVs in VG before removing the VG
-        devs_in_vg = getPVsInVG(vgname)
+        # Get PVs(uuid) in VG before removing the VG
+        pv_uuids_in_vg = getPVsInVG(vgname)
         cmd_lvm([CMD_VGREMOVE, vgname])
 
-        for dev in devs_in_vg:
-            cmd_lvm([CMD_PVREMOVE, dev])
+        # For multipath, after vgremove, LVM reassign the underlying device node represents the PV.
+        # To remove the correct PV, use uuid to get the real device that represents the PV.
+        for pv_uuid in pv_uuids_in_vg:
+            pvs = getPVsWithUUID(pv_uuid)
+            for pv in pvs:
+                cmd_lvm([CMD_PVREMOVE, pv])
     except util.CommandException as inst:
         raise xs_errors.XenError('LVMDelete', \
               opterr='errno is %d' % inst.code)
