@@ -361,10 +361,10 @@ class TestGetPVsInVG(unittest.TestCase):
 
     def test_pvs_in_vg(self, mock_smlog, mock_cmd_lvm):
         # Normal case
-        mock_cmd_lvm.return_value = "pv1 vg1\npv2 vg1\npv3 vg2"
+        mock_cmd_lvm.return_value = "uuid1 vg1\nuuid2 vg1\nuuid3 vg2"
         result = lvutil.getPVsInVG("vg1")
-        self.assertEqual(result, ["pv1", "pv2"])
-        mock_smlog.assert_called_once_with("PVs in VG vg1: ['pv1', 'pv2']")
+        self.assertEqual(result, ["uuid1", "uuid2"])
+        mock_smlog.assert_called_once_with("PVs in VG vg1: ['uuid1', 'uuid2']")
     
     def test_no_pvs(self, mock_smlog, mock_cmd_lvm):
         # Test when no PVs are returned
@@ -378,7 +378,7 @@ class TestGetPVsInVG(unittest.TestCase):
 
     def test_no_pvs_in_vg(self, mock_smlog, mock_cmd_lvm):
         # Test when no PVs belong to the specified VG
-        mock_cmd_lvm.return_value = "pv1 vg2\npv2 vg2"
+        mock_cmd_lvm.return_value = "uuid1 vg2\nuuid2 vg2"
         result = lvutil.getPVsInVG("vg1")
         self.assertEqual(result, [])
         mock_smlog.assert_called_once_with("PVs in VG vg1: []")
@@ -393,3 +393,41 @@ class TestGetPVsInVG(unittest.TestCase):
             mock.call("PVs in VG vg1: []")
         ])
         mock_smlog.assert_called_with("PVs in VG vg1: []")
+
+@mock.patch('lvutil.cmd_lvm')
+@mock.patch('util.SMlog', autospec=True)
+class TestGetPVsWithUUID(unittest.TestCase):
+
+    def test_pv_match_uuid(self, mock_smlog, mock_cmd_lvm):
+        # Normal case
+        mock_cmd_lvm.return_value = "pv1 uuid1\npv2 uuid2"
+        result = lvutil.getPVsWithUUID("uuid1")
+        self.assertEqual(result, ["pv1"])
+        mock_smlog.assert_called_once_with("PVs with uuid uuid1: ['pv1']")
+    
+    def test_no_pvs(self, mock_smlog, mock_cmd_lvm):
+        # Test when no PVs are returned
+        mock_cmd_lvm.return_value = ""
+        result = lvutil.getPVsWithUUID("uuid1")
+        self.assertEqual(result, [])
+        mock_smlog.assert_has_calls([
+            mock.call("Warning: Invalid or empty line in pvs output: "),
+            mock.call("PVs with uuid uuid1: []")
+        ])
+
+    def test_no_pvs_match_uuid(self, mock_smlog, mock_cmd_lvm):
+        # Test when no PVs is with the specified uuid
+        mock_cmd_lvm.return_value = "pv1 uuid1\npv2 uuid2"
+        result = lvutil.getPVsWithUUID("uuid3")
+        self.assertEqual(result, [])
+        mock_smlog.assert_called_once_with("PVs with uuid uuid3: []")
+
+    def test_command_error(self, mock_smlog, mock_cmd_lvm):
+        # Test invalid return value from cmd_lvm
+        mock_cmd_lvm.return_value = "Invalid retrun value."
+        result = lvutil.getPVsWithUUID("uuid1")
+        self.assertEqual(result, [])
+        mock_smlog.assert_has_calls([
+            mock.call("Warning: Invalid or empty line in pvs output: Invalid retrun value."),
+            mock.call("PVs with uuid uuid1: []")
+        ])
