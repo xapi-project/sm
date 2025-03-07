@@ -1,1 +1,1 @@
-from sm.core.libiscsi import *
+from sm.core.iscsi import *

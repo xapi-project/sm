@@ -159,11 +159,11 @@ class TestStandaloneFunctions(unittest.TestCase):
         self.assertIn('<value><int>154</int></value>',
                       mock_print.call_args[0][0])
 
-    @mock.patch("os.fsencode",
+    @mock.patch("SRCommand.os.fsencode",
                 new=lambda s: s.encode("ascii", "surrogateescape"))
-    @mock.patch("os.fsdecode",
+    @mock.patch("SRCommand.os.fsdecode",
                 new=lambda bs: bs.decode("ascii", "surrogateescape"))
-    @mock.patch('util.gen_uuid', autospec=True)
+    @mock.patch('sm.core.util.gen_uuid', autospec=True)
     def test_parse_handles_wide_chars(self, gen_uuid):
         import os
         import xmlrpc.client

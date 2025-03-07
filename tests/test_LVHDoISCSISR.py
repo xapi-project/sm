@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import SR
 import LVHDoISCSISR
-from sm.core import libiscsi as iscsilib
+from sm.core import iscsi as iscsilib
 from BaseISCSI import BaseISCSISR
 import SRCommand
 from sm.core import util

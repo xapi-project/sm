@@ -3,6 +3,7 @@ import errno
 import io
 import os
 import socket
+import subprocess
 import unittest
 import unittest.mock as mock
 import uuid
@@ -10,9 +11,11 @@ import xmlrpc.client
 
 from sm.core import util
 from sm.core import xs_errors
+from sm.core import f_exceptions
 
 DD_CMD = "/bin/dd"
 
+TEST_HOST_IP = "192.168.13.67"
 ISCSI_REFDIR = '/var/run/sr-ref'
 
 # Sample Driver Info
@@ -38,7 +41,7 @@ DRIVER_INFO = {
 TEST_IQN = "iqn.2009-09.com.example.test"
 
 
-class TestUtil(unittest.TestCase):
+class TestSMUtil(unittest.TestCase):
     """
     Tests for the util module methods
     """
@@ -777,3 +780,104 @@ class TestFistPoints(unittest.TestCase):
             mock.ANY, valid_fp_name)
         self.mock_xenapi.xenapi.session.logout.assert_has_calls([mock.call(), mock.call()])
         self.mock_sleep.assert_called_once_with(util.FIST_PAUSE_PERIOD)
+
+
+class TestCoreUtil(unittest.TestCase):
+
+    def setUp(self):
+        syslog_patcher = mock.patch("sm.core.util.syslog", autospec=True)
+        self.mock_syslog = syslog_patcher.start()
+        sleep_patcher = mock.patch("sm.core.util.time.sleep", autospec=True)
+        self.mock_sleep = sleep_patcher.start()
+        socket_patcher = mock.patch("sm.core.util.socket", autospec=True)
+        self.mock_socket = socket_patcher.start()
+        self.mock_socket.error = socket.error
+        self.mock_socket.gaierror = socket.gaierror
+        subprocess_patcher = mock.patch('sm.core.util.subprocess', autoapec=True)
+        self.mock_subprocess = subprocess_patcher.start()
+        self.mock_subprocess.PIPE = subprocess.PIPE
+
+        self.addCleanup(mock.patch.stopall)
+
+    def test_retry_success(self):
+        util.retry(lambda: True, maxretry=3, period=4)
+
+    def test_retry_success_after_retry(self):
+        results = [False, False, True]
+
+        def create_result():
+            result = results.pop(0)
+            if not result:
+                raise Exception("Test failed")
+
+        util.retry(lambda: create_result(), maxretry=3, period=4)
+
+    def test_retry_retry_unsuccessful(self):
+
+        def create_result():
+            raise Exception("Test failed")
+
+        with self.assertRaises(Exception):
+            util.retry(lambda: create_result(), maxretry=3, period=4)
+
+    def test_test_host_success(self):
+        # Arrange
+
+        sock_info = (socket.AF_INET, socket.SOCK_STREAM, 6, '', (TEST_HOST_IP, 3260))
+        self.mock_socket.getaddrinfo.return_value = [sock_info, (), ()]
+
+        # Act
+        result = util.testHost(TEST_HOST_IP, 3260)
+
+        # Assert
+        self.assertTrue(result)
+        self.mock_socket.getaddrinfo.assert_called_with(TEST_HOST_IP, 3260)
+        self.mock_socket.socket.return_value.settimeout.assert_called_with(10)
+        self.mock_socket.socket.return_value.connect.assert_called_with(
+            (TEST_HOST_IP, 3260))
+
+    def test_test_host_connect_failure(self):
+        # Arrange
+
+        sock_info = (socket.AF_INET, socket.SOCK_STREAM, 6, '', (TEST_HOST_IP, 3260))
+        self.mock_socket.getaddrinfo.return_value = [sock_info, (), ()]
+        self.mock_socket.socket.return_value.connect.side_effect = socket.error
+
+        # Act
+        result = util.testHost(TEST_HOST_IP, 3260)
+
+        # Assert
+        self.assertFalse(result)
+
+    def test_test_host_addrinfo_failure(self):
+        # Arrange
+
+        sock_info = (socket.AF_INET, socket.SOCK_STREAM, 6, '', (TEST_HOST_IP, 3260))
+        self.mock_socket.getaddrinfo.side_effect = socket.gaierror
+
+        # Act
+        result = util.testHost(TEST_HOST_IP, 3260)
+
+        # Assert
+        self.assertFalse(result)
+
+    def test_doexec_success(self):
+        mock_process = mock.create_autospec(subprocess.Popen)
+        mock_process.communicate.return_value= (b"Some out", b"Some Err")
+        mock_process.returncode = 0
+        self.mock_subprocess.Popen.return_value = mock_process
+
+        # Act
+        (ret, stdout, stderr) = util.doexec(['/bin/some/cmd'])
+
+        # Assert
+        self.mock_subprocess.Popen.assert_called_with(
+            ['/bin/some/cmd'], stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            close_fds=True, env=None, universal_newlines=True)
+        self.assertEqual(0, ret)
+        # The ONLY caller of util.doexec() from the old sm-core-libs which is not
+        # inside this package is a call which ignores stdout and stderr, so we are
+        # safe to alter this unit test.
+        self.assertEqual(b"Some out", stdout)
+        self.assertEqual(b"Some Err", stderr)

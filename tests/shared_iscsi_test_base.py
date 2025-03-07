@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-from sm.core import libiscsi as iscsilib
+from sm.core import iscsi as iscsilib
 from SRCommand import SRCommand
 
 
@@ -28,7 +28,7 @@ class ISCSITestCase(unittest.TestCase):
         return matched
 
     def discovery(self, target, port, chapuser, chappassword,
-                  targetIQN="any", interfaceArray=["default"]):
+                  targetIQN="any", interface_array=["default"]):
         return self.discovery_data.get(target, [])
 
     def iscsi_login(self, target, target_iqn, chauser, chappassword,

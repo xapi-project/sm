@@ -150,6 +150,13 @@ def getserial(path):
         return ''
 
 
+def get_serial(path):
+    """
+    Compatibility method
+    """
+    return getserial(path)
+
+
 def getmanufacturer(path):
     cmd = ["sginfo", "-M", path]
     try:
@@ -157,6 +164,13 @@ def getmanufacturer(path):
             return line.replace(' ', '').split(':')[-1]
     except:
         return ''
+
+
+def get_vendor(path):
+    """
+    Compatibility method
+    """
+    return getmanufacturer(path)
 
 
 def cacheSCSIidentifiers():
@@ -213,6 +227,27 @@ def get_devices_by_SCSIid(SCSIid):
     if 'mapper' in devices:
         devices.remove('mapper')
     return devices
+
+
+def get_device_provisioning_mode(SCSIid):
+    device = get_devices_by_SCSIid(SCSIid)[0]
+    glob_pattern = os.path.join('/sys', 'block', device, 'device', 'scsi_disk', '*', 'provisioning_mode')
+    for file in glob.glob(glob_pattern):
+        with open(file, 'r') as device_mode:
+            mode = device_mode.readline().strip()
+            return mode
+
+
+def device_is_thin_provisioned(SCSIid):
+    mode = get_device_provisioning_mode(SCSIid)
+    # Kernel modes are
+    # 	[SD_LBP_FULL]		= "full",
+    # 	[SD_LBP_UNMAP]		= "unmap",
+    # 	[SD_LBP_WS16]		= "writesame_16",
+    # 	[SD_LBP_WS10]		= "writesame_10",
+    # 	[SD_LBP_ZERO]		= "writesame_zero",
+    # 	[SD_LBP_DISABLE]	= "disabled"
+    return mode in ['unmap', 'writesame_16', 'writesame_10', 'writesame_zero']
 
 
 def rawdev(dev):

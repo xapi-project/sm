@@ -28,7 +28,7 @@ import re
 import glob
 import xml.dom.minidom
 from sm.core import scsiutil
-from sm.core import libiscsi as iscsilib
+from sm.core import iscsi as iscsilib
 from sm.core import xs_errors
 
 INITIATORNAME_FILE = '/etc/iscsi/initiatorname.iscsi'
@@ -546,7 +546,7 @@ class BaseISCSISR(SR.SR):
 
         map = iscsilib.discovery(self.target, self.port, self.chapuser,
                                  self.chappassword,
-                                 interfaceArray=iscsilib.get_iscsi_interfaces())
+                                 interface_array=iscsilib.get_iscsi_interfaces())
         map.append(("%s:%d" % (self.targetlist, self.port), "0", "*"))
         self.print_entries(map)
 
