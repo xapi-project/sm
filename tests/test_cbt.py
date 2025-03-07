@@ -397,28 +397,19 @@ class TestCBT(unittest.TestCase):
     @mock.patch('VDI.VDI._cbt_op', autospec=True)
     @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
     @mock.patch('VDI.VDI._ensure_cbt_space', autospec=True)
-    @mock.patch('VDI.util.SMlog', autospec=True)
-    def test_snapshot_out_of_space_failure(self, mock_smlog,
-            mock_ensure_space, mock_logcheck, mock_cbt):
+    def test_snapshot_out_of_space_failure(self, mock_ensure_space, mock_logcheck, mock_cbt):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
         # Set initial state
         self._set_initial_state(self.vdi, True)
         snap_uuid = uuid.uuid4()
 
-        # Write util.SMlog calls to smlog_out
-        self.fakesmlog = ""
-
-        def fakeSMlog(inArg):
-            self.fakesmlog = self.fakesmlog + inArg.strip()
-
-        mock_smlog.side_effect = fakeSMlog
         mock_ensure_space.side_effect = xs_errors.XenError('SRNoSpace')
 
         self.vdi._cbt_snapshot(snap_uuid, True)
 
+        self.assertEqual(1, mock_ensure_space.call_count)
         self.assertEqual(1, self.vdi.state_mock._delete_cbt_log.call_count)
-        self.assertTrue("insufficient space" in self.fakesmlog)
         self._check_setting_state(self.vdi, False)
         self.xenapi.message.create.assert_called_once()
 

@@ -19,7 +19,6 @@
 import errno
 import os
 import xml.dom.minidom
-from sm.core import util
 import xmlrpc.client
 
 DEF_LOC = os.path.dirname(__file__)
@@ -31,7 +30,7 @@ class SRException(Exception):
     errno = errno.EINVAL
 
     def __init__(self, reason):
-        Exception.__init__(self, reason)
+        super().__init__(reason)
 
     def toxml(self):
         return xmlrpc.client.dumps(xmlrpc.client.Fault(
@@ -39,12 +38,15 @@ class SRException(Exception):
 
 
 class SROSError(SRException):
-    """Wrapper for OSError"""
+    """Class which looks valuely like OSError"""
 
     def __init__(self, errno, reason):
         self.errno = errno
-        Exception.__init__(self, reason)
+        self.reason = reason
+        super().__init__(reason)
 
+    def message(self):
+        return self.reason
 
 class XenError(Exception):
     def __new__(self, key, opterr=None):
@@ -55,7 +57,7 @@ class XenError(Exception):
         # Read the definition list
         errorlist = self._fromxml('SM-errorcodes')
 
-        ########DEBUG#######
+        # ########DEBUG#######
         #for val in self.errorlist.keys():
         #    subdict = self.errorlist[val]
         #    print "KEY [%s]" % val
@@ -70,8 +72,6 @@ class XenError(Exception):
             errormessage = subdict['description']
             if opterr is not None:
                 errormessage += " [opterr=%s]" % opterr
-            util.SMlog("Raising exception [%d, %s]" %
-                       (errorcode, errormessage))
             return SROSError(errorcode, errormessage)
 
         # development error

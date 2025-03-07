@@ -31,7 +31,7 @@ import sys
 from sm.core import xs_errors
 import xmlrpc.client
 from sm.core import mpath_cli
-from sm.core import libiscsi as iscsilib
+from sm.core import iscsi as iscsilib
 import glob
 import copy
 import xml.dom.minidom

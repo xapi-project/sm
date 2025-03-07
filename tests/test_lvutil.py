@@ -395,7 +395,7 @@ class TestGetPVsInVG(unittest.TestCase):
         mock_smlog.assert_called_with("PVs in VG vg1: []")
 
 @mock.patch('lvutil.cmd_lvm')
-@mock.patch('util.SMlog', autospec=True)
+@mock.patch('sm.core.util.SMlog', autospec=True)
 class TestGetPVsWithUUID(unittest.TestCase):
 
     def test_pv_match_uuid(self, mock_smlog, mock_cmd_lvm):
@@ -424,10 +424,10 @@ class TestGetPVsWithUUID(unittest.TestCase):
 
     def test_command_error(self, mock_smlog, mock_cmd_lvm):
         # Test invalid return value from cmd_lvm
-        mock_cmd_lvm.return_value = "Invalid retrun value."
+        mock_cmd_lvm.return_value = "Invalid return value."
         result = lvutil.getPVsWithUUID("uuid1")
         self.assertEqual(result, [])
         mock_smlog.assert_has_calls([
-            mock.call("Warning: Invalid or empty line in pvs output: Invalid retrun value."),
+            mock.call("Warning: Invalid or empty line in pvs output: Invalid return value."),
             mock.call("PVs with uuid uuid1: []")
         ])

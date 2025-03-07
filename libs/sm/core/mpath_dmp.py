@@ -15,7 +15,7 @@
 
 from sm.core import util
 from sm.core import xs_errors
-from sm.core import libiscsi as iscsilib
+from sm.core import iscsi as iscsilib
 from sm.core import mpath_cli
 import os
 import glob
@@ -58,8 +58,10 @@ def deactivate_MPdev(sid):
     if os.path.exists(path):
         os.unlink(path)
 
-
-def reset(sid, explicit_unmap=False):
+# The explicit_unmap argument used to default to False, but since every caller
+# either needs it to be True or explicitly specifies, changed it to True by
+# default.
+def reset(sid, explicit_unmap=True):
     util.SMlog("Resetting LUN %s" % sid)
     _resetDMP(sid, explicit_unmap)
 
@@ -95,8 +97,15 @@ def _resetDMP(sid, explicit_unmap=False):
         util.SMlog("MPATH: path disappeared [%s]" % path)
 
 
-def refresh(sid, npaths):
-    # Refresh the multipath status
+def refresh(sid, npaths=0):
+    """
+    Refresh the multipath status
+
+    The npaths argument is defaulted to 0 because it is never actually used
+    (_refresh_DMP() doesn't use it either) and this makes the call compatible
+    with sm-core-libs, which doesn't supply the argument.
+    """
+
     util.SMlog("Refreshing LUN %s" % sid)
     if len(sid):
         path = DEVBYIDPATH + "/scsi-" + sid

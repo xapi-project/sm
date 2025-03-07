@@ -21,11 +21,13 @@ SM_CORE_LIBS += scsiutil
 SM_CORE_LIBS += mpath_dmp
 SM_CORE_LIBS += mpath_cli
 SM_CORE_LIBS += xs_errors
-SM_CORE_LIBS += libiscsi
+SM_CORE_LIBS += iscsi
 SM_CORE_LIBS += wwid_conf
 SM_CORE_LIBS += lock
 SM_CORE_LIBS += flock
 SM_CORE_LIBS += f_exceptions
+# Add a "pretend" core lib to cover the iscsi differences
+SM_CORE_LIBS += libiscsi
 
 # Libraries which remain in drivers/ and get installed in
 # /opt/xensource/sm as wrappers around sm.core libs for

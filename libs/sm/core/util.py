@@ -31,6 +31,7 @@ import xml.dom.minidom
 from sm.core import scsiutil
 import stat
 from sm.core import xs_errors
+from sm.core import f_exceptions
 import XenAPI # pylint: disable=import-error
 import xmlrpc.client
 import base64
@@ -969,15 +970,13 @@ def kickpipe_mpathcount():
     return (rc == 0)
 
 
-def _testHost(hostname, port, errstring):
+def _testHost(hostname, port, errstring, timeout=5):
     SMlog("_testHost: Testing host/port: %s,%d" % (hostname, port))
     try:
         sockinfo = socket.getaddrinfo(hostname, int(port))[0]
     except:
         logException('Exception occured getting IP for %s' % hostname)
         raise xs_errors.XenError('DNSError')
-
-    timeout = 5
 
     sock = socket.socket(sockinfo[0], socket.SOCK_STREAM)
     # Only allow the connect to block for up to timeout seconds
@@ -992,6 +991,19 @@ def _testHost(hostname, port, errstring):
                    % (timeout, hostname, reason))
         raise xs_errors.XenError(errstring)
 
+def testHost(hostname, port):
+    """
+    Wrapper for _testHost which returns boolean. This also uses the
+    f_exceptions wrapper which serves as a test.
+    """
+    try:
+        # The third argument doesn't really matter here because we always
+        # swallow the exception and return False. It just needs to be a
+        # valid argument to xs_errors.XenError()
+        _testHost(hostname, port, "ISCSITarget(SMAPIv3)", timeout=10)
+    except f_exceptions.XenError:
+        return False
+    return True
 
 def match_scsiID(s, id):
     regex = re.compile(id)
@@ -1610,6 +1622,14 @@ def get_isl_scsiids(session):
                 scsi_id_ret.append(scsi_id)
 
     return scsi_id_ret
+
+
+def get_scsi_id(path):
+    """
+    Compatibility wrapper for sm-core-libs which had its own copy
+    of scsiutil.getSCSIid()
+    """
+    return scsiutil.getSCSIid(path)
 
 
 class extractXVA:
