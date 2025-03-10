@@ -488,6 +488,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
     def detach(self, sr_uuid):
         LVHDSR.LVHDSR.detach(self, sr_uuid)
         for i in self.iscsiSRs:
+            util.SMlog(f'Detaching {i}')
             i.detach(sr_uuid)
 
     def scan(self, sr_uuid):

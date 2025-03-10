@@ -441,8 +441,10 @@ class BaseISCSISR(SR.SR):
         except:
             pass
         if 'SCSIid' in self.dconf:
-            self.mpathmodule.reset(self.dconf['SCSIid'], explicit_unmap=True)
-            keys.append("mpath-" + self.dconf['SCSIid'])
+            scsi_id = self.dconf['SCSIid']
+            util.SMlog(f"Resetting mpath on {scsi_id}")
+            self.mpathmodule.reset(scsi_id, explicit_unmap=True)
+            keys.append("mpath-" + scsi_id)
 
         # Remove iscsi_sessions and multipathed keys
         if pbdref is not None:
