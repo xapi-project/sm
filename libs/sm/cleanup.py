@@ -2635,10 +2635,12 @@ class FileSR(SR):
         Util.log("*** FINISH LEAF-COALESCE")
         vdi = self.getVDI(childUuid)
         if not vdi:
+            Util.log(f"_finishInterruptedCoalesceLeaf, vdi {childUuid} not found, aborting")
             raise util.SMException("VDI %s not found" % childUuid)
         try:
             self.forgetVDI(parentUuid)
         except XenAPI.Failure:
+            Util.logException('_finishInterruptedCoalesceLeaf')
             pass
         self._updateSlavesOnResize(vdi)
         util.fistpoint.activate("LVHDRT_coaleaf_finish_end", self.uuid)
