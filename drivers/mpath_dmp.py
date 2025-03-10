@@ -34,9 +34,9 @@ MP_INUSEDIR = "/dev/disk/mpInuse"
 
 
 def _is_mpath_daemon_running():
-    cmd = ["/sbin/pidof", "-s", "/sbin/multipathd"]
-    (rc, stdout, stderr) = util.doexec(cmd)
-    return (rc == 0)
+    cmd = ["/usr/bin/systemctl", "is-active", "multipathd"]
+    rc, stdout, stderr = util.doexec(cmd)
+    return rc == 0
 
 
 def activate_MPdev(sid, dst):
@@ -73,16 +73,17 @@ def _resetDMP(sid, explicit_unmap=False):
         util.SMlog("Warning: Trying to unmap mpath device when multipathd not running")
         return
 
-# If the multipath daemon is running, but we were initially plugged
-# with multipathing set to no, there may be no map for us in the multipath
-# tables. In that case, list_paths will return [], but remove_map might
-# throw an exception. Catch it and ignore it.
     if explicit_unmap:
+        util.SMlog("_resetDMP, explicit unmap")
         with Fairlock("devicemapper"):
+            util.SMlog(f"removing {sid} from multipath and wwids")
+            util.retry(
+                lambda: util.pread2(['/usr/sbin/multipath', '-w', sid]),
+                maxretry=3, period=4)
             util.retry(lambda: util.pread2(['/usr/sbin/multipath', '-f', sid]),
-                    maxretry=3, period=4)
-            util.retry(lambda: util.pread2(['/usr/sbin/multipath', '-W']), maxretry=3,
-                    period=4)
+                       maxretry=3, period=4)
+            util.retry(lambda: util.pread2(['/usr/sbin/multipath', '-W']),
+                       maxretry=3, period=4)
     else:
         mpath_cli.ensure_map_gone(sid)
 

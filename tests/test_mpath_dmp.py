@@ -291,9 +291,15 @@ class TestMpathDmp(unittest.TestCase):
 
         # Check that the mpath maps were removed
         mock_util.pread2.assert_has_calls([
-            mock.call(['/usr/sbin/multipath', '-f', '360a98000534b4f4e46704f5270674d70']),
+            mock.call(['/usr/sbin/multipath', '-w',
+                       '360a98000534b4f4e46704f5270674d70']),
+            mock.call(['/usr/sbin/multipath', '-f',
+                       '360a98000534b4f4e46704f5270674d70']),
             mock.call(['/usr/sbin/multipath', '-W']),
-            mock.call(['/usr/sbin/multipath', '-f', '3600140582622313e8dc4270a4a897b4e']),
+            mock.call(['/usr/sbin/multipath', '-w',
+                       '3600140582622313e8dc4270a4a897b4e']),
+            mock.call(['/usr/sbin/multipath', '-f',
+                       '3600140582622313e8dc4270a4a897b4e']),
             mock.call(['/usr/sbin/multipath', '-W'])])
 
     @mock.patch('mpath_dmp.glob.glob', autospec=True)
@@ -321,9 +327,15 @@ class TestMpathDmp(unittest.TestCase):
 
         # Check that the mpath maps were removed
         mock_util.pread2.assert_has_calls([
-            mock.call(['/usr/sbin/multipath', '-f', '360a98000534b4f4e46704f5270674d70']),
+            mock.call(['/usr/sbin/multipath', '-w',
+                       '360a98000534b4f4e46704f5270674d70']),
+            mock.call(['/usr/sbin/multipath', '-f',
+                       '360a98000534b4f4e46704f5270674d70']),
             mock.call(['/usr/sbin/multipath', '-W']),
-            mock.call(['/usr/sbin/multipath', '-f', '3600140582622313e8dc4270a4a897b4e']),
+            mock.call(['/usr/sbin/multipath', '-w',
+                       '3600140582622313e8dc4270a4a897b4e']),
+            mock.call(['/usr/sbin/multipath', '-f',
+                       '3600140582622313e8dc4270a4a897b4e']),
             mock.call(['/usr/sbin/multipath', '-W'])])
 
     @mock.patch('mpath_dmp.glob.glob', autospec=True)
@@ -348,9 +360,15 @@ class TestMpathDmp(unittest.TestCase):
 
         # Check that the mpath maps were removed
         mock_util.pread2.assert_has_calls([
-            mock.call(['/usr/sbin/multipath', '-f', '360a98000534b4f4e46704f5270674d70']),
+            mock.call(['/usr/sbin/multipath', '-w',
+                       '360a98000534b4f4e46704f5270674d70']),
+            mock.call(['/usr/sbin/multipath', '-f',
+                       '360a98000534b4f4e46704f5270674d70']),
             mock.call(['/usr/sbin/multipath', '-W']),
-            mock.call(['/usr/sbin/multipath', '-f', '3600140582622313e8dc4270a4a897b4e']),
+            mock.call(['/usr/sbin/multipath', '-w',
+                       '3600140582622313e8dc4270a4a897b4e']),
+            mock.call(['/usr/sbin/multipath', '-f',
+                       '3600140582622313e8dc4270a4a897b4e']),
             mock.call(['/usr/sbin/multipath', '-W'])])
 
         self.assertEqual(1, mock_iscsilib.restart_daemon.call_count)
