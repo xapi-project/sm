@@ -9,5 +9,6 @@ ACTION=="add|change", KERNEL=="dm-[0-9]*", SUBSYSTEM=="block", ENV{DM_NAME}=="36
 
 # Spread CPU load by redirecting completions to originating CPU
 ACTION=="add|change", KERNEL=="sd*[!0-9]", SUBSYSTEM=="block", ENV{ID_VENDOR}=="PURE", ATTR{queue/rq_affinity}="2"
+ACTION=="add|change", KERNEL=="dm-[0-9]*", SUBSYSTEM=="block", ENV{DM_NAME}=="3624a937*", ATTR{queue/rq_affinity}="2"
 
 ACTION=="add", SUBSYSTEMS=="scsi", ATTRS{model}=="FlashArray      ", ATTR{device/timeout}="60"
