@@ -61,7 +61,6 @@ SM_LIBS += sr_health_check
 
 UDEV_RULES = 65-multipath 55-xs-mpath-scsidev 57-usb 58-xapi
 MPATH_DAEMON = sm-multipath
-MPATH_CONF = multipath.conf
 MPATH_CUSTOM_CONF = custom.conf
 SMLOG_CONF = SMlog
 
@@ -77,7 +76,6 @@ UDEV_RULES_DIR := /etc/udev/rules.d/
 UDEV_SCRIPTS_DIR := /etc/udev/scripts/
 SYSTEMD_SERVICE_DIR := /usr/lib/systemd/system/
 INIT_DIR := /etc/rc.d/init.d/
-MPATH_CONF_DIR := /etc/multipath.xenserver/
 MPATH_CUSTOM_CONF_DIR := /etc/multipath/conf.d/
 MODPROBE_DIR := /etc/modprobe.d/
 EXTENSION_SCRIPT_DEST := /etc/xapi.d/extensions/
@@ -122,7 +120,6 @@ install: precheck
 	mkdir -p $(SM_STAGING)$(UDEV_SCRIPTS_DIR)
 	mkdir -p $(SM_STAGING)$(INIT_DIR)
 	mkdir -p $(SM_STAGING)$(SYSTEMD_SERVICE_DIR)
-	mkdir -p $(SM_STAGING)$(MPATH_CONF_DIR)
 	mkdir -p $(SM_STAGING)$(MPATH_CUSTOM_CONF_DIR)
 	mkdir -p $(SM_STAGING)$(MODPROBE_DIR)
 	mkdir -p $(SM_STAGING)$(LOGROTATE_DIR)
@@ -139,8 +136,6 @@ install: precheck
 	  $(SM_STAGING)$(SM_DEST)/plugins/
 	install -m 755 drivers/plugins/keymanagerutil.py \
 	  $(SM_STAGING)$(SM_DEST)/plugins/
-	install -m 644 multipath/$(MPATH_CONF) \
-	  $(SM_STAGING)/$(MPATH_CONF_DIR)
 	install -m 644 multipath/$(MPATH_CUSTOM_CONF) \
 	  $(SM_STAGING)/$(MPATH_CUSTOM_CONF_DIR)
 	install -m 755 multipath/sm-multipath \
