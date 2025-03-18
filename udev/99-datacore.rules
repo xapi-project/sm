@@ -1,0 +1,1 @@
+SUBSYSTEM=="block", ACTION=="add", ATTRS{vendor}=="DataCore", ATTRS{model}=="Virtual Disk    ", RUN+="/bin/sh -c 'echo 80 > /sys/block/device/timeout'"
