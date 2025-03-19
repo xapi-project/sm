@@ -21,7 +21,7 @@ class FakeNFSSR(NFSSR.NFSSR):
         self.dconf = srcmd.dconf
         self.srcmd = srcmd
 
-
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestNFSSR(unittest.TestCase):
 
     def create_nfssr(self, server='aServer', serverpath='/aServerpath',

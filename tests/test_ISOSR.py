@@ -25,6 +25,7 @@ class FakeISOSR(ISOSR.ISOSR):
         self.srcmd = srcmd
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestISOSR_overNFS(unittest.TestCase):
 
     def create_isosr(self, location='aServer:/aLocation', atype=None,
@@ -189,6 +190,7 @@ class TestISOSR_overNFS(unittest.TestCase):
                          r"^Required NFS server version unsupported\b")
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestISOSR_overSMB(unittest.TestCase):
 
     def create_smbisosr(self, location='\\aServer\aLocation', atype=None,
@@ -498,7 +500,9 @@ class TestISOSR_overSMB(unittest.TestCase):
         self.assertEqual(exp.exception.errno, 111)
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestISOSR_functions(unittest.TestCase):
+
     def test_is_consistent_utf8_filename(self):
         with PatchFSEncoder() as fs_encoder:
             # Expectations:

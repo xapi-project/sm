@@ -13,8 +13,8 @@ def mock_init(self, sr, sr_uuid):
     self.sr_uuid = sr_uuid
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestLVHDoHBAVDI(unittest.TestCase):
-
     @mock.patch('LVHDoHBASR.LVHDoHBASR', autospec=True)
     @mock.patch('LVHDoHBASR.LVHDoHBAVDI.__init__', mock_init)
     @mock.patch('LVHDoHBASR.lvutil._checkLV', autospec=True)
@@ -71,6 +71,7 @@ class TestLVHDoHBAVDI(unittest.TestCase):
         self.assertEqual(str(cm.exception), "The VDI is not available")
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestLVHDoHBASR(unittest.TestCase):
 
     def setUp(self):

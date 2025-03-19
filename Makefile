@@ -160,10 +160,8 @@ install: precheck
 	  install -D -m 644 $$i $(SM_STAGING)$(PYTHONLIBDIR)/sm/core/; \
 	done
 	mkdir -p $(SM_STAGING)$(SM_DATADIR)
-	# This should go in SM_DATADIR but that breaks the unit tests.
-	# Leave it next to xs_errors.py until we can fix that.
 	for i in $(SM_XML); do \
-	  install -D -m 644 libs/sm/core/$$i.xml $(SM_STAGING)$(PYTHONLIBDIR)/sm/core/; \
+	  install -D -m 644 libs/sm/core/$$i.xml $(SM_STAGING)$(SM_DATADIR)/; \
 	done
 	# Legacy SM python files
 	for i in $(SM_PY_FILES); do \

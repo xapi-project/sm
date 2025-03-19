@@ -11,6 +11,7 @@ from shared_iscsi_test_base import ISCSITestCase
 from util import CommandException
 from sm.core import xs_errors
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestBaseISCSI(ISCSITestCase):
 
     TEST_CLASS = 'BaseISCSI'

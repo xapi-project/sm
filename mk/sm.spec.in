@@ -256,6 +256,7 @@ It obsoletes and replaces the old sm-core-libs package.
 
 %files -n python%{python3_pkgversion}-sm-libs
 %{python3_sitelib}/sm
+%{_datadir}/sm
 
 %changelog
 

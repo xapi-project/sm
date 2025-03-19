@@ -17,6 +17,7 @@ from queue import Queue
 # pylint: disable=W0613; mocks don't need to be accessed
 # pylint: disable=R0201; methods must be instance for nose to work
 # pylint: disable=W0212; unit tests are permitted to snoop
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestMpathDmp(unittest.TestCase):
     """
     Unit tests for mpath dmp

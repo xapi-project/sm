@@ -5,6 +5,7 @@ from SR import deviceCheck
 import xs_errors
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestSR(unittest.TestCase):
 
     class deviceTest(object):

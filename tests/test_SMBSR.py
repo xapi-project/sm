@@ -31,6 +31,7 @@ class FakeSMBSR(SMBSR.SMBSR):
         self.remoteserver = 'aRemoteserver'
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class Test_SMBSR(unittest.TestCase):
 
     def setUp(self):
