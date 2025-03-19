@@ -2330,6 +2330,9 @@ class SR:
         vdi.parent.children = []
         vdi.parent = None
 
+        if parent.parent is None:
+            parent.delConfig(VDI.DB_VHD_PARENT)
+
         extraSpace = self._calcExtraSpaceNeeded(vdi, parent)
         freeSpace = self.getFreeSpace()
         if freeSpace < extraSpace:
