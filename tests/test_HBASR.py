@@ -61,6 +61,7 @@ def fake_probe(self):
     return imp_fake_probe()
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestHBASR(unittest.TestCase):
 
     @mock.patch('HBASR.HBASR.__init__', mock_init)

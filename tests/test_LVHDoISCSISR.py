@@ -56,6 +56,7 @@ class NonInitingLVHDoISCSISR(LVHDoISCSISR.LVHDoISCSISR):
         self.srcmd.params.update(extra_params or {})
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestLVHDoISCSISR_load(unittest.TestCase):
 
     """
@@ -120,6 +121,7 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
         )
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestLVHDoISCSISR(ISCSITestCase):
 
     TEST_CLASS = 'LVHDoISCSISR'

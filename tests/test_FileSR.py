@@ -26,6 +26,7 @@ class FakeFileVDI(FileSR.FileVDI):
         self.key_hash = None
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestFileVDI(unittest.TestCase):
     def setUp(self):
         startlog_patcher = mock.patch('FileSR.util.start_log_entry',
@@ -430,6 +431,8 @@ class FakeSharedFileSR(FileSR.SharedFileSR):
     def _read_hardlink_conf(self):
         return None
 
+
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestShareFileSR(unittest.TestCase):
     """
     Tests for common Shared File SR operations
@@ -560,6 +563,7 @@ class TestShareFileSR(unittest.TestCase):
         # Assert
         self.assertEqual(1, len(test_sr.vdis))
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestFileSR(unittest.TestCase):
     def setUp(self):
         pread_patcher = mock.patch('FileSR.util.pread')

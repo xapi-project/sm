@@ -5,24 +5,13 @@ import xs_errors
 import os
 
 
-class TestBase(unittest.TestCase):
-    """ Provides errorcodes.xml, so exceptions are sensible """
-
-    def setUp(self):
-        self._xmldefs = xs_errors.XML_DEFS
-        xs_errors.XML_DEFS = os.path.join(
-            os.path.dirname(__file__), 'XE_SR_ERRORCODES.xml')
-
-    def tearDown(self):
-        xs_errors.XML_DEFS = self._xmldefs
-
-
 class NonLoadingISCSISR(BaseISCSI.BaseISCSISR):
     def load(self, sr_uuid):
         pass
 
 
-class TestForceTapDiskConfig(TestBase):
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
+class TestForceTapDiskConfig(unittest.TestCase):
 
     def _get_iscsi_sr(self, dconf=None):
         srcmd = mock.Mock()
@@ -89,7 +78,8 @@ class NonInitingMultiLUNISCSISR(BaseISCSI.BaseISCSISR):
         pass
 
 
-class TestVdiTypeSetting(TestBase):
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
+class TestVdiTypeSetting(unittest.TestCase):
 
     @mock.patch('BaseISCSI.iscsilib.discovery', autospec=True)
     @mock.patch('BaseISCSI.iscsilib.ensure_daemon_running_ok', autospec=True)
@@ -114,6 +104,7 @@ class TestVdiTypeSetting(TestBase):
         self.assertEqual('aio', iscsi_sr.sr_vditype)
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestMultiLUNISCSISR(unittest.TestCase):
 
     def setUp(self):
@@ -179,7 +170,8 @@ class TestMultiLUNISCSISR(unittest.TestCase):
         self.assertActiveNodeEquals(self.node2, iscsi_sr)
 
 
-class TestISCSISR(TestBase):
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
+class TestISCSISR(unittest.TestCase):
 
     @mock.patch('BaseISCSI.util._convertDNS', autospec=True)
     def test_load_assert_utf_8_chap_credencials(

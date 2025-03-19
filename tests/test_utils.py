@@ -15,6 +15,7 @@ class fake_proc:
         return b"hello", b"hello"
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestCreate(unittest.TestCase):
 
     @mock.patch('subprocess.Popen', autospec=True)

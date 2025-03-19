@@ -9,6 +9,7 @@ TEST_HOST = 'test_host'
 SR_UUID = 'sr uuid'
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestSrHealthCheck(unittest.TestCase):
 
     def setUp(self):

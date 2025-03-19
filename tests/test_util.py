@@ -41,6 +41,7 @@ DRIVER_INFO = {
 TEST_IQN = "iqn.2009-09.com.example.test"
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestSMUtil(unittest.TestCase):
     """
     Tests for the util module methods
@@ -716,6 +717,7 @@ class TestSMUtil(unittest.TestCase):
         self.assertEqual(util.unictrunc(t, 0), 0)
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestFistPoints(unittest.TestCase):
     def setUp(self):
         self.addCleanup(mock.patch.stopall)
@@ -782,6 +784,7 @@ class TestFistPoints(unittest.TestCase):
         self.mock_sleep.assert_called_once_with(util.FIST_PAUSE_PERIOD)
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestCoreUtil(unittest.TestCase):
 
     def setUp(self):
