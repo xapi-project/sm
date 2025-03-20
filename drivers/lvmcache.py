@@ -59,10 +59,11 @@ class LVMCache:
     """Per-VG object to store LV information. Can be queried for cached LVM
     information and refreshed"""
 
-    def __init__(self, vgName):
+    def __init__(self, vgName, config=None):
         """Create a cache for VG vgName, but don't scan the VG yet"""
         self.vgName = vgName
         self.vgPath = "/dev/%s" % self.vgName
+        self.config = config
         self.lvs = dict()
         self.tags = dict()
         self.initialized = False
@@ -115,7 +116,7 @@ class LVMCache:
     @lazyInit
     def remove(self, lvName):
         path = self._getPath(lvName)
-        lvutil.remove(path)
+        lvutil.remove(path, self.config)
         for tag in self.lvs[lvName].tags:
             self._removeTag(lvName, tag)
         del self.lvs[lvName]

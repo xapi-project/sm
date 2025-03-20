@@ -2649,7 +2649,12 @@ class LVHDSR(SR):
         SR.__init__(self, uuid, xapi, createLock, force)
         self.vgName = "%s%s" % (lvhdutil.VG_PREFIX, self.uuid)
         self.path = os.path.join(lvhdutil.VG_LOCATION, self.vgName)
-        self.lvmCache = lvmcache.LVMCache(self.vgName)
+
+        sr_ref = self.xapi.session.xenapi.SR.get_by_uuid(self.uuid)
+        other_conf = self.xapi.session.xenapi.SR.get_other_config(sr_ref)
+        lvm_conf = other_conf.get('lvm-conf') if other_conf else None
+        self.lvmCache = lvmcache.LVMCache(self.vgName, lvm_conf)
+
         self.lvActivator = LVActivator(self.uuid, self.lvmCache)
         self.journaler = journaler.Journaler(self.lvmCache)
 
