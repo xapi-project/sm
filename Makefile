@@ -28,6 +28,8 @@ SM_CORE_LIBS += lock
 SM_CORE_LIBS += flock
 SM_CORE_LIBS += f_exceptions
 # Add a "pretend" core lib to cover the iscsi differences
+# This uses sm.core.iscsi but provides some methods which
+# sm-core-libs provided differently.
 SM_CORE_LIBS += libiscsi
 
 # Libraries which remain in drivers/ and get installed in

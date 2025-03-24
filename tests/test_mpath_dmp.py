@@ -191,14 +191,14 @@ class TestMpathDmp(unittest.TestCase):
         self.assertTrue(
             mock_wait_for_path.call_args_list[0][0][0].endswith(test_id))
 
-    @mock.patch('sm.core.mpath_dmp.iscsilib', autospec=True)
+    @mock.patch('sm.core.mpath_dmp.iscsi', autospec=True)
     @mock.patch('sm.core.mpath_dmp.util', autospec=True)
     def test_activate_noiscsi_success(
-            self, mock_util, mock_iscsilib):
+            self, mock_util, mock_iscsi):
         """
         MPATH activate, no iscsi, success
         """
-        mock_iscsilib.is_iscsi_daemon_running.return_value = False
+        mock_iscsi.is_iscsi_daemon_running.return_value = False
         mock_util.doexec.return_value = (0, "", "")
         self.mock_mpath_cli.is_working.side_effect = [False, False, True]
 
@@ -206,14 +206,14 @@ class TestMpathDmp(unittest.TestCase):
 
         self.assertEqual(0, mock_util.pread2.call_count)
 
-    @mock.patch('sm.core.mpath_dmp.iscsilib', autospec=True)
+    @mock.patch('sm.core.mpath_dmp.iscsi', autospec=True)
     @mock.patch('sm.core.mpath_dmp.util', autospec=True)
     def test_activate_noiscsi_start_mpath(
-            self, mock_util, mock_iscsilib):
+            self, mock_util, mock_iscsi):
         """
         MPATH activate, no iscsi, start mpath
         """
-        mock_iscsilib.is_iscsi_daemon_running.return_value = False
+        mock_iscsi.is_iscsi_daemon_running.return_value = False
         mock_util.doexec.return_value = (1, "", "")
         self.mock_mpath_cli.is_working.side_effect = [False, False, True]
 
@@ -223,14 +223,14 @@ class TestMpathDmp(unittest.TestCase):
         mock_util.pread2.assert_called_once_with(
             ['/usr/bin/systemctl', 'start', 'multipathd.service'])
 
-    @mock.patch('sm.core.mpath_dmp.iscsilib', autospec=True)
+    @mock.patch('sm.core.mpath_dmp.iscsi', autospec=True)
     @mock.patch('sm.core.mpath_dmp.util', autospec=True)
     def test_activate_noiscsi_mpath_not_working(
-            self, mock_util, mock_iscsilib):
+            self, mock_util, mock_iscsi):
         """
         MPATH activate, mpath not running
         """
-        mock_iscsilib.is_iscsi_daemon_running.return_value = False
+        mock_iscsi.is_iscsi_daemon_running.return_value = False
         mock_util.doexec.return_value = (0, "", "")
         self.mock_mpath_cli.is_working.side_effect = [False] * 120
 
@@ -239,45 +239,45 @@ class TestMpathDmp(unittest.TestCase):
 
         self.assertEqual(430, soe.exception.errno)
 
-    @mock.patch('sm.core.mpath_dmp.iscsilib', autospec=True)
+    @mock.patch('sm.core.mpath_dmp.iscsi', autospec=True)
     @mock.patch('sm.core.mpath_dmp.util', autospec=True)
     def test_activate_active_iscsi_success(
-            self, mock_util, mock_iscsilib):
+            self, mock_util, mock_iscsi):
         """
         MPATH activate, active iscsi, success
         """
-        mock_iscsilib.is_iscsi_daemon_running.return_value = True
-        mock_iscsilib._checkAnyTGT.return_value = True
+        mock_iscsi.is_iscsi_daemon_running.return_value = True
+        mock_iscsi._checkAnyTGT.return_value = True
         mock_util.doexec.return_value = (0, "", "")
         self.mock_mpath_cli.is_working.side_effect = [False, False, True]
 
         mpath_dmp.activate()
 
-        self.assertEqual(0, mock_iscsilib.restart_daemon.call_count)
+        self.assertEqual(0, mock_iscsi.restart_daemon.call_count)
 
-    @mock.patch('sm.core.mpath_dmp.iscsilib', autospec=True)
+    @mock.patch('sm.core.mpath_dmp.iscsi', autospec=True)
     @mock.patch('sm.core.mpath_dmp.util', autospec=True)
     def test_activate_iscsi_no_targets_success(
-            self, mock_util, mock_iscsilib):
+            self, mock_util, mock_iscsi):
         """
         MPATH activate, iscsi, no_targets, success
         """
-        mock_iscsilib.is_iscsi_daemon_running.return_value = True
-        mock_iscsilib._checkAnyTGT.return_value = False
+        mock_iscsi.is_iscsi_daemon_running.return_value = True
+        mock_iscsi._checkAnyTGT.return_value = False
         mock_util.doexec.return_value = (0, "", "")
         self.mock_mpath_cli.is_working.side_effect = [False, False, True]
 
         mpath_dmp.activate()
 
         self.assertEqual(0, mock_util.pread2.call_count)
-        self.assertEqual(1, mock_iscsilib.restart_daemon.call_count)
+        self.assertEqual(1, mock_iscsi.restart_daemon.call_count)
 
     @mock.patch('sm.core.mpath_dmp.glob.glob', autospec=True)
     @mock.patch('sm.core.mpath_dmp.os.path.realpath', autospec=True)
-    @mock.patch('sm.core.mpath_dmp.iscsilib', autospec=True)
+    @mock.patch('sm.core.mpath_dmp.iscsi', autospec=True)
     @mock.patch('sm.core.mpath_dmp.util', autospec=True)
     def test_deactivate_mpath_running(
-            self, mock_util, mock_iscsilib, mock_realpath, mock_glob):
+            self, mock_util, mock_iscsi, mock_realpath, mock_glob):
         """
         MPATH deactivate, running, success
         """
@@ -305,10 +305,10 @@ class TestMpathDmp(unittest.TestCase):
 
     @mock.patch('sm.core.mpath_dmp.glob.glob', autospec=True)
     @mock.patch('sm.core.mpath_dmp.os.path.realpath', autospec=True)
-    @mock.patch('sm.core.mpath_dmp.iscsilib', autospec=True)
+    @mock.patch('sm.core.mpath_dmp.iscsi', autospec=True)
     @mock.patch('sm.core.mpath_dmp.util', autospec=True)
     def test_deactivate_mpath_root(
-            self, mock_util, mock_iscsilib, mock_realpath, mock_glob):
+            self, mock_util, mock_iscsi, mock_realpath, mock_glob):
         """
         MPATH deactivate, mpathed root
         """
@@ -341,10 +341,10 @@ class TestMpathDmp(unittest.TestCase):
 
     @mock.patch('sm.core.mpath_dmp.glob.glob', autospec=True)
     @mock.patch('sm.core.mpath_dmp.os.path.realpath', autospec=True)
-    @mock.patch('sm.core.mpath_dmp.iscsilib', autospec=True)
+    @mock.patch('sm.core.mpath_dmp.iscsi', autospec=True)
     @mock.patch('sm.core.mpath_dmp.util', autospec=True)
     def test_deactivate_mpath_no_iscsi_targets(
-            self, mock_util, mock_iscsilib, mock_realpath, mock_glob):
+            self, mock_util, mock_iscsi, mock_realpath, mock_glob):
         """
         MPATH deactivate, running, success
         """
@@ -354,8 +354,8 @@ class TestMpathDmp(unittest.TestCase):
             '3600140582622313e8dc4270a4a897b4e']
         mock_realpath.return_value = '/dev/disk/by-id/scsi-34564'
         mock_util.retry.side_effect = util.retry
-        mock_iscsilib.is_iscsi_daemon_running.return_value = True
-        mock_iscsilib._checkAnyTGT.return_value = False
+        mock_iscsi.is_iscsi_daemon_running.return_value = True
+        mock_iscsi._checkAnyTGT.return_value = False
 
         mpath_dmp.deactivate()
 
@@ -372,7 +372,7 @@ class TestMpathDmp(unittest.TestCase):
                        '3600140582622313e8dc4270a4a897b4e']),
             mock.call(['/usr/sbin/multipath', '-W'])])
 
-        self.assertEqual(1, mock_iscsilib.restart_daemon.call_count)
+        self.assertEqual(1, mock_iscsi.restart_daemon.call_count)
 
     def test_refresh_no_sid(self):
         with self.assertRaises(SROSError):

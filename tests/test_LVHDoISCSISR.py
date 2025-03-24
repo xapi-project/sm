@@ -8,7 +8,7 @@ from uuid import uuid4
 
 import SR
 import LVHDoISCSISR
-from sm.core import iscsi as iscsilib
+from sm.core import iscsi
 from BaseISCSI import BaseISCSISR
 import SRCommand
 from sm.core import util
@@ -85,11 +85,11 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
 
         self.addCleanup(mock.patch.stopall)
 
-    @mock.patch('LVHDoISCSISR.iscsilib.ensure_daemon_running_ok')
+    @mock.patch('LVHDoISCSISR.iscsi.ensure_daemon_running_ok')
     def test_1st_try_block_raise_XenError(
             self,
-            mock_iscsilib_ensure_daemon_running_ok):
-        mock_iscsilib_ensure_daemon_running_ok.side_effect = xs_errors.XenError(
+            mock_iscsi_ensure_daemon_running_ok):
+        mock_iscsi_ensure_daemon_running_ok.side_effect = xs_errors.XenError(
             'ISCSIInitiator',
             'Raise XenError'
         )
@@ -103,11 +103,11 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
             'Failed to set ISCSI initiator [opterr=Raise XenError]'
         )
 
-    @mock.patch('LVHDoISCSISR.iscsilib.ensure_daemon_running_ok')
+    @mock.patch('LVHDoISCSISR.iscsi.ensure_daemon_running_ok')
     def test_1st_try_block_raise_RandomError(
             self,
-            mock_iscsilib_ensure_daemon_running_ok):
-        mock_iscsilib_ensure_daemon_running_ok.side_effect = RandomError(
+            mock_iscsi_ensure_daemon_running_ok):
+        mock_iscsi_ensure_daemon_running_ok.side_effect = RandomError(
             'Raise RandomError'
         )
 
@@ -301,11 +301,11 @@ class TestLVHDoISCSISR(ISCSITestCase):
         self.subject.attach(TEST_SR_UUID)
 
         # Assert
-        # print(f"iscsilib calls {self.mock_iscsilib.mock_calls}")
+        # print(f"iscsi calls {self.mock_iscsi.mock_calls}")
         attach_count = 0
         for sr in self.base_srs:
            attach_count += sr.attach.call_count
 
         self.assertEqual(12, attach_count)
-        self.assertEqual(12, self.mock_iscsilib.discovery.call_count)
-        self.assertEqual(12, self.mock_iscsilib.login.call_count)
+        self.assertEqual(12, self.mock_iscsi.discovery.call_count)
+        self.assertEqual(12, self.mock_iscsi.login.call_count)
