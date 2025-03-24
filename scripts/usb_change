@@ -18,4 +18,4 @@
 # called by UDEV rule to trigger pusb scan, when USB device change is detected
 
 # wake up usb-scan.service waiting on the pipe
-/opt/xensource/libexec/kickpipe usb-scan
+/usr/libexec/sm/kickpipe usb-scan
