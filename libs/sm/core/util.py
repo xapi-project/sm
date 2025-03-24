@@ -63,7 +63,7 @@ LOG_DEBUG = syslog.LOG_DEBUG
 ISCSI_REFDIR = '/var/run/sr-ref'
 
 CMD_DD = "/bin/dd"
-CMD_KICKPIPE = '/opt/xensource/libexec/kickpipe'
+CMD_KICKPIPE = '/usr/libexec/sm/kickpipe'
 
 FIST_PAUSE_PERIOD = 30  # seconds
 

@@ -4,7 +4,7 @@ Description=Multipath scanner kick socket
 [Socket]
 ListenFIFO=/var/run/mpathcount.sock
 PipeSize=4096
-ExecStartPost=/opt/xensource/libexec/kickpipe mpathcount
+ExecStartPost=/usr/libexec/sm/kickpipe mpathcount
 
 [Install]
 WantedBy=multi-user.target
