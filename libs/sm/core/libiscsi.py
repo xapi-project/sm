@@ -63,7 +63,7 @@ def login(portal, target, username, password, uuid, rescan=False):
         iscsi.rescan_target(portal, target)
 
 def logout(portal, target, uuid):
-    """Modified version of iscsilib.py:logout to handle refcounting
+    """Modified version of iscsi.py:logout to handle refcounting
 
     Given the nature of this refcounting, it is not possible to specifically
     logout from one ip/iqn pair without breaking the refcounting.

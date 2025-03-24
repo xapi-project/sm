@@ -1,20 +1,20 @@
 import unittest
 from unittest import mock
 
-from sm.core import iscsi as iscsilib
+from sm.core import iscsi
 from SRCommand import SRCommand
 
 
 class ISCSITestCase(unittest.TestCase):
 
     def setUp(self):
-        iscsilib_patcher = mock.patch(f'{self.TEST_CLASS}.iscsilib',
+        iscsi_patcher = mock.patch(f'{self.TEST_CLASS}.iscsi',
                                       autospec=True)
-        self.mock_iscsilib = iscsilib_patcher.start()
-        self.mock_iscsilib.discovery.side_effect = self.discovery
-        self.mock_iscsilib._checkTGT.side_effect = self._checkTGT
-        self.mock_iscsilib.login.side_effect = self.iscsi_login
-        self.mock_iscsilib.parse_IP_port = iscsilib.parse_IP_port
+        self.mock_iscsi = iscsi_patcher.start()
+        self.mock_iscsi.discovery.side_effect = self.discovery
+        self.mock_iscsi._checkTGT.side_effect = self._checkTGT
+        self.mock_iscsi.login.side_effect = self.iscsi_login
+        self.mock_iscsi.parse_IP_port = iscsi.parse_IP_port
         self.discovery_data = {}
         self.sessions = []
 
@@ -24,7 +24,7 @@ class ISCSITestCase(unittest.TestCase):
 
     def _checkTGT(self, tgtIQN, tgt=''):
         all_sessions = '\n'.join(self.sessions)
-        matched = iscsilib._compare_sessions_to_tgt(all_sessions, tgtIQN, tgt)
+        matched = iscsi._compare_sessions_to_tgt(all_sessions, tgtIQN, tgt)
         return matched
 
     def discovery(self, target, port, chapuser, chappassword,
