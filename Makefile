@@ -20,6 +20,7 @@ SM_CORE_LIBS := util
 SM_CORE_LIBS += scsiutil
 SM_CORE_LIBS += mpath_dmp
 SM_CORE_LIBS += mpath_cli
+SM_CORE_LIBS += mpath_null
 SM_CORE_LIBS += xs_errors
 SM_CORE_LIBS += iscsi
 SM_CORE_LIBS += wwid_conf
@@ -41,6 +42,7 @@ SM_COMPAT_LIBS += iscsilib
 SM_COMPAT_LIBS += wwid_conf
 SM_COMPAT_LIBS += lock
 SM_COMPAT_LIBS += flock
+SM_COMPAT_LIBS += mpath_null
 
 # Libraries and other code still maintained in
 # drivers/ and installed in /opt/xensource/sm which
@@ -60,7 +62,6 @@ SM_LIBS += cifutils
 SM_LIBS += nfs
 SM_LIBS += devscan
 SM_LIBS += sysdevice
-SM_LIBS += mpath_null
 SM_LIBS += mpathutil
 SM_LIBS += LUNperVDI
 SM_LIBS += mpathcount
