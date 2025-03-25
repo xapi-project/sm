@@ -97,7 +97,7 @@ class TestISOSR_overNFS(unittest.TestCase):
                                                  'tcp',
                                                  'aNfsversionChanged')
 
-        soft_mount.assert_called_once_with('/var/run/sr-mount/asr_uuid',
+        soft_mount.assert_called_once_with('/run/sr-mount/asr_uuid',
                                            'aServer',
                                            '/aLocation',
                                            'tcp',
@@ -132,7 +132,7 @@ class TestISOSR_overNFS(unittest.TestCase):
                                                  'tcp6',
                                                  'aNfsversionChanged')
 
-        soft_mount.assert_called_once_with('/var/run/sr-mount/asr_uuid',
+        soft_mount.assert_called_once_with('/run/sr-mount/asr_uuid',
                                            'aServer',
                                            '/aLocation',
                                            'tcp6',
@@ -236,7 +236,7 @@ class TestISOSR_overSMB(unittest.TestCase):
         smbsr.attach(None)
         pread.return_value = "Success"
         pread.assert_called_with(['mount.cifs', '\\aServer\x07Location',
-                                  '/var/run/sr-mount/asr_uuid', '-o',
+                                  '/run/sr-mount/asr_uuid', '-o',
                                   'cache=none,guest,vers=1.0'], True, new_env=None)
 
     @testlib.with_context
@@ -255,7 +255,7 @@ class TestISOSR_overSMB(unittest.TestCase):
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)
         pread.assert_called_with(['mount.cifs', '\\aServer\x07Location',
-                                  '/var/run/sr-mount/asr_uuid', '-o',
+                                  '/run/sr-mount/asr_uuid', '-o',
                                  'cache=none,vers=1.0'], True,
                                  new_env={'PASSWD': 'winter2019', 'USER': 'dot'})
 
@@ -276,7 +276,7 @@ class TestISOSR_overSMB(unittest.TestCase):
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)
         pread.assert_called_with(['mount.cifs', '\\aServer\x07Location',
-                                  '/var/run/sr-mount/asr_uuid', '-o',
+                                  '/run/sr-mount/asr_uuid', '-o',
                                   'cache=none,vers=1.0,domain=citrix'], True,
                                  new_env={'PASSWD': 'winter2019', 'USER': 'jsmith'})
 
@@ -294,7 +294,7 @@ class TestISOSR_overSMB(unittest.TestCase):
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)
         pread.assert_called_with(['mount.cifs', '\\aServer\x07Location',
-                                  '/var/run/sr-mount/asr_uuid', '-o',
+                                  '/run/sr-mount/asr_uuid', '-o',
                                   'cache=none,guest,vers=3.0'], True, new_env=None)
 
     @testlib.with_context
@@ -314,7 +314,7 @@ class TestISOSR_overSMB(unittest.TestCase):
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)
         pread.assert_called_with(['mount.cifs', '\\aServer\x07Location',
-                                  '/var/run/sr-mount/asr_uuid', '-o',
+                                  '/run/sr-mount/asr_uuid', '-o',
                                   'cache=none,guest,vers=3.0'], True, new_env=None)
 
     @testlib.with_context
@@ -420,7 +420,7 @@ class TestISOSR_overSMB(unittest.TestCase):
         _checkmount.side_effect = [False, True]
         smbsr.attach(None)
         pread.assert_called_with(['mount.cifs', '\\aServer\x07Location',
-                                  '/var/run/sr-mount/asr_uuid', '-o',
+                                  '/run/sr-mount/asr_uuid', '-o',
                                   'cache=none,guest,vers=1.0'], True, new_env=None)
 
     @mock.patch('ISOSR.util.gen_uuid')

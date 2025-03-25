@@ -383,7 +383,7 @@ hidden: 0
         vdi.load(vdi_uuid)
 
         # Assert
-        sr_path = f"/var/run/sr-mount/{sr_uuid}"
+        sr_path = f"/run/sr-mount/{sr_uuid}"
         mock_chdir.assert_has_calls([
             mock.call(sr_path),
             mock.call(sr_path)])

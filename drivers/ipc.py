@@ -30,7 +30,7 @@ class IPCFlag:
     """Flag-based communication for processes (set, test, clear).
     Not thread-safe."""
 
-    BASE_DIR = "/var/run/sm/ipc"
+    BASE_DIR = "/run/sm/ipc"
 
     def __init__(self, ns):
         self.ns = ns

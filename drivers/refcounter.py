@@ -37,7 +37,7 @@ class RefCounter:
     """Persistent local-FS file-based reference counter. The
     operations are get() and put(), and they are atomic."""
 
-    BASE_DIR = "/var/run/sm/refcount"
+    BASE_DIR = "/run/sm/refcount"
 
     def get(obj, binary, ns=None):
         """Get (inc ref count) 'obj' in namespace 'ns' (optional). 
