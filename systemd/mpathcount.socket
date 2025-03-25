@@ -2,7 +2,7 @@
 Description=Multipath scanner kick socket
 
 [Socket]
-ListenFIFO=/var/run/mpathcount.sock
+ListenFIFO=/run/mpathcount.sock
 PipeSize=4096
 ExecStartPost=/usr/libexec/sm/kickpipe mpathcount
 

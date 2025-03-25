@@ -25,11 +25,11 @@ class TestCreate(unittest.TestCase):
         with mock.patch.dict('os.environ', {'hello': 'world'}, clear=True):
             self.assertEqual(os.environ.get('hello'), 'world')
             util.pread(['mount.cifs', '\\aServer',
-                        '/var/run/sr-mount/asr_uuid',
+                        '/run/sr-mount/asr_uuid',
                         '-o', 'cache=loose,vers=3.0,actimeo=0,domain=citrix'],
                        new_env=new_env)
             expected_cmd = ['mount.cifs', '\\aServer',
-                            '/var/run/sr-mount/asr_uuid', '-o',
+                            '/run/sr-mount/asr_uuid', '-o',
                             'cache=loose,vers=3.0,actimeo=0,domain=citrix']
             popen.assert_called_with(expected_cmd,
                                      close_fds=True, stdin=-1, stderr=-1,
@@ -49,21 +49,21 @@ class TestCreate(unittest.TestCase):
 
         mock_isfile.return_value = False
         mock_mtemp.return_value = ("im_ignored",
-                                   "/var/run/random_temp.txt")
+                                   "/run/random_temp.txt")
         with mock.patch('builtins.open', opener_mock, create=True) as m:
 
             m.return_value.fileno.return_value = 123
-            util.atomicFileWrite("/var/run/test.txt", "var/run", "blah blah")
+            util.atomicFileWrite("/run/test.txt", "var/run", "blah blah")
 
             self.assertEqual(mock_mtemp.call_count, 1)
-            m.assert_called_with("/var/run/random_temp.txt", 'w')
+            m.assert_called_with("/run/random_temp.txt", 'w')
             m.return_value.write.assert_called_with("blah blah")
             self.assertEqual(m.return_value.flush.call_count, 1)
             mock_fsync.assert_called_with(123)
             self.assertEqual(m.return_value.close.call_count, 1)
-            mock_rename.assert_called_with("/var/run/random_temp.txt",
-                                           "/var/run/test.txt")
-            mock_isfile.assert_called_with("/var/run/random_temp.txt")
+            mock_rename.assert_called_with("/run/random_temp.txt",
+                                           "/run/test.txt")
+            mock_isfile.assert_called_with("/run/random_temp.txt")
             self.assertEqual(mock_remove.call_count, 0)
 
     @mock.patch("sm.core.util.os.fsync", autospec=True)
@@ -79,15 +79,15 @@ class TestCreate(unittest.TestCase):
 
         mock_isfile.return_value = True
         mock_mtemp.return_value = ("im_ignored",
-                                   "/var/run/random_temp.txt")
+                                   "/run/random_temp.txt")
         with mock.patch('builtins.open', opener_mock, create=True) as m:
             m.return_value.write.side_effect = OSError((errno.EPERM),
                                                        'Not Allowed')
             m.return_value.closed = False
             # Assert is swallowed
-            util.atomicFileWrite("/var/run/test.txt", "var/run",
+            util.atomicFileWrite("/run/test.txt", "var/run",
                                  "blah blah")
-            expectedMsg = "FAILED to atomic write to /var/run/test.txt"
+            expectedMsg = "FAILED to atomic write to /run/test.txt"
             mock_log.assert_called_with(expectedMsg)
-            mock_remove.assert_called_with("/var/run/random_temp.txt")
+            mock_remove.assert_called_with("/run/random_temp.txt")
             self.assertEqual(opener_mock.return_value.close.call_count, 1)

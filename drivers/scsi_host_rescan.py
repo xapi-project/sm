@@ -29,7 +29,7 @@ from xmlrpc.client import DateTime
 
 HOST_LOCK_NAME_FORMAT = 'host%s'
 RESCAN_LOCK_NAME = 'rescan'
-START_TIME_FILE_PATH_FORMAT = '/var/run/host%s_starttime_%s'
+START_TIME_FILE_PATH_FORMAT = '/run/host%s_starttime_%s'
 
 
 def _rescan_hostID(host):

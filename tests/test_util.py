@@ -16,7 +16,7 @@ from sm.core import f_exceptions
 DD_CMD = "/bin/dd"
 
 TEST_HOST_IP = "192.168.13.67"
-ISCSI_REFDIR = '/var/run/sr-ref'
+ISCSI_REFDIR = '/run/sr-ref'
 
 # Sample Driver Info
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_SUPPORTS_LOCAL_CACHING",
@@ -659,8 +659,8 @@ class TestSMUtil(unittest.TestCase):
         self.dir_contents['/proc'] = [str(17416), str(17414), str(17417)]
         tapdisk_unix_data = """
 00000000f1cc0a81: 00000002 00000000 00000000 0002 01 23755
-00000000728fbd2a: 00000002 00000000 00010000 0001 01 14525476 /var/run/blktap-control/nbd17416.1
-00000000a68a75cf: 00000003 00000000 00000000 0001 03 14522812 /var/run/blktap-control/nbd17405.0
+00000000728fbd2a: 00000002 00000000 00010000 0001 01 14525476 /run/blktap-control/nbd17416.1
+00000000a68a75cf: 00000003 00000000 00000000 0001 03 14522812 /run/blktap-control/nbd17405.0
         """
 
         mock_file_data = {
@@ -683,7 +683,7 @@ class TestSMUtil(unittest.TestCase):
 
         # Assert
         self.assertTrue(retval)
-        self.assertSetEqual({'/var/run/blktap-control/nbd17405.0'}, sockets)
+        self.assertSetEqual({'/run/blktap-control/nbd17405.0'}, sockets)
 
     def test_unictrunc(self):
         # Successive chars in this string have 1, 2, 3, and 4 byte encodings.

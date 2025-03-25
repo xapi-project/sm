@@ -181,7 +181,7 @@ class TestNFSSR(unittest.TestCase):
 
         check_server_tcp.assert_called_once_with('aServer', 'tcp',
                                                  'aNfsversionChanged')
-        soft_mount.assert_called_once_with('/var/run/sr-mount/UUID',
+        soft_mount.assert_called_once_with('/run/sr-mount/UUID',
                                            'aServer',
                                            '/aServerpath/UUID',
                                            'tcp',
@@ -260,7 +260,7 @@ class TestNFSSR(unittest.TestCase):
             nfssr.attach(None)
 
         soft_mount.assert_called_once()
-        unmount.assert_called_once_with('/var/run/sr-mount/UUID', True)
+        unmount.assert_called_once_with('/run/sr-mount/UUID', True)
 
     @mock.patch('NFSSR.Lock', autospec=True)
     def test_load_ipv6(self, mock_lock):

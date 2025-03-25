@@ -23,4 +23,4 @@ if [ -z "$1" ]; then
     echo "Syntax: $0 <name>"
     exit 1
 fi
-dd if=/dev/zero of=/var/run/$1.sock bs=8 count=1 status=none conv=notrunc,noerror,nocreat oflag=nonblock
+dd if=/dev/zero of=/run/$1.sock bs=8 count=1 status=none conv=notrunc,noerror,nocreat oflag=nonblock
