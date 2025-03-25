@@ -20,12 +20,23 @@ BuildRequires: python3-bitarray
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
+Requires: sm-fairlock = %{version}-%{release}
 Requires: xenserver-multipath
+Requires: xenserver-lvm2 >= 2.02.180-11.xs+2.0.2
+Obsoletes: lvm2-sm-config <= 7:2.02.180-15.xs8
 Requires: python3-bitarray
+Requires: sm-debugtools = %{version}-%{release}
 Requires: python%{python3_pkgversion}-sm-libs = %{version}-%{release}
-Requires: python3-future
+Requires: sm-compat = %{version}-%{release}
+Requires: python%{python3_pkgversion}-sm-compat = %{version}-%{release}
+# For cgclassify command
+Requires: libcgroup-tools
+Requires(post): xs-presets >= 1.3
+Requires(preun): xs-presets >= 1.3
+Requires(postun): xs-presets >= 1.3
 Conflicts: kernel < 4.19.19-5.0.0
 Conflicts: blktap < 4.0.0
+Requires: sg3_utils
 
 %description
 This package contains storage backends used in XCP
@@ -38,8 +49,9 @@ make
 make -C misc/fairlock
 
 %install
-make install DESTDIR="%{buildroot}"
-make -C misc/fairlock install DESTDIR="%{buildroot}"
+make -C misc/fairlock install DESTDIR=%{buildroot}
+make install DESTDIR=%{buildroot}
+mkdir -p %{buildroot}%{_datadir}/%{name}/
 
 %post
 %systemd_post make-dummy-sr.service
@@ -49,6 +61,8 @@ make -C misc/fairlock install DESTDIR="%{buildroot}"
 %systemd_post storage-init.service
 %systemd_post usb-scan.socket
 %systemd_post mpathcount.socket
+%systemd_post sr_health_check.timer
+%systemd_post sr_health_check.service
 
 # On upgrade, migrate from the old statefile to the new statefile so that
 # storage is not reinitialized.
@@ -56,26 +70,11 @@ if [ $1 -gt 1 ] ; then
     grep -q ^success /etc/firstboot.d/state/10-prepare-storage 2>/dev/null && touch /var/lib/misc/ran-storage-init || :
 fi
 
-[ -f /etc/lvm/lvm.conf.orig ] || cp /etc/lvm/lvm.conf /etc/lvm/lvm.conf.orig || exit $?
-[ -d /etc/lvm/master ] || mkdir /etc/lvm/master || exit $?
-mv -f /etc/lvm/lvm.conf /etc/lvm/master/lvm.conf || exit $?
-sed -i 's/metadata_read_only =.*/metadata_read_only = 0/' /etc/lvm/master/lvm.conf || exit $?
-sed -i 's/archive = .*/archive = 0/' /etc/lvm/master/lvm.conf || exit $?
-sed -i 's/udev_sync = 1/udev_sync = 0/' /etc/lvm/master/lvm.conf || exit $?
-sed -i 's/udev_rules = 1/udev_rules = 0/' /etc/lvm/master/lvm.conf || exit $?
-sed -i 's/obtain_device_list_from_udev = 1/obtain_device_list_from_udev = 0/' /etc/lvm/master/lvm.conf || exit $?
-sed -i 's/write_cache_state = 1/write_cache_state = 0/' /etc/lvm/master/lvm.conf || exit $?
-cp /etc/lvm/master/lvm.conf /etc/lvm/lvm.conf || exit $?
-sed -i 's/metadata_read_only =.*/metadata_read_only = 1/' /etc/lvm/lvm.conf || exit $?
 rm -f /etc/lvm/cache/.cache
 touch /etc/lvm/cache/.cache
 
-# We try to be "update-alternatives" ready.
-# If a file exists and it is not a symlink we back it up
-if [ -e /etc/multipath.conf -a ! -h /etc/multipath.conf ]; then
-   mv -f /etc/multipath.conf /etc/multipath.conf.$(date +%F_%T)
-fi
-update-alternatives --install /etc/multipath.conf multipath.conf /etc/multipath.xenserver/multipath.conf 90
+systemctl enable sr_health_check.timer
+systemctl start sr_health_check.timer
 
 %preun
 %systemd_preun make-dummy-sr.service
@@ -85,11 +84,8 @@ update-alternatives --install /etc/multipath.conf multipath.conf /etc/multipath.
 %systemd_preun storage-init.service
 %systemd_preun usb-scan.socket
 %systemd_preun mpathcount.socket
-# only remove in case of erase (but not at upgrade)
-if [ $1 -eq 0 ] ; then
-    update-alternatives --remove multipath.conf /etc/multipath.xenserver/multipath.conf
-fi
-exit 0
+%systemd_preun sr_health_check.timer
+%systemd_preun sr_health_check.service
 
 %postun
 %systemd_postun make-dummy-sr.service
@@ -97,12 +93,17 @@ exit 0
 %systemd_postun sm-mpath-root.service
 %systemd_postun xs-sm.service
 %systemd_postun storage-init.service
+%systemd_postun sr_health_check.timer
+%systemd_postun sr_health_check.service
 
 %check
 tests/run_python_unittests.sh
 
 %files
 %defattr(-,root,root,-)
+%{_libexecdir}/sm
+%exclude %{_libexecdir}/sm/debug
+%exclude %{_libexecdir}/sm/plugins/keymanagerutil.py
 /etc/udev/scripts/xs-mpath-scsidev.sh
 /etc/xapi.d/plugins/coalesce-leaf
 /etc/xapi.d/plugins/lvhd-thin
@@ -113,90 +114,7 @@ tests/run_python_unittests.sh
 /etc/xapi.d/plugins/intellicache-clean
 /etc/xapi.d/plugins/trim
 /etc/xapi.d/xapi-pre-shutdown/*
-/etc/xensource/master.d/02-vhdcleanup
-/opt/xensource/bin/blktap2
-/opt/xensource/bin/tapdisk-cache-stats
-/opt/xensource/debug/tp
-/opt/xensource/libexec/check-device-sharing
-/opt/xensource/libexec/dcopy
-/opt/xensource/libexec/local-device-change
-/opt/xensource/libexec/make-dummy-sr
-/opt/xensource/libexec/usb_change
-/opt/xensource/libexec/kickpipe
-/opt/xensource/libexec/set-iscsi-initiator
-/opt/xensource/libexec/storage-init
-/opt/xensource/sm/DummySR
-/opt/xensource/sm/DummySR.py
-/opt/xensource/sm/EXTSR
-/opt/xensource/sm/EXTSR.py
-/opt/xensource/sm/FileSR
-/opt/xensource/sm/FileSR.py
-/opt/xensource/sm/HBASR
-/opt/xensource/sm/HBASR.py
-/opt/xensource/sm/ISCSISR
-/opt/xensource/sm/RawISCSISR.py
-/opt/xensource/sm/BaseISCSI.py
-/opt/xensource/sm/ISOSR
-/opt/xensource/sm/ISOSR.py
-/opt/xensource/sm/LUNperVDI.py
-/opt/xensource/sm/LVHDSR.py
-/opt/xensource/sm/LVHDoHBASR.py
-/opt/xensource/sm/LVHDoISCSISR.py
-/opt/xensource/sm/LVMSR
-/opt/xensource/sm/LVMoHBASR
-/opt/xensource/sm/LVMoISCSISR
-/opt/xensource/sm/NFSSR
-/opt/xensource/sm/NFSSR.py
-/opt/xensource/sm/SMBSR
-/opt/xensource/sm/SMBSR.py
-/opt/xensource/sm/SHMSR.py
-/opt/xensource/sm/SR.py
-/opt/xensource/sm/SRCommand.py
-/opt/xensource/sm/VDI.py
-/opt/xensource/sm/blktap2.py
-/opt/xensource/sm/cleanup.py
-/opt/xensource/sm/devscan.py
-/opt/xensource/sm/fjournaler.py
-/opt/xensource/sm/flock.py
-/opt/xensource/sm/ipc.py
-/opt/xensource/sm/iscsilib.py
-/opt/xensource/sm/journaler.py
-/opt/xensource/sm/lcache.py
-/opt/xensource/sm/lock.py
-/opt/xensource/sm/lock_queue.py
-/opt/xensource/sm/lvhdutil.py
-/opt/xensource/sm/lvmanager.py
-/opt/xensource/sm/lvmcache.py
-/opt/xensource/sm/lvutil.py
-/opt/xensource/sm/metadata.py
-/opt/xensource/sm/srmetadata.py
-/opt/xensource/sm/mpath_cli.py
-/opt/xensource/sm/mpath_dmp.py
-/opt/xensource/sm/mpath_null.py
-/opt/xensource/sm/mpathcount.py
-/opt/xensource/sm/mpathutil.py
-/opt/xensource/sm/nfs.py
-/opt/xensource/sm/refcounter.py
-/opt/xensource/sm/resetvdis.py
-/opt/xensource/sm/scsiutil.py
-/opt/xensource/sm/scsi_host_rescan.py
-/opt/xensource/sm/sysdevice.py
-/opt/xensource/sm/udevSR
-/opt/xensource/sm/udevSR.py
-/opt/xensource/sm/util.py
-/opt/xensource/sm/cifutils.py
-/opt/xensource/sm/verifyVHDsOnSR.py
-/opt/xensource/sm/vhdutil.py
-/opt/xensource/sm/trim_util.py
-/opt/xensource/sm/xs_errors.py
-/opt/xensource/sm/wwid_conf.py
-/opt/xensource/sm/pluginutil.py
-/opt/xensource/sm/constants.py
-/opt/xensource/sm/cbtutil.py
-/opt/xensource/sm/multipath-root-setup
-%dir /opt/xensource/sm/plugins
-/opt/xensource/sm/plugins/__init__.py*
-/sbin/mpathutil
+/usr/bin/mpathutil
 %{_unitdir}/make-dummy-sr.service
 %{_unitdir}/xs-sm.service
 %{_unitdir}/sm-mpath-root.service
@@ -204,18 +122,18 @@ tests/run_python_unittests.sh
 %{_unitdir}/usb-scan.socket
 %{_unitdir}/mpathcount.service
 %{_unitdir}/mpathcount.socket
+%{_unitdir}/storage-init.service
+%{_unitdir}/sr_health_check.timer
+%{_unitdir}/sr_health_check.service
 %{_unitdir}/SMGC@.service
 %config /etc/udev/rules.d/65-multipath.rules
 %config /etc/udev/rules.d/55-xs-mpath-scsidev.rules
 %config /etc/udev/rules.d/58-xapi.rules
-%config /etc/multipath.xenserver/multipath.conf
 %dir /etc/multipath/conf.d
 %config(noreplace) /etc/multipath/conf.d/custom.conf
-%config /etc/udev/rules.d/69-dm-lvm-metad.rules
 %config /etc/logrotate.d/SMlog
 %config /etc/udev/rules.d/57-usb.rules
 %config /etc/udev/rules.d/99-purestorage.rules
-
 %doc CONTRIB LICENSE MAINTAINERS README.md
 
 %package fairlock
@@ -243,6 +161,16 @@ then
     done
 fi
 
+%package debugtools
+Summary: SM utilities for debug and testing
+
+%description debugtools
+Utilities for debug and testing purposes
+
+%files debugtools
+%{_libexecdir}/sm/debug
+
+
 %package -n python%{python3_pkgversion}-sm-libs
 Summary: SM core libraries
 BuildArch: noarch
@@ -257,6 +185,42 @@ It obsoletes and replaces the old sm-core-libs package.
 %files -n python%{python3_pkgversion}-sm-libs
 %{python3_sitelib}/sm
 %{_datadir}/sm
+
+%package -n python%{python3_pkgversion}-sm-compat
+Summary: SM compatibility files for older callers
+BuildArch: noarch
+Requires: sm = %{version}-%{release}
+
+%description -n python%{python3_pkgversion}-sm-compat
+This package contains compatibility wrappers left behind for older
+callers which expect to find python files in /opt/xensource
+
+
+%files -n python%{python3_pkgversion}-sm-compat
+/sbin/mpathutil
+/opt/xensource/sm
+/opt/xensource/bin/blktap2
+/opt/xensource/bin/tapdisk-cache-stats
+/etc/xensource/master.d/02-vhdcleanup
+/opt/xensource/libexec/check-device-sharing
+/opt/xensource/libexec/local-device-change
+/opt/xensource/libexec/make-dummy-sr
+/opt/xensource/libexec/usb_change
+/opt/xensource/libexec/kickpipe
+/opt/xensource/libexec/set-iscsi-initiator
+/opt/xensource/libexec/storage-init
+
+%package compat
+Summary: SM compatibility files for older callers
+
+%description compat
+This package contains arch-specific compatibility wrappers left
+behind for older callers which expect to find libraries and binaries
+in /opt/xensource
+
+%files compat
+/opt/xensource/debug/tp
+/opt/xensource/libexec/dcopy
 
 %changelog
 
