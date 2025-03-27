@@ -20,6 +20,7 @@ SM_CORE_LIBS := util
 SM_CORE_LIBS += scsiutil
 SM_CORE_LIBS += mpath_dmp
 SM_CORE_LIBS += mpath_cli
+SM_CORE_LIBS += mpath_null
 SM_CORE_LIBS += xs_errors
 SM_CORE_LIBS += iscsi
 SM_CORE_LIBS += wwid_conf
@@ -27,7 +28,28 @@ SM_CORE_LIBS += lock
 SM_CORE_LIBS += flock
 SM_CORE_LIBS += f_exceptions
 # Add a "pretend" core lib to cover the iscsi differences
+# This uses sm.core.iscsi but provides some methods which
+# sm-core-libs provided differently.
 SM_CORE_LIBS += libiscsi
+
+# Things used as commands which install in libexec
+SM_LIBEXEC_CMDS := mpathcount.py
+
+# SCRIPTS which install in libexec
+SM_LIBEXEC_SCRIPTS := local-device-change
+SM_LIBEXEC_SCRIPTS += check-device-sharing
+SM_LIBEXEC_SCRIPTS += usb_change
+SM_LIBEXEC_SCRIPTS += kickpipe
+SM_LIBEXEC_SCRIPTS += set-iscsi-initiator
+SM_LIBEXEC_SCRIPTS += make-dummy-sr
+SM_LIBEXEC_SCRIPTS += storage-init
+
+SM_PLUGINS := __init__.py
+SM_PLUGINS += keymanagerutil.py
+
+SM_UDEV_SCRIPTS := xs-mpath-scsidev.sh
+
+SM_XAPI_SHUTDOWN_SCRIPTS := stop_all_gc
 
 # Libraries which remain in drivers/ and get installed in
 # /opt/xensource/sm as wrappers around sm.core libs for
@@ -41,6 +63,7 @@ SM_COMPAT_LIBS += iscsilib
 SM_COMPAT_LIBS += wwid_conf
 SM_COMPAT_LIBS += lock
 SM_COMPAT_LIBS += flock
+SM_COMPAT_LIBS += mpath_null
 
 # Libraries and other code still maintained in
 # drivers/ and installed in /opt/xensource/sm which
@@ -60,10 +83,7 @@ SM_LIBS += cifutils
 SM_LIBS += nfs
 SM_LIBS += devscan
 SM_LIBS += sysdevice
-SM_LIBS += mpath_null
-SM_LIBS += mpathutil
 SM_LIBS += LUNperVDI
-SM_LIBS += mpathcount
 SM_LIBS += refcounter
 SM_LIBS += journaler
 SM_LIBS += fjournaler
@@ -93,7 +113,8 @@ DEBUG_DEST := /opt/xensource/debug/
 BIN_DEST := /opt/xensource/bin/
 MASTER_SCRIPT_DEST := /etc/xensource/master.d/
 PLUGIN_SCRIPT_DEST := /etc/xapi.d/plugins/
-SM_LIBEXEC := /opt/xensource/libexec/
+SM_LIBEXEC := /usr/libexec/sm
+SM_COMPAT_LIBEXEC := /opt/xensource/libexec/
 SM_DATADIR := /usr/share/sm
 UDEV_RULES_DIR := /etc/udev/rules.d/
 UDEV_SCRIPTS_DIR := /etc/udev/scripts/
@@ -139,7 +160,6 @@ install: precheck
 	mkdir -p $(SM_STAGING)
 	$(call mkdir_clean,$(SM_STAGING))
 	mkdir -p $(SM_STAGING)$(SM_DEST)
-	mkdir -p $(SM_STAGING)$(SM_DEST)/plugins
 	mkdir -p $(SM_STAGING)$(UDEV_RULES_DIR)
 	mkdir -p $(SM_STAGING)$(UDEV_SCRIPTS_DIR)
 	mkdir -p $(SM_STAGING)$(INIT_DIR)
@@ -160,19 +180,19 @@ install: precheck
 	  install -D -m 644 $$i $(SM_STAGING)$(PYTHONLIBDIR)/sm/core/; \
 	done
 	mkdir -p $(SM_STAGING)$(SM_DATADIR)
-	# This should go in SM_DATADIR but that breaks the unit tests.
-	# Leave it next to xs_errors.py until we can fix that.
 	for i in $(SM_XML); do \
-	  install -D -m 644 libs/sm/core/$$i.xml $(SM_STAGING)$(PYTHONLIBDIR)/sm/core/; \
+	  install -D -m 644 libs/sm/core/$$i.xml $(SM_STAGING)$(SM_DATADIR)/; \
 	done
 	# Legacy SM python files
 	for i in $(SM_PY_FILES); do \
 	  install -m 755 $$i $(SM_STAGING)$(SM_DEST); \
 	done
-	install -m 755 drivers/plugins/__init__.py \
-	  $(SM_STAGING)$(SM_DEST)/plugins/
-	install -m 755 drivers/plugins/keymanagerutil.py \
-	  $(SM_STAGING)$(SM_DEST)/plugins/
+	# Plugin directory
+	mkdir -p $(SM_STAGING)$(SM_LIBEXEC)/plugins
+	ln -sf $(SM_LIBEXEC)/plugins $(SM_STAGING)$(SM_DEST)/plugins
+	for i in $(SM_PLUGINS); do \
+	  install -D -m 755 drivers/plugins/$$i $(SM_STAGING)/$(SM_LIBEXEC)/plugins/$$i; \
+	done
 	install -m 644 multipath/$(MPATH_CUSTOM_CONF) \
 	  $(SM_STAGING)/$(MPATH_CUSTOM_CONF_DIR)
 	install -m 755 multipath/multipath-root-setup \
@@ -208,7 +228,6 @@ install: precheck
 	cd $(SM_STAGING)$(SM_DEST) && rm -f RawISCSISR && ln -sf RawISCSISR.py ISCSISR
 	cd $(SM_STAGING)$(SM_DEST) && rm -f LVHDoISCSISR && ln -sf LVHDoISCSISR.py LVMoISCSISR
 	cd $(SM_STAGING)$(SM_DEST) && rm -f LVHDoHBASR && ln -sf LVHDoHBASR.py LVMoHBASR
-	ln -sf $(SM_DEST)mpathutil.py $(SM_STAGING)/sbin/mpathutil
 	install -m 755 drivers/02-vhdcleanup $(SM_STAGING)$(MASTER_SCRIPT_DEST)
 	install -m 755 drivers/lvhd-thin $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/on_slave.py $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)/on-slave
@@ -219,19 +238,29 @@ install: precheck
 	install -m 755 drivers/intellicache-clean $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/trim $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	mkdir -p $(SM_STAGING)$(SM_LIBEXEC)
-	install -m 755 scripts/local-device-change $(SM_STAGING)$(SM_LIBEXEC)
-	install -m 755 scripts/check-device-sharing $(SM_STAGING)$(SM_LIBEXEC)
-	install -m 755 scripts/usb_change $(SM_STAGING)$(SM_LIBEXEC)
-	install -m 755 scripts/kickpipe $(SM_STAGING)$(SM_LIBEXEC)
-	install -m 755 scripts/set-iscsi-initiator $(SM_STAGING)$(SM_LIBEXEC)
-	mkdir -p $(SM_STAGING)/etc/xapi.d/xapi-pre-shutdown/
-	install -m 755 scripts/stop_all_gc $(SM_STAGING)/etc/xapi.d/xapi-pre-shutdown/
+	mkdir -p $(SM_STAGING)$(SM_COMPAT_LIBEXEC)
+	for s in $(SM_LIBEXEC_SCRIPTS); do \
+	  install -m 755 scripts/$$s $(SM_STAGING)$(SM_LIBEXEC)/$$s; \
+	  ln -sf $(SM_LIBEXEC)/$$s $(SM_STAGING)$(SM_COMPAT_LIBEXEC)/$$s; \
+	done
+	for s in $(SM_LIBEXEC_CMDS); do \
+	  install -m 755 drivers/$$s $(SM_STAGING)$(SM_LIBEXEC)/$$s; \
+	  ln -sf $(SM_LIBEXEC)/$$s $(SM_STAGING)$(SM_DEST)/$$s; \
+	done
+	mkdir -p $(SM_STAGING)/etc/xapi.d/xapi-pre-shutdown
+	for s in $(SM_XAPI_SHUTDOWN_SCRIPTS); do \
+	  install -m 755 scripts/$$s $(SM_STAGING)/etc/xapi.d/xapi-pre-shutdown/$$s; \
+	done
+	for s in $(SM_UDEV_SCRIPTS); do \
+	  install -m 755 scripts/$$s $(SM_STAGING)$(UDEV_SCRIPTS_DIR)/$$s; \
+	done
+	# Install mpathutil and compatibility symlinks
+	install -D -m 755 drivers/mpathutil.py $(SM_STAGING)/usr/bin/mpathutil
+	ln -sf /usr/bin/mpathutil $(SM_STAGING)$(SM_DEST)/mpathutil.py
+	ln -sf /usr/bin/mpathutil $(SM_STAGING)/sbin/mpathutil
 	$(MAKE) -C dcopy install DESTDIR=$(SM_STAGING)
 	ln -sf $(SM_DEST)blktap2.py $(SM_STAGING)$(BIN_DEST)/blktap2
 	ln -sf $(SM_DEST)lcache.py $(SM_STAGING)$(BIN_DEST)tapdisk-cache-stats
-	install -m 755 scripts/xs-mpath-scsidev.sh $(SM_STAGING)$(UDEV_SCRIPTS_DIR)
-	install -m 755 scripts/make-dummy-sr $(SM_STAGING)$(SM_LIBEXEC)
-	install -m 755 scripts/storage-init $(SM_STAGING)$(SM_LIBEXEC)
 
 .PHONY: clean
 clean:

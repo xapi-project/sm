@@ -11,6 +11,7 @@ from srmetadata import (LVMMetadataHandler, buildHeader, buildXMLSector,
                         MAX_VDI_NAME_LABEL_DESC_LENGTH)
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestSRMetadataFunctions(unittest.TestCase):
     def test_unpackHeader(self):
         # Given
@@ -96,6 +97,7 @@ def with_lvm_test_context(func):
     return decorated
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestLVMMetadataHandler(unittest.TestCase):
     @with_lvm_test_context
     def test_writeMetadata_getMetadata_roundtrip(self):

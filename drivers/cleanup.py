@@ -75,7 +75,7 @@ DEFAULT_COALESCE_ERR_RATE = 1.0 / 60
 
 COALESCE_LAST_ERR_TAG = 'last-coalesce-error'
 COALESCE_ERR_RATE_TAG = 'coalesce-error-rate'
-VAR_RUN = "/var/run/"
+VAR_RUN = "/run/"
 SPEED_LOG_ROOT = VAR_RUN + "{uuid}.speed_log"
 
 N_RUNNING_AVERAGE = 10
@@ -2418,7 +2418,7 @@ class FileSR(SR):
 
     def __init__(self, uuid, xapi, createLock, force):
         SR.__init__(self, uuid, xapi, createLock, force)
-        self.path = "/var/run/sr-mount/%s" % self.uuid
+        self.path = "/run/sr-mount/%s" % self.uuid
         self.journaler = fjournaler.Journaler(self.path)
 
     def scan(self, force=False):

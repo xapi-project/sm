@@ -18,6 +18,7 @@ class BogusException(Exception):
     pass
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestTapdisk(unittest.TestCase):
     #
     # There is a bug in python mocking that prevents @Classmethods being mocked
@@ -110,6 +111,7 @@ class TestTapdisk(unittest.TestCase):
         self.assertEqual(456, srose.exception.errno)
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestVDI(unittest.TestCase):
     def setUp(self):
         self.addCleanup(mock.patch.stopall)
@@ -401,6 +403,7 @@ class TestVDI(unittest.TestCase):
         self.assertIn( 'MAP_DUPLICATE_KEY', str(srose.exception))
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestTapCtl(unittest.TestCase):
 
     def setUp(self):

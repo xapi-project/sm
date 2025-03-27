@@ -31,6 +31,7 @@ class FakeSMBSR(SMBSR.SMBSR):
         self.remoteserver = 'aRemoteserver'
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class Test_SMBSR(unittest.TestCase):
 
     def setUp(self):
@@ -275,7 +276,7 @@ class Test_SMBSR(unittest.TestCase):
 
         # Assert
         self.mock_pread.assert_called_with(
-            ['mount.cifs', '\\aServer', "/var/run/sr-mount/SMB/Server/asr_uuid",
+            ['mount.cifs', '\\aServer', "/run/sr-mount/SMB/Server/asr_uuid",
              '-o', 'cache=loose,vers=3.0,actimeo=0'],
             new_env={'USER': 'aUsername', 'PASSWD': 'aPassword'})
 
@@ -292,7 +293,7 @@ class Test_SMBSR(unittest.TestCase):
         self.mock_list_dir.return_value = []
 
         def mock_makedirs(path):
-            if path == '/var/run/sr-mount/SMB/Server/asr_uuid':
+            if path == '/run/sr-mount/SMB/Server/asr_uuid':
                 return
 
             raise util.CommandException(errno.EACCES)
@@ -321,7 +322,7 @@ class Test_SMBSR(unittest.TestCase):
         self.mock_list_dir.return_value = []
 
         def mock_makedirs(path):
-            if path == '/var/run/sr-mount/SMB/Server/asr_uuid':
+            if path == '/run/sr-mount/SMB/Server/asr_uuid':
                 return
 
             raise util.CommandException(errno.ENOSPC)

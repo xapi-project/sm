@@ -31,7 +31,7 @@ import sys
 from sm.core import xs_errors
 import xmlrpc.client
 from sm.core import mpath_cli
-from sm.core import iscsi as iscsilib
+from sm.core import iscsi
 import glob
 import copy
 import xml.dom.minidom
@@ -98,9 +98,9 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
     def create_iscsi_sessions(self, sr_uuid):
         if 'target' in self.original_srcmd.dconf:
             self.original_srcmd.dconf['targetlist'] = self.original_srcmd.dconf['target']
-        iscsi = BaseISCSI.BaseISCSISR(self.original_srcmd, sr_uuid)
+        baseiscsi = BaseISCSI.BaseISCSISR(self.original_srcmd, sr_uuid)
         self.iscsiSRs = []
-        self.iscsiSRs.append(iscsi)
+        self.iscsiSRs.append(baseiscsi)
         saved_exc = None
         targets = self.dconf['target'].split(',')
         if len(targets) > 1 or self.dconf['targetIQN'] == "*":
@@ -134,12 +134,12 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                             tgt_ip = util._convertDNS(tgt)
                         except:
                             raise xs_errors.XenError('DNSError')
-                        iscsilib.ensure_daemon_running_ok(iscsi.localIQN)
-                        map = iscsilib.discovery(tgt_ip, iscsi.port, iscsi.chapuser, iscsi.chappassword, targetIQN=IQN)
+                        iscsi.ensure_daemon_running_ok(baseiscsi.localIQN)
+                        map = iscsi.discovery(tgt_ip, baseiscsi.port, baseiscsi.chapuser, baseiscsi.chappassword, targetIQN=IQN)
                         util.SMlog("Discovery for IP %s returned %s" % (tgt, map))
                         for i in range(0, len(map)):
                             (portal, tpgt, iqn) = map[i]
-                            (ipaddr, port) = iscsilib.parse_IP_port(portal)
+                            (ipaddr, port) = iscsi.parse_IP_port(portal)
                             try:
                                 util._testHost(ipaddr, int(port), 'ISCSITarget')
                             except:
@@ -219,20 +219,20 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                 # If exceptions happened before, the cleanup function has worked on the right target.
                 if forced_login == True:
                     try:
-                        iscsilib.ensure_daemon_running_ok(self.iscsi.localIQN)
-                        iscsilib.logout(self.iscsi.target, self.iscsi.targetIQN)
+                        iscsi.ensure_daemon_running_ok(self.iscsi.localIQN)
+                        iscsi.logout(self.iscsi.target, self.iscsi.targetIQN)
                         forced_login = False
                     except:
                         raise xs_errors.XenError('ISCSILogout')
                 self.iscsi = self.iscsiSRs[iii]
                 util.SMlog("path %s" % self.iscsi.path)
                 util.SMlog("iscsci data: targetIQN %s, portal %s" % (self.iscsi.targetIQN, self.iscsi.target))
-                iscsilib.ensure_daemon_running_ok(self.iscsi.localIQN)
-                if not iscsilib._checkTGT(self.iscsi.targetIQN, self.iscsi.target):
+                iscsi.ensure_daemon_running_ok(self.iscsi.localIQN)
+                if not iscsi._checkTGT(self.iscsi.targetIQN, self.iscsi.target):
                     attempt_discovery = True
                     try:
                         # Ensure iscsi db has been populated
-                        map = iscsilib.discovery(
+                        map = iscsi.discovery(
                             self.iscsi.target,
                             self.iscsi.port,
                             self.iscsi.chapuser,
@@ -252,7 +252,7 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                                    (self.iscsi.targetIQN, self.iscsi.target))
                         continue
                     try:
-                        iscsilib.login(self.iscsi.target,
+                        iscsi.login(self.iscsi.target,
                                        self.iscsi.targetIQN,
                                        self.iscsi.chapuser,
                                        self.iscsi.chappassword,
@@ -331,8 +331,8 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
             # Check for any unneeded open iscsi sessions
             if forced_login == True:
                 try:
-                    iscsilib.ensure_daemon_running_ok(self.iscsi.localIQN)
-                    iscsilib.logout(self.iscsi.target, self.iscsi.targetIQN)
+                    iscsi.ensure_daemon_running_ok(self.iscsi.localIQN)
+                    iscsi.logout(self.iscsi.target, self.iscsi.targetIQN)
                     forced_login = False
                 except:
                     raise xs_errors.XenError('ISCSILogout')

@@ -65,9 +65,9 @@ class SMBException(Exception):
 
 
 # server = //smb-server/vol1 - ie the export path on the SMB server
-# mountpoint = /var/run/sr-mount/SMB/<smb_server_name>/<share_name>/uuid
+# mountpoint = /run/sr-mount/SMB/<smb_server_name>/<share_name>/uuid
 # linkpath = mountpoint/uuid - path to SR directory on share
-# path = /var/run/sr-mount/uuid - symlink to SR directory on share
+# path = /run/sr-mount/uuid - symlink to SR directory on share
 class SMBSR(FileSR.SharedFileSR):
     """SMB file-based storage repository"""
 

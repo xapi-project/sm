@@ -1,5 +1,6 @@
 
 import unittest
+import unittest.mock as mock
 import zlib
 
 import lvhdutil
@@ -15,6 +16,7 @@ TEST_VHD_NAME = "/test/path/test-vdi.vhd"
 VHD_UTIL = '/usr/bin/vhd-util'
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestVhdUtil(unittest.TestCase):
 
     def test_validate_and_round_min_size(self):

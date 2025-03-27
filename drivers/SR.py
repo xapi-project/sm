@@ -28,7 +28,7 @@ import copy
 import os
 import traceback
 
-MOUNT_BASE = '/var/run/sr-mount'
+MOUNT_BASE = '/run/sr-mount'
 DEFAULT_TAP = 'vhd'
 TAPDISK_UTIL = '/usr/sbin/td-util'
 MASTER_LVM_CONF = '/etc/lvm/master'

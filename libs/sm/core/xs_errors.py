@@ -21,8 +21,7 @@ import os
 import xml.dom.minidom
 import xmlrpc.client
 
-DEF_LOC = os.path.dirname(__file__)
-XML_DEFS = os.path.join(DEF_LOC, 'XE_SR_ERRORCODES.xml')
+XML_DEFS = '/usr/share/sm/XE_SR_ERRORCODES.xml'
 
 
 class SRException(Exception):
@@ -52,7 +51,7 @@ class XenError(Exception):
     def __new__(self, key, opterr=None):
         # Check the XML definition file exists
         if not os.path.exists(XML_DEFS):
-            raise Exception("No XML def file found")
+            raise Exception(f"No XML def file found ({XML_DEFS})")
 
         # Read the definition list
         errorlist = self._fromxml('SM-errorcodes')

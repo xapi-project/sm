@@ -15,7 +15,7 @@
 
 from sm.core import util
 from sm.core import xs_errors
-from sm.core import iscsi as iscsilib
+from sm.core import iscsi
 from sm.core import mpath_cli
 import os
 import glob
@@ -197,9 +197,9 @@ def activate():
 
     # If we've got no active sessions, and the deamon is already running,
     # we're ok to restart the daemon
-    if iscsilib.is_iscsi_daemon_running():
-        if not iscsilib._checkAnyTGT():
-            iscsilib.restart_daemon()
+    if iscsi.is_iscsi_daemon_running():
+        if not iscsi._checkAnyTGT():
+            iscsi.restart_daemon()
 
     if not _is_mpath_daemon_running():
         util.SMlog("Warning: multipath daemon not running.  Starting daemon!")
@@ -226,8 +226,8 @@ def deactivate():
 
     # Check the ISCSI daemon doesn't have any active sessions, if not,
     # restart in the new mode
-    if iscsilib.is_iscsi_daemon_running() and not iscsilib._checkAnyTGT():
-        iscsilib.restart_daemon()
+    if iscsi.is_iscsi_daemon_running() and not iscsi._checkAnyTGT():
+        iscsi.restart_daemon()
 
     util.kickpipe_mpathcount()
     util.SMlog("MPATH: multipath deactivated.")

@@ -60,10 +60,10 @@ LOG_NOTICE = syslog.LOG_NOTICE
 LOG_INFO = syslog.LOG_INFO
 LOG_DEBUG = syslog.LOG_DEBUG
 
-ISCSI_REFDIR = '/var/run/sr-ref'
+ISCSI_REFDIR = '/run/sr-ref'
 
 CMD_DD = "/bin/dd"
-CMD_KICKPIPE = '/opt/xensource/libexec/kickpipe'
+CMD_KICKPIPE = '/usr/libexec/sm/kickpipe'
 
 FIST_PAUSE_PERIOD = 30  # seconds
 

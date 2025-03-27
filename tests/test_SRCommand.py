@@ -11,6 +11,7 @@ class SomeException(Exception):
     pass
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestStandaloneFunctions(unittest.TestCase):
 
     @mock.patch("sys.exit", autospec=True)

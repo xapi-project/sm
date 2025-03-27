@@ -4,6 +4,7 @@ from unittest import mock
 import xs_errors
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestXenError(unittest.TestCase):
     @mock.patch('xs_errors.os.path.exists', autospec=True)
     def test_without_xml_defs(self, mock_exists):

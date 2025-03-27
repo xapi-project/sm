@@ -11,6 +11,7 @@ from shared_iscsi_test_base import ISCSITestCase
 from util import CommandException
 from sm.core import xs_errors
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestBaseISCSI(ISCSITestCase):
 
     TEST_CLASS = 'BaseISCSI'
@@ -159,7 +160,7 @@ class TestBaseISCSI(ISCSITestCase):
         }
 
         self.mock_scsiutil._genHostList.return_value = [1, 2]
-        self.mock_iscsilib.get_targetIQN.return_value = 'iqn.2009-11.com.infinidat:storage:infinibox-sn-3393'
+        self.mock_iscsi.get_targetIQN.return_value = 'iqn.2009-11.com.infinidat:storage:infinibox-sn-3393'
         self.mock_scsiutil.cacheSCSIidentifiers.return_value = [
             ['NONE', '0', '0', '0', '0', '0', '/dev/sdb']
         ]
@@ -180,5 +181,5 @@ class TestBaseISCSI(ISCSITestCase):
         self.subject.attach(self.sr_uuid)
 
         # Assert
-        self.assertEqual(1, self.mock_iscsilib.discovery.call_count)
-        self.assertEqual(1, self.mock_iscsilib.login.call_count)
+        self.assertEqual(1, self.mock_iscsi.discovery.call_count)
+        self.assertEqual(1, self.mock_iscsi.login.call_count)

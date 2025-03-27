@@ -62,6 +62,7 @@ class TestVDI(VDI.VDI):
         self.state_mock._deactivate_cbt_log(logname)
 
 
+@mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestCBT(unittest.TestCase):
 
     def setUp(self):

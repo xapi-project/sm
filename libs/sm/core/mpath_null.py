@@ -1,5 +1,3 @@
-#!/bin/sh
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -14,13 +12,25 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-#
-# Kicks a pipe identified by the first argument.
-# NOTE: It is not an error for the pipe not to exist, and it will not
-# be created in that case.
 
-if [ -z "$1" ]; then
-    echo "Syntax: $0 <name>"
-    exit 1
-fi
-dd if=/dev/zero of=/run/$1.sock bs=8 count=1 status=none conv=notrunc,noerror,nocreat oflag=nonblock
+DEVBYIDPATH = "/dev/disk/by-id"
+
+
+def refresh(sid, npaths):
+    return
+
+
+def reset(sid, explicit_unmap=False):
+    return
+
+
+def activate():
+    return
+
+
+def deactivate():
+    return
+
+
+def path(SCSIid):
+    return DEVBYIDPATH + "/scsi-" + SCSIid

@@ -28,7 +28,7 @@ import re
 import glob
 import xml.dom.minidom
 from sm.core import scsiutil
-from sm.core import iscsi as iscsilib
+from sm.core import iscsi
 from sm.core import xs_errors
 
 INITIATORNAME_FILE = '/etc/iscsi/initiatorname.iscsi'
@@ -52,7 +52,7 @@ class BaseISCSISR(SR.SR):
     def attached(self):
         if not self._attached:
             self._attached = False
-            self._attached = iscsilib._checkTGT(self.targetIQN, self.target)
+            self._attached = iscsi._checkTGT(self.targetIQN, self.target)
         return self._attached
 
     @attached.setter
@@ -249,10 +249,10 @@ class BaseISCSISR(SR.SR):
             return
 
         if self.multihomed:
-            map = iscsilib.get_node_records(targetIQN=self.targetIQN)
+            map = iscsi.get_node_records(targetIQN=self.targetIQN)
             for i in range(0, len(map)):
                 (portal, tpgt, iqn) = map[i]
-                (ipaddr, port) = iscsilib.parse_IP_port(portal)
+                (ipaddr, port) = iscsi.parse_IP_port(portal)
                 if self.target != ipaddr:
                     key = "%s:%s" % (ipaddr, port)
                     rec = {}
@@ -283,10 +283,10 @@ class BaseISCSISR(SR.SR):
         self._adapter = {}
         for host in ids:
             try:
-                targetIQN = iscsilib.get_targetIQN(host)
+                targetIQN = iscsi.get_targetIQN(host)
                 if targetIQN != self.targetIQN:
                     continue
-                (addr, port) = iscsilib.get_targetIP_and_port(host)
+                (addr, port) = iscsi.get_targetIP_and_port(host)
                 entry = "%s:%s" % (addr, port)
                 self._adapter[entry] = host
             except:
@@ -315,7 +315,7 @@ class BaseISCSISR(SR.SR):
                 targetlist = ['%s:%d' % (self.target, self.port)]
             conn = False
             for val in targetlist:
-                (target, port) = iscsilib.parse_IP_port(val)
+                (target, port) = iscsi.parse_IP_port(val)
                 try:
                     util._testHost(target, int(port), 'ISCSITarget')
                     self.target = target
@@ -328,15 +328,15 @@ class BaseISCSISR(SR.SR):
                 raise xs_errors.XenError('ISCSITarget')
 
             # Test and set the initiatorname file
-            iscsilib.ensure_daemon_running_ok(self.localIQN)
+            iscsi.ensure_daemon_running_ok(self.localIQN)
 
             # Check to see if auto attach was set
-            if not iscsilib._checkTGT(self.targetIQN, tgt=self.target) or multiTargets:
+            if not iscsi._checkTGT(self.targetIQN, tgt=self.target) or multiTargets:
                 try:
                     iqn_map = []
                     if 'any' != self.targetIQN:
                         try:
-                            iqn_map = iscsilib.get_node_records(self.targetIQN)
+                            iqn_map = iscsi.get_node_records(self.targetIQN)
                         except:
                             # Pass the exception that is thrown, when there
                             # are no nodes
@@ -345,10 +345,10 @@ class BaseISCSISR(SR.SR):
                     # Check our current target is in the map
                     portal = '%s:%d' % (self.target, self.port)
                     if len(iqn_map) == 0 or not any([x[0] for x in iqn_map if x[0] == portal]):
-                        iqn_map = iscsilib.discovery(self.target, self.port,
+                        iqn_map = iscsi.discovery(self.target, self.port,
                                                   self.chapuser, self.chappassword,
                                                   self.targetIQN,
-                                                  iscsilib.get_iscsi_interfaces())
+                                                  iscsi.get_iscsi_interfaces())
                     if len(iqn_map) == 0:
                         self._scan_IQNs()
                         raise xs_errors.XenError('ISCSIDiscovery',
@@ -356,12 +356,12 @@ class BaseISCSISR(SR.SR):
                     for i in range(0, len(iqn_map)):
                         (portal, tpgt, iqn) = iqn_map[i]
                         try:
-                            (ipaddr, port) = iscsilib.parse_IP_port(portal)
+                            (ipaddr, port) = iscsi.parse_IP_port(portal)
                             if not self.multihomed and ipaddr != self.target:
                                 continue
                             util._testHost(ipaddr, int(port), 'ISCSITarget')
                             util.SMlog("Logging in to [%s:%s]" % (ipaddr, port))
-                            iscsilib.login(portal, iqn, self.chapuser,
+                            iscsi.login(portal, iqn, self.chapuser,
                                            self.chappassword,
                                            self.incoming_chapuser,
                                            self.incoming_chappassword,
@@ -376,7 +376,7 @@ class BaseISCSISR(SR.SR):
                             else:
                                 pass
 
-                    if not iscsilib._checkTGT(self.targetIQN, tgt=self.target):
+                    if not iscsi._checkTGT(self.targetIQN, tgt=self.target):
                         raise xs_errors.XenError('ISCSIDevice', \
                                                  opterr='during login')
 
@@ -399,7 +399,7 @@ class BaseISCSISR(SR.SR):
             IQNs.append(self.targetIQN)
 
         sessions = 0
-        paths = iscsilib.get_IQN_paths()
+        paths = iscsi.get_IQN_paths()
         for path in paths:
             try:
                 if util.get_single_entry(os.path.join(path, 'targetname')) in IQNs:
@@ -423,7 +423,7 @@ class BaseISCSISR(SR.SR):
             dev_path = os.path.join("/dev/disk/by-scsid", self.dconf['SCSIid'])
             if not os.path.exists(dev_path):
                 # LUN may have been added to the SAN since the session was created
-                iscsilib.refresh_luns(self.targetIQN, self.target)
+                iscsi.refresh_luns(self.targetIQN, self.target)
 
             if not os.path.exists(dev_path):
                 raise xs_errors.XenError('ConfigSCSIid')
@@ -462,15 +462,15 @@ class BaseISCSISR(SR.SR):
         if self.direct and util._containsVDIinuse(self):
             return
 
-        if iscsilib._checkTGT(self.targetIQN):
+        if iscsi._checkTGT(self.targetIQN):
             try:
-                iscsilib.logout(self.target, self.targetIQN, all=True)
+                iscsi.logout(self.target, self.targetIQN, all=True)
                 if delete:
-                    iscsilib.delete(self.targetIQN)
+                    iscsi.delete(self.targetIQN)
             except util.CommandException as inst:
                 raise xs_errors.XenError('ISCSIQueryDaemon', \
                           opterr='error is %d' % inst.code)
-            if iscsilib._checkTGT(self.targetIQN):
+            if iscsi._checkTGT(self.targetIQN):
                 raise xs_errors.XenError('ISCSIQueryDaemon', \
                     opterr='Failed to logout from target')
 
@@ -542,11 +542,11 @@ class BaseISCSISR(SR.SR):
         util._testHost(self.target, self.port, 'ISCSITarget')
 
         # Test and set the initiatorname file
-        iscsilib.ensure_daemon_running_ok(self.localIQN)
+        iscsi.ensure_daemon_running_ok(self.localIQN)
 
-        map = iscsilib.discovery(self.target, self.port, self.chapuser,
+        map = iscsi.discovery(self.target, self.port, self.chapuser,
                                  self.chappassword,
-                                 interface_array=iscsilib.get_iscsi_interfaces())
+                                 interface_array=iscsi.get_iscsi_interfaces())
         map.append(("%s:%d" % (self.targetlist, self.port), "0", "*"))
         self.print_entries(map)
 
