@@ -1,5 +1,6 @@
 [Unit]
 Description=Co-operative lock manager for resource %I
+Before=xapi.service
 DefaultDependencies=no
 
 [Service]
