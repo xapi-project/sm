@@ -27,7 +27,7 @@ import xmlrpc.client
 import xs_errors
 import vhdutil
 from lock import Lock
-import cleanup
+from sm import cleanup
 import cifutils
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_CACHING",

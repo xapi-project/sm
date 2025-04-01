@@ -32,8 +32,12 @@ SM_CORE_LIBS += f_exceptions
 # sm-core-libs provided differently.
 SM_CORE_LIBS += libiscsi
 
+SM_LIBS := cleanup
+
 # Things used as commands which install in libexec
-SM_LIBEXEC_CMDS := mpathcount.py
+# which are in python and need compatibility symlinks from
+# /opt
+SM_LIBEXEC_PY_CMDS := mpathcount cleanup
 
 # SCRIPTS which install in libexec
 SM_LIBEXEC_SCRIPTS := local-device-change
@@ -52,8 +56,9 @@ SM_UDEV_SCRIPTS := xs-mpath-scsidev.sh
 SM_XAPI_SHUTDOWN_SCRIPTS := stop_all_gc
 
 # Libraries which remain in drivers/ and get installed in
-# /opt/xensource/sm as wrappers around sm.core libs for
-# backwards compatibility and can hopefully be one day dropped
+# /opt/xensource/sm. All of which will eventually be wrappers around
+# sm.core libs for backwards compatibility and can hopefully be one
+# day dropped
 SM_COMPAT_LIBS := util
 SM_COMPAT_LIBS += scsiutil
 SM_COMPAT_LIBS += mpath_dmp
@@ -64,43 +69,37 @@ SM_COMPAT_LIBS += wwid_conf
 SM_COMPAT_LIBS += lock
 SM_COMPAT_LIBS += flock
 SM_COMPAT_LIBS += mpath_null
-
-# Libraries and other code still maintained in
-# drivers/ and installed in /opt/xensource/sm which
-# has not yet been moved elsewhere.
-SM_LIBS := SR
-SM_LIBS += SRCommand
-SM_LIBS += VDI
-SM_LIBS += BaseISCSI
-SM_LIBS += cleanup
-SM_LIBS += lvutil
-SM_LIBS += lvmcache
-SM_LIBS += verifyVHDsOnSR
-SM_LIBS += scsi_host_rescan
-SM_LIBS += vhdutil
-SM_LIBS += lvhdutil
-SM_LIBS += cifutils
-SM_LIBS += nfs
-SM_LIBS += devscan
-SM_LIBS += sysdevice
-SM_LIBS += LUNperVDI
-SM_LIBS += refcounter
-SM_LIBS += journaler
-SM_LIBS += fjournaler
-SM_LIBS += lock_queue
-SM_LIBS += ipc
-SM_LIBS += srmetadata
-SM_LIBS += metadata
-SM_LIBS += lvmanager
-SM_LIBS += blktap2
-SM_LIBS += lcache
-SM_LIBS += resetvdis
-SM_LIBS += trim_util
-SM_LIBS += pluginutil
-SM_LIBS += constants
-SM_LIBS += cbtutil
-SM_LIBS += sr_health_check
-SM_LIBS += $(SM_COMPAT_LIBS)
+SM_COMPAT_LIBS += SR
+SM_COMPAT_LIBS += SRCommand
+SM_COMPAT_LIBS += VDI
+SM_COMPAT_LIBS += BaseISCSI
+SM_COMPAT_LIBS += lvutil
+SM_COMPAT_LIBS += lvmcache
+SM_COMPAT_LIBS += verifyVHDsOnSR
+SM_COMPAT_LIBS += scsi_host_rescan
+SM_COMPAT_LIBS += vhdutil
+SM_COMPAT_LIBS += lvhdutil
+SM_COMPAT_LIBS += cifutils
+SM_COMPAT_LIBS += nfs
+SM_COMPAT_LIBS += devscan
+SM_COMPAT_LIBS += sysdevice
+SM_COMPAT_LIBS += LUNperVDI
+SM_COMPAT_LIBS += refcounter
+SM_COMPAT_LIBS += journaler
+SM_COMPAT_LIBS += fjournaler
+SM_COMPAT_LIBS += lock_queue
+SM_COMPAT_LIBS += ipc
+SM_COMPAT_LIBS += srmetadata
+SM_COMPAT_LIBS += metadata
+SM_COMPAT_LIBS += lvmanager
+SM_COMPAT_LIBS += blktap2
+SM_COMPAT_LIBS += lcache
+SM_COMPAT_LIBS += resetvdis
+SM_COMPAT_LIBS += trim_util
+SM_COMPAT_LIBS += pluginutil
+SM_COMPAT_LIBS += constants
+SM_COMPAT_LIBS += cbtutil
+SM_COMPAT_LIBS += sr_health_check
 
 UDEV_RULES = 65-multipath 55-xs-mpath-scsidev 57-usb 58-xapi 99-purestorage
 MPATH_CUSTOM_CONF = custom.conf
@@ -128,8 +127,10 @@ LOGROTATE_DIR := /etc/logrotate.d/
 SM_STAGING := $(DESTDIR)
 SM_STAMP := $(MY_OBJ_DIR)/.staging_stamp
 
-SM_PY_FILES = $(foreach LIB, $(SM_LIBS), drivers/$(LIB).py) $(foreach DRIVER, $(SM_DRIVERS), drivers/$(DRIVER)SR.py)
+SM_PY_FILES = $(foreach LIB, $(SM_LIBS), libs/sm/$(LIB).py) libs/sm/__init__.py
 SM_CORE_PY_FILES = $(foreach LIB, $(SM_CORE_LIBS), libs/sm/core/$(LIB).py) libs/sm/core/__init__.py
+SM_COMPAT_PY_FILES = $(foreach LIB, $(SM_COMPAT_LIBS), drivers/$(LIB).py) $(foreach DRIVER, $(SM_DRIVERS), drivers/$(DRIVER)SR.py)
+SM_LIBEXEC_PY_FILES = $(foreach LIB, $(SM_LIBEXEC_PY_CMDS), drivers/$(LIB))
 
 .PHONY: build
 build:
@@ -138,7 +139,7 @@ build:
 .PHONY: precommit
 precommit: build
 	@ QUIT=0; \
-	CHANGED=$$(git status --porcelain $(SM_PY_FILES) $(SM_CORE_PY_FILES) | awk '{print $$2}'); \
+	CHANGED=$$(git status --porcelain $(SM_PY_FILES) $(SM_CORE_PY_FILES) $(SM_COMPAT_PY_FILES) | awk '{print $$2}'); \
 	for i in $$CHANGED; do \
 		echo Checking $${i} ...; \
 		PYTHONPATH=./drivers:./libs:./misc/fairlock:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $${i}; \
@@ -152,7 +153,7 @@ precommit: build
 
 .PHONY: precheck
 precheck: build
-	PYTHONPATH=./drivers:./libs:./misc/fairlock:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $(SM_PY_FILES) $(SM_CORE_PY_FILES)
+	PYTHONPATH=./drivers:./libs:./misc/fairlock:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $(SM_PY_FILES) $(SM_CORE_PY_FILES) $(SM_LIBEXEC_PY_FILES) $(SM_COMPAT_PY_FILES)
 	echo "Precheck succeeded with no outstanding issues found."
 
 .PHONY: install
@@ -173,18 +174,24 @@ install: precheck
 	mkdir -p $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	mkdir -p $(SM_STAGING)$(EXTENSION_SCRIPT_DEST)
 	mkdir -p $(SM_STAGING)/sbin
-	# Core libs (including XML error definitions)
-	mkdir -p $(SM_STAGING)/$(PYTHONLIBDIR)/sm/core
+	# SM libs
+	mkdir -p $(SM_STAGING)/$(PYTHONLIBDIR)/sm
 	install -D -m 644 libs/sm/__init__.py $(SM_STAGING)$(PYTHONLIBDIR)/sm/__init__.py
+	for i in $(SM_PY_FILES); do \
+	  install -D -m 644 $$i $(SM_STAGING)$(PYTHONLIBDIR)/sm/; \
+	done
+	# Core libs
+	mkdir -p $(SM_STAGING)/$(PYTHONLIBDIR)/sm/core
 	for i in $(SM_CORE_PY_FILES); do \
 	  install -D -m 644 $$i $(SM_STAGING)$(PYTHONLIBDIR)/sm/core/; \
 	done
+	# Data files (primarily XML error definitions)
 	mkdir -p $(SM_STAGING)$(SM_DATADIR)
 	for i in $(SM_XML); do \
 	  install -D -m 644 libs/sm/core/$$i.xml $(SM_STAGING)$(SM_DATADIR)/; \
 	done
 	# Legacy SM python files
-	for i in $(SM_PY_FILES); do \
+	for i in $(SM_COMPAT_PY_FILES); do \
 	  install -m 755 $$i $(SM_STAGING)$(SM_DEST); \
 	done
 	# Plugin directory
@@ -239,13 +246,15 @@ install: precheck
 	install -m 755 drivers/trim $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	mkdir -p $(SM_STAGING)$(SM_LIBEXEC)
 	mkdir -p $(SM_STAGING)$(SM_COMPAT_LIBEXEC)
+	# Install libexec scripts with symlinks from the legacy location
 	for s in $(SM_LIBEXEC_SCRIPTS); do \
 	  install -m 755 scripts/$$s $(SM_STAGING)$(SM_LIBEXEC)/$$s; \
 	  ln -sf $(SM_LIBEXEC)/$$s $(SM_STAGING)$(SM_COMPAT_LIBEXEC)/$$s; \
 	done
-	for s in $(SM_LIBEXEC_CMDS); do \
+	# Install libexec commands with symlinks from the legacy location
+	for s in $(SM_LIBEXEC_PY_CMDS); do \
 	  install -m 755 drivers/$$s $(SM_STAGING)$(SM_LIBEXEC)/$$s; \
-	  ln -sf $(SM_LIBEXEC)/$$s $(SM_STAGING)$(SM_DEST)/$$s; \
+	  ln -sf $(SM_LIBEXEC)/$$s $(SM_STAGING)$(SM_DEST)/"$$s".py; \
 	done
 	mkdir -p $(SM_STAGING)/etc/xapi.d/xapi-pre-shutdown
 	for s in $(SM_XAPI_SHUTDOWN_SCRIPTS); do \

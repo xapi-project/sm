@@ -20,7 +20,7 @@
 # Source function library.
 . /etc/init.d/functions
 
-CLEANUP_SCRIPT="/opt/xensource/sm/cleanup.py"
+CLEANUP_SCRIPT="/usr/libexec/sm/cleanup"
 LVHD_UTIL_SCRIPT="/opt/xensource/sm/lvhdutil.py"
 
 start() {

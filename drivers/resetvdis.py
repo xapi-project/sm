@@ -18,7 +18,7 @@
 # Clear the attach status for all VDIs in the given SR on this host.
 # Additionally, reset the paused state if this host is the master.
 
-import cleanup
+from sm import cleanup
 from sm.core import util
 import lock
 import sys

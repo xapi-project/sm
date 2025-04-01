@@ -1,0 +1,138 @@
+#!/usr/bin/python3
+#
+# Copyright (C) Citrix Systems Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
+# by the Free Software Foundation; version 2.1 only.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+#
+# Script to coalesce and garbage collect VHD-based SR's in the background
+#
+
+import getopt
+import sys
+
+sys.path.append("/opt/xensource/sm/")
+from sm import cleanup
+
+
+def usage():
+    output = """Garbage collect and/or coalesce VHDs in a VHD-based SR
+
+Parameters:
+    -u --uuid UUID   SR UUID
+ and one of:
+    -g --gc          garbage collect, coalesce, and repeat while there is work
+    -G --gc_force    garbage collect once, aborting any current operations
+    -c --cache-clean <max_age> clean up IntelliCache cache files older than
+                     max_age hours
+    -a --abort       abort any currently running operation (GC or coalesce)
+    -q --query       query the current state (GC'ing, coalescing or not running)
+    -x --disable     disable GC/coalesce (will be in effect until you exit)
+    -t --debug       see Debug below
+
+Options:
+    -b --background  run in background (return immediately) (valid for -g only)
+    -f --force       continue in the presence of VHDs with errors (when doing
+                     GC, this might cause removal of any such VHDs) (only valid
+                     for -G) (DANGEROUS)
+
+Debug:
+    The --debug parameter enables manipulation of LVHD VDIs for debugging
+    purposes.  ** NEVER USE IT ON A LIVE VM **
+    The following parameters are required:
+    -t --debug <cmd> <cmd> is one of "activate", "deactivate", "inflate",
+                     "deflate".
+    -v --vdi_uuid    VDI UUID
+    """
+    #-d --dry-run     don't actually perform any SR-modifying operations
+    print(output)
+    cleanup.Util.log("(Invalid usage)")
+    sys.exit(1)
+
+##############################################################################
+#
+#  CLI
+#
+def main():
+    action = ""
+    uuid = ""
+    background = False
+    force = False
+    dryRun = False
+    maxAge = 0
+    debug_cmd = ""
+    vdi_uuid = ""
+    shortArgs = "gGc:aqxu:bfdt:v:"
+    longArgs = ["gc", "gc_force", "clean_cache", "abort", "query", "disable",
+            "uuid=", "background", "force", "dry-run", "debug=", "vdi_uuid="]
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], shortArgs, longArgs)
+    except getopt.GetoptError:
+        usage()
+    for o, a in opts:
+        if o in ("-g", "--gc"):
+            action = "gc"
+        if o in ("-G", "--gc_force"):
+            action = "gc_force"
+        if o in ("-c", "--clean_cache"):
+            action = "clean_cache"
+            maxAge = int(a)
+        if o in ("-a", "--abort"):
+            action = "abort"
+        if o in ("-q", "--query"):
+            action = "query"
+        if o in ("-x", "--disable"):
+            action = "disable"
+        if o in ("-u", "--uuid"):
+            uuid = a
+        if o in ("-b", "--background"):
+            background = True
+        if o in ("-f", "--force"):
+            force = True
+        if o in ("-d", "--dry-run"):
+            cleanup.Util.log("Dry run mode")
+            dryRun = True
+        if o in ("-t", "--debug"):
+            action = "debug"
+            debug_cmd = a
+        if o in ("-v", "--vdi_uuid"):
+            vdi_uuid = a
+
+    if not action or not uuid:
+        usage()
+    if action == "debug" and not (debug_cmd and vdi_uuid) or \
+            action != "debug" and (debug_cmd or vdi_uuid):
+        usage()
+
+    if action != "query" and action != "debug":
+        print("All output goes to log")
+
+    if action == "gc":
+        cleanup.gc(None, uuid, background, dryRun)
+    elif action == "gc_force":
+        cleanup.gc_force(None, uuid, force, dryRun, True)
+    elif action == "clean_cache":
+        cleanup.cache_cleanup(None, uuid, maxAge)
+    elif action == "abort":
+        cleanup.abort(uuid)
+    elif action == "query":
+        print("Currently running: %s" % cleanup.get_state(uuid))
+    elif action == "disable":
+        cleanup.abort_optional_reenable(uuid)
+    elif action == "debug":
+        cleanup.debug(uuid, debug_cmd, vdi_uuid)
+
+
+if __name__ == '__main__':
+    main()

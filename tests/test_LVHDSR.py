@@ -5,7 +5,7 @@ import unittest.mock as mock
 
 import uuid
 
-import cleanup
+from sm import cleanup
 import LVHDSR
 import lvhdutil
 import lvutil

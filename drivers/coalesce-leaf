@@ -26,7 +26,7 @@ sys.path.append("/opt/xensource/sm/")
 sys.path.insert(0, "/opt/xensource/sm")
 import getopt
 import XenAPI
-import cleanup
+from sm import cleanup
 from sm.core import util
 import atexit
 

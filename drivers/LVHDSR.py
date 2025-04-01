@@ -33,7 +33,7 @@ import sys
 import time
 import errno
 from sm.core import xs_errors
-import cleanup
+from sm import cleanup
 import blktap2
 from journaler import Journaler
 from sm.core.lock import Lock

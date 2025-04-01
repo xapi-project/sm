@@ -16,7 +16,7 @@
 # VDI: Base class for virtual disk instances
 #
 
-import cleanup
+from sm import cleanup
 import SR
 import xmlrpc.client
 import xs_errors
@@ -504,7 +504,7 @@ class VDI(object):
                 del sm_config[key]
 
     def _db_update_sm_config(self, ref, sm_config):
-        import cleanup
+        from sm import cleanup
         # List of sm-config keys that should not be modifed by db_update
         smconfig_protected_keys = [
             cleanup.VDI.DB_VDI_PAUSED,
