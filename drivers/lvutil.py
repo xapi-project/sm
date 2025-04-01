@@ -24,7 +24,7 @@ import time
 
 from fairlock import Fairlock
 from sm.core import util
-import xs_errors
+from sm.core import xs_errors
 import xml.dom.minidom
 from lvhdutil import VG_LOCATION, VG_PREFIX
 from constants import EXT_PREFIX

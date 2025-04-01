@@ -6,7 +6,7 @@ import uuid
 
 from uuid import uuid4
 
-import cleanup
+from sm import cleanup
 from sm.core import lock
 
 from sm.core import util
@@ -58,16 +58,16 @@ def create_cleanup_sr(xapi, uuid=None):
 
 class TestSR(unittest.TestCase):
     def setUp(self):
-        time_sleep_patcher = mock.patch('cleanup.time.sleep')
+        time_sleep_patcher = mock.patch('sm.cleanup.time.sleep')
         self.mock_time_sleep = time_sleep_patcher.start()
 
-        updateBlockInfo_patcher = mock.patch('cleanup.VDI.updateBlockInfo')
+        updateBlockInfo_patcher = mock.patch('sm.cleanup.VDI.updateBlockInfo')
         self.mock_updateBlockInfo = updateBlockInfo_patcher.start()
 
-        IPCflag_patcher = mock.patch('cleanup.IPCFlag')
+        IPCflag_patcher = mock.patch('sm.cleanup.IPCFlag')
         self.mock_IPCFlag = IPCflag_patcher.start()
 
-        blktap2_patcher = mock.patch('cleanup.blktap2', autospec=True)
+        blktap2_patcher = mock.patch('sm.cleanup.blktap2', autospec=True)
         self.mock_blktap2 = blktap2_patcher.start()
 
         self.xapi_mock = mock.MagicMock(name='MockXapi')
@@ -182,9 +182,9 @@ class TestSR(unittest.TestCase):
 
         self.assertTrue(cleanup.SIGTERM)
 
-    @mock.patch('cleanup._create_init_file', autospec=True)
-    @mock.patch('cleanup.SR', autospec=True)
-    @mock.patch('cleanup._ensure_xapi_initialised', autospec=True)
+    @mock.patch('sm.cleanup._create_init_file', autospec=True)
+    @mock.patch('sm.cleanup.SR', autospec=True)
+    @mock.patch('sm.cleanup._ensure_xapi_initialised', autospec=True)
     def test_loop_exits_on_term(self, mock_init, mock_sr, mock_check_xapi):
         # Set the term signel
         cleanup.receiveSignal(signal.SIGTERM, None)
@@ -278,9 +278,9 @@ class TestSR(unittest.TestCase):
         """
         self.assertTrue(util.fistpoint.is_legal(util.GCPAUSE_FISTPOINT))
 
-    @mock.patch('cleanup.util.fistpoint', autospec=True)
-    @mock.patch('cleanup.SR', autospec=True)
-    @mock.patch('cleanup.Util.runAbortable')
+    @mock.patch('sm.cleanup.util.fistpoint', autospec=True)
+    @mock.patch('sm.cleanup.SR', autospec=True)
+    @mock.patch('sm.cleanup.Util.runAbortable')
     def test_gcPause_calls_fist_point(
             self,
             mock_abortable,
@@ -306,10 +306,10 @@ class TestSR(unittest.TestCase):
         # And don't call abortable sleep
         mock_abortable.assert_not_called()
 
-    @mock.patch('cleanup.util.fistpoint', autospec=True)
-    @mock.patch('cleanup.SR', autospec=True)
-    @mock.patch('cleanup.Util.runAbortable')
-    @mock.patch('cleanup.os.path.exists', autospec=True)
+    @mock.patch('sm.cleanup.util.fistpoint', autospec=True)
+    @mock.patch('sm.cleanup.SR', autospec=True)
+    @mock.patch('sm.cleanup.Util.runAbortable')
+    @mock.patch('sm.cleanup.os.path.exists', autospec=True)
     def test_gcPause_calls_abortable_sleep(
             self,
             mock_exists,
@@ -336,10 +336,10 @@ class TestSR(unittest.TestCase):
                                           mock.ANY, cleanup.VDI.POLL_INTERVAL,
                                           cleanup.GCPAUSE_DEFAULT_SLEEP * 1.1)
 
-    @mock.patch('cleanup.util.fistpoint', autospec=True)
-    @mock.patch('cleanup.SR', autospec=True)
-    @mock.patch('cleanup.Util.runAbortable')
-    @mock.patch('cleanup.os.path.exists', autospec=True)
+    @mock.patch('sm.cleanup.util.fistpoint', autospec=True)
+    @mock.patch('sm.cleanup.SR', autospec=True)
+    @mock.patch('sm.cleanup.Util.runAbortable')
+    @mock.patch('sm.cleanup.os.path.exists', autospec=True)
     def test_gcPause_skipped_on_first_run(
             self,
             mock_exists,
@@ -364,8 +364,8 @@ class TestSR(unittest.TestCase):
         # Fist point is not active so call abortable sleep.
         self.assertEqual(0, mock_abortable.call_count)
 
-    @mock.patch('cleanup.SR', autospec=True)
-    @mock.patch('cleanup.Util.runAbortable')
+    @mock.patch('sm.cleanup.SR', autospec=True)
+    @mock.patch('sm.cleanup.Util.runAbortable')
     def test_gc_pause_skipped_if_immediate(self, mock_abortable, mock_sr):
         """
         Foreground GC runs immediate
@@ -380,8 +380,8 @@ class TestSR(unittest.TestCase):
         # Never call runAbortable
         self.assertEqual(0, mock_abortable.call_count)
 
-    @mock.patch('cleanup.SR', autospec=True)
-    @mock.patch('cleanup._abort')
+    @mock.patch('sm.cleanup.SR', autospec=True)
+    @mock.patch('sm.cleanup._abort')
     def test_lock_released_by_abort_when_held(
             self,
             mock_abort,
@@ -407,8 +407,8 @@ class TestSR(unittest.TestCase):
         # We hold lockGCActive so make sure we release it.
         self.assertEqual(cleanup.lockGCActive.release.call_count, 1)
 
-    @mock.patch('cleanup.SR', autospec=True)
-    @mock.patch('cleanup._abort')
+    @mock.patch('sm.cleanup.SR', autospec=True)
+    @mock.patch('sm.cleanup._abort')
     def test_lock_not_released_by_abort_when_not_held(
             self,
             mock_abort,
@@ -434,8 +434,8 @@ class TestSR(unittest.TestCase):
         # Make sure we did not release the lock as we don't have it.
         self.assertEqual(cleanup.lockGCActive.release.call_count, 0)
 
-    @mock.patch('cleanup._abort')
-    @mock.patch('cleanup.input')
+    @mock.patch('sm.cleanup._abort')
+    @mock.patch('sm.cleanup.input')
     def test_abort_optional_renable_active_held(
             self,
             mock_input,
@@ -457,8 +457,8 @@ class TestSR(unittest.TestCase):
         # Make sure released lockRunning
         self.assertEqual(cleanup.lockGCRunning.release.call_count, 1)
 
-    @mock.patch('cleanup._abort')
-    @mock.patch('cleanup.input')
+    @mock.patch('sm.cleanup._abort')
+    @mock.patch('sm.cleanup.input')
     def test_abort_optional_renable_active_not_held(
             self,
             mock_input,
@@ -480,7 +480,7 @@ class TestSR(unittest.TestCase):
         # Make sure released lockRunning
         self.assertEqual(cleanup.lockGCRunning.release.call_count, 1)
 
-    @mock.patch('cleanup.init')
+    @mock.patch('sm.cleanup.init')
     def test__abort_returns_true_when_get_lock(
             self,
             mock_init):
@@ -492,7 +492,7 @@ class TestSR(unittest.TestCase):
         ret = cleanup._abort(None)
         self.assertEqual(ret, True)
 
-    @mock.patch('cleanup.init')
+    @mock.patch('sm.cleanup.init')
     def test__abort_return_false_if_flag_not_set(
             self,
             mock_init):
@@ -512,7 +512,7 @@ class TestSR(unittest.TestCase):
         self.assertEqual(self.mock_IPCFlag.return_value.set.call_count, 1)
         self.assertEqual(ret, False)
 
-    @mock.patch('cleanup.init')
+    @mock.patch('sm.cleanup.init')
     def test__abort_should_raise_if_cant_get_lock(self, mock_init):
         """
         _abort should raise an exception if it completely
@@ -529,7 +529,7 @@ class TestSR(unittest.TestCase):
         with self.assertRaises(util.CommandException):
             cleanup._abort(None)
 
-    @mock.patch('cleanup.init')
+    @mock.patch('sm.cleanup.init')
     def test__abort_should_succeed_if_aquires_on_second_attempt(
             self,
             mock_init
@@ -554,7 +554,7 @@ class TestSR(unittest.TestCase):
         self.assertEqual(mocked_lock.acquireNoblock.call_count, 2)
         self.assertEqual(ret, True)
 
-    @mock.patch('cleanup.init')
+    @mock.patch('sm.cleanup.init')
     def test__abort_should_fail_if_reaches_maximum_retries_for_lock(
             self,
             mock_init
@@ -592,7 +592,7 @@ class TestSR(unittest.TestCase):
         self.assertEqual(mocked_lock.acquireNoblock.call_count,
                          cleanup.SR.LOCK_RETRY_ATTEMPTS + 1)
 
-    @mock.patch('cleanup.init')
+    @mock.patch('sm.cleanup.init')
     def test__abort_succeeds_if_gets_lock_on_final_attempt(self, mock_init):
         """
         _abort succeeds if we get the lockGCActive on the final retry
@@ -617,7 +617,7 @@ class TestSR(unittest.TestCase):
                          cleanup.SR.LOCK_RETRY_ATTEMPTS + 1)
         self.assertEqual(ret, True)
 
-    @mock.patch('cleanup.lock', autospec=True)
+    @mock.patch('sm.cleanup.lock', autospec=True)
     def test_file_vdi_delete(self, mock_lock):
         """
         Test to confirm fix for HFX-651
@@ -633,9 +633,9 @@ class TestSR(unittest.TestCase):
         vdi.delete()
         mock_lock.Lock.cleanupAll.assert_called_with(str(vdi_uuid))
 
-    @mock.patch('cleanup.VDI', autospec=True)
-    @mock.patch('cleanup.SR._liveLeafCoalesce', autospec=True)
-    @mock.patch('cleanup.SR._snapshotCoalesce', autospec=True)
+    @mock.patch('sm.cleanup.VDI', autospec=True)
+    @mock.patch('sm.cleanup.SR._liveLeafCoalesce', autospec=True)
+    @mock.patch('sm.cleanup.SR._snapshotCoalesce', autospec=True)
     def test_coalesceLeaf(self, mock_srSnapshotCoalesce,
                           mock_srLeafCoalesce, mock_vdi):
 
@@ -651,9 +651,9 @@ class TestSR(unittest.TestCase):
         self.assertEqual(sr._liveLeafCoalesce.call_count, 1)
         self.assertEqual(sr._snapshotCoalesce.call_count, 0)
 
-    @mock.patch('cleanup.VDI', autospec=True)
-    @mock.patch('cleanup.SR._liveLeafCoalesce', autospec=True)
-    @mock.patch('cleanup.SR._snapshotCoalesce', autospec=True)
+    @mock.patch('sm.cleanup.VDI', autospec=True)
+    @mock.patch('sm.cleanup.SR._liveLeafCoalesce', autospec=True)
+    @mock.patch('sm.cleanup.SR._snapshotCoalesce', autospec=True)
     def test_coalesceLeaf_coalesce_failed(self,
                                           mock_srSnapshotCoalesce,
                                           mock_srLeafCoalesce,
@@ -670,12 +670,12 @@ class TestSR(unittest.TestCase):
         res = sr._coalesceLeaf(vdi)
         self.assertFalse(res)
 
-    @mock.patch('cleanup.VDI.canLiveCoalesce', autospec=True,
+    @mock.patch('sm.cleanup.VDI.canLiveCoalesce', autospec=True,
                 return_value=False)
-    @mock.patch('cleanup.VDI.getSizeVHD', autospec=True)
-    @mock.patch('cleanup.SR._snapshotCoalesce', autospec=True,
+    @mock.patch('sm.cleanup.VDI.getSizeVHD', autospec=True)
+    @mock.patch('sm.cleanup.SR._snapshotCoalesce', autospec=True,
                 return_value=True)
-    @mock.patch('cleanup.Util.log')
+    @mock.patch('sm.cleanup.Util.log')
     def test_coalesceLeaf_size_bigger(self, mock_log,
                                       mock_snapshotCoalesce, mock_vhdSize,
                                       mock_vdiLiveCoalesce):
@@ -697,13 +697,13 @@ class TestSR(unittest.TestCase):
                       " coalesced".format(uuid=vdi_uuid),
                       str(exc.exception))
 
-    @mock.patch('cleanup.VDI.canLiveCoalesce', autospec=True)
-    @mock.patch('cleanup.VDI.getSizeVHD', autospec=True)
-    @mock.patch('cleanup.SR._snapshotCoalesce', autospec=True,
+    @mock.patch('sm.cleanup.VDI.canLiveCoalesce', autospec=True)
+    @mock.patch('sm.cleanup.VDI.getSizeVHD', autospec=True)
+    @mock.patch('sm.cleanup.SR._snapshotCoalesce', autospec=True,
                 return_value=True)
-    @mock.patch('cleanup.SR._liveLeafCoalesce', autospec=True,
+    @mock.patch('sm.cleanup.SR._liveLeafCoalesce', autospec=True,
                 return_value="This is a Test")
-    @mock.patch('cleanup.Util.log')
+    @mock.patch('sm.cleanup.Util.log')
     def test_coalesceLeaf_success_after_4_iterations(self,
                                                      mock_log,
                                                      mock_liveLeafCoalesce,
@@ -726,7 +726,7 @@ class TestSR(unittest.TestCase):
         self.assertEqual(3, mock_snapshotCoalesce.call_count)
         self.assertEqual(6, mock_vhdSize.call_count)
 
-    @mock.patch('cleanup.Util.log')
+    @mock.patch('sm.cleanup.Util.log')
     def test_findLeafCoalesceable_forbidden1(self, mock_log):
         sr_uuid = uuid4()
         sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
@@ -736,7 +736,7 @@ class TestSR(unittest.TestCase):
         self.assertEqual(res, [])
         mock_log.assert_called_with("Coalesce disabled for this SR")
 
-    @mock.patch('cleanup.Util.log')
+    @mock.patch('sm.cleanup.Util.log')
     def test_findLeafCoalesceable_forbidden2(self, mock_log):
         sr_uuid = uuid4()
         sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
@@ -748,7 +748,7 @@ class TestSR(unittest.TestCase):
         self.assertEqual(res, [])
         mock_log.assert_called_with("Leaf-coalesce disabled for this SR")
 
-    @mock.patch('cleanup.Util.log')
+    @mock.patch('sm.cleanup.Util.log')
     def test_findLeafCoalesceable_forbidden3(self, mock_log):
         sr_uuid = uuid4()
         sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
@@ -762,7 +762,7 @@ class TestSR(unittest.TestCase):
         self.assertEqual(res, [])
         mock_log.assert_called_with("Coalesce disabled for this SR")
 
-    @mock.patch('cleanup.Util.log')
+    @mock.patch('sm.cleanup.Util.log')
     def test_findLeafCoalesceable_forbidden4(self, mock_log):
         sr_uuid = uuid4()
         sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
@@ -775,7 +775,7 @@ class TestSR(unittest.TestCase):
         self.assertEqual(res, [])
         mock_log.assert_called_with("Leaf-coalesce disabled for this SR")
 
-    @mock.patch('cleanup.Util.log')
+    @mock.patch('sm.cleanup.Util.log')
     def test_findLeafCoalesceable_forbidden5(self, mock_log):
         sr_uuid = uuid4()
         sr = create_cleanup_sr(self.xapi_mock, uuid=str(sr_uuid))
@@ -821,12 +821,12 @@ class TestSR(unittest.TestCase):
         sr.gatherLeafCoalesceable(res)
         self.assertEqual(res, [good])
 
-    @mock.patch("cleanup.AUTO_ONLINE_LEAF_COALESCE_ENABLED", True)
-    @mock.patch('cleanup.SR.leafCoalesceForbidden', autospec=True,
+    @mock.patch("sm.cleanup.AUTO_ONLINE_LEAF_COALESCE_ENABLED", True)
+    @mock.patch('sm.cleanup.SR.leafCoalesceForbidden', autospec=True,
                 return_value=False)
-    @mock.patch('cleanup.VDI.isLeafCoalesceable', autospec=True,
+    @mock.patch('sm.cleanup.VDI.isLeafCoalesceable', autospec=True,
                 return_value=True)
-    @mock.patch('cleanup.VDI.getConfig', autospec=True)
+    @mock.patch('sm.cleanup.VDI.getConfig', autospec=True)
     def test_gather_candidates_leaf_not_coalescable(self, mock_getConfig,
                                                     mock_isLeafCoalesceable,
                                                     mock_leafCoalesceForbidden
@@ -839,12 +839,12 @@ class TestSR(unittest.TestCase):
                                iter(["blah", False, "blah", "blah"]),
                                coalesceable=False)
 
-    @mock.patch("cleanup.AUTO_ONLINE_LEAF_COALESCE_ENABLED", True)
-    @mock.patch('cleanup.SR.leafCoalesceForbidden', autospec=True,
+    @mock.patch("sm.cleanup.AUTO_ONLINE_LEAF_COALESCE_ENABLED", True)
+    @mock.patch('sm.cleanup.SR.leafCoalesceForbidden', autospec=True,
                 return_value=False)
-    @mock.patch('cleanup.VDI.isLeafCoalesceable', autospec=True,
+    @mock.patch('sm.cleanup.VDI.isLeafCoalesceable', autospec=True,
                 return_value=True)
-    @mock.patch('cleanup.VDI.getConfig', autospec=True)
+    @mock.patch('sm.cleanup.VDI.getConfig', autospec=True)
     def test_gather_candidates_failed_candidates(self,
                                                  mock_getConfig,
                                                  mock_isLeafCoalesceable,
@@ -854,12 +854,12 @@ class TestSR(unittest.TestCase):
         self.gather_candidates(mock_getConfig, iter(["blah", False, "blah",
                                                      "blah"]), failed=True)
 
-    @mock.patch("cleanup.AUTO_ONLINE_LEAF_COALESCE_ENABLED", True)
-    @mock.patch('cleanup.SR.leafCoalesceForbidden', autospec=True,
+    @mock.patch("sm.cleanup.AUTO_ONLINE_LEAF_COALESCE_ENABLED", True)
+    @mock.patch('sm.cleanup.SR.leafCoalesceForbidden', autospec=True,
                 return_value=False)
-    @mock.patch('cleanup.VDI.isLeafCoalesceable', autospec=True,
+    @mock.patch('sm.cleanup.VDI.isLeafCoalesceable', autospec=True,
                 return_value=True)
-    @mock.patch('cleanup.VDI.getConfig', autospec=True)
+    @mock.patch('sm.cleanup.VDI.getConfig', autospec=True)
     def test_gather_candidates_reset(self, mock_getConfig,
                                      mock_isLeafCoalesceable,
                                      mock_leafCoalesceForbidden):
@@ -869,12 +869,12 @@ class TestSR(unittest.TestCase):
                                iter([cleanup.VDI.ONBOOT_RESET, False, "blah",
                                      "blah"]))
 
-    @mock.patch("cleanup.AUTO_ONLINE_LEAF_COALESCE_ENABLED", True)
-    @mock.patch('cleanup.SR.leafCoalesceForbidden', autospec=True,
+    @mock.patch("sm.cleanup.AUTO_ONLINE_LEAF_COALESCE_ENABLED", True)
+    @mock.patch('sm.cleanup.SR.leafCoalesceForbidden', autospec=True,
                 return_value=False)
-    @mock.patch('cleanup.VDI.isLeafCoalesceable', autospec=True,
+    @mock.patch('sm.cleanup.VDI.isLeafCoalesceable', autospec=True,
                 return_value=True)
-    @mock.patch('cleanup.VDI.getConfig', autospec=True)
+    @mock.patch('sm.cleanup.VDI.getConfig', autospec=True)
     def test_gather_candidates_caching_allowed(self, mock_getConfig,
                                                mock_isLeafCoalesceable,
                                                mock_leafCoalesceForbidden):
@@ -883,12 +883,12 @@ class TestSR(unittest.TestCase):
         self.gather_candidates(mock_getConfig, iter(["blah", True, "blah",
                                                      "blah"]))
 
-    @mock.patch("cleanup.AUTO_ONLINE_LEAF_COALESCE_ENABLED", True)
-    @mock.patch('cleanup.SR.leafCoalesceForbidden', autospec=True,
+    @mock.patch("sm.cleanup.AUTO_ONLINE_LEAF_COALESCE_ENABLED", True)
+    @mock.patch('sm.cleanup.SR.leafCoalesceForbidden', autospec=True,
                 return_value=False)
-    @mock.patch('cleanup.VDI.isLeafCoalesceable', autospec=True,
+    @mock.patch('sm.cleanup.VDI.isLeafCoalesceable', autospec=True,
                 return_value=True)
-    @mock.patch('cleanup.VDI.getConfig', autospec=True)
+    @mock.patch('sm.cleanup.VDI.getConfig', autospec=True)
     def test_gather_candidates_clsc_disabled(self, mock_getConfig,
                                              mock_isLeafCoalesceable,
                                              mock_leafCoalesceForbidden):
@@ -898,12 +898,12 @@ class TestSR(unittest.TestCase):
                                      cleanup.VDI.LEAFCLSC_DISABLED,
                                      "blah"]))
 
-    @mock.patch("cleanup.AUTO_ONLINE_LEAF_COALESCE_ENABLED", False)
-    @mock.patch('cleanup.SR.leafCoalesceForbidden', autospec=True,
+    @mock.patch("sm.cleanup.AUTO_ONLINE_LEAF_COALESCE_ENABLED", False)
+    @mock.patch('sm.cleanup.SR.leafCoalesceForbidden', autospec=True,
                 return_value=False)
-    @mock.patch('cleanup.VDI.isLeafCoalesceable', autospec=True,
+    @mock.patch('sm.cleanup.VDI.isLeafCoalesceable', autospec=True,
                 return_value=True)
-    @mock.patch('cleanup.VDI.getConfig', autospec=True)
+    @mock.patch('sm.cleanup.VDI.getConfig', autospec=True)
     def test_gather_candidates_auto_coalesce_off(self, mock_getConfig,
                                                  mock_isLeafCoalesceable,
                                                  mock_leafCoalesceForbidden):
@@ -947,30 +947,30 @@ class TestSR(unittest.TestCase):
             self.assertEqual(res, good)
         return good, bad
 
-    @mock.patch('cleanup.SR.leafCoalesceForbidden', autospec=True,
+    @mock.patch('sm.cleanup.SR.leafCoalesceForbidden', autospec=True,
                 return_value=False)
-    @mock.patch('cleanup.SR.getFreeSpace', autospec=True, return_value=1024)
-    @mock.patch('cleanup.SR.gatherLeafCoalesceable', autospec=True)
+    @mock.patch('sm.cleanup.SR.getFreeSpace', autospec=True, return_value=1024)
+    @mock.patch('sm.cleanup.SR.gatherLeafCoalesceable', autospec=True)
     def test_insufficient_space(self, mock_gatherLeafCoalesceable,
                                 mock_getFreeSpace,
                                 mock_leafCoalesceForbidden):
         """Good vdi calculates space less than remaining on sr"""
         self.findLeafCoalesceable(mock_gatherLeafCoalesceable, 4)
 
-    @mock.patch('cleanup.SR.leafCoalesceForbidden', autospec=True,
+    @mock.patch('sm.cleanup.SR.leafCoalesceForbidden', autospec=True,
                 return_value=False)
-    @mock.patch('cleanup.SR.getFreeSpace', autospec=True, return_value=1024)
-    @mock.patch('cleanup.SR.gatherLeafCoalesceable', autospec=True)
+    @mock.patch('sm.cleanup.SR.getFreeSpace', autospec=True, return_value=1024)
+    @mock.patch('sm.cleanup.SR.gatherLeafCoalesceable', autospec=True)
     def test_space_equal(self, mock_gatherLeafCoalesceable,
                          mock_getFreeSpace,
                          mock_leafCoalesceForbidden):
         """Good has calculates space equal to remaining space"""
         self.findLeafCoalesceable(mock_gatherLeafCoalesceable, 1024)
 
-    @mock.patch('cleanup.SR.leafCoalesceForbidden', autospec=True,
+    @mock.patch('sm.cleanup.SR.leafCoalesceForbidden', autospec=True,
                 return_value=False)
-    @mock.patch('cleanup.SR.getFreeSpace', autospec=True, return_value=1024)
-    @mock.patch('cleanup.SR.gatherLeafCoalesceable', autospec=True)
+    @mock.patch('sm.cleanup.SR.getFreeSpace', autospec=True, return_value=1024)
+    @mock.patch('sm.cleanup.SR.gatherLeafCoalesceable', autospec=True)
     def test_fall_back_to_leaf_coalescing(self, mock_gatherLeafCoalesceable,
                                           mock_getFreeSpace,
                                           mock_leafCoalesceForbidden):
@@ -979,10 +979,10 @@ class TestSR(unittest.TestCase):
                                   canLiveCoalesce=True,
                                   liveSize=4)
 
-    @mock.patch('cleanup.SR.leafCoalesceForbidden', autospec=True,
+    @mock.patch('sm.cleanup.SR.leafCoalesceForbidden', autospec=True,
                 return_value=False)
-    @mock.patch('cleanup.SR.getFreeSpace', autospec=True, return_value=1024)
-    @mock.patch('cleanup.SR.gatherLeafCoalesceable', autospec=True)
+    @mock.patch('sm.cleanup.SR.getFreeSpace', autospec=True, return_value=1024)
+    @mock.patch('sm.cleanup.SR.gatherLeafCoalesceable', autospec=True)
     def test_leaf_coalescing_cannt_live_coalesce(self,
                                                  mock_gatherLeafCoalesceable,
                                                  mock_getFreeSpace,
@@ -1050,8 +1050,8 @@ class TestSR(unittest.TestCase):
     @mock.patch("builtins.open", autospec=True)
     @mock.patch("os.path.isfile", autospec=True)
     @mock.patch("os.chmod", autospec=True)
-    @mock.patch("cleanup.SR.lock", autospec=True)
-    @mock.patch("cleanup.SR.unlock", autospec=True)
+    @mock.patch("sm.cleanup.SR.lock", autospec=True)
+    @mock.patch("sm.cleanup.SR.unlock", autospec=True)
     def test_getStorageSpeed(self, mock_unlock, mock_lock, mock_chmod,
                              mock_isFile, mock_open):
         sr_uuid = uuid4()
@@ -1116,10 +1116,10 @@ class TestSR(unittest.TestCase):
 
     @mock.patch("builtins.open",
                 autospec=True)
-    @mock.patch("cleanup.os.path.isfile", autospec=True)
-    @mock.patch("cleanup.util.atomicFileWrite", autospec=True)
-    @mock.patch("cleanup.SR.lock", autospec=True)
-    @mock.patch("cleanup.SR.unlock", autospec=True)
+    @mock.patch("sm.cleanup.os.path.isfile", autospec=True)
+    @mock.patch("sm.cleanup.util.atomicFileWrite", autospec=True)
+    @mock.patch("sm.cleanup.SR.lock", autospec=True)
+    @mock.patch("sm.cleanup.SR.unlock", autospec=True)
     def test_writeSpeedToFile(self, mock_lock, mock_unlock, mock_atomicWrite,
                               mock_isFile, mock_open):
         sr_uuid = uuid4()
@@ -1252,8 +1252,8 @@ class TestSR(unittest.TestCase):
         else:
             self.assertEqual(mock_log.call_count, 0)
 
-    @mock.patch('cleanup.Util.log')
-    @mock.patch('cleanup.SR.getSwitch')
+    @mock.patch('sm.cleanup.Util.log')
+    @mock.patch('sm.cleanup.SR.getSwitch')
     def test_forbiddenBySwitch(self, mock_getSwitch, mock_log):
         sr_uuid = uuid4()
         switch = "blah"
@@ -1283,7 +1283,7 @@ class TestSR(unittest.TestCase):
         sr.forbiddenBySwitch.assert_called_with(*argv)
         self.assertEqual(expected_callCount, sr.forbiddenBySwitch.call_count)
 
-    @mock.patch('cleanup.SR.forbiddenBySwitch', autospec=True)
+    @mock.patch('sm.cleanup.SR.forbiddenBySwitch', autospec=True)
     def test_leafCoalesceForbidden(self, mock_srforbiddenBySwitch):
         sr = create_cleanup_sr(self.xapi_mock)
 
@@ -1477,11 +1477,11 @@ class TestSR(unittest.TestCase):
 
         return vdis
 
-    @mock.patch('cleanup.os.unlink', autospec=True)
-    @mock.patch('cleanup.util', autospec=True)
-    @mock.patch('cleanup.vhdutil', autospec=True)
-    @mock.patch('cleanup.journaler.Journaler', autospec=True)
-    @mock.patch('cleanup.Util.runAbortable')
+    @mock.patch('sm.cleanup.os.unlink', autospec=True)
+    @mock.patch('sm.cleanup.util', autospec=True)
+    @mock.patch('sm.cleanup.vhdutil', autospec=True)
+    @mock.patch('sm.cleanup.journaler.Journaler', autospec=True)
+    @mock.patch('sm.cleanup.Util.runAbortable')
     def test_coalesce_success(
             self, mock_abortable, mock_journaler, mock_vhdutil, mock_util,
             mock_unlink):
@@ -1526,11 +1526,11 @@ class TestSR(unittest.TestCase):
              mock.call(vdis['child'], 'vhd-parent'),
              mock.call(vdis['child'], 'relinking')])
 
-    @mock.patch('cleanup.os.unlink', autospec=True)
-    @mock.patch('cleanup.util', autospec=True)
-    @mock.patch('cleanup.vhdutil', autospec=True)
-    @mock.patch('cleanup.journaler.Journaler', autospec=True)
-    @mock.patch('cleanup.Util.runAbortable')
+    @mock.patch('sm.cleanup.os.unlink', autospec=True)
+    @mock.patch('sm.cleanup.util', autospec=True)
+    @mock.patch('sm.cleanup.vhdutil', autospec=True)
+    @mock.patch('sm.cleanup.journaler.Journaler', autospec=True)
+    @mock.patch('sm.cleanup.Util.runAbortable')
     def test_coalesce_error(
             self, mock_abortable, mock_journaler, mock_vhdutil, mock_util,
             mock_unlink):
@@ -1566,11 +1566,11 @@ class TestSR(unittest.TestCase):
         self.assertIn(vdis['vdi'], sr._failedCoalesceTargets)
         mock_vhdutil.repair.assert_called_with(vdis['parent'].path)
 
-    @mock.patch('cleanup.os.unlink', autospec=True)
-    @mock.patch('cleanup.util', autospec=True)
-    @mock.patch('cleanup.vhdutil', autospec=True)
-    @mock.patch('cleanup.journaler.Journaler', autospec=True)
-    @mock.patch('cleanup.Util.runAbortable')
+    @mock.patch('sm.cleanup.os.unlink', autospec=True)
+    @mock.patch('sm.cleanup.util', autospec=True)
+    @mock.patch('sm.cleanup.vhdutil', autospec=True)
+    @mock.patch('sm.cleanup.journaler.Journaler', autospec=True)
+    @mock.patch('sm.cleanup.Util.runAbortable')
     def test_coalesce_error_raw_parent(
             self, mock_abortable, mock_journaler, mock_vhdutil, mock_util,
             mock_unlink):
@@ -1680,9 +1680,9 @@ class TestSR(unittest.TestCase):
 
         self.assertGreater(self.mock_time_sleep.call_count, 5)
 
-    @mock.patch('cleanup.util.get_this_host', autospec=True)
-    @mock.patch('cleanup._gcLoop', autospec=True)
-    @mock.patch('cleanup.SR.getInstance')
+    @mock.patch('sm.cleanup.util.get_this_host', autospec=True)
+    @mock.patch('sm.cleanup._gcLoop', autospec=True)
+    @mock.patch('sm.cleanup.SR.getInstance')
     def test_check_for_xapi_running(
             self, mock_sr, mock_loop, mock_this_host):
         """
@@ -1699,10 +1699,10 @@ class TestSR(unittest.TestCase):
 
         cleanup._gc(mock_session, sr_uuid, False)
 
-    @mock.patch('cleanup.util.get_this_host', autospec=True)
-    @mock.patch('cleanup.util.get_localAPI_session', autospec=True)
-    @mock.patch('cleanup._gcLoop', autospec=True)
-    @mock.patch('cleanup.SR.getInstance')
+    @mock.patch('sm.cleanup.util.get_this_host', autospec=True)
+    @mock.patch('sm.cleanup.util.get_localAPI_session', autospec=True)
+    @mock.patch('sm.cleanup._gcLoop', autospec=True)
+    @mock.patch('sm.cleanup.SR.getInstance')
     def test_check_for_xapi_running_no_session(
             self, mock_sr, mock_loop, mock_get_session, mock_this_host):
         """
@@ -1720,10 +1720,10 @@ class TestSR(unittest.TestCase):
 
         cleanup._gc(None, sr_uuid, False)
 
-    @mock.patch('cleanup.util.get_this_host', autospec=True)
-    @mock.patch('cleanup.util.get_localAPI_session', autospec=True)
-    @mock.patch('cleanup._gcLoop', autospec=True)
-    @mock.patch('cleanup.SR.getInstance')
+    @mock.patch('sm.cleanup.util.get_this_host', autospec=True)
+    @mock.patch('sm.cleanup.util.get_localAPI_session', autospec=True)
+    @mock.patch('sm.cleanup._gcLoop', autospec=True)
+    @mock.patch('sm.cleanup.SR.getInstance')
     def test_waits_for_xapi_running(
             self, mock_sr, mock_loop, mock_get_session, mock_this_host):
         """
@@ -1759,7 +1759,7 @@ class TestSR(unittest.TestCase):
 
         return (sr_uuid, mock_sr)
 
-    @mock.patch('cleanup._create_init_file', autospec=True)
+    @mock.patch('sm.cleanup._create_init_file', autospec=True)
     def test_gcloop_no_work(self, mock_init_file):
         """
         GC exits immediate with no work
@@ -1776,7 +1776,7 @@ class TestSR(unittest.TestCase):
         ## Assert
         mock_init_file.assert_called_with(sr_uuid)
 
-    @mock.patch('cleanup._create_init_file', autospec=True)
+    @mock.patch('sm.cleanup._create_init_file', autospec=True)
     def test_gcloop_no_work2(self, mock_init_file):
         # Given
         sr_uuid, mock_sr = self.init_gc_loop_sr()
@@ -1789,7 +1789,7 @@ class TestSR(unittest.TestCase):
         mock_sr.scanLocked.assert_not_called()
 
 
-    @mock.patch('cleanup._create_init_file', autospec=True)
+    @mock.patch('sm.cleanup._create_init_file', autospec=True)
     def test_gcloop_one_of_each(self, mock_init_file):
         """
         GC, one garbage, one non-leaf, one leaf
@@ -1818,8 +1818,8 @@ class TestSR(unittest.TestCase):
         mock_sr.coalesce.assert_called_with(vdis['vdi'], False)
         mock_sr.coalesceLeaf.assert_called_with(vdis['vdi'], False)
 
-    @mock.patch('cleanup.Util')
-    @mock.patch('cleanup._gc', autospec=True)
+    @mock.patch('sm.cleanup.Util')
+    @mock.patch('sm.cleanup._gc', autospec=True)
     def test_gc_foreground_is_immediate(self, mock_gc, mock_util):
         """
         GC called in foreground will run immediate
@@ -1835,10 +1835,10 @@ class TestSR(unittest.TestCase):
         mock_gc.assert_called_with(mock_session, sr_uuid,
                                    False, immediate=True)
 
-    @mock.patch('cleanup.os._exit', autospec=True)
-    @mock.patch('cleanup.daemonize', autospec=True)
-    @mock.patch('cleanup.Util')
-    @mock.patch('cleanup._gc', autospec=True)
+    @mock.patch('sm.cleanup.os._exit', autospec=True)
+    @mock.patch('sm.cleanup.daemonize', autospec=True)
+    @mock.patch('sm.cleanup.Util')
+    @mock.patch('sm.cleanup._gc', autospec=True)
     def test_gc_background_is_not_immediate(
             self, mock_gc, mock_util, mock_daemonize, mock_exit):
         """
@@ -1887,7 +1887,7 @@ class TestLockGCActive(unittest.TestCase):
     def setUp(self):
         self.addCleanup(mock.patch.stopall)
 
-        self.lock_patcher = mock.patch('cleanup.lock.Lock')
+        self.lock_patcher = mock.patch('sm.cleanup.lock.Lock')
         patched_lock = self.lock_patcher.start()
         patched_lock.side_effect = self.create_lock
         self.locks = {}

@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -15,16 +14,12 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
-# Script to coalesce and garbage collect VHD-based SR's in the background
-#
-
 import os
 import os.path
 import sys
 import time
 import signal
 import subprocess
-import getopt
 import datetime
 import traceback
 import base64
@@ -32,8 +27,12 @@ import zlib
 import errno
 import stat
 
+from ipc import IPCFlag
+from functools import reduce
+from time import monotonic as _time
+import blktap2
 import XenAPI # pylint: disable=import-error
-from sm.core import util
+
 import lvutil
 import vhdutil
 import lvhdutil
@@ -41,14 +40,10 @@ import lvmcache
 import journaler
 import fjournaler
 from sm.core import lock
-import blktap2
-from sm.core import xs_errors
+from sm.core import util
 from refcounter import RefCounter
-from ipc import IPCFlag
 from lvmanager import LVActivator
 from srmetadata import LVMMetadataHandler
-from functools import reduce
-from time import monotonic as _time
 
 # Disable automatic leaf-coalescing. Online leaf-coalesce is currently not
 # possible due to lvhd_stop_using_() not working correctly. However, we leave
@@ -1021,10 +1016,10 @@ class VDI:
         self.hidden = hidden
 
     def _increaseSizeVirt(self, size, atomic=True):
-        """ensure the virtual size of 'self' is at least 'size'. Note that 
+        """ensure the virtual size of 'self' is at least 'size'. Note that
         resizing a VHD must always be offline and atomically: the file must
         not be open by anyone and no concurrent operations may take place.
-        Thus we use the Agent API call for performing paused atomic 
+        Thus we use the Agent API call for performing paused atomic
         operations. If the caller is already in the atomic context, it must
         call with atomic = False"""
         if self.sizeVirt >= size:
@@ -2127,7 +2122,7 @@ class SR:
 
     def _coalesceLeaf(self, vdi):
         """Leaf-coalesce VDI vdi. Return true if we succeed, false if we cannot
-        complete due to external changes, namely vdi_delete and vdi_snapshot 
+        complete due to external changes, namely vdi_delete and vdi_snapshot
         that alter leaf-coalescibility of vdi"""
         tracker = self.CoalesceTracker(self)
         while not vdi.canLiveCoalesce(self.getStorageSpeed()):
@@ -2344,7 +2339,7 @@ class SR:
         self.forgetVDI(origParentUuid)
         self._finishCoalesceLeaf(parent)
         self._updateSlavesOnResize(parent)
-    
+
     def _calcExtraSpaceNeeded(self, child, parent):
         assert(not parent.raw)  # raw parents not supported
         extra = child.getSizeVHD() - parent.getSizeVHD()
@@ -2378,9 +2373,9 @@ class SR:
                 del self.vdis[uuid]
 
     def _handleInterruptedCoalesceLeaf(self):
-        """An interrupted leaf-coalesce operation may leave the VHD tree in an 
-        inconsistent state. If the old-leaf VDI is still present, we revert the 
-        operation (in case the original error is persistent); otherwise we must 
+        """An interrupted leaf-coalesce operation may leave the VHD tree in an
+        inconsistent state. If the old-leaf VDI is still present, we revert the
+        operation (in case the original error is persistent); otherwise we must
         finish the operation"""
         # abstract
         pass
@@ -2461,10 +2456,10 @@ class FileSR(SR):
             self.xapi.markCacheSRsDirty()
 
     def cleanupCache(self, maxAge=-1):
-        """Clean up IntelliCache cache files. Caches for leaf nodes are 
-        removed when the leaf node no longer exists or its allow-caching 
-        attribute is not set. Caches for parent nodes are removed when the 
-        parent node no longer exists or it hasn't been used in more than 
+        """Clean up IntelliCache cache files. Caches for leaf nodes are
+        removed when the leaf node no longer exists or its allow-caching
+        attribute is not set. Caches for parent nodes are removed when the
+        parent node no longer exists or it hasn't been used in more than
         <maxAge> hours.
         Return number of caches removed.
         """
@@ -3219,41 +3214,6 @@ class LockActive:
         self._lock.release()
 
 
-def usage():
-    output = """Garbage collect and/or coalesce VHDs in a VHD-based SR
-
-Parameters:
-    -u --uuid UUID   SR UUID
- and one of:
-    -g --gc          garbage collect, coalesce, and repeat while there is work
-    -G --gc_force    garbage collect once, aborting any current operations
-    -c --cache-clean <max_age> clean up IntelliCache cache files older than
-                     max_age hours
-    -a --abort       abort any currently running operation (GC or coalesce)
-    -q --query       query the current state (GC'ing, coalescing or not running)
-    -x --disable     disable GC/coalesce (will be in effect until you exit)
-    -t --debug       see Debug below
-
-Options:
-    -b --background  run in background (return immediately) (valid for -g only)
-    -f --force       continue in the presence of VHDs with errors (when doing
-                     GC, this might cause removal of any such VHDs) (only valid
-                     for -G) (DANGEROUS)
-
-Debug:
-    The --debug parameter enables manipulation of LVHD VDIs for debugging
-    purposes.  ** NEVER USE IT ON A LIVE VM **
-    The following parameters are required:
-    -t --debug <cmd> <cmd> is one of "activate", "deactivate", "inflate",
-                     "deflate".
-    -v --vdi_uuid    VDI UUID
-    """
-    #-d --dry-run     don't actually perform any SR-modifying operations
-    print(output)
-    Util.log("(Invalid usage)")
-    sys.exit(1)
-
-
 ##############################################################################
 #
 #  API
@@ -3270,9 +3230,9 @@ def abort(srUuid, soft=False):
 
 
 def gc(session, srUuid, inBackground, dryRun=False):
-    """Garbage collect all deleted VDIs in SR "srUuid". Fork & return 
-    immediately if inBackground=True. 
-    
+    """Garbage collect all deleted VDIs in SR "srUuid". Fork & return
+    immediately if inBackground=True.
+
     The following algorithm is used:
     1. If we are already GC'ing in this SR, return
     2. If we are already coalescing a VDI pair:
@@ -3470,82 +3430,3 @@ def abort_optional_reenable(uuid):
     lockGCRunning.release()
     if ret:
         lockGCActive.release()
-
-
-##############################################################################
-#
-#  CLI
-#
-def main():
-    action = ""
-    uuid = ""
-    background = False
-    force = False
-    dryRun = False
-    maxAge = 0
-    debug_cmd = ""
-    vdi_uuid = ""
-    shortArgs = "gGc:aqxu:bfdt:v:"
-    longArgs = ["gc", "gc_force", "clean_cache", "abort", "query", "disable",
-            "uuid=", "background", "force", "dry-run", "debug=", "vdi_uuid="]
-
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], shortArgs, longArgs)
-    except getopt.GetoptError:
-        usage()
-    for o, a in opts:
-        if o in ("-g", "--gc"):
-            action = "gc"
-        if o in ("-G", "--gc_force"):
-            action = "gc_force"
-        if o in ("-c", "--clean_cache"):
-            action = "clean_cache"
-            maxAge = int(a)
-        if o in ("-a", "--abort"):
-            action = "abort"
-        if o in ("-q", "--query"):
-            action = "query"
-        if o in ("-x", "--disable"):
-            action = "disable"
-        if o in ("-u", "--uuid"):
-            uuid = a
-        if o in ("-b", "--background"):
-            background = True
-        if o in ("-f", "--force"):
-            force = True
-        if o in ("-d", "--dry-run"):
-            Util.log("Dry run mode")
-            dryRun = True
-        if o in ("-t", "--debug"):
-            action = "debug"
-            debug_cmd = a
-        if o in ("-v", "--vdi_uuid"):
-            vdi_uuid = a
-
-    if not action or not uuid:
-        usage()
-    if action == "debug" and not (debug_cmd and vdi_uuid) or \
-            action != "debug" and (debug_cmd or vdi_uuid):
-        usage()
-
-    if action != "query" and action != "debug":
-        print("All output goes to log")
-
-    if action == "gc":
-        gc(None, uuid, background, dryRun)
-    elif action == "gc_force":
-        gc_force(None, uuid, force, dryRun, True)
-    elif action == "clean_cache":
-        cache_cleanup(None, uuid, maxAge)
-    elif action == "abort":
-        abort(uuid)
-    elif action == "query":
-        print("Currently running: %s" % get_state(uuid))
-    elif action == "disable":
-        abort_optional_reenable(uuid)
-    elif action == "debug":
-        debug(uuid, debug_cmd, vdi_uuid)
-
-
-if __name__ == '__main__':
-    main()

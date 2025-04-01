@@ -31,7 +31,7 @@ from sm.core import xs_errors
 import nfs
 import vhdutil
 from sm.core.lock import Lock
-import cleanup
+from sm import cleanup
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_CACHING",
                 "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",

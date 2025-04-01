@@ -26,7 +26,7 @@ import vhdutil
 import os
 import errno
 from sm.core import xs_errors
-import cleanup
+from sm import cleanup
 import blktap2
 import time
 import glob

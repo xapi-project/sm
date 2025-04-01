@@ -21,7 +21,7 @@ import sys
 import XenAPIPlugin
 sys.path.append("/opt/xensource/sm/")
 from sm.core import util
-import cleanup
+from sm import cleanup
 
 def clean(session, hours_old, sr_uuid = None):
     """Delete all IntelliCache cache files that are not in use and are at 
