@@ -161,14 +161,24 @@ class LVHDSR(SR.SR):
         self.path = os.path.join(lvhdutil.VG_LOCATION, self.vgname)
         self.mdpath = os.path.join(self.path, self.MDVOLUME_NAME)
         self.provision = self.PROVISIONING_DEFAULT
+
+        self.other_conf = None
+        has_sr_ref = self.srcmd.params.get("sr_ref")
+        if has_sr_ref:
+            self.other_conf = self.session.xenapi.SR.get_other_config(self.sr_ref)
+
+        self.lvm_conf = None
+        if self.other_conf:
+            self.lvm_conf = self.other_conf.get('lvm-conf')
+
         try:
-            self.lvmCache = lvmcache.LVMCache(self.vgname)
+            self.lvmCache = lvmcache.LVMCache(self.vgname, self.lvm_conf)
         except:
             raise xs_errors.XenError('SRUnavailable', \
                         opterr='Failed to initialise the LVMCache')
         self.lvActivator = LVActivator(self.uuid, self.lvmCache)
         self.journaler = Journaler(self.lvmCache)
-        if not self.srcmd.params.get("sr_ref"):
+        if not has_sr_ref:
             return  # must be a probe call
         # Test for thick vs thin provisioning conf parameter
         if 'allocation' in self.dconf:
@@ -178,7 +188,6 @@ class LVHDSR(SR.SR):
                 raise xs_errors.XenError('InvalidArg', \
                         opterr='Allocation parameter must be one of %s' % self.PROVISIONING_TYPES)
 
-        self.other_conf = self.session.xenapi.SR.get_other_config(self.sr_ref)
         if self.other_conf.get(self.TEST_MODE_KEY):
             self.testMode = self.other_conf[self.TEST_MODE_KEY]
             self._prepareTestMode()
