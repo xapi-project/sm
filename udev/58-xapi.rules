@@ -31,8 +31,8 @@ LABEL="usb_cdrom_symlink"
 ACTION=="add|change", SYMLINK+="xapi/cd/%k"
 ACTION=="add|change", TAG+="systemd", ENV{SYSTEMD_WANTS}+="cdrommon@$name.service"
 
-ACTION=="add", RUN+="/bin/sh -c '/opt/xensource/libexec/local-device-change %k 2>&1 >/dev/null&'"
-ACTION=="remove", RUN+="/bin/sh -c '/opt/xensource/libexec/local-device-change %k 2>&1 >/dev/null&'"
+ACTION=="add", RUN+="/usr/bin/sh -c '/opt/xensource/libexec/local-device-change %k 2>&1 >/dev/null&'"
+ACTION=="remove", RUN+="/usr/bin/sh -c '/opt/xensource/libexec/local-device-change %k 2>&1 >/dev/null&'"
 
 GOTO="end_xapi"
 
@@ -44,8 +44,8 @@ ACTION=="add", PROGRAM!="/opt/xensource/libexec/check-device-sharing %k", GOTO="
 
 ACTION=="add|change", SYMLINK+="xapi/block/%k"
 
-ACTION=="add", RUN+="/bin/sh -c '/opt/xensource/libexec/local-device-change %k 2>&1 >/dev/null&'"
-ACTION=="remove", RUN+="/bin/sh -c '/opt/xensource/libexec/local-device-change %k 2>&1 >/dev/null&'"
+ACTION=="add", RUN+="/usr/bin/sh -c '/opt/xensource/libexec/local-device-change %k 2>&1 >/dev/null&'"
+ACTION=="remove", RUN+="/usr/bin/sh -c '/opt/xensource/libexec/local-device-change %k 2>&1 >/dev/null&'"
 
 GOTO="end_xapi"
 

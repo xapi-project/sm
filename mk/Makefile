@@ -30,7 +30,7 @@ build: sources $(SM_STAMP) $(SM_TESTS) $(SM_UNIT_TESTS) \
 
 $(MY_SOURCES)/MANIFEST: $(RPM_SRPMSDIR)/$(SM_SRPM) $(MY_SOURCES_DIRSTAMP) $(RPM_BUILD_COOKIE)
 	rm -f $@
-	/bin/sh ./srpms-to-manifest $(COMPONENT) $(MY_OUTPUT_DIR)/SRPMS > $@
+	/usr/bin/sh ./srpms-to-manifest $(COMPONENT) $(MY_OUTPUT_DIR)/SRPMS > $@
 
 .PHONY: sources
 sources: $(MY_SOURCES)/MANIFEST
