@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 BUS=${1}
 NAME=${2}

@@ -158,7 +158,7 @@ sys.exit(resp.get("returncode", 0))
             f.write("TYPE=lvm\n")
             f.write("PARTITIONS='/dev/sda'")
 
-        p = subprocess.Popen(["/bin/bash", self.script_path],
+        p = subprocess.Popen(["/usr/bin/bash", self.script_path],
                              env=self.make_env())
 
         self.run_script_commands()
@@ -224,7 +224,7 @@ sys.exit(resp.get("returncode", 0))
             f.write("TYPE=ext\n")
             f.write("PARTITIONS='/dev/sda4 /dev/sdb'")
 
-        p = subprocess.Popen(["/bin/bash", self.script_path],
+        p = subprocess.Popen(["/usr/bin/bash", self.script_path],
                              env=self.make_env())
 
         self.run_script_commands()
@@ -294,7 +294,7 @@ sys.exit(resp.get("returncode", 0))
             f.write("TYPE=wtf\n")
             f.write("PARTITIONS='/dev/sda4 /dev/sdb /dev/sdc'")
 
-        p = subprocess.Popen(["/bin/bash", self.script_path],
+        p = subprocess.Popen(["/usr/bin/bash", self.script_path],
                              env=self.make_env())
 
         self.run_script_commands()

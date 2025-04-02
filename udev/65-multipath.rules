@@ -18,7 +18,7 @@ ACTION=="remove", ENV{CH_MULTIPATH}=="1", GOTO="count_mpath"
 ENV{CH_MULTIPATH}=="1", GOTO="symlinks"
 
 # Check added or changed for being multipath
-ACTION=="add|change", PROGRAM=="/bin/bash -c '/sbin/dmsetup table -j %M -m %m | /bin/grep multipath'", ENV{CH_MULTIPATH}="1"
+ACTION=="add|change", PROGRAM=="/usr/bin/bash -c '/sbin/dmsetup table -j %M -m %m | /bin/grep multipath'", ENV{CH_MULTIPATH}="1"
 ENV{CH_MULTIPATH}=="1", GOTO="count_mpath"
 GOTO="end_mpath"
 
