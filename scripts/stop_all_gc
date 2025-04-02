@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 /usr/bin/systemctl list-units SMGC@* --all --no-legend | /usr/bin/cut -d ' ' -f1 | sed 's/\\/\\\\/g' | while read service;
 do

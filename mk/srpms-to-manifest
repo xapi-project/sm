@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # take a component and a directory as arguments, write to stdout a 
 # MANIFEST file fragment

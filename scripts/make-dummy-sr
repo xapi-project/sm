@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # If there is an iSCSI session active at this point it must be the root disk
 if [ -d /sys/class/iscsi_session ] ; then
