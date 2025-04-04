@@ -23,7 +23,7 @@ import SRCommand
 import FileSR
 from sm.core import util
 from sm import lvutil
-import scsiutil
+from sm.core import scsiutil
 
 import os
 import xs_errors

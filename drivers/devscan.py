@@ -15,7 +15,7 @@
 
 import os
 import re
-import scsiutil
+from sm.core import scsiutil
 from sm.core import util
 import xml.dom.minidom
 import xs_errors
