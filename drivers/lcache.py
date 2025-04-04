@@ -18,6 +18,7 @@
 import os
 import blktap2
 import glob
+import re
 from stat import *  # S_ISBLK(), ...
 
 SECTOR_SHIFT = 9
@@ -62,6 +63,13 @@ class CachingTap(object):
             __assert(major == tapdisk.major())
 
             return LeafCachingTap(tapdisk, stats, minor)
+        elif _type == 'nbd' and 'run/blktap-control/nbd' in path:
+            minor_matcher = re.compile(r'.*run/blktap-control/nbd\d+\.(\d+)$')
+            match = minor_matcher.match(path)
+            __assert(match is not None)
+
+            parent_minor = int(match.group(1))
+            return LeafCachingTap(tapdisk, stats, parent_minor)
 
         __assert(0)
 
