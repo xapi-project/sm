@@ -22,7 +22,7 @@ from SR import deviceCheck
 import SRCommand
 import FileSR
 from sm.core import util
-import lvutil
+from sm import lvutil
 import scsiutil
 
 import os

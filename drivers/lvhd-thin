@@ -25,7 +25,7 @@ from sm.core import util
 import lvhdutil
 from lvmcache import LVMCache
 from journaler import Journaler
-import lvutil
+from sm import lvutil
 import os
 
 def attach(session, args):

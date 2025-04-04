@@ -33,7 +33,7 @@ from time import monotonic as _time
 import blktap2
 import XenAPI # pylint: disable=import-error
 
-import lvutil
+from sm import lvutil
 import vhdutil
 import lvhdutil
 import lvmcache

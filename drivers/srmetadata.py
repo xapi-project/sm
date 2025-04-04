@@ -21,7 +21,7 @@ from sm.core import util
 import metadata
 import os
 from sm.core import xs_errors
-import lvutil
+from sm import lvutil
 import xml.sax.saxutils
 
 # A metadata file is considered to be made up of 512 byte sectors.

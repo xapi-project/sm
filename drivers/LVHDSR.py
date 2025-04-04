@@ -17,31 +17,32 @@
 #
 # LVHDSR: VHD on LVM storage repository
 #
+import os
+import sys
+import time
+import errno
+import re
+import glob
 
 import SR
 from SR import deviceCheck
 import VDI
 import SRCommand
 from sm.core import util
-import lvutil
+from sm.core import scsiutil
+from sm.core import xs_errors
+from sm.core.lock import Lock
+from sm import lvutil
+from sm import cleanup
 import lvmcache
 import vhdutil
 import lvhdutil
-import scsiutil
-import os
-import sys
-import time
-import errno
-from sm.core import xs_errors
-from sm import cleanup
 import blktap2
 from journaler import Journaler
-from sm.core.lock import Lock
 from refcounter import RefCounter
 from ipc import IPCFlag
 from lvmanager import LVActivator
 import XenAPI # pylint: disable=import-error
-import re
 from srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, \
     UUID_TAG, IS_A_SNAPSHOT_TAG, SNAPSHOT_OF_TAG, TYPE_TAG, VDI_TYPE_TAG, \
     READ_ONLY_TAG, MANAGED_TAG, SNAPSHOT_TIME_TAG, METADATA_OF_POOL_TAG, \
@@ -49,7 +50,6 @@ from srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, \
     METADATA_OBJECT_TYPE_SR, METADATA_UPDATE_OBJECT_TYPE_TAG
 from metadata import retrieveXMLfromFile, _parseXML
 from xmlrpc.client import DateTime
-import glob
 from constants import CBTLOG_TAG
 from fairlock import Fairlock
 DEV_MAPPER_ROOT = os.path.join('/dev/mapper', lvhdutil.VG_PREFIX)
