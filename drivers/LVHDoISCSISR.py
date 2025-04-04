@@ -24,7 +24,7 @@ import BaseISCSI
 import SRCommand
 from sm.core import util
 from sm.core import scsiutil
-import lvutil
+from sm import lvutil
 import time
 import os
 import sys

@@ -18,7 +18,7 @@
 
 import os
 from sm.core import util
-import lvutil
+from sm import lvutil
 import lvhdutil
 from lock import Lock
 from refcounter import RefCounter

@@ -8,7 +8,7 @@ import uuid
 from sm import cleanup
 import LVHDSR
 import lvhdutil
-import lvutil
+from sm import lvutil
 import vhdutil
 
 import testlib
@@ -56,7 +56,7 @@ class TestLVHDSR(unittest.TestCase, Stubs):
             sr_uuid = str(uuid.uuid4())
         return LVHDSR.LVHDSR(srcmd, sr_uuid)
 
-    @mock.patch('lvutil.Fairlock', autospec=True)
+    @mock.patch('LVHDSR.lvutil.Fairlock', autospec=True)
     @mock.patch('lvhdutil.getVDIInfo', autospec=True)
     @mock.patch('LVHDSR.Lock', autospec=True)
     @mock.patch('SR.XenAPI')
@@ -113,10 +113,10 @@ class TestLVHDSR(unittest.TestCase, Stubs):
                             mock_ipc,
                             mock_cleanup):
         sr_uuid = str(uuid.uuid4())
-        self.stubout('lvutil._checkVG')
+        self.stubout('LVHDSR.lvutil._checkVG')
         mock_lvm_cache = self.stubout('lvmcache.LVMCache')
-        mock_get_vg_stats = self.stubout('lvutil._getVGstats')
-        mock_scsi_get_size = self.stubout('scsiutil.getsize')
+        mock_get_vg_stats = self.stubout('LVHDSR.lvutil._getVGstats')
+        mock_scsi_get_size = self.stubout('LVHDSR.scsiutil.getsize')
 
         device_size = 100 * 1024 * 1024
         device_free = 10 * 1024 * 1024
@@ -237,7 +237,7 @@ class TestLVHDSR(unittest.TestCase, Stubs):
         sr.attach(sr.uuid)
 
         # Now resize
-        mock_cmd_lvm = self.stubout('lvutil.cmd_lvm')
+        mock_cmd_lvm = self.stubout('LVHDSR.lvutil.cmd_lvm')
         lvm_cmds = {
             "pvs": PV_FOR_VG_DATA,
             "pvresize": ""

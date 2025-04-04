@@ -23,7 +23,7 @@
 import os
 import sys
 from sm.core import util
-import lvutil
+from sm import lvutil
 import lvhdutil
 import vhdutil
 

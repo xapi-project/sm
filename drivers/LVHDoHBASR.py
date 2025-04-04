@@ -22,7 +22,7 @@
 import SR
 import LVHDSR
 import SRCommand
-import lvutil
+from sm import lvutil
 import HBASR
 import os
 import re
