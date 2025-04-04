@@ -7,7 +7,7 @@ import testlib
 import lvmlib
 from sm.core import util
 
-import lvutil
+from sm import lvutil
 
 ONE_MEGABYTE = 1 * 1024 * 1024
 
@@ -26,7 +26,7 @@ def with_lvm_subsystem(func):
 
 class TestCreate(unittest.TestCase):
     def setUp(self):
-        lock_patcher = mock.patch('lvutil.Fairlock', autospec=True)
+        lock_patcher = mock.patch('sm.lvutil.Fairlock', autospec=True)
         self.addCleanup(lock_patcher.stop)
         self.mock_lock = lock_patcher.start()
 
@@ -88,7 +88,7 @@ class TestCreate(unittest.TestCase):
         created_lv, = lvsystem.get_logical_volumes_with_name('volume')
         self.assertEqual('hello', created_lv.tag)
 
-    @mock.patch('lvutil.util.pread', autospec=True)
+    @mock.patch('sm.lvutil.util.pread', autospec=True)
     def test_create_percentage_has_precedence_over_size(self, mock_pread):
         lvutil.create('volume', ONE_MEGABYTE, 'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7',
                       size_in_percentage="10%F")
@@ -99,7 +99,7 @@ class TestCreate(unittest.TestCase):
 
 class TestRemove(unittest.TestCase):
     def setUp(self):
-        lock_patcher = mock.patch('lvutil.Fairlock', autospec=True)
+        lock_patcher = mock.patch('sm.lvutil.Fairlock', autospec=True)
         self.addCleanup(lock_patcher.stop)
         self.mock_lock = lock_patcher.start()
 
@@ -112,8 +112,8 @@ class TestRemove(unittest.TestCase):
 
         self.assertEqual([], lvsystem.get_logical_volumes_with_name('volume'))
 
-    @mock.patch('lvutil._lvmBugCleanup', autospec=True)
-    @mock.patch('lvutil.util.pread', autospec=True)
+    @mock.patch('sm.lvutil._lvmBugCleanup', autospec=True)
+    @mock.patch('sm.lvutil.util.pread', autospec=True)
     def test_remove_additional_config_param(self, mock_pread, _bugCleanup):
         lvutil.remove('VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume', config_param="blah")
         mock_pread.assert_called_once_with(
@@ -125,10 +125,10 @@ class TestRemove(unittest.TestCase):
 class TestDeactivate(unittest.TestCase):
 
     def setUp(self):
-        lock_patcher = mock.patch('lvutil.Fairlock', autospec=True)
-        pathexists_patcher = mock.patch('lvutil.util.pathexists', autospec=True)
-        lexists_patcher = mock.patch('lvutil.os.path.lexists', autospec=True)
-        unlink_patcher = mock.patch('lvutil.os.unlink', autospec=True)
+        lock_patcher = mock.patch('sm.lvutil.Fairlock', autospec=True)
+        pathexists_patcher = mock.patch('sm.lvutil.util.pathexists', autospec=True)
+        lexists_patcher = mock.patch('sm.lvutil.os.path.lexists', autospec=True)
+        unlink_patcher = mock.patch('sm.lvutil.os.unlink', autospec=True)
         self.addCleanup(mock.patch.stopall)
         self.mock_lock = lock_patcher.start()
         self.mock_exists = pathexists_patcher.start()
@@ -154,7 +154,7 @@ class TestDeactivate(unittest.TestCase):
         lvutil.deactivateNoRefcount(
             'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume')
 
-    @mock.patch('lvutil.util.pread')
+    @mock.patch('sm.lvutil.util.pread')
     @with_lvm_subsystem
     def test_deactivate_noref_withnobugcleanup(
             self, lvsystem, mock_pread):
@@ -167,7 +167,7 @@ class TestDeactivate(unittest.TestCase):
         lvutil.deactivateNoRefcount(
             'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume')
 
-    @mock.patch('lvutil.util.pread')
+    @mock.patch('sm.lvutil.util.pread')
     @with_lvm_subsystem
     def test_deactivate_noref_withbugcleanup_retry(
             self, lvsystem, mock_pread):
@@ -182,9 +182,9 @@ class TestDeactivate(unittest.TestCase):
         lvutil.deactivateNoRefcount(
             'VG_XenStorage-b3b18d06-b2ba-5b67-f098-3cdd5087a2a7/volume')
 
-    @mock.patch('lvutil.os.symlink', autotspec=True)
-    @mock.patch('lvutil.time.sleep', autospec=True)
-    @mock.patch('lvutil.util.pread')
+    @mock.patch('sm.lvutil.os.symlink', autotspec=True)
+    @mock.patch('sm.lvutil.time.sleep', autospec=True)
+    @mock.patch('sm.lvutil.util.pread')
     @with_lvm_subsystem
     def test_deactivate_noref_withbugcleanup_retry_fail(
             self, lvsystem, mock_pread, mock_sleep, mock_symlink):
@@ -211,12 +211,12 @@ class TestActivate(unittest.TestCase):
     def setUp(self):
         self.addCleanup(mock.patch.stopall)
 
-        lock_patcher = mock.patch('lvutil.Fairlock', autospec=True)
+        lock_patcher = mock.patch('sm.lvutil.Fairlock', autospec=True)
         self.mock_lock = lock_patcher.start()
-        pathexists_patcher = mock.patch('lvutil.util.pathexists', autospec=True)
+        pathexists_patcher = mock.patch('sm.lvutil.util.pathexists', autospec=True)
         self.mock_exists = pathexists_patcher.start()
 
-        log_patcher = mock.patch('lvutil.util.SMlog', autospec=True)
+        log_patcher = mock.patch('sm.lvutil.util.SMlog', autospec=True)
         mock_log = log_patcher.start()
         mock_log.side_effect = self.__log
 
@@ -236,8 +236,8 @@ class TestActivate(unittest.TestCase):
         # Act
         lvutil.activateNoRefcount(TEST_VOL, False)
 
-    @mock.patch('lvutil.time.sleep', autospec=True)
-    @mock.patch('lvutil.cmd_lvm')
+    @mock.patch('sm.lvutil.time.sleep', autospec=True)
+    @mock.patch('sm.lvutil.cmd_lvm')
     @with_lvm_subsystem
     def test_activate_noref_metadata_error_retry(self, lvsystem, mock_cmd_lvm, mock_sleep):
         # Arrange
@@ -258,8 +258,8 @@ class TestActivate(unittest.TestCase):
         # Act
         lvutil.activateNoRefcount(TEST_VOL, False)
 
-    @mock.patch('lvutil.time.sleep', autospec=True)
-    @mock.patch('lvutil.cmd_lvm')
+    @mock.patch('sm.lvutil.time.sleep', autospec=True)
+    @mock.patch('sm.lvutil.cmd_lvm')
     @with_lvm_subsystem
     def test_activate_noref_metadata_max_retries(self, lvsystem, mock_cmd_lvm, mock_sleep):
         # Arrange
@@ -280,7 +280,7 @@ class TestActivate(unittest.TestCase):
 
         self.assertEqual(9, mock_sleep.call_count)
 
-    @mock.patch('lvutil.cmd_lvm')
+    @mock.patch('sm.lvutil.cmd_lvm')
     @with_lvm_subsystem
     def test_activate_noref_IO_error_reported(self, lvsystem, mock_cmd_lvm):
         # Arrange
@@ -311,8 +311,8 @@ class TestActivate(unittest.TestCase):
         self.assertIn('LV not activated', ce.exception.reason)
 
 
-@mock.patch('lvutil.util.pread', autospec=True) # m_pread
-@mock.patch('lvutil.Fairlock', autospec=True) # _1
+@mock.patch('sm.lvutil.util.pread', autospec=True) # m_pread
+@mock.patch('sm.lvutil.Fairlock', autospec=True) # _1
 class Test_cmd_lvm(unittest.TestCase):
 
     def test_refuse_to_run_empty_list(self, _1, m_pread):
@@ -347,7 +347,7 @@ class Test_cmd_lvm(unittest.TestCase):
         self.assertEqual("muffins", r)
 
     @mock.patch('time.time', autospec=True) # m_time
-    @mock.patch('lvutil.util.SMlog', autospec=True) # m_smlog
+    @mock.patch('sm.lvutil.util.SMlog', autospec=True) # m_smlog
     def test_warning_if_cmd_takes_too_long(self, m_smlog, m_time, _1, m_pread):
         m_time.side_effect = [0, lvutil.MAX_OPERATION_DURATION*2]
         lvutil.cmd_lvm([lvutil.CMD_LVDISPLAY])
@@ -355,8 +355,8 @@ class Test_cmd_lvm(unittest.TestCase):
         self.assertIn("Long LVM call", m_smlog.call_args[0][0])
         self.assertIn(f"took {lvutil.MAX_OPERATION_DURATION*2}", m_smlog.call_args[0][0])
 
-@mock.patch('lvutil.cmd_lvm')
-@mock.patch('lvutil.util.SMlog', autospec=True)
+@mock.patch('sm.lvutil.cmd_lvm')
+@mock.patch('sm.lvutil.util.SMlog', autospec=True)
 class TestGetPVsInVG(unittest.TestCase):
 
     def test_pvs_in_vg(self, mock_smlog, mock_cmd_lvm):
@@ -394,7 +394,7 @@ class TestGetPVsInVG(unittest.TestCase):
         ])
         mock_smlog.assert_called_with("PVs in VG vg1: []")
 
-@mock.patch('lvutil.cmd_lvm')
+@mock.patch('sm.lvutil.cmd_lvm')
 @mock.patch('sm.core.util.SMlog', autospec=True)
 class TestGetPVsWithUUID(unittest.TestCase):
 

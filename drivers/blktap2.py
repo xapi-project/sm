@@ -35,7 +35,7 @@ import glob
 import json
 import xs_errors
 import XenAPI # pylint: disable=import-error
-import scsiutil
+from sm.core import scsiutil
 from syslog import openlog, syslog
 from stat import *  # S_ISBLK(), ...
 import nfs

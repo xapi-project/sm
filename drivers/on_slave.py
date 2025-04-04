@@ -22,7 +22,7 @@ sys.path.append("/opt/xensource/sm/")
 from sm.core import util
 import lock
 from lvmcache import LVMCache
-import scsiutil
+from sm.core import scsiutil
 
 
 def multi(session, args):

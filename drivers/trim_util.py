@@ -21,9 +21,9 @@ import os
 import time
 from sm.core import util
 from sm.core import lock
+from sm import lvutil
 import lvhdutil
 import vhdutil
-import lvutil
 
 TRIM_LV_TAG = "_trim_lv"
 TRIM_CAP = "SR_TRIM"

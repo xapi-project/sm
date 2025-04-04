@@ -22,8 +22,8 @@ from SR import deviceCheck
 import SRCommand
 import FileSR
 from sm.core import util
-import lvutil
-import scsiutil
+from sm import lvutil
+from sm.core import scsiutil
 
 import os
 import xs_errors

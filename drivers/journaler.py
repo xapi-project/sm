@@ -171,7 +171,7 @@ class Journaler:
 #
 #  Unit tests
 #
-import lvutil
+from sm import lvutil
 import lvmcache
 
 
