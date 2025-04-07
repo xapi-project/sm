@@ -14,7 +14,7 @@ import SRCommand
 import testlib
 from sm.core import util
 from sm.core import xs_errors
-import vhdutil
+from sm import vhdutil
 
 
 class FakeFileVDI(FileSR.FileVDI):

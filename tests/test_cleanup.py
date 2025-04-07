@@ -10,7 +10,7 @@ from sm import cleanup
 from sm.core import lock
 
 from sm.core import util
-import vhdutil
+from sm import vhdutil
 
 import ipc
 

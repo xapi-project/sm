@@ -4,7 +4,7 @@ import unittest.mock as mock
 import zlib
 
 import lvhdutil
-import vhdutil
+from sm import vhdutil
 import xs_errors
 
 import testlib

@@ -34,7 +34,7 @@ import blktap2
 import XenAPI # pylint: disable=import-error
 
 from sm import lvutil
-import vhdutil
+from sm import vhdutil
 import lvhdutil
 import lvmcache
 import journaler
