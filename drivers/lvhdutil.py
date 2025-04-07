@@ -22,7 +22,7 @@ import sys
 import time
 
 from sm.core import util
-import vhdutil
+from sm import vhdutil
 from lock import Lock
 from refcounter import RefCounter
 

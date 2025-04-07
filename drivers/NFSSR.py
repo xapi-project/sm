@@ -29,7 +29,7 @@ import sys
 import xmlrpc.client
 from sm.core import xs_errors
 import nfs
-import vhdutil
+from sm import vhdutil
 from sm.core.lock import Lock
 from sm import cleanup
 

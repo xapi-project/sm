@@ -22,7 +22,7 @@ import xmlrpc.client
 import xs_errors
 from sm.core import util
 from sm.core.lock import Lock
-import vhdutil
+from sm import vhdutil
 import cbtutil
 import os
 import base64

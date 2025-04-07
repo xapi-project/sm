@@ -23,7 +23,7 @@ from sm.core import util
 from sm.core import lock
 from sm import lvutil
 import lvhdutil
-import vhdutil
+from sm import vhdutil
 
 TRIM_LV_TAG = "_trim_lv"
 TRIM_CAP = "SR_TRIM"

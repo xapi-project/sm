@@ -6,7 +6,7 @@ import uuid
 import lvhdutil
 import lvmcache
 from sm.core import util
-import vhdutil
+from sm import vhdutil
 
 import on_slave
 

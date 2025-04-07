@@ -25,7 +25,7 @@ import errno
 import os
 import xmlrpc.client
 import xs_errors
-import vhdutil
+from sm import vhdutil
 from lock import Lock
 from sm import cleanup
 import cifutils

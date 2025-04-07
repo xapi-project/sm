@@ -9,7 +9,7 @@ from sm import cleanup
 import LVHDSR
 import lvhdutil
 from sm import lvutil
-import vhdutil
+from sm import vhdutil
 
 import testlib
 

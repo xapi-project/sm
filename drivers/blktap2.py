@@ -41,7 +41,7 @@ from stat import *  # S_ISBLK(), ...
 import nfs
 
 import resetvdis
-import vhdutil
+from sm import vhdutil
 import lvhdutil
 
 import VDI as sm

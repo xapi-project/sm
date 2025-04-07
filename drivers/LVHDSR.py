@@ -35,7 +35,7 @@ from sm.core.lock import Lock
 from sm import lvutil
 from sm import cleanup
 import lvmcache
-import vhdutil
+from sm import vhdutil
 import lvhdutil
 import blktap2
 from journaler import Journaler
