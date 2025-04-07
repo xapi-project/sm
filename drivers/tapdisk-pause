@@ -25,7 +25,7 @@ import blktap2, util
 from lock import Lock
 import xs_errors
 import XenAPI
-import lvhdutil
+from sm import lvhdutil
 from sm import vhdutil
 import lvmcache
 

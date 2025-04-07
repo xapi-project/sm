@@ -18,7 +18,7 @@
 
 import time
 from sm.core import util
-import lvhdutil
+from sm import lvhdutil
 
 
 class LVManagerException(util.SMException):

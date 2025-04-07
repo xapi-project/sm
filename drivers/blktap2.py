@@ -42,7 +42,7 @@ import nfs
 
 import resetvdis
 from sm import vhdutil
-import lvhdutil
+from sm import lvhdutil
 
 import VDI as sm
 

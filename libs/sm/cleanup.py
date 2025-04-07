@@ -35,7 +35,7 @@ import XenAPI # pylint: disable=import-error
 
 from sm import lvutil
 from sm import vhdutil
-import lvhdutil
+from sm import lvhdutil
 import lvmcache
 import journaler
 import fjournaler

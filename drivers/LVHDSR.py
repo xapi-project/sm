@@ -36,7 +36,7 @@ from sm import lvutil
 from sm import cleanup
 import lvmcache
 from sm import vhdutil
-import lvhdutil
+from sm import lvhdutil
 import blktap2
 from journaler import Journaler
 from refcounter import RefCounter
