@@ -24,7 +24,7 @@ import os
 import sys
 from sm.core import util
 from sm import lvutil
-import lvhdutil
+from sm import lvhdutil
 from sm import vhdutil
 
 from lock import Lock

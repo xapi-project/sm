@@ -3,7 +3,7 @@ import unittest
 import unittest.mock as mock
 import uuid
 
-import lvhdutil
+from sm import lvhdutil
 import lvmcache
 from sm.core import util
 from sm import vhdutil

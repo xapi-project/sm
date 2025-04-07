@@ -36,6 +36,7 @@ SM_LIBS := cleanup
 SM_LIBS += mpathcount
 SM_LIBS += lvutil
 SM_LIBS += vhdutil
+SM_LIBS += lvhdutil
 
 # Things used as commands which install in libexec
 # which are in python and need compatibility symlinks from

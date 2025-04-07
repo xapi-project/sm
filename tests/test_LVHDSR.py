@@ -7,7 +7,7 @@ import uuid
 
 from sm import cleanup
 import LVHDSR
-import lvhdutil
+from sm import lvhdutil
 from sm import lvutil
 from sm import vhdutil
 
@@ -57,9 +57,9 @@ class TestLVHDSR(unittest.TestCase, Stubs):
         return LVHDSR.LVHDSR(srcmd, sr_uuid)
 
     @mock.patch('LVHDSR.lvutil.Fairlock', autospec=True)
-    @mock.patch('lvhdutil.getVDIInfo', autospec=True)
+    @mock.patch('LVHDSR.lvhdutil.getVDIInfo', autospec=True)
     @mock.patch('LVHDSR.Lock', autospec=True)
-    @mock.patch('SR.XenAPI')
+    @mock.patch('LVHDSR.SR.XenAPI')
     def test_loadvids(self, mock_xenapi, mock_lock, mock_getVDIInfo, mock_lvlock):
         """sr.allVDIs populated by _loadvdis"""
 
@@ -71,11 +71,11 @@ class TestLVHDSR(unittest.TestCase, Stubs):
 
         self.assertEqual([vdi_uuid], list(sr.allVDIs.keys()))
 
-    @mock.patch('lvhdutil.lvRefreshOnAllSlaves', autospec=True)
-    @mock.patch('lvhdutil.getVDIInfo', autospec=True)
+    @mock.patch('LVHDSR.lvhdutil.lvRefreshOnAllSlaves', autospec=True)
+    @mock.patch('LVHDSR.lvhdutil.getVDIInfo', autospec=True)
     @mock.patch('journaler.Journaler.getAll', autospec=True)
     @mock.patch('LVHDSR.Lock', autospec=True)
-    @mock.patch('SR.XenAPI')
+    @mock.patch('LVHDSR.SR.XenAPI')
     def test_undoAllInflateJournals(
             self,
             mock_xenapi,
@@ -87,9 +87,9 @@ class TestLVHDSR(unittest.TestCase, Stubs):
 
         self.stubout('journaler.Journaler.remove')
         self.stubout('LVHDSR.util.zeroOut')
-        self.stubout('lvhdutil.deflate')
+        self.stubout('LVHDSR.lvhdutil.deflate')
         self.stubout('LVHDSR.util.SMlog', new_callable=SMLog)
-        self.stubout('lvmcache.LVMCache')
+        self.stubout('LVHDSR.lvmcache.LVMCache')
 
         vdi_uuid = 'some VDI UUID'
 
@@ -104,7 +104,7 @@ class TestLVHDSR(unittest.TestCase, Stubs):
     @mock.patch('LVHDSR.cleanup', autospec=True)
     @mock.patch('LVHDSR.IPCFlag', autospec=True)
     @mock.patch('LVHDSR.Lock', autospec=True)
-    @mock.patch('SR.XenAPI')
+    @mock.patch('LVHDSR.SR.XenAPI')
     @testlib.with_context
     def test_srlifecycle_success(self,
                             context,
@@ -114,7 +114,7 @@ class TestLVHDSR(unittest.TestCase, Stubs):
                             mock_cleanup):
         sr_uuid = str(uuid.uuid4())
         self.stubout('LVHDSR.lvutil._checkVG')
-        mock_lvm_cache = self.stubout('lvmcache.LVMCache')
+        mock_lvm_cache = self.stubout('LVHDSR.lvmcache.LVMCache')
         mock_get_vg_stats = self.stubout('LVHDSR.lvutil._getVGstats')
         mock_scsi_get_size = self.stubout('LVHDSR.scsiutil.getsize')
 
@@ -322,7 +322,7 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         doexec_patcher = mock.patch('util.doexec', autospec=True)
         self.mock_doexec = doexec_patcher.start()
 
-        self.stubout('lvmcache.LVMCache')
+        self.stubout('LVHDSR.lvmcache.LVMCache')
         self.stubout('LVHDSR.LVHDSR._ensureSpaceAvailable')
         self.stubout('journaler.Journaler.create')
         self.stubout('journaler.Journaler.remove')
@@ -362,7 +362,7 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         self.mock_vhdutil.getVHDInfo.return_value = test_vhdInfo
 
     @mock.patch('LVHDSR.Lock', autospec=True)
-    @mock.patch('SR.XenAPI')
+    @mock.patch('LVHDSR.SR.XenAPI')
     def test_clone_success(self, mock_xenapi, mock_lock):
         """
         Successfully create clone
@@ -392,7 +392,7 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         self.assertIsNotNone(clone)
 
     @mock.patch('LVHDSR.Lock', autospec=True)
-    @mock.patch('SR.XenAPI')
+    @mock.patch('LVHDSR.SR.XenAPI')
     def test_snapshot_attached_success(self, mock_xenapi, mock_lock):
         """
         LVHDSR.snapshot, attached on host, no CBT
@@ -429,7 +429,7 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         self.assertIsNotNone(snap)
 
     @mock.patch('LVHDSR.Lock', autospec=True)
-    @mock.patch('SR.XenAPI')
+    @mock.patch('LVHDSR.SR.XenAPI')
     def test_snapshot_attached_cbt_success(self, mock_xenapi, mock_lock):
         """
         LVHDSR.snapshot, attached on host, with CBT
@@ -470,7 +470,7 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         self.assertEqual(self.mock_cbtutil.set_cbt_child.call_count, 3)
 
     @mock.patch('LVHDSR.Lock', autospec=True)
-    @mock.patch('SR.XenAPI')
+    @mock.patch('LVHDSR.SR.XenAPI')
     def test_snapshot_secondary_success(self, mock_xenapi, mock_lock):
         """
         LVHDSR.snapshot, attached on host with secondary mirror

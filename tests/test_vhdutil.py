@@ -3,7 +3,7 @@ import unittest
 import unittest.mock as mock
 import zlib
 
-import lvhdutil
+from sm import lvhdutil
 from sm import vhdutil
 import xs_errors
 
