@@ -1627,9 +1627,13 @@ def get_isl_scsiids(session):
 def get_scsi_id(path):
     """
     Compatibility wrapper for sm-core-libs which had its own copy
-    of scsiutil.getSCSIid()
+    of scsiutil.getSCSIid(). Converts any CommandException raised
+    to a XenError as consumers of sm-core-libs are expecting.
     """
-    return scsiutil.getSCSIid(path)
+    try:
+        return scsiutil.getSCSIid(path)
+    except CommandException as e:
+        raise f_exceptions.XenError("Command", e.reason)
 
 
 class extractXVA:
