@@ -24,7 +24,7 @@ sys.path.append("/opt/xensource/sm/")
 from sm.core import util
 from sm import lvhdutil
 from lvmcache import LVMCache
-from journaler import Journaler
+from sm.journaler import Journaler
 from sm import lvutil
 import os
 

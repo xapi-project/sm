@@ -24,7 +24,7 @@ import time
 from sm.core import util
 from sm import vhdutil
 from lock import Lock
-from refcounter import RefCounter
+from sm.refcounter import RefCounter
 
 MSIZE_MB = 2 * 1024 * 1024  # max virt size for fast resize
 MSIZE = int(MSIZE_MB * 1024 * 1024)

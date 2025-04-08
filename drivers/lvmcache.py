@@ -21,7 +21,7 @@ from sm.core import util
 from sm import lvutil
 from sm import lvhdutil
 from lock import Lock
-from refcounter import RefCounter
+from sm.refcounter import RefCounter
 
 
 class LVInfo:
