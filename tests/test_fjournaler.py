@@ -3,7 +3,7 @@ import os
 import unittest
 import unittest.mock as mock
 
-import fjournaler
+from sm import fjournaler
 
 TEST_DIR_PATH = '/var/lib/sometest'
 

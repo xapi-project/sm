@@ -63,7 +63,7 @@ def multi(session, args):
                 util.SMlog("on-slave.refresh failed")
                 raise
         elif action == "cleanupLockAndRefcount":
-            from refcounter import RefCounter
+            from sm.refcounter import RefCounter
             lock.Lock.cleanup(args["uuid%d" % i], args["ns%d" % i])
             RefCounter.reset(args["uuid%d" % i], args["ns%d" % i])
         else:

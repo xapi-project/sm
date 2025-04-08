@@ -164,7 +164,7 @@ class Test_on_slave_multi(unittest.TestCase):
         self.mock_lvmcache = mock.MagicMock(lvmcache.LVMCache)
         patched_lvmcache.return_value = self.mock_lvmcache
 
-    @mock.patch('refcounter.RefCounter')
+    @mock.patch('sm.refcounter.RefCounter')
     def test_multi_vdi_inactive(self, mock_refcount):
         vgName = "test_vg"
         sr_uuid = str(uuid.uuid4())
@@ -211,7 +211,7 @@ class Test_on_slave_multi(unittest.TestCase):
         self.mock_lvmcache.activateNoRefcount.assert_has_calls(
             [mock.call(child_fileName, True), mock.call(parent_fileName, True)])
 
-    @mock.patch('refcounter.RefCounter')
+    @mock.patch('sm.refcounter.RefCounter')
     def test_multi_update_slave_rename(self, mock_refcount):
         vgName = "test_vg"
         old_name_lv = "old-lv-name"
@@ -266,7 +266,7 @@ class Test_on_slave_multi(unittest.TestCase):
         self.mock_lvmcache.deactivate.assert_called_once_with(
             lock_ref, vdi_uuid, lv_name, False)
 
-    @mock.patch('refcounter.RefCounter')
+    @mock.patch('sm.refcounter.RefCounter')
     def test_multi_rename_deactivate_error(self, mock_refcount):
         vgName = "test_vg"
         old_name_lv = "old-lv-name"
@@ -295,7 +295,7 @@ class Test_on_slave_multi(unittest.TestCase):
         self.assertEqual(0, self.mock_lvmcache.activateNoRefcount.call_count)
         self.assertEqual(0, mock_refcount.reset.call_count)
 
-    @mock.patch('refcounter.RefCounter')
+    @mock.patch('sm.refcounter.RefCounter')
     def test_multi_rename_refresh_error(self, mock_refcount):
         vgName = "test_vg"
         old_name_lv = "old-lv-name"

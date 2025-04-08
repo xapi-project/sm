@@ -4,7 +4,7 @@ import os
 import unittest.mock as mock
 import errno
 
-import refcounter
+from sm import refcounter
 
 
 class TestRefCounter(unittest.TestCase):

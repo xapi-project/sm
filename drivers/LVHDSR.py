@@ -38,8 +38,8 @@ import lvmcache
 from sm import vhdutil
 from sm import lvhdutil
 import blktap2
-from journaler import Journaler
-from refcounter import RefCounter
+from sm.journaler import Journaler
+from sm.refcounter import RefCounter
 from ipc import IPCFlag
 from lvmanager import LVActivator
 import XenAPI # pylint: disable=import-error

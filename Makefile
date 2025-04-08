@@ -37,6 +37,9 @@ SM_LIBS += mpathcount
 SM_LIBS += lvutil
 SM_LIBS += vhdutil
 SM_LIBS += lvhdutil
+SM_LIBS += refcounter
+SM_LIBS += journaler
+SM_LIBS += fjournaler
 
 # Things used as commands which install in libexec
 # which are in python and need compatibility symlinks from

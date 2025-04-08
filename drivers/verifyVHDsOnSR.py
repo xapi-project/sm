@@ -28,7 +28,7 @@ from sm import lvhdutil
 from sm import vhdutil
 
 from lock import Lock
-from refcounter import RefCounter
+from sm.refcounter import RefCounter
 
 # Stores the vdi activated, comes handy while deactivating
 VHDs_passed = 0
