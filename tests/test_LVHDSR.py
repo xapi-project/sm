@@ -71,6 +71,7 @@ class TestLVHDSR(unittest.TestCase, Stubs):
 
         self.assertEqual([vdi_uuid], list(sr.allVDIs.keys()))
 
+    @mock.patch('LVHDSR.lvutil.Fairlock', autospec=True)
     @mock.patch('LVHDSR.lvhdutil.lvRefreshOnAllSlaves', autospec=True)
     @mock.patch('LVHDSR.lvhdutil.getVDIInfo', autospec=True)
     @mock.patch('journaler.Journaler.getAll', autospec=True)
@@ -82,7 +83,8 @@ class TestLVHDSR(unittest.TestCase, Stubs):
             mock_lock,
             mock_getAll,
             mock_getVDIInfo,
-            mock_lvhdutil_lvRefreshOnAllSlaves):
+            mock_lvhdutil_lvRefreshOnAllSlaves,
+            mock_lvutil_fairlock):
         """No LV refresh on slaves when Cleaning up local LVHD SR's journal"""
 
         self.stubout('journaler.Journaler.remove')
