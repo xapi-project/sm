@@ -40,6 +40,7 @@ SM_LIBS += lvhdutil
 SM_LIBS += refcounter
 SM_LIBS += journaler
 SM_LIBS += fjournaler
+SM_LIBS += pluginutil
 
 # Things used as commands which install in libexec
 # which are in python and need compatibility symlinks from
