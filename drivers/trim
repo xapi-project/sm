@@ -23,5 +23,5 @@ import XenAPIPlugin
 
 if __name__ == "__main__":
     sys.path.append("/opt/xensource/sm/")
-    import trim_util
+    from sm import trim_util
     XenAPIPlugin.dispatch({"do_trim": trim_util.do_trim})
