@@ -24,7 +24,7 @@ import SRCommand
 from sm import devscan
 from sm.core import scsiutil
 from sm.core import util
-import LUNperVDI
+from sm import LUNperVDI
 import os
 import time
 from sm.core import xs_errors

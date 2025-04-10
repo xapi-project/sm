@@ -21,7 +21,7 @@
 import SR
 from sm.core import util
 import time
-import LUNperVDI
+from sm import LUNperVDI
 import os
 import sys
 import re
