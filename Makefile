@@ -46,6 +46,7 @@ SM_LIBS += lvhdutil
 SM_LIBS += lvmanager
 SM_LIBS += lvmcache
 SM_LIBS += lvutil
+SM_LIBS += metadata
 SM_LIBS += mpathcount
 SM_LIBS += pluginutil
 SM_LIBS += refcounter

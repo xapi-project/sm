@@ -48,7 +48,7 @@ from sm.srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, 
     READ_ONLY_TAG, MANAGED_TAG, SNAPSHOT_TIME_TAG, METADATA_OF_POOL_TAG, \
     LVMMetadataHandler, METADATA_OBJECT_TYPE_VDI, \
     METADATA_OBJECT_TYPE_SR, METADATA_UPDATE_OBJECT_TYPE_TAG
-from metadata import retrieveXMLfromFile, _parseXML
+from sm.metadata import retrieveXMLfromFile, _parseXML
 from xmlrpc.client import DateTime
 from sm.constants import CBTLOG_TAG
 from fairlock import Fairlock

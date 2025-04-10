@@ -18,7 +18,7 @@
 from io import SEEK_SET
 
 from sm.core import util
-import metadata
+from sm import metadata
 import os
 from sm.core import xs_errors
 from sm import lvutil
