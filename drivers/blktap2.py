@@ -40,7 +40,7 @@ from syslog import openlog, syslog
 from stat import *  # S_ISBLK(), ...
 import nfs
 
-import resetvdis
+from sm import resetvdis
 from sm import vhdutil
 from sm import lvhdutil
 

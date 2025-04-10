@@ -27,7 +27,7 @@ from xmlrpc.client import ProtocolError
 import SR
 from sm.core import util
 import blktap2
-import resetvdis
+from sm import resetvdis
 import os
 
 NEEDS_VDI_OBJECT = [
