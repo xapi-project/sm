@@ -29,7 +29,7 @@ import xml.dom.minidom
 from sm.lvhdutil import VG_LOCATION, VG_PREFIX
 from constants import EXT_PREFIX
 import lvmcache
-import srmetadata
+from sm import srmetadata
 
 MDVOLUME_NAME = 'MGT'
 VDI_UUID_TAG_PREFIX = 'vdi_'
