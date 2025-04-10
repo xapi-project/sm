@@ -40,7 +40,7 @@ from sm import lvhdutil
 import blktap2
 from sm.journaler import Journaler
 from sm.refcounter import RefCounter
-from ipc import IPCFlag
+from sm.ipc import IPCFlag
 from lvmanager import LVActivator
 import XenAPI # pylint: disable=import-error
 from sm.srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, \
