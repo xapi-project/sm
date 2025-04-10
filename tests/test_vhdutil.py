@@ -5,7 +5,7 @@ import zlib
 
 from sm import lvhdutil
 from sm import vhdutil
-import xs_errors
+from sm.core import xs_errors
 
 import testlib
 

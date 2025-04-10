@@ -18,7 +18,7 @@ import re
 from sm.core import scsiutil
 from sm.core import util
 import xml.dom.minidom
-import xs_errors
+from sm.core import xs_errors
 import glob
 
 DEVPATH = '/dev/disk/by-id'

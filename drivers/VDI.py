@@ -19,7 +19,7 @@
 from sm import cleanup
 import SR
 import xmlrpc.client
-import xs_errors
+from sm.core import xs_errors
 from sm.core import util
 from sm.core.lock import Lock
 from sm import vhdutil

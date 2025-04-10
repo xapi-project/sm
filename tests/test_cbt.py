@@ -5,7 +5,7 @@ import unittest
 import uuid
 import VDI
 from sm import vhdutil
-import xs_errors
+from sm.core import xs_errors
 from sm.core import util
 import errno
 from sm import cbtutil

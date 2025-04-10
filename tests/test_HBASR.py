@@ -4,7 +4,7 @@ import unittest
 import SR
 import xml.dom.minidom
 from sm.core import util
-import xs_errors
+from sm.core import xs_errors
 
 
 def mock_init(self):

@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-import xs_errors
+from sm.core import xs_errors
 
 
 @mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')

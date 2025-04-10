@@ -16,7 +16,7 @@
 # cifutils: Extract credentials from SR (e.g ISOSR, SMBSR) dconf
 
 from sm.core import util
-import xs_errors
+from sm.core import xs_errors
 
 
 class CIFSException(Exception):

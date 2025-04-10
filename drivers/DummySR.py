@@ -22,7 +22,7 @@ import VDI
 import SRCommand
 from sm.core import util
 import time
-import xs_errors
+from sm.core import xs_errors
 
 CAPABILITIES = ["SR_PROBE", "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
                 "VDI_ACTIVATE", "VDI_DEACTIVATE", "VDI_CLONE", "VDI_SNAPSHOT", "VDI_RESIZE",

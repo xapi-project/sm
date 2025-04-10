@@ -33,7 +33,7 @@ import subprocess
 import syslog as _syslog
 import glob
 import json
-import xs_errors
+from sm.core import xs_errors
 import XenAPI # pylint: disable=import-error
 from sm.core import scsiutil
 from syslog import openlog, syslog

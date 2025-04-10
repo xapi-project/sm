@@ -25,7 +25,7 @@ from sm.core import util
 import os
 import time
 import stat
-import xs_errors
+from sm.core import xs_errors
 from sm import sysdevice
 
 CAPABILITIES = ["VDI_INTRODUCE", "VDI_ATTACH", "VDI_DETACH", "VDI_UPDATE", "SR_UPDATE"]
