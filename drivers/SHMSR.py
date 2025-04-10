@@ -16,7 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 import SR
-import VDI
+from sm import VDI
 from sm import SRCommand
 from sm.core import util
 import os

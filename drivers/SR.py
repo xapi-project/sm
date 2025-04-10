@@ -18,7 +18,7 @@
 # SR: Base class for storage repositories
 #
 
-import VDI
+from sm import VDI
 import xml.dom.minidom
 from sm.core import xs_errors
 import XenAPI # pylint: disable=import-error

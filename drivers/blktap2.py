@@ -44,7 +44,7 @@ from sm import resetvdis
 from sm import vhdutil
 from sm import lvhdutil
 
-import VDI as sm
+from sm import VDI as sm
 
 # For RRDD Plugin Registration
 from xmlrpc.client import ServerProxy, Transport

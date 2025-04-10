@@ -19,7 +19,7 @@
 #
 
 import os
-import VDI
+from sm import VDI
 from sm.core import util
 from sm.core import scsiutil
 from sm.core import xs_errors

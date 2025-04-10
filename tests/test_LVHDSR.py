@@ -312,14 +312,14 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         self.mock_vhdutil.MAX_CHAIN_SIZE = vhdutil.MAX_CHAIN_SIZE
         lvutil_patcher = mock.patch('LVHDSR.lvutil', autospec=True)
         self.mock_lvutil = lvutil_patcher.start()
-        vdi_util_patcher = mock.patch('VDI.util', autospec=True)
+        vdi_util_patcher = mock.patch('sm.VDI.util', autospec=True)
         self.mock_vdi_util = vdi_util_patcher.start()
         sr_util_patcher = mock.patch('LVHDSR.util', autospec=True)
         self.mock_sr_util = sr_util_patcher.start()
         self.mock_sr_util.gen_uuid.side_effect = str(uuid.uuid4())
-        xmlrpclib_patcher = mock.patch('VDI.xmlrpc.client', autospec=True)
+        xmlrpclib_patcher = mock.patch('sm.VDI.xmlrpc.client', autospec=True)
         self.mock_xmlrpclib = xmlrpclib_patcher.start()
-        cbtutil_patcher = mock.patch('VDI.cbtutil', autospec=True)
+        cbtutil_patcher = mock.patch('sm.VDI.cbtutil', autospec=True)
         self.mock_cbtutil = cbtutil_patcher.start()
         doexec_patcher = mock.patch('util.doexec', autospec=True)
         self.mock_doexec = doexec_patcher.start()
@@ -464,7 +464,7 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         self.mock_vhdutil.getDepth.return_value = 1
 
         # Act
-        with mock.patch('VDI.Lock'):
+        with mock.patch('sm.VDI.Lock'):
             snap = vdi.snapshot(sr.uuid, "Dummy UUID")
 
         # Assert
