@@ -18,7 +18,7 @@
 # udevSR: represents VDIs which are hotplugged into dom0 via udev e.g.
 #         USB CDROM/disk devices
 
-import SR
+from sm import SR
 from sm import VDI
 from sm import SRCommand
 from sm.core import util

@@ -2,7 +2,7 @@ import unittest
 import unittest.mock as mock
 
 import sr_health_check
-from SR import SR
+from sm.SR import SR
 
 TEST_HOST = 'test_host'
 

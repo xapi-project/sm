@@ -20,7 +20,7 @@ Health check for SR, to be triggered periodically by a systemd timer. What is ch
 SR implementation type dependent.
 """
 
-import SR
+from sm import SR
 from sm.core import util
 from sm.core import xs_errors
 

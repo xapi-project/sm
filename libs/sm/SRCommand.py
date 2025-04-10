@@ -24,7 +24,7 @@ import sys
 from sm.core import xs_errors
 import xmlrpc.client
 from xmlrpc.client import ProtocolError
-import SR
+from sm import SR
 from sm.core import util
 import blktap2
 from sm import resetvdis

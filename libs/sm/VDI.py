@@ -17,7 +17,7 @@
 #
 
 from sm import cleanup
-import SR
+from sm import SR
 import xmlrpc.client
 from sm.core import xs_errors
 from sm.core import util

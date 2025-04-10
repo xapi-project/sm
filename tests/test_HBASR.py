@@ -1,7 +1,7 @@
 import unittest.mock as mock
 import HBASR
 import unittest
-import SR
+from sm import SR
 import xml.dom.minidom
 from sm.core import util
 from sm.core import xs_errors

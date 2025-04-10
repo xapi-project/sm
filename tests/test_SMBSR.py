@@ -2,7 +2,7 @@ import unittest
 import unittest.mock as mock
 import uuid
 
-import SR
+from sm import SR
 import SMBSR
 import testlib
 from sm.core import util

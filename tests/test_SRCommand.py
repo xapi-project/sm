@@ -3,7 +3,7 @@ import unittest.mock as mock
 import uuid
 import xmlrpc.client
 
-import SR
+from sm import SR
 from sm import SRCommand
 
 

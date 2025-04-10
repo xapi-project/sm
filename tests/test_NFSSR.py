@@ -2,7 +2,7 @@ import errno
 import unittest.mock as mock
 from sm import nfs
 import NFSSR
-import SR
+from sm import SR
 import unittest
 from uuid import uuid4
 

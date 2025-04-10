@@ -24,8 +24,8 @@ import errno
 import re
 import glob
 
-import SR
-from SR import deviceCheck
+from sm import SR
+from sm.SR import deviceCheck
 from sm import VDI
 from sm import SRCommand
 from sm.core import util

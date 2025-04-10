@@ -18,7 +18,7 @@
 # ISCSISR: ISCSI software initiator SR driver
 #
 
-import SR
+from sm import SR
 from sm.core import util
 import time
 from sm import LUNperVDI

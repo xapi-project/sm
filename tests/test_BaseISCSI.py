@@ -30,7 +30,7 @@ class TestBaseISCSI(ISCSITestCase):
         self.mock_scsiutil = scsi_util_patcher.start()
 
         self.mock_session = mock.MagicMock()
-        xenapi_patcher = mock.patch('SR.XenAPI')
+        xenapi_patcher = mock.patch('sm.SR.XenAPI')
         mock_xenapi = xenapi_patcher.start()
         mock_xenapi.xapi_local.return_value = self.mock_session
 
