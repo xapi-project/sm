@@ -20,7 +20,7 @@
 
 import SR
 from sm import SRCommand
-import BaseISCSI
+from sm import BaseISCSI
 from sm import LUNperVDI
 from sm.core import util
 

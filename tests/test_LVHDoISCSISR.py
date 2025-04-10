@@ -9,7 +9,7 @@ from uuid import uuid4
 import SR
 import LVHDoISCSISR
 from sm.core import iscsi
-from BaseISCSI import BaseISCSISR
+from sm.BaseISCSI import BaseISCSISR
 from sm import SRCommand
 from sm.core import util
 from sm.core import xs_errors

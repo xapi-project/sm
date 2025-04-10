@@ -33,6 +33,7 @@ SM_CORE_LIBS += f_exceptions
 SM_CORE_LIBS += libiscsi
 
 SM_LIBS :=
+SM_LIBS += BaseISCSI
 SM_LIBS += cbtutil
 SM_LIBS += cifutils
 SM_LIBS += cleanup
