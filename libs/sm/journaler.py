@@ -18,7 +18,7 @@
 # LVM-based journaling
 
 from sm.core import util
-import xs_errors
+from sm.core import xs_errors
 from sm.srmetadata import open_file, file_read_wrapper, file_write_wrapper
 
 LVM_MAX_NAME_LEN = 127

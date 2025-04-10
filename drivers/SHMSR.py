@@ -20,7 +20,7 @@ import VDI
 import SRCommand
 from sm.core import util
 import os
-import xs_errors
+from sm.core import xs_errors
 
 CAPABILITIES = ["VDI_ATTACH", "VDI_DETACH", "VDI_CLONE", "VDI_SNAPSHOT",
                 "SR_SCAN", "SR_ATTACH", "SR_DETACH"]

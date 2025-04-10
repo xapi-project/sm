@@ -3,7 +3,7 @@ import LVHDoHBASR
 import unittest
 import xmlrpc.client
 import SRCommand
-import xs_errors
+from sm.core import xs_errors
 
 from uuid import uuid4
 

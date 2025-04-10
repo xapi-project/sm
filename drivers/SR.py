@@ -20,7 +20,7 @@
 
 import VDI
 import xml.dom.minidom
-import xs_errors
+from sm.core import xs_errors
 import XenAPI # pylint: disable=import-error
 import xmlrpc.client
 from sm.core import util

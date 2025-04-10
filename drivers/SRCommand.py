@@ -21,7 +21,7 @@ import traceback
 
 import XenAPI # pylint: disable=import-error
 import sys
-import xs_errors
+from sm.core import xs_errors
 import xmlrpc.client
 from xmlrpc.client import ProtocolError
 import SR

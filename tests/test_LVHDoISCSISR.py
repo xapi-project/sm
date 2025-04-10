@@ -12,7 +12,7 @@ from sm.core import iscsi
 from BaseISCSI import BaseISCSISR
 import SRCommand
 from sm.core import util
-import xs_errors
+from sm.core import xs_errors
 
 import testlib
 from shared_iscsi_test_base import ISCSITestCase

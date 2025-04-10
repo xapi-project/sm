@@ -8,7 +8,7 @@ import testlib
 from sm.core import util
 import errno
 import XenAPI
-import xs_errors
+from sm.core import xs_errors
 
 
 class FakeSMBSR(SMBSR.SMBSR):

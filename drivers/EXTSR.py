@@ -26,7 +26,7 @@ from sm import lvutil
 from sm.core import scsiutil
 
 import os
-import xs_errors
+from sm.core import xs_errors
 from sm import vhdutil
 from lock import Lock
 from sm.constants import EXT_PREFIX

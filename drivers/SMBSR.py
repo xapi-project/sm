@@ -24,7 +24,7 @@ from sm.core import util
 import errno
 import os
 import xmlrpc.client
-import xs_errors
+from sm.core import xs_errors
 from sm import vhdutil
 from lock import Lock
 from sm import cleanup
