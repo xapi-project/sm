@@ -41,6 +41,7 @@ SM_LIBS += devscan
 SM_LIBS += fjournaler
 SM_LIBS += ipc
 SM_LIBS += journaler
+SM_LIBS += lock_queue
 SM_LIBS += lvhdutil
 SM_LIBS += lvutil
 SM_LIBS += mpathcount

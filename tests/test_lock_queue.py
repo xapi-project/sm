@@ -6,7 +6,7 @@ import unittest
 import unittest.mock as mock
 
 import lock
-import lock_queue
+from sm import lock_queue
 
 ## Instead of saving the process queue to disk the mocks will save it here.
 ## It needs to be global because it is shared between threads.
@@ -30,10 +30,10 @@ class Test_LockQueue(unittest.TestCase):
     def get_lock_name(self):
         return "bacon"
 
-    @mock.patch('lock_queue.pickle.load', side_effect=mock_pickle_load_fn)
-    @mock.patch('lock_queue.pickle.dump', side_effect=mock_pickle_dump_fn)
-    @mock.patch('lock_queue.os.getpid')
-    @mock.patch('lock_queue.get_process_start_time')
+    @mock.patch('sm.lock_queue.pickle.load', side_effect=mock_pickle_load_fn)
+    @mock.patch('sm.lock_queue.pickle.dump', side_effect=mock_pickle_dump_fn)
+    @mock.patch('sm.lock_queue.os.getpid')
+    @mock.patch('sm.lock_queue.get_process_start_time')
     @mock.patch('lock.Lock', autospec=False)
     def test_push_to_queue_3x(self, lock, start_time, getpid, pdump, pload):
         global saved_queue
@@ -50,10 +50,10 @@ class Test_LockQueue(unittest.TestCase):
         # Test the queue includes the PID and Start Time pairs in the order we expect
         self.assertEqual(list(zip(test_pids, test_sts)), saved_queue)
 
-    @mock.patch('lock_queue.pickle.load', side_effect=mock_pickle_load_fn)
-    @mock.patch('lock_queue.pickle.dump', side_effect=mock_pickle_dump_fn)
-    @mock.patch('lock_queue.os.getpid')
-    @mock.patch('lock_queue.get_process_start_time')
+    @mock.patch('sm.lock_queue.pickle.load', side_effect=mock_pickle_load_fn)
+    @mock.patch('sm.lock_queue.pickle.dump', side_effect=mock_pickle_dump_fn)
+    @mock.patch('sm.lock_queue.os.getpid')
+    @mock.patch('sm.lock_queue.get_process_start_time')
     @mock.patch('lock.Lock', autospec=False)
     def test_context_manager(self, lock, start_time, getpid, pdump, pload):
         global saved_queue
@@ -68,10 +68,10 @@ class Test_LockQueue(unittest.TestCase):
             # Should have removed from the queue before completing entry to the context manager
             self.assertEqual(saved_queue, [])
 
-    @mock.patch('lock_queue.pickle.load', side_effect=mock_pickle_load_fn)
-    @mock.patch('lock_queue.pickle.dump', side_effect=mock_pickle_dump_fn)
-    @mock.patch('lock_queue.os.getpid')
-    @mock.patch('lock_queue.get_process_start_time')
+    @mock.patch('sm.lock_queue.pickle.load', side_effect=mock_pickle_load_fn)
+    @mock.patch('sm.lock_queue.pickle.dump', side_effect=mock_pickle_dump_fn)
+    @mock.patch('sm.lock_queue.os.getpid')
+    @mock.patch('sm.lock_queue.get_process_start_time')
     @mock.patch('lock.Lock', autospec=False)
     def test_context_manager_bad_entry(self, lock, start_time, getpid, pdump, pload):
         global saved_queue
