@@ -21,7 +21,7 @@ import SR
 import VDI
 import SRCommand
 from sm.core import util
-import nfs
+from sm import nfs
 import os
 import re
 from sm.core import xs_errors

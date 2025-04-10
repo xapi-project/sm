@@ -38,7 +38,7 @@ import XenAPI # pylint: disable=import-error
 from sm.core import scsiutil
 from syslog import openlog, syslog
 from stat import *  # S_ISBLK(), ...
-import nfs
+from sm import nfs
 
 from sm import resetvdis
 from sm import vhdutil

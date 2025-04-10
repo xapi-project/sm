@@ -1,5 +1,5 @@
 import unittest.mock as mock
-import nfs
+from sm import nfs
 import ISOSR
 import unittest
 from sm.core import util
@@ -48,14 +48,14 @@ class TestISOSR_overNFS(unittest.TestCase):
     def test_load(self):
         self.create_isosr()
 
-    @mock.patch('nfs.validate_nfsversion', autospec=True)
+    @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
     def test_load_validate_nfsversion_called(self, validate_nfsversion):
         isosr = self.create_isosr(nfsversion='aNfsversion')
 
         validate_nfsversion.assert_called_once_with('aNfsversion')
 
     @mock.patch('NFSSR.Lock', autospec=True)
-    @mock.patch('nfs.validate_nfsversion', autospec=True)
+    @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
     def test_load_validate_nfsversion_returnused(self, validate_nfsversion,
                                                  Lock):
         validate_nfsversion.return_value = 'aNfsversion'
@@ -63,7 +63,7 @@ class TestISOSR_overNFS(unittest.TestCase):
         self.assertEqual(self.create_isosr().nfsversion, 'aNfsversion')
 
     @mock.patch('NFSSR.Lock', autospec=True)
-    @mock.patch('nfs.validate_nfsversion', autospec=True)
+    @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
     def test_load_validate_nfsversion_exceptionraised(self,
                                                       validate_nfsversion,
                                                       Lock):
@@ -72,12 +72,12 @@ class TestISOSR_overNFS(unittest.TestCase):
         self.assertRaises(nfs.NfsException, self.create_isosr)
 
     @mock.patch('ISOSR.util.gen_uuid', autospec=True)
-    @mock.patch('nfs.soft_mount', autospec=True)
+    @mock.patch('sm.nfs.soft_mount', autospec=True)
     @mock.patch('ISOSR.util._convertDNS', autospec=True)
-    @mock.patch('nfs.validate_nfsversion', autospec=True)
+    @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
     @mock.patch('ISOSR.util.makedirs', autospec=True)
     @mock.patch('ISOSR.util._testHost', autospec=True)
-    @mock.patch('nfs.check_server_tcp', autospec=True)
+    @mock.patch('sm.nfs.check_server_tcp', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('ISOSR.ISOSR._checkmount')
     def test_attach_nfs(self, _checkmount, check_server_tcp, testHost, makedirs,
@@ -107,12 +107,12 @@ class TestISOSR_overNFS(unittest.TestCase):
                                            nfsversion='aNfsversionChanged')
 
     @mock.patch('ISOSR.util.gen_uuid', autospec=True)
-    @mock.patch('nfs.soft_mount', autospec=True)
+    @mock.patch('sm.nfs.soft_mount', autospec=True)
     @mock.patch('ISOSR.util._convertDNS', autospec=True)
-    @mock.patch('nfs.validate_nfsversion', autospec=True)
+    @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
     @mock.patch('ISOSR.util.makedirs', autospec=True)
     @mock.patch('ISOSR.util._testHost', autospec=True)
-    @mock.patch('nfs.check_server_tcp', autospec=True)
+    @mock.patch('sm.nfs.check_server_tcp', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('ISOSR.ISOSR._checkmount')
     def test_attach_nfs_ipv6(self, _checkmount, check_server_tcp, testHost, makedirs,
@@ -143,7 +143,7 @@ class TestISOSR_overNFS(unittest.TestCase):
 
     @mock.patch('ISOSR.util.gen_uuid', autospec=True)
     @mock.patch('ISOSR.util._convertDNS', autospec=True)
-    @mock.patch('nfs.validate_nfsversion', autospec=True)
+    @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
     @mock.patch('ISOSR.util.makedirs', autospec=True)
     @mock.patch('ISOSR.util._testHost', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
@@ -165,12 +165,12 @@ class TestISOSR_overNFS(unittest.TestCase):
         self.assertEqual(140, ose.exception.errno)
 
     @mock.patch('ISOSR.util.gen_uuid', autospec=True)
-    @mock.patch('nfs.soft_mount', autospec=True)
+    @mock.patch('sm.nfs.soft_mount', autospec=True)
     @mock.patch('ISOSR.util._convertDNS', autospec=True)
-    @mock.patch('nfs.validate_nfsversion', autospec=True)
+    @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
     @mock.patch('ISOSR.util.makedirs', autospec=True)
     @mock.patch('ISOSR.util._testHost', autospec=True)
-    @mock.patch('nfs.check_server_tcp', autospec=True)
+    @mock.patch('sm.nfs.check_server_tcp', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
     @mock.patch('ISOSR.ISOSR._checkmount')
     def test_attach_nfs_wrong_version(
