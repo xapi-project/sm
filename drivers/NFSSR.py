@@ -28,7 +28,7 @@ import os
 import sys
 import xmlrpc.client
 from sm.core import xs_errors
-import nfs
+from sm import nfs
 from sm import vhdutil
 from sm.core.lock import Lock
 from sm import cleanup
