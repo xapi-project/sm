@@ -42,7 +42,7 @@ from sm import fjournaler
 from sm.core import lock
 from sm.core import util
 from sm.refcounter import RefCounter
-from lvmanager import LVActivator
+from sm.lvmanager import LVActivator
 from sm.srmetadata import LVMMetadataHandler
 
 # Disable automatic leaf-coalescing. Online leaf-coalesce is currently not

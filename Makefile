@@ -43,6 +43,7 @@ SM_LIBS += ipc
 SM_LIBS += journaler
 SM_LIBS += lock_queue
 SM_LIBS += lvhdutil
+SM_LIBS += lvmanager
 SM_LIBS += lvutil
 SM_LIBS += mpathcount
 SM_LIBS += pluginutil
