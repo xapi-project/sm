@@ -23,7 +23,7 @@ import xs_errors
 from sm.core import util
 from sm.core.lock import Lock
 from sm import vhdutil
-import cbtutil
+from sm import cbtutil
 import os
 import base64
 from constants import CBTLOG_TAG
