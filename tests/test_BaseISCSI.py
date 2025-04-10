@@ -6,7 +6,7 @@ from unittest import mock
 from uuid import uuid4
 
 from sm.core import util
-from BaseISCSI import BaseISCSISR
+from sm.BaseISCSI import BaseISCSISR
 from shared_iscsi_test_base import ISCSITestCase
 from util import CommandException
 from sm.core import xs_errors
@@ -14,19 +14,19 @@ from sm.core import xs_errors
 @mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestBaseISCSI(ISCSITestCase):
 
-    TEST_CLASS = 'BaseISCSI'
+    TEST_CLASS = 'sm.BaseISCSI'
 
     def setUp(self):
         self.addCleanup(mock.patch.stopall)
 
-        util_patcher = mock.patch('BaseISCSI.util', autospec=True)
+        util_patcher = mock.patch('sm.BaseISCSI.util', autospec=True)
         self.mock_util = util_patcher.start()
         self.mock_util.CommandException = CommandException
         self.mock_util.sessions_less_than_targets = util.sessions_less_than_targets
         self.mock_util._convertDNS.side_effect = lambda x: x
         # self.mock_util.SMlog.side_effect = print
 
-        scsi_util_patcher = mock.patch('BaseISCSI.scsiutil', autospec=True)
+        scsi_util_patcher = mock.patch('sm.BaseISCSI.scsiutil', autospec=True)
         self.mock_scsiutil = scsi_util_patcher.start()
 
         self.mock_session = mock.MagicMock()
@@ -48,10 +48,10 @@ class TestBaseISCSI(ISCSITestCase):
 
     def setup_path_mocks(self):
         self.path_contents = {}
-        exists_patcher = mock.patch('BaseISCSI.os.path.exists', autospec=True)
+        exists_patcher = mock.patch('sm.BaseISCSI.os.path.exists', autospec=True)
         self.mock_exists = exists_patcher.start()
         self.mock_exists.side_effect = self.exists
-        listdir_patcher = mock.patch('BaseISCSI.os.listdir', autospec=True)
+        listdir_patcher = mock.patch('sm.BaseISCSI.os.listdir', autospec=True)
         mock_listdir = listdir_patcher.start()
         mock_listdir.side_effect = self.listdir
 
@@ -66,7 +66,7 @@ class TestBaseISCSI(ISCSITestCase):
         self.subject = BaseISCSISR(
             sr_cmd, self.sr_uuid)
 
-    @mock.patch('BaseISCSI.BaseISCSISR._initPaths', autospec=True)
+    @mock.patch('sm.BaseISCSI.BaseISCSISR._initPaths', autospec=True)
     def test_attach_tgt_present_path_found(self, mock_init_paths):
         # Arrange
         self.setup_path_mocks()
@@ -85,7 +85,7 @@ class TestBaseISCSI(ISCSITestCase):
         # Act
         self.subject.attach(self.sr_uuid)
 
-    @mock.patch('BaseISCSI.BaseISCSISR._initPaths', autospec=True)
+    @mock.patch('sm.BaseISCSI.BaseISCSISR._initPaths', autospec=True)
     def test_attach_tgt_present_path_not_found(self, mock_init_paths):
         # Arrange
         self.mock_util._testHost.return_value = None
