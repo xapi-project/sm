@@ -9,7 +9,7 @@ import xmlrpc.client
 from xml.dom.minidom import parseString
 
 import FileSR
-import SR
+from sm import SR
 from sm import SRCommand
 import testlib
 from sm.core import util
@@ -456,7 +456,7 @@ class TestShareFileSR(unittest.TestCase):
         lock_patcher_cleanup = mock.patch('sm.cleanup.lock.Lock')
         self.mock_lock_cleanup = lock_patcher_cleanup.start()
 
-        xapi_patcher = mock.patch('SR.XenAPI')
+        xapi_patcher = mock.patch('sm.SR.XenAPI')
         self.mock_xapi = xapi_patcher.start()
         self.mock_session = mock.MagicMock()
         self.mock_xapi.xapi_local.return_value = self.mock_session
@@ -569,7 +569,7 @@ class TestFileSR(unittest.TestCase):
         pread_patcher = mock.patch('FileSR.util.pread')
         self.mock_pread = pread_patcher.start()
 
-        sr_init_patcher = mock.patch('SR.SR.__init__')
+        sr_init_patcher = mock.patch('sm.SR.SR.__init__')
         def fake_sr_init(self, srcmd, sr_uuid):
             self.sr_ref = False
         self.mock_sr_init = sr_init_patcher.start()

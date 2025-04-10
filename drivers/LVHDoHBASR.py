@@ -19,7 +19,7 @@
 # hardware based iSCSI
 #
 
-import SR
+from sm import SR
 import LVHDSR
 from sm import SRCommand
 from sm import lvutil

@@ -6,7 +6,7 @@ import traceback
 
 from uuid import uuid4
 
-import SR
+from sm import SR
 import LVHDoISCSISR
 from sm.core import iscsi
 from sm.BaseISCSI import BaseISCSISR
@@ -70,7 +70,7 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
                 return_value=NonInitingISCSISR()
             ),
             mock.patch('LVHDoISCSISR.util._convertDNS', return_value='127.0.0.1'),
-            mock.patch('SR.driver'),
+            mock.patch('sm.SR.driver'),
         ]
 
         for patcher in patchers:
@@ -142,7 +142,7 @@ class TestLVHDoISCSISR(ISCSITestCase):
 
         self.mock_lvhdsr = lvhdsr_patcher.start()
         self.mock_session = mock.MagicMock()
-        xenapi_patcher = mock.patch('SR.XenAPI')
+        xenapi_patcher = mock.patch('sm.SR.XenAPI')
         mock_xenapi = xenapi_patcher.start()
         mock_xenapi.xapi_local.return_value = self.mock_session
 

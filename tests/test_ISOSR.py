@@ -3,7 +3,7 @@ from sm import nfs
 import ISOSR
 import unittest
 from sm.core import util
-import SR
+from sm import SR
 import errno
 import os
 import sys

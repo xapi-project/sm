@@ -19,7 +19,7 @@
 # hardware based iSCSI
 #
 
-import SR
+from sm import SR
 from sm import SRCommand
 from sm import devscan
 from sm.core import scsiutil

@@ -18,7 +18,7 @@
 # ISCSISR: ISCSI software initiator SR driver
 #
 
-import SR
+from sm import SR
 from sm import SRCommand
 from sm import BaseISCSI
 from sm import LUNperVDI

@@ -17,7 +17,7 @@
 #
 # ISOSR: remote iso storage repository
 
-import SR
+from sm import SR
 from sm import VDI
 from sm import SRCommand
 from sm.core import util

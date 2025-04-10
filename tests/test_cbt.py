@@ -1,5 +1,5 @@
 import unittest.mock as mock
-import SR
+from sm import SR
 import testlib
 import unittest
 import uuid
