@@ -10,7 +10,7 @@ import SR
 import LVHDoISCSISR
 from sm.core import iscsi
 from BaseISCSI import BaseISCSISR
-import SRCommand
+from sm import SRCommand
 from sm.core import util
 from sm.core import xs_errors
 

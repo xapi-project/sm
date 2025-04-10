@@ -2,7 +2,7 @@ import testlib
 import unittest
 import unittest.mock as mock
 
-import SRCommand
+from sm import SRCommand
 import HBASR
 import xmlrpc.client
 

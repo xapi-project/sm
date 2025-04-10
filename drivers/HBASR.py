@@ -20,7 +20,7 @@
 #
 
 import SR
-import SRCommand
+from sm import SRCommand
 from sm import devscan
 from sm.core import scsiutil
 from sm.core import util

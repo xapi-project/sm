@@ -19,7 +19,7 @@
 
 import SR
 import VDI
-import SRCommand
+from sm import SRCommand
 from sm.core import util
 from sm.core import scsiutil
 from sm import vhdutil

@@ -20,7 +20,7 @@
 import socket
 
 import SR
-import SRCommand
+from sm import SRCommand
 import FileSR
 from sm.core import util
 import errno

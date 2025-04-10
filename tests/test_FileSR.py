@@ -10,7 +10,7 @@ from xml.dom.minidom import parseString
 
 import FileSR
 import SR
-import SRCommand
+from sm import SRCommand
 import testlib
 from sm.core import util
 from sm.core import xs_errors

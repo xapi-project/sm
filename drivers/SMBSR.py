@@ -18,7 +18,7 @@
 # SMBSR: SMB filesystem based storage repository
 
 import SR
-import SRCommand
+from sm import SRCommand
 import FileSR
 from sm.core import util
 import errno

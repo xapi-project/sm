@@ -2,7 +2,7 @@ import unittest.mock as mock
 import LVHDoHBASR
 import unittest
 import xmlrpc.client
-import SRCommand
+from sm import SRCommand
 from sm.core import xs_errors
 
 from uuid import uuid4

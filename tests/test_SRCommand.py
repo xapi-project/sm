@@ -4,7 +4,7 @@ import uuid
 import xmlrpc.client
 
 import SR
-import SRCommand
+from sm import SRCommand
 
 
 class SomeException(Exception):
@@ -15,10 +15,10 @@ class SomeException(Exception):
 class TestStandaloneFunctions(unittest.TestCase):
 
     @mock.patch("sys.exit", autospec=True)
-    @mock.patch('SRCommand.util.SMlog', autospec=True)
-    @mock.patch('SRCommand.util.reduce', autospec=True)
-    @mock.patch('SRCommand.SRCommand.run_statics', autospec=True)
-    @mock.patch('SRCommand.SRCommand.parse', autospec=True)
+    @mock.patch('sm.SRCommand.util.SMlog', autospec=True)
+    @mock.patch('sm.SRCommand.util.reduce', autospec=True)
+    @mock.patch('sm.SRCommand.SRCommand.run_statics', autospec=True)
+    @mock.patch('sm.SRCommand.SRCommand.parse', autospec=True)
     def test_run_correctly_log_all_exceptions(
             self,
             mock_parse,
@@ -57,9 +57,9 @@ class TestStandaloneFunctions(unittest.TestCase):
 
         self.assertTrue(rand_huge_msg in self.smlog_out)
 
-    @mock.patch('SRCommand.util.logException', autospec=True)
-    @mock.patch('SRCommand.SRCommand.run_statics', autospec=True)
-    @mock.patch('SRCommand.SRCommand.parse', autospec=True)
+    @mock.patch('sm.SRCommand.util.logException', autospec=True)
+    @mock.patch('sm.SRCommand.SRCommand.run_statics', autospec=True)
+    @mock.patch('sm.SRCommand.SRCommand.parse', autospec=True)
     def test_run_print_xml_error_if_SRException(
             self,
             mock_parse,
@@ -107,9 +107,9 @@ class TestStandaloneFunctions(unittest.TestCase):
         self.assertEqual(actual_out, expected_out)
 
     @mock.patch("sys.exit", autospec=True)
-    @mock.patch('SRCommand.util.logException', autospec=True)
-    @mock.patch('SRCommand.SRCommand.run_statics', autospec=True)
-    @mock.patch('SRCommand.SRCommand.parse', autospec=True)
+    @mock.patch('sm.SRCommand.util.logException', autospec=True)
+    @mock.patch('sm.SRCommand.SRCommand.run_statics', autospec=True)
+    @mock.patch('sm.SRCommand.SRCommand.parse', autospec=True)
     def test_run_wrapped_if_not_SRException(
             self,
             mock_parse,
@@ -128,8 +128,8 @@ class TestStandaloneFunctions(unittest.TestCase):
         SRCommand.run(mock_driver, DRIVER_INFO)
 
     @mock.patch("sys.exit", autospec=True)
-    @mock.patch('SRCommand.util.logException', autospec=True)
-    @mock.patch('SRCommand.SRCommand', autospec=True)
+    @mock.patch('sm.SRCommand.util.logException', autospec=True)
+    @mock.patch('sm.SRCommand.SRCommand', autospec=True)
     def test_run_reports_protocol_error(
             self,
             mock_sr_command,

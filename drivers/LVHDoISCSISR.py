@@ -21,7 +21,7 @@
 import SR
 import LVHDSR
 import BaseISCSI
-import SRCommand
+from sm import SRCommand
 from sm.core import util
 from sm.core import scsiutil
 from sm import lvutil

@@ -53,6 +53,7 @@ SM_LIBS += nfs
 SM_LIBS += pluginutil
 SM_LIBS += refcounter
 SM_LIBS += resetvdis
+SM_LIBS += SRCommand
 SM_LIBS += srmetadata
 SM_LIBS += sysdevice
 SM_LIBS += trim_util

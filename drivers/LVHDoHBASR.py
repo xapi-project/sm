@@ -21,7 +21,7 @@
 
 import SR
 import LVHDSR
-import SRCommand
+from sm import SRCommand
 from sm import lvutil
 import HBASR
 import os
