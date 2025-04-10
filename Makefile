@@ -32,7 +32,9 @@ SM_CORE_LIBS += f_exceptions
 # sm-core-libs provided differently.
 SM_CORE_LIBS += libiscsi
 
-SM_LIBS := cleanup
+SM_LIBS :=
+SM_LIBS += cifutils
+SM_LIBS += cleanup
 SM_LIBS += fjournaler
 SM_LIBS += ipc
 SM_LIBS += journaler

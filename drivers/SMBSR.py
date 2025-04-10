@@ -28,7 +28,7 @@ import xs_errors
 from sm import vhdutil
 from lock import Lock
 from sm import cleanup
-import cifutils
+from sm import cifutils
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_CACHING",
                 "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
