@@ -19,7 +19,7 @@
 #         USB CDROM/disk devices
 
 import SR
-import VDI
+from sm import VDI
 from sm import SRCommand
 from sm.core import util
 import os

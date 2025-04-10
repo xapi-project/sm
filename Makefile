@@ -58,6 +58,7 @@ SM_LIBS += SRCommand
 SM_LIBS += srmetadata
 SM_LIBS += sysdevice
 SM_LIBS += trim_util
+SM_LIBS += VDI
 SM_LIBS += vhdutil
 
 # Things used as commands which install in libexec

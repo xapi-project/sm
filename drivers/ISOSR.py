@@ -18,7 +18,7 @@
 # ISOSR: remote iso storage repository
 
 import SR
-import VDI
+from sm import VDI
 from sm import SRCommand
 from sm.core import util
 from sm import nfs

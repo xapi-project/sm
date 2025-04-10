@@ -3,7 +3,7 @@ import SR
 import testlib
 import unittest
 import uuid
-import VDI
+from sm import VDI
 from sm import vhdutil
 from sm.core import xs_errors
 from sm.core import util
@@ -79,7 +79,7 @@ class TestCBT(unittest.TestCase):
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
-    @mock.patch('VDI.VDI._cbt_op', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_op', autospec=True)
     def test_configure_blocktracking_enable_success(self, context, mock_cbt, mock_bt_vdi):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -91,7 +91,7 @@ class TestCBT(unittest.TestCase):
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
-    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
     def test_configure_blocktracking_enable_already_enabled(self, context, mock_cbt, mock_bt_vdi):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -104,9 +104,9 @@ class TestCBT(unittest.TestCase):
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
-    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
-    @mock.patch('VDI.VDI._cbt_op', autospec=True)
-    @mock.patch('VDI.Lock')
+    @mock.patch('sm.VDI.VDI._cbt_log_exists', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_op', autospec=True)
+    @mock.patch('sm.VDI.Lock')
     def test_configure_blocktracking_disable_when_enabled_without_parent(
             self, context, mock_lock, mock_cbt, mock_logchecker, mock_bt_vdi):
         # Create the test object
@@ -120,9 +120,9 @@ class TestCBT(unittest.TestCase):
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
-    @mock.patch('VDI.Lock')
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_log_exists', autospec=True)
+    @mock.patch('sm.VDI.Lock')
     def test_configure_blocktracking_disable_when_enabled_with_parent(
             self, context, mock_lock, mock_logcheck, mock_cbt, mock_bt_vdi):
         # Create the test object
@@ -173,8 +173,8 @@ class TestCBT(unittest.TestCase):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
     @mock.patch('blktap2.VDI', autospec=True)
-    @mock.patch('VDI.util', autospec=True)
-    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.util', autospec=True)
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
     def test_configure_blocktracking_enable_pause_fail(
             self, mock_cbt, mock_util, mock_bt_vdi):
         # Create the test object
@@ -187,7 +187,7 @@ class TestCBT(unittest.TestCase):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
     @mock.patch('blktap2.VDI', autospec=True)
-    @mock.patch('VDI.util', autospec=True)
+    @mock.patch('sm.VDI.util', autospec=True)
     def test_configure_blocktracking_disable_pause_fail(
             self, mock_util, mock_bt_vdi):
         # Create the test object
@@ -199,7 +199,7 @@ class TestCBT(unittest.TestCase):
         with self.assertRaises(xs_errors.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, False)
 
-    @mock.patch('VDI.util', autospec=True)
+    @mock.patch('sm.VDI.util', autospec=True)
     def test_configure_blocktracking_enable_metadata_no_space(self, mock_util):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -211,7 +211,7 @@ class TestCBT(unittest.TestCase):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
     @mock.patch('blktap2.VDI', autospec=True)
-    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
     def test_configure_blocktracking_enable_metadata_creation_fail(
             self, mock_cbt, mock_bt_vdi):
         # Create the test object
@@ -226,7 +226,7 @@ class TestCBT(unittest.TestCase):
         self._check_setting_state(self.vdi, False)
 
     @mock.patch('blktap2.VDI', autospec=True)
-    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
     def test_configure_blocktracking_enable_metadata_initialisation_fail(
             self, mock_cbt, mock_bt_vdi):
         # Create the test object
@@ -241,7 +241,7 @@ class TestCBT(unittest.TestCase):
         self._check_setting_state(self.vdi, False)
 
     @mock.patch('blktap2.VDI')
-    @mock.patch('VDI.Lock')
+    @mock.patch('sm.VDI.Lock')
     def test_configure_blocktracking_disable_metadata_deletion_fail(
             self, mock_lock, mock_bt_vdi):
         # Create the test object
@@ -256,7 +256,7 @@ class TestCBT(unittest.TestCase):
         self._check_setting_state(self.vdi, True)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
     def test_activate_no_tracking_success(self, context, mock_cbt):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -270,8 +270,8 @@ class TestCBT(unittest.TestCase):
         self.assertEqual(0, self.vdi.state_mock._activate_cbt_log.call_count)
 
     @testlib.with_context
-    @mock.patch('VDI.VDI._cbt_op', autospec=True)
-    @mock.patch('VDI.Lock', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_op', autospec=True)
+    @mock.patch('sm.VDI.Lock', autospec=True)
     def test_activate_consistent_success(self, context, mock_lock, mock_cbt):
         expected_log_path = '/mock/sr_path/{0}.log'.format(self.vdi_uuid)
         logname = '%s.cbtlog' % self.vdi_uuid
@@ -295,8 +295,8 @@ class TestCBT(unittest.TestCase):
         self.assertEqual({'cbtlog': expected_log_path}, log_path)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.Lock', autospec=True)
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.Lock', autospec=True)
     def test_activate_consistency_check_fail(self, context, mock_lock, mock_cbt):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -311,7 +311,7 @@ class TestCBT(unittest.TestCase):
         self.assertEqual(result, None)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
     def test_deactivate_no_tracking_success(self, context, mock_cbt):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -325,8 +325,8 @@ class TestCBT(unittest.TestCase):
         self.assertEqual(0, self.vdi.state_mock._deactivate_cbt_log.call_count)
 
     @testlib.with_context
-    @mock.patch('VDI.VDI._cbt_op', autospec=True)
-    @mock.patch('VDI.Lock', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_op', autospec=True)
+    @mock.patch('sm.VDI.Lock', autospec=True)
     def test_deactivate_success(self, context, mock_lock, mock_cbt):
         expected_log_path = '/mock/sr_path/{0}.log'.format(self.vdi_uuid)
         logname = '%s.cbtlog' % self.vdi_uuid
@@ -357,9 +357,9 @@ class TestCBT(unittest.TestCase):
                                                             None)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
-    @mock.patch('VDI.Lock')
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_log_exists', autospec=True)
+    @mock.patch('sm.VDI.Lock')
     def test_snapshot_success_no_parent(self, context, mock_lock,
                                         mock_logchecker, mock_cbt):
         # Create the test object
@@ -375,9 +375,9 @@ class TestCBT(unittest.TestCase):
                                       snap_uuid, parent_uuid, child_uuid)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
-    @mock.patch('VDI.Lock')
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_log_exists', autospec=True)
+    @mock.patch('sm.VDI.Lock')
     def test_snapshot_success_with_parent(self, context, mock_lock,
                                           mock_logcheck, mock_cbt):
         #context.setup_error_codes()
@@ -395,9 +395,9 @@ class TestCBT(unittest.TestCase):
         self._check_CBT_chain_created(self.vdi, mock_cbt, self.vdi_uuid,
                                       snap_uuid, parent_uuid, child_uuid)
 
-    @mock.patch('VDI.VDI._cbt_op', autospec=True)
-    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
-    @mock.patch('VDI.VDI._ensure_cbt_space', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_op', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_log_exists', autospec=True)
+    @mock.patch('sm.VDI.VDI._ensure_cbt_space', autospec=True)
     def test_snapshot_out_of_space_failure(self, mock_ensure_space, mock_logcheck, mock_cbt):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -415,7 +415,7 @@ class TestCBT(unittest.TestCase):
         self.xenapi.message.create.assert_called_once()
 
     @testlib.with_context
-    @mock.patch('VDI.VDI._cbt_op', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_op', autospec=True)
     def test_resize_cbt_enabled(self, context, mock_cbt):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -431,7 +431,7 @@ class TestCBT(unittest.TestCase):
         self._check_setting_state(self.vdi, True)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
     def test_resize_cbt_disable(self, context, mock_cbt):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -444,7 +444,7 @@ class TestCBT(unittest.TestCase):
         self._check_setting_state(self.vdi, False)
 
     @testlib.with_context
-    @mock.patch('VDI.VDI._cbt_op', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_op', autospec=True)
     def test_resize_exception(self, context, mock_cbt):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -458,7 +458,7 @@ class TestCBT(unittest.TestCase):
         self.xenapi.message.create.assert_called_once()
 
     @testlib.with_context
-    @mock.patch('VDI.Lock')
+    @mock.patch('sm.VDI.Lock')
     def test_vdi_data_destroy_cbt_enabled(self, context, mock_lock):
         # Create the test object and initialise
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -468,7 +468,7 @@ class TestCBT(unittest.TestCase):
         self.assertEqual(0, self.vdi.state_mock._delete_cbt_log.call_count)
 
     @testlib.with_context
-    @mock.patch('VDI.Lock')
+    @mock.patch('sm.VDI.Lock')
     def test_vdi_data_destroy_cbt_disabled(self, context, mock_lock):
         # Create the test object and initialise
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -478,7 +478,7 @@ class TestCBT(unittest.TestCase):
         self.assertEqual(0, self.vdi.state_mock._delete_cbt_log.call_count)
 
     @testlib.with_context
-    @mock.patch('VDI.Lock')
+    @mock.patch('sm.VDI.Lock')
     def test_vdi_delete_cbt_disabled(self, context, mock_lock):
         # Create the test object and initialise
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -488,9 +488,9 @@ class TestCBT(unittest.TestCase):
         self.assertEqual(0, self.vdi.state_mock._delete_cbt_log.call_count)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.VDI._cbt_log_exists')
-    @mock.patch('VDI.Lock')
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_log_exists')
+    @mock.patch('sm.VDI.Lock')
     def test_vdi_delete_cbt_enabled_no_child(self, context, mock_lock,
                                              mock_logcheck, mock_cbt):
         # Create the test object and initialise
@@ -512,9 +512,9 @@ class TestCBT(unittest.TestCase):
 
     @testlib.with_context
     @mock.patch('blktap2.VDI', autospec=True)
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.VDI._cbt_log_exists')
-    @mock.patch('VDI.Lock')
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_log_exists')
+    @mock.patch('sm.VDI.Lock')
     def test_vdi_delete_cbt_enabled_with_child(self, context, mock_lock,
                                                mock_logcheck, mock_cbt,
                                                mock_bt):
@@ -540,9 +540,9 @@ class TestCBT(unittest.TestCase):
         mock_cbt.coalesce_bitmap.assert_called_with(logpath, child_log)
         self.vdi.state_mock._delete_cbt_log.assert_called_with()
 
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.VDI._cbt_log_exists')
-    @mock.patch('VDI.Lock')
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_log_exists')
+    @mock.patch('sm.VDI.Lock')
     def test_vdi_delete_bitmap_coalesce_exc(self, mock_lock,
                                             mock_logcheck, mock_cbt):
         # Create the test object and initialise
@@ -573,7 +573,7 @@ class TestCBT(unittest.TestCase):
         # Test CBTChangedBlocksError is raised
         self.assertEqual(exc.exception.errno, 460)
 
-    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_log_exists', autospec=True)
     def test_list_changed_blocks_not_related(self, mock_log):
         # Create the test object and initialise
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -598,9 +598,9 @@ class TestCBT(unittest.TestCase):
         self.assertEqual(exc.exception.errno, 460)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
-    @mock.patch('VDI.Lock', autospec=True)
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_log_exists', autospec=True)
+    @mock.patch('sm.VDI.Lock', autospec=True)
     def test_list_changed_blocks_success(self, context, mock_lock,
                                          mock_log, mock_cbt):
         # Create the test object and initialise
@@ -628,9 +628,9 @@ class TestCBT(unittest.TestCase):
         self.assertEqual(result, expected_result)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
-    @mock.patch('VDI.Lock', autospec=True)
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_log_exists', autospec=True)
+    @mock.patch('sm.VDI.Lock', autospec=True)
     def test_list_changed_blocks_vdi_resized_success(self, context,
                                                      mock_lock, mock_log,
                                                      mock_cbt):
@@ -660,9 +660,9 @@ class TestCBT(unittest.TestCase):
         result = self.vdi.list_changed_blocks()
         self.assertEqual(result, expected_result)
 
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
-    @mock.patch('VDI.Lock', autospec=True)
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_log_exists', autospec=True)
+    @mock.patch('sm.VDI.Lock', autospec=True)
     def test_list_changed_blocks_vdi_shrunk(self, mock_lock,
                                             mock_log, mock_cbt):
         # Create the test object and initialise
@@ -683,9 +683,9 @@ class TestCBT(unittest.TestCase):
         # Test CBTChangedBlocksError is raised
         self.assertEqual(exc.exception.errno, 459)
 
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
-    @mock.patch('VDI.Lock', autospec=True)
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_log_exists', autospec=True)
+    @mock.patch('sm.VDI.Lock', autospec=True)
     def test_list_changed_blocks_smaller_bitmap(self,
                                                 mock_lock,
                                                 mock_log, mock_cbt):
@@ -706,9 +706,9 @@ class TestCBT(unittest.TestCase):
         self.assertEqual(exc.exception.errno, 459)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil', autospec=True)
-    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
-    @mock.patch('VDI.Lock', autospec=True)
+    @mock.patch('sm.VDI.cbtutil', autospec=True)
+    @mock.patch('sm.VDI.VDI._cbt_log_exists', autospec=True)
+    @mock.patch('sm.VDI.Lock', autospec=True)
     def test_list_changed_blocks_larger_bitmap(self, context,
                                                mock_lock,
                                                mock_log, mock_cbt):
@@ -739,11 +739,11 @@ class TestCBT(unittest.TestCase):
         self.assertEqual(result, expected_result)
 
     @testlib.with_context
-    @mock.patch('VDI.cbtutil.get_cbt_size')
-    @mock.patch('VDI.cbtutil.get_cbt_child')
-    @mock.patch('VDI.cbtutil._call_cbt_util')
-    @mock.patch('VDI.VDI._cbt_log_exists', autospec=True)
-    @mock.patch('VDI.Lock', autospec=True)
+    @mock.patch('sm.VDI.cbtutil.get_cbt_size')
+    @mock.patch('sm.VDI.cbtutil.get_cbt_child')
+    @mock.patch('sm.VDI.cbtutil._call_cbt_util')
+    @mock.patch('sm.VDI.VDI._cbt_log_exists', autospec=True)
+    @mock.patch('sm.VDI.Lock', autospec=True)
     def test_list_changed_blocks_strip_sensitive_bitmap(self, context, mock_lock,
                                                         mock_log, mock_call,
                                                         mock_child, mock_size):

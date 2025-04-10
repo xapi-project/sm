@@ -18,7 +18,7 @@
 # DummySR: an example dummy SR for the SDK
 
 import SR
-import VDI
+from sm import VDI
 from sm import SRCommand
 from sm.core import util
 import time
