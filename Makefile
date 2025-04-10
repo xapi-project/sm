@@ -34,6 +34,7 @@ SM_CORE_LIBS += libiscsi
 
 SM_LIBS := cleanup
 SM_LIBS += fjournaler
+SM_LIBS += ipc
 SM_LIBS += journaler
 SM_LIBS += lvhdutil
 SM_LIBS += lvutil

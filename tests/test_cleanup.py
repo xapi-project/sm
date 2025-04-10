@@ -12,7 +12,7 @@ from sm.core import lock
 from sm.core import util
 from sm import vhdutil
 
-import ipc
+from sm import ipc
 
 import XenAPI
 

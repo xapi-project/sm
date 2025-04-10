@@ -27,7 +27,7 @@ import zlib
 import errno
 import stat
 
-from ipc import IPCFlag
+from sm.ipc import IPCFlag
 from functools import reduce
 from time import monotonic as _time
 import blktap2
