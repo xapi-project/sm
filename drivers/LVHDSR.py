@@ -34,7 +34,7 @@ from sm.core import xs_errors
 from sm.core.lock import Lock
 from sm import lvutil
 from sm import cleanup
-import lvmcache
+from sm import lvmcache
 from sm import vhdutil
 from sm import lvhdutil
 import blktap2

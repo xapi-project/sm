@@ -28,7 +28,7 @@ from sm.core import xs_errors
 import xml.dom.minidom
 from sm.lvhdutil import VG_LOCATION, VG_PREFIX
 from sm.constants import EXT_PREFIX
-import lvmcache
+from sm import lvmcache
 from sm import srmetadata
 
 MDVOLUME_NAME = 'MGT'
