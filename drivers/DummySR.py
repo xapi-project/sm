@@ -19,7 +19,7 @@
 
 import SR
 import VDI
-import SRCommand
+from sm import SRCommand
 from sm.core import util
 import time
 from sm.core import xs_errors

@@ -19,7 +19,7 @@
 
 import SR
 from SR import deviceCheck
-import SRCommand
+from sm import SRCommand
 import FileSR
 from sm.core import util
 from sm import lvutil

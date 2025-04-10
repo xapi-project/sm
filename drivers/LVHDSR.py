@@ -27,7 +27,7 @@ import glob
 import SR
 from SR import deviceCheck
 import VDI
-import SRCommand
+from sm import SRCommand
 from sm.core import util
 from sm.core import scsiutil
 from sm.core import xs_errors

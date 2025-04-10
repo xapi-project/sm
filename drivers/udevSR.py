@@ -20,7 +20,7 @@
 
 import SR
 import VDI
-import SRCommand
+from sm import SRCommand
 from sm.core import util
 import os
 import time
