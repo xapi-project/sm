@@ -27,7 +27,7 @@ import xs_errors
 import XenAPI
 from sm import lvhdutil
 from sm import vhdutil
-import lvmcache
+from sm import lvmcache
 
 NBD_BACKPATH_PFX = "/run/blktap-control/nbd/"
 TAPDEV_PHYPATH_PFX = "/dev/sm/phy"

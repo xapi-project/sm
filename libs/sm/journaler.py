@@ -172,7 +172,7 @@ class Journaler:
 #  Unit tests
 #
 from sm import lvutil
-import lvmcache
+from sm import lvmcache
 
 
 def _runTests(vgName):
