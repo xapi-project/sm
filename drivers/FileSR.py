@@ -34,7 +34,7 @@ from uuid import uuid4
 from lock import Lock
 import xmlrpc.client
 import XenAPI # pylint: disable=import-error
-from constants import CBTLOG_TAG
+from sm.constants import CBTLOG_TAG
 
 geneology = {}
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", \

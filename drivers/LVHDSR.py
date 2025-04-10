@@ -50,7 +50,7 @@ from sm.srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, 
     METADATA_OBJECT_TYPE_SR, METADATA_UPDATE_OBJECT_TYPE_TAG
 from metadata import retrieveXMLfromFile, _parseXML
 from xmlrpc.client import DateTime
-from constants import CBTLOG_TAG
+from sm.constants import CBTLOG_TAG
 from fairlock import Fairlock
 DEV_MAPPER_ROOT = os.path.join('/dev/mapper', lvhdutil.VG_PREFIX)
 

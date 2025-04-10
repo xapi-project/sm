@@ -27,7 +27,7 @@ from sm.core import util
 from sm.core import xs_errors
 import xml.dom.minidom
 from sm.lvhdutil import VG_LOCATION, VG_PREFIX
-from constants import EXT_PREFIX
+from sm.constants import EXT_PREFIX
 import lvmcache
 from sm import srmetadata
 
