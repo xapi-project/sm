@@ -50,6 +50,7 @@ SM_LIBS += metadata
 SM_LIBS += mpathcount
 SM_LIBS += pluginutil
 SM_LIBS += refcounter
+SM_LIBS += resetvdis
 SM_LIBS += srmetadata
 SM_LIBS += sysdevice
 SM_LIBS += trim_util
