@@ -21,7 +21,7 @@
 
 import SR
 import SRCommand
-import devscan
+from sm import devscan
 from sm.core import scsiutil
 from sm.core import util
 import LUNperVDI
