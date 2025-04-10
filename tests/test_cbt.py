@@ -8,7 +8,7 @@ from sm import vhdutil
 import xs_errors
 from sm.core import util
 import errno
-import cbtutil
+from sm import cbtutil
 from bitarray import bitarray
 import base64
 import xmlrpc.client
