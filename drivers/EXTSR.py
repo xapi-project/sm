@@ -29,7 +29,7 @@ import os
 import xs_errors
 from sm import vhdutil
 from lock import Lock
-from constants import EXT_PREFIX
+from sm.constants import EXT_PREFIX
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_SUPPORTS_LOCAL_CACHING",
                 "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",

@@ -36,6 +36,7 @@ SM_LIBS :=
 SM_LIBS += cbtutil
 SM_LIBS += cifutils
 SM_LIBS += cleanup
+SM_LIBS += constants
 SM_LIBS += fjournaler
 SM_LIBS += ipc
 SM_LIBS += journaler

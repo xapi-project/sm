@@ -19,7 +19,7 @@
 
 from sm.core import util
 import uuid
-from constants import CBT_UTIL
+from sm.constants import CBT_UTIL
 
 
 def create_cbt_log(file_name, size):

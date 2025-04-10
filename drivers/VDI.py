@@ -26,7 +26,7 @@ from sm import vhdutil
 from sm import cbtutil
 import os
 import base64
-from constants import CBTLOG_TAG
+from sm.constants import CBTLOG_TAG
 from bitarray import bitarray
 import uuid
 
