@@ -41,7 +41,7 @@ import blktap2
 from sm.journaler import Journaler
 from sm.refcounter import RefCounter
 from sm.ipc import IPCFlag
-from lvmanager import LVActivator
+from sm.lvmanager import LVActivator
 import XenAPI # pylint: disable=import-error
 from sm.srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, \
     UUID_TAG, IS_A_SNAPSHOT_TAG, SNAPSHOT_OF_TAG, TYPE_TAG, VDI_TYPE_TAG, \
