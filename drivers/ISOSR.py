@@ -25,7 +25,7 @@ import nfs
 import os
 import re
 from sm.core import xs_errors
-import cifutils
+from sm import cifutils
 
 CAPABILITIES = ["VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
                 "SR_SCAN", "SR_ATTACH", "SR_DETACH"]
