@@ -6,7 +6,7 @@ import SRCommand
 import HBASR
 import xmlrpc.client
 
-import devscan
+from sm import devscan
 
 
 def create_hba_sr():
@@ -96,7 +96,7 @@ class TestAdapters(unittest.TestCase):
 
         self.assertEqual({'devs': {}, 'adt': {}}, result)
 
-    @mock.patch('devscan.match_hbadevs', autospec=True)
+    @mock.patch('sm.devscan.match_hbadevs', autospec=True)
     @testlib.with_context
     def test_exotic_adapter_with_security_device(self, context, match_hbadevs):
         adapter = context.add_adapter(testlib.AdapterWithNonBlockDevice())
