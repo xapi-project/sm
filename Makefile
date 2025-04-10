@@ -40,6 +40,7 @@ SM_LIBS += lvutil
 SM_LIBS += mpathcount
 SM_LIBS += pluginutil
 SM_LIBS += refcounter
+SM_LIBS += srmetadata
 SM_LIBS += sysdevice
 SM_LIBS += trim_util
 SM_LIBS += vhdutil

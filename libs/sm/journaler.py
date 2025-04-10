@@ -19,7 +19,7 @@
 
 from sm.core import util
 import xs_errors
-from srmetadata import open_file, file_read_wrapper, file_write_wrapper
+from sm.srmetadata import open_file, file_read_wrapper, file_write_wrapper
 
 LVM_MAX_NAME_LEN = 127
 

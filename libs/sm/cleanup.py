@@ -43,7 +43,7 @@ from sm.core import lock
 from sm.core import util
 from sm.refcounter import RefCounter
 from lvmanager import LVActivator
-from srmetadata import LVMMetadataHandler
+from sm.srmetadata import LVMMetadataHandler
 
 # Disable automatic leaf-coalescing. Online leaf-coalesce is currently not
 # possible due to lvhd_stop_using_() not working correctly. However, we leave

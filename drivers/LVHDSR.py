@@ -43,7 +43,7 @@ from sm.refcounter import RefCounter
 from ipc import IPCFlag
 from lvmanager import LVActivator
 import XenAPI # pylint: disable=import-error
-from srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, \
+from sm.srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, \
     UUID_TAG, IS_A_SNAPSHOT_TAG, SNAPSHOT_OF_TAG, TYPE_TAG, VDI_TYPE_TAG, \
     READ_ONLY_TAG, MANAGED_TAG, SNAPSHOT_TIME_TAG, METADATA_OF_POOL_TAG, \
     LVMMetadataHandler, METADATA_OBJECT_TYPE_VDI, \
