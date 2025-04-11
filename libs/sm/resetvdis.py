@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
