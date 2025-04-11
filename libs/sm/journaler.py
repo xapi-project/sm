@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 #
 # Copyright (C) Citrix Systems Inc.
 #
@@ -18,8 +17,8 @@
 # LVM-based journaling
 
 from sm.core import util
-import xs_errors
-from srmetadata import open_file, file_read_wrapper, file_write_wrapper
+from sm.core import xs_errors
+from sm.srmetadata import open_file, file_read_wrapper, file_write_wrapper
 
 LVM_MAX_NAME_LEN = 127
 
@@ -172,7 +171,7 @@ class Journaler:
 #  Unit tests
 #
 from sm import lvutil
-import lvmcache
+from sm import lvmcache
 
 
 def _runTests(vgName):

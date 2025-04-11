@@ -32,14 +32,35 @@ SM_CORE_LIBS += f_exceptions
 # sm-core-libs provided differently.
 SM_CORE_LIBS += libiscsi
 
-SM_LIBS := cleanup
-SM_LIBS += mpathcount
-SM_LIBS += lvutil
-SM_LIBS += vhdutil
-SM_LIBS += lvhdutil
-SM_LIBS += refcounter
-SM_LIBS += journaler
+SM_LIBS :=
+SM_LIBS += BaseISCSI
+SM_LIBS += cbtutil
+SM_LIBS += cifutils
+SM_LIBS += cleanup
+SM_LIBS += constants
+SM_LIBS += devscan
 SM_LIBS += fjournaler
+SM_LIBS += ipc
+SM_LIBS += journaler
+SM_LIBS += lock_queue
+SM_LIBS += LUNperVDI
+SM_LIBS += lvhdutil
+SM_LIBS += lvmanager
+SM_LIBS += lvmcache
+SM_LIBS += lvutil
+SM_LIBS += metadata
+SM_LIBS += mpathcount
+SM_LIBS += nfs
+SM_LIBS += pluginutil
+SM_LIBS += refcounter
+SM_LIBS += resetvdis
+SM_LIBS += SR
+SM_LIBS += SRCommand
+SM_LIBS += srmetadata
+SM_LIBS += sysdevice
+SM_LIBS += trim_util
+SM_LIBS += VDI
+SM_LIBS += vhdutil
 
 # Things used as commands which install in libexec
 # which are in python and need compatibility symlinks from

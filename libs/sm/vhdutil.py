@@ -21,7 +21,7 @@ from sm.core import util
 import errno
 import zlib
 import re
-import xs_errors
+from sm.core import xs_errors
 import time
 
 MIN_VHD_SIZE = 2 * 1024 * 1024

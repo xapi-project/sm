@@ -33,18 +33,18 @@ import subprocess
 import syslog as _syslog
 import glob
 import json
-import xs_errors
+from sm.core import xs_errors
 import XenAPI # pylint: disable=import-error
 from sm.core import scsiutil
 from syslog import openlog, syslog
 from stat import *  # S_ISBLK(), ...
-import nfs
+from sm import nfs
 
-import resetvdis
+from sm import resetvdis
 from sm import vhdutil
 from sm import lvhdutil
 
-import VDI as sm
+from sm import VDI as sm
 
 # For RRDD Plugin Registration
 from xmlrpc.client import ServerProxy, Transport

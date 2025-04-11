@@ -2,13 +2,13 @@ import unittest
 import unittest.mock as mock
 import uuid
 
-import SR
+from sm import SR
 import SMBSR
 import testlib
 from sm.core import util
 import errno
 import XenAPI
-import xs_errors
+from sm.core import xs_errors
 
 
 class FakeSMBSR(SMBSR.SMBSR):

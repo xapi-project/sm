@@ -10,7 +10,7 @@ import uuid
 
 import blktap2
 from sm.core import util
-import xs_errors
+from sm.core import xs_errors
 import XenAPI
 
 

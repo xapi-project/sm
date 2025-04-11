@@ -2,7 +2,7 @@ import unittest
 from unittest import mock
 
 from sm.core import iscsi
-from SRCommand import SRCommand
+from sm.SRCommand import SRCommand
 
 
 class ISCSITestCase(unittest.TestCase):

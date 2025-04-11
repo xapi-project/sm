@@ -19,15 +19,15 @@
 # hardware based iSCSI
 #
 
-import SR
+from sm import SR
 import LVHDSR
-import SRCommand
+from sm import SRCommand
 from sm import lvutil
 import HBASR
 import os
 import re
 import sys
-import xs_errors
+from sm.core import xs_errors
 import xmlrpc.client
 from sm.core import util
 from sm.core import scsiutil

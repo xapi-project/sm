@@ -21,7 +21,7 @@ import sys
 sys.path.append("/opt/xensource/sm/")
 from sm.core import util
 import lock
-from lvmcache import LVMCache
+from sm.lvmcache import LVMCache
 from sm.core import scsiutil
 
 

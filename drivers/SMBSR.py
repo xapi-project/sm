@@ -17,18 +17,18 @@
 #
 # SMBSR: SMB filesystem based storage repository
 
-import SR
-import SRCommand
+from sm import SR
+from sm import SRCommand
 import FileSR
 from sm.core import util
 import errno
 import os
 import xmlrpc.client
-import xs_errors
+from sm.core import xs_errors
 from sm import vhdutil
 from lock import Lock
 from sm import cleanup
-import cifutils
+from sm import cifutils
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_CACHING",
                 "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",

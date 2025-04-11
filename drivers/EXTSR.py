@@ -17,19 +17,19 @@
 #
 # EXTSR: Based on local-file storage repository, mounts ext3 partition
 
-import SR
-from SR import deviceCheck
-import SRCommand
+from sm import SR
+from sm.SR import deviceCheck
+from sm import SRCommand
 import FileSR
 from sm.core import util
 from sm import lvutil
 from sm.core import scsiutil
 
 import os
-import xs_errors
+from sm.core import xs_errors
 from sm import vhdutil
 from lock import Lock
-from constants import EXT_PREFIX
+from sm.constants import EXT_PREFIX
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_SUPPORTS_LOCAL_CACHING",
                 "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",

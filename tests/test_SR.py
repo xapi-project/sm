@@ -1,8 +1,8 @@
 import unittest
 import unittest.mock as mock
-import SR
-from SR import deviceCheck
-import xs_errors
+from sm import SR
+from sm.SR import deviceCheck
+from sm.core import xs_errors
 
 
 @mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
@@ -50,7 +50,7 @@ class TestSR(unittest.TestCase):
         with self.assertRaises(xs_errors.SROSError):
             checker.verify()
 
-    @mock.patch('SR.SR.scan', autospec=True)
+    @mock.patch('sm.SR.SR.scan', autospec=True)
     def test_after_master_attach_success(self, mock_scan):
         """
         Test that after_master_attach calls scan
@@ -61,9 +61,9 @@ class TestSR(unittest.TestCase):
 
         mock_scan.assert_called_once_with(sr1, 'dummy uuid')
 
-    @mock.patch('SR.XenAPI')
-    @mock.patch('SR.SR.scan', autospec=True)
-    @mock.patch('SR.util.SMlog', autospec=True)
+    @mock.patch('sm.SR.XenAPI')
+    @mock.patch('sm.SR.SR.scan', autospec=True)
+    @mock.patch('sm.SR.util.SMlog', autospec=True)
     def test_after_master_attach_vdi_not_available(
             self, mock_log, mock_scan, mock_xenapi):
         """

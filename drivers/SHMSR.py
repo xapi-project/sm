@@ -15,12 +15,12 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-import SR
-import VDI
-import SRCommand
+from sm import SR
+from sm import VDI
+from sm import SRCommand
 from sm.core import util
 import os
-import xs_errors
+from sm.core import xs_errors
 
 CAPABILITIES = ["VDI_ATTACH", "VDI_DETACH", "VDI_CLONE", "VDI_SNAPSHOT",
                 "SR_SCAN", "SR_ATTACH", "SR_DETACH"]

@@ -2,8 +2,8 @@ import unittest.mock as mock
 import LVHDoHBASR
 import unittest
 import xmlrpc.client
-import SRCommand
-import xs_errors
+from sm import SRCommand
+from sm.core import xs_errors
 
 from uuid import uuid4
 
@@ -89,7 +89,7 @@ class TestLVHDoHBASR(unittest.TestCase):
         self.mock_util = util_patcher.start()
         lc_patcher = mock.patch('LVHDSR.lvmcache.lvutil.Fairlock', autospec=True)
         self.mock_lc = lc_patcher.start()
-        xenapi_patcher = mock.patch('SR.XenAPI')
+        xenapi_patcher = mock.patch('sm.SR.XenAPI')
         self.mock_xapi = xenapi_patcher.start()
 
         self.addCleanup(mock.patch.stopall)

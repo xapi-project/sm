@@ -18,15 +18,15 @@
 # udevSR: represents VDIs which are hotplugged into dom0 via udev e.g.
 #         USB CDROM/disk devices
 
-import SR
-import VDI
-import SRCommand
+from sm import SR
+from sm import VDI
+from sm import SRCommand
 from sm.core import util
 import os
 import time
 import stat
-import xs_errors
-import sysdevice
+from sm.core import xs_errors
+from sm import sysdevice
 
 CAPABILITIES = ["VDI_INTRODUCE", "VDI_ATTACH", "VDI_DETACH", "VDI_UPDATE", "SR_UPDATE"]
 

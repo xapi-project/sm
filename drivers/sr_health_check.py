@@ -20,9 +20,9 @@ Health check for SR, to be triggered periodically by a systemd timer. What is ch
 SR implementation type dependent.
 """
 
-import SR
+from sm import SR
 from sm.core import util
-import xs_errors
+from sm.core import xs_errors
 
 def check_xapi_is_enabled(session, hostref):
     host = session.xenapi.host.get_record(hostref)

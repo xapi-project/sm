@@ -23,11 +23,11 @@ import XenAPIPlugin
 sys.path.append("/opt/xensource/sm/")
 import blktap2, util
 from lock import Lock
-import xs_errors
+from sm.core import xs_errors
 import XenAPI
 from sm import lvhdutil
 from sm import vhdutil
-import lvmcache
+from sm import lvmcache
 
 NBD_BACKPATH_PFX = "/run/blktap-control/nbd/"
 TAPDEV_PHYPATH_PFX = "/dev/sm/phy"

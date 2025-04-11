@@ -6,7 +6,7 @@ import uuid
 import unittest
 import unittest.mock as mock
 
-from srmetadata import (LVMMetadataHandler, buildHeader, buildXMLSector,
+from sm.srmetadata import (LVMMetadataHandler, buildHeader, buildXMLSector,
                         getMetadataLength, unpackHeader, updateLengthInHeader,
                         MAX_VDI_NAME_LABEL_DESC_LENGTH)
 
@@ -457,7 +457,7 @@ class LVMMetadataTestContext(testlib.TestContext):
 
     def start(self):
         super().start()
-        self.patch("srmetadata.util.gen_uuid", new=genuuid)
+        self.patch("sm.srmetadata.util.gen_uuid", new=genuuid)
 
     def generate_device_paths(self):
         yield self.METADATA_PATH

@@ -17,9 +17,9 @@
 #
 # FileSR: local-file storage repository
 
-import SR
-import VDI
-import SRCommand
+from sm import SR
+from sm import VDI
+from sm import SRCommand
 from sm.core import util
 from sm.core import scsiutil
 from sm import vhdutil
@@ -34,7 +34,7 @@ from uuid import uuid4
 from lock import Lock
 import xmlrpc.client
 import XenAPI # pylint: disable=import-error
-from constants import CBTLOG_TAG
+from sm.constants import CBTLOG_TAG
 
 geneology = {}
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", \

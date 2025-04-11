@@ -18,10 +18,10 @@
 # LVHDoISCSISR: LVHD over ISCSI software initiator SR driver
 #
 
-import SR
+from sm import SR
 import LVHDSR
-import BaseISCSI
-import SRCommand
+from sm import BaseISCSI
+from sm import SRCommand
 from sm.core import util
 from sm.core import scsiutil
 from sm import lvutil

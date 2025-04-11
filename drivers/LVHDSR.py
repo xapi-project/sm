@@ -24,33 +24,33 @@ import errno
 import re
 import glob
 
-import SR
-from SR import deviceCheck
-import VDI
-import SRCommand
+from sm import SR
+from sm.SR import deviceCheck
+from sm import VDI
+from sm import SRCommand
 from sm.core import util
 from sm.core import scsiutil
 from sm.core import xs_errors
 from sm.core.lock import Lock
 from sm import lvutil
 from sm import cleanup
-import lvmcache
+from sm import lvmcache
 from sm import vhdutil
 from sm import lvhdutil
 import blktap2
 from sm.journaler import Journaler
 from sm.refcounter import RefCounter
-from ipc import IPCFlag
-from lvmanager import LVActivator
+from sm.ipc import IPCFlag
+from sm.lvmanager import LVActivator
 import XenAPI # pylint: disable=import-error
-from srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, \
+from sm.srmetadata import ALLOCATION_TAG, NAME_LABEL_TAG, NAME_DESCRIPTION_TAG, \
     UUID_TAG, IS_A_SNAPSHOT_TAG, SNAPSHOT_OF_TAG, TYPE_TAG, VDI_TYPE_TAG, \
     READ_ONLY_TAG, MANAGED_TAG, SNAPSHOT_TIME_TAG, METADATA_OF_POOL_TAG, \
     LVMMetadataHandler, METADATA_OBJECT_TYPE_VDI, \
     METADATA_OBJECT_TYPE_SR, METADATA_UPDATE_OBJECT_TYPE_TAG
-from metadata import retrieveXMLfromFile, _parseXML
+from sm.metadata import retrieveXMLfromFile, _parseXML
 from xmlrpc.client import DateTime
-from constants import CBTLOG_TAG
+from sm.constants import CBTLOG_TAG
 from fairlock import Fairlock
 DEV_MAPPER_ROOT = os.path.join('/dev/mapper', lvhdutil.VG_PREFIX)
 

@@ -1,10 +1,9 @@
 import unittest
-import trim_util
+import unittest.mock as mock
 import testlib
 
-import unittest.mock as mock
-
 from sm.core import util
+from sm import trim_util
 
 IOCTL_ERROR = "blkdiscard: /dev/VG_XenStorage-33f99d3e-1c69-1a64-e05d-8a84ef7b8efc/33f99d3e-1c69-1a64-e05d-8a84ef7b8efc_trim_lv: BLKDISCARD ioctl failed: Operation not supported"
 
@@ -29,7 +28,7 @@ class AlwaysFreeLock(object):
 
 
 class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
-    @mock.patch('trim_util.util.sr_get_capability', autospec=True)
+    @mock.patch('sm.trim_util.util.sr_get_capability', autospec=True)
     @testlib.with_context
     def test_do_trim_error_code_trim_not_supported(self,
                                                    context,
@@ -53,8 +52,8 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         """, result)
 
     @mock.patch('time.sleep', autospec=True)
-    @mock.patch('trim_util.lock.Lock', autospec=True)
-    @mock.patch('trim_util.util.sr_get_capability', autospec=True)
+    @mock.patch('sm.trim_util.lock.Lock', autospec=True)
+    @mock.patch('sm.trim_util.util.sr_get_capability', autospec=True)
     @testlib.with_context
     def test_do_trim_unable_to_obtain_lock_on_sr(self,
                                                  context,
@@ -81,8 +80,8 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         """, result)
 
     @mock.patch('time.sleep', autospec=True)
-    @mock.patch('trim_util.lock.Lock', autospec=True)
-    @mock.patch('trim_util.util.sr_get_capability', autospec=True)
+    @mock.patch('sm.trim_util.lock.Lock', autospec=True)
+    @mock.patch('sm.trim_util.util.sr_get_capability', autospec=True)
     @testlib.with_context
     def test_do_trim_sleeps_a_sec_and_retries_three_times(self,
                                                           context,
@@ -102,10 +101,10 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
             sleep.mock_calls
         )
 
-    @mock.patch("trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
-    @mock.patch('trim_util.lvutil', autospec=True)
-    @mock.patch('trim_util.lock.Lock', autospec=True)
-    @mock.patch('trim_util.util.sr_get_capability', autospec=True)
+    @mock.patch("sm.trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
+    @mock.patch('sm.trim_util.lvutil', autospec=True)
+    @mock.patch('sm.trim_util.lock.Lock', autospec=True)
+    @mock.patch('sm.trim_util.util.sr_get_capability', autospec=True)
     @testlib.with_context
     def test_do_trim_creates_an_lv(self,
                                    context,
@@ -125,11 +124,11 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
             size_in_percentage='100%F'
         )
 
-    @mock.patch("trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
-    @mock.patch('trim_util.util.pread2', autospec=True)
-    @mock.patch('trim_util.lvutil', autospec=True)
-    @mock.patch('trim_util.lock.Lock', autospec=True)
-    @mock.patch('trim_util.util.sr_get_capability', autospec=True)
+    @mock.patch("sm.trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
+    @mock.patch('sm.trim_util.util.pread2', autospec=True)
+    @mock.patch('sm.trim_util.lvutil', autospec=True)
+    @mock.patch('sm.trim_util.lock.Lock', autospec=True)
+    @mock.patch('sm.trim_util.util.sr_get_capability', autospec=True)
     @testlib.with_context
     def test_do_trim_removes_lv_no_leftover_trim_vol(self,
                                                      context,
@@ -150,9 +149,9 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
             ["/usr/sbin/blkdiscard", "-v",
             "/dev/VG_XenStorage-some-uuid/some-uuid_trim_lv"])
 
-    @mock.patch('trim_util.lvutil', autospec=True)
-    @mock.patch('trim_util.lock.Lock', autospec=True)
-    @mock.patch('trim_util.util.sr_get_capability', autospec=True)
+    @mock.patch('sm.trim_util.lvutil', autospec=True)
+    @mock.patch('sm.trim_util.lock.Lock', autospec=True)
+    @mock.patch('sm.trim_util.util.sr_get_capability', autospec=True)
     @testlib.with_context
     def test_do_trim_releases_lock(self,
                                    context,
@@ -167,9 +166,9 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
 
         self.assertFalse(sr_lock.acquired)
 
-    @mock.patch('trim_util.lvutil', autospec=True)
-    @mock.patch('trim_util.lock.Lock', autospec=True)
-    @mock.patch('trim_util.util.sr_get_capability', autospec=True)
+    @mock.patch('sm.trim_util.lvutil', autospec=True)
+    @mock.patch('sm.trim_util.lock.Lock', autospec=True)
+    @mock.patch('sm.trim_util.util.sr_get_capability', autospec=True)
     @testlib.with_context
     def test_do_trim_removes_lv_with_leftover_trim_vol(self,
                                                       context,
@@ -188,9 +187,9 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
                     '/dev/VG_XenStorage-some-uuid/some-uuid_trim_lv')
             ], lvutil.remove.mock_calls)
 
-    @mock.patch('trim_util.lvutil', autospec=True)
-    @mock.patch('trim_util.lock.Lock', autospec=True)
-    @mock.patch('trim_util.util.sr_get_capability', autospec=True)
+    @mock.patch('sm.trim_util.lvutil', autospec=True)
+    @mock.patch('sm.trim_util.lock.Lock', autospec=True)
+    @mock.patch('sm.trim_util.util.sr_get_capability', autospec=True)
     @testlib.with_context
     def test_do_trim_lock_released_even_if_exception_raised(self,
                                                             context,
@@ -206,10 +205,10 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
 
         self.assertFalse(srlock.acquired)
 
-    @mock.patch("trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
-    @mock.patch('trim_util.lvutil', autospec=True)
-    @mock.patch('trim_util.lock.Lock', autospec=True)
-    @mock.patch('trim_util.util.sr_get_capability', autospec=True)
+    @mock.patch("sm.trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
+    @mock.patch('sm.trim_util.lvutil', autospec=True)
+    @mock.patch('sm.trim_util.lock.Lock', autospec=True)
+    @mock.patch('sm.trim_util.util.sr_get_capability', autospec=True)
     @testlib.with_context
     def test_do_trim_when_exception_then_returns_generic_err(self,
                                                              context,
@@ -240,11 +239,11 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         </trim_response>
         """, result)
 
-    @mock.patch("trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
-    @mock.patch('trim_util.util.pread2', autospec=True)
-    @mock.patch('trim_util.lvutil', autospec=True)
-    @mock.patch('trim_util.lock.Lock', autospec=True)
-    @mock.patch('trim_util.util.sr_get_capability', autospec=True)
+    @mock.patch("sm.trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
+    @mock.patch('sm.trim_util.util.pread2', autospec=True)
+    @mock.patch('sm.trim_util.lvutil', autospec=True)
+    @mock.patch('sm.trim_util.lock.Lock', autospec=True)
+    @mock.patch('sm.trim_util.util.sr_get_capability', autospec=True)
     @testlib.with_context
     def test_do_trim_when_trim_succeeded_returns_true(self,
                                                       context,
@@ -262,7 +261,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
 
         self.assertEqual('True', result)
 
-    @mock.patch('trim_util.time.time', autospec=True)
+    @mock.patch('sm.trim_util.time.time', autospec=True)
     def test_log_last_triggered_no_key(self, mock_time):
         session = mock.Mock()
         mock_time.return_value = 0
@@ -275,7 +274,7 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
             'sr_ref', trim_util.TRIM_LAST_TRIGGERED_KEY, '0')
         self.assertEqual(0, session.xenapi.SR.remove_from_other_config.call_count)
 
-    @mock.patch('trim_util.time.time', autospec=True)
+    @mock.patch('sm.trim_util.time.time', autospec=True)
     def test_log_last_triggered_has_key(self, mock_time):
         session = mock.Mock()
         mock_time.return_value = 0
@@ -290,8 +289,8 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         session.xenapi.SR.add_to_other_config.assert_called_with(
             'sr_ref', trim_util.TRIM_LAST_TRIGGERED_KEY, '0')
 
-    @mock.patch('trim_util.time.time', autospec=True)
-    @mock.patch('trim_util.util.logException', autospec=True)
+    @mock.patch('sm.trim_util.time.time', autospec=True)
+    @mock.patch('sm.trim_util.util.logException', autospec=True)
     def test_log_last_triggered_exc_logged(self, mock_log_exc, mock_time):
         session = mock.Mock()
         mock_time.return_value = 0
@@ -303,10 +302,10 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
 
         self.assertEqual(1, mock_log_exc.call_count)
 
-    @mock.patch("trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
-    @mock.patch('trim_util.lvutil', autospec=True)
-    @mock.patch('trim_util.lock.Lock', autospec=True)
-    @mock.patch('trim_util.util.sr_get_capability', autospec=True)
+    @mock.patch("sm.trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
+    @mock.patch('sm.trim_util.lvutil', autospec=True)
+    @mock.patch('sm.trim_util.lock.Lock', autospec=True)
+    @mock.patch('sm.trim_util.util.sr_get_capability', autospec=True)
     @testlib.with_context
     def test_do_trim_returns_exception_when_sr_full(self,
                                    context,
@@ -335,11 +334,11 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         </trim_response>
         """, result)
 
-    @mock.patch("trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
-    @mock.patch('trim_util.util.pread2', autospec=True)
-    @mock.patch('trim_util.lvutil', autospec=True)
-    @mock.patch('trim_util.lock.Lock', autospec=True)
-    @mock.patch('trim_util.util.sr_get_capability', autospec=True)
+    @mock.patch("sm.trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
+    @mock.patch('sm.trim_util.util.pread2', autospec=True)
+    @mock.patch('sm.trim_util.lvutil', autospec=True)
+    @mock.patch('sm.trim_util.lock.Lock', autospec=True)
+    @mock.patch('sm.trim_util.util.sr_get_capability', autospec=True)
     @testlib.with_context
     def test_do_trim_ioctl_not_supported(
             self, context, sr_get_capability, mock_lock, lvutil, mock_pread):
@@ -362,11 +361,11 @@ class TestTrimUtil(unittest.TestCase, testlib.XmlMixIn):
         # Assert
         self.assertEqual("True", result)
 
-    @mock.patch("trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
-    @mock.patch('trim_util.util.pread2', autospec=True)
-    @mock.patch('trim_util.lvutil', autospec=True)
-    @mock.patch('trim_util.lock.Lock', autospec=True)
-    @mock.patch('trim_util.util.sr_get_capability', autospec=True)
+    @mock.patch("sm.trim_util.lvutil.LVM_SIZE_INCREMENT", EMPTY_VG_SPACE)
+    @mock.patch('sm.trim_util.util.pread2', autospec=True)
+    @mock.patch('sm.trim_util.lvutil', autospec=True)
+    @mock.patch('sm.trim_util.lock.Lock', autospec=True)
+    @mock.patch('sm.trim_util.util.sr_get_capability', autospec=True)
     @testlib.with_context
     def test_do_trim_blkdiscard_error_not_ioctl(
             self, context, sr_get_capability, mock_lock, lvutil, mock_pread):
