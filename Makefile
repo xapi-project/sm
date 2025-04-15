@@ -143,14 +143,15 @@ SMLOG_CONF = SMlog
 
 SM_XML := XE_SR_ERRORCODES
 
-SM_DEST := /opt/xensource/sm/
-DEBUG_DEST := /opt/xensource/debug/
-BIN_DEST := /opt/xensource/bin/
+OPT_SM_DEST := /opt/xensource/sm/
+OPT_DEBUG_DEST := /opt/xensource/debug/
+OPT_BIN_DEST := /opt/xensource/bin/
+OPT_LIBEXEC := /opt/xensource/libexec/
 MASTER_SCRIPT_DEST := /etc/xensource/master.d/
 PLUGIN_SCRIPT_DEST := /etc/xapi.d/plugins/
-SM_LIBEXEC := /usr/libexec/sm
-SM_COMPAT_LIBEXEC := /opt/xensource/libexec/
-SM_DATADIR := /usr/share/sm
+BIN_DEST := /usr/bin/
+SM_LIBEXEC := /usr/libexec/sm/
+SM_DATADIR := /usr/share/sm/
 UDEV_RULES_DIR := /etc/udev/rules.d/
 UDEV_SCRIPTS_DIR := /etc/udev/scripts/
 SYSTEMD_SERVICE_DIR := /usr/lib/systemd/system/
@@ -200,7 +201,7 @@ precheck: build
 install: precheck
 	mkdir -p $(SM_STAGING)
 	$(call mkdir_clean,$(SM_STAGING))
-	mkdir -p $(SM_STAGING)$(SM_DEST)
+	mkdir -p $(SM_STAGING)$(OPT_SM_DEST)
 	mkdir -p $(SM_STAGING)$(UDEV_RULES_DIR)
 	mkdir -p $(SM_STAGING)$(UDEV_SCRIPTS_DIR)
 	mkdir -p $(SM_STAGING)$(INIT_DIR)
@@ -208,8 +209,8 @@ install: precheck
 	mkdir -p $(SM_STAGING)$(MPATH_CUSTOM_CONF_DIR)
 	mkdir -p $(SM_STAGING)$(MODPROBE_DIR)
 	mkdir -p $(SM_STAGING)$(LOGROTATE_DIR)
-	mkdir -p $(SM_STAGING)$(DEBUG_DEST)
-	mkdir -p $(SM_STAGING)$(BIN_DEST)
+	mkdir -p $(SM_STAGING)$(OPT_DEBUG_DEST)
+	mkdir -p $(SM_STAGING)$(OPT_BIN_DEST)
 	mkdir -p $(SM_STAGING)$(MASTER_SCRIPT_DEST)
 	mkdir -p $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	mkdir -p $(SM_STAGING)$(EXTENSION_SCRIPT_DEST)
@@ -232,18 +233,18 @@ install: precheck
 	done
 	# Legacy SM python files
 	for i in $(SM_COMPAT_PY_FILES); do \
-	  install -m 755 $$i $(SM_STAGING)$(SM_DEST); \
+	  install -m 755 $$i $(SM_STAGING)$(OPT_SM_DEST); \
 	done
 	# Plugin directory
 	mkdir -p $(SM_STAGING)$(SM_LIBEXEC)/plugins
-	ln -sf $(SM_LIBEXEC)/plugins $(SM_STAGING)$(SM_DEST)/plugins
+	ln -sf $(SM_LIBEXEC)/plugins $(SM_STAGING)$(OPT_SM_DEST)/plugins
 	for i in $(SM_PLUGINS); do \
 	  install -D -m 755 drivers/plugins/$$i $(SM_STAGING)/$(SM_LIBEXEC)/plugins/$$i; \
 	done
 	install -m 644 multipath/$(MPATH_CUSTOM_CONF) \
 	  $(SM_STAGING)/$(MPATH_CUSTOM_CONF_DIR)
 	install -m 755 multipath/multipath-root-setup \
-	  $(SM_STAGING)/$(SM_DEST)
+	  $(SM_STAGING)/$(OPT_SM_DEST)
 	install -m 644 etc/logrotate.d/$(SMLOG_CONF) \
 	  $(SM_STAGING)/$(LOGROTATE_DIR)
 	install -m 644 etc/make-dummy-sr.service \
@@ -267,14 +268,14 @@ install: precheck
 	for i in $(UDEV_RULES); do \
 	  install -m 644 udev/$$i.rules \
 	    $(SM_STAGING)$(UDEV_RULES_DIR); done
-	cd $(SM_STAGING)$(SM_DEST) && for i in $(SM_DRIVERS); do \
+	cd $(SM_STAGING)$(OPT_SM_DEST) && for i in $(SM_DRIVERS); do \
 	  ln -sf $$i"SR.py" $$i"SR"; \
 	done
-	rm $(SM_STAGING)$(SM_DEST)/SHMSR
-	cd $(SM_STAGING)$(SM_DEST) && rm -f LVHDSR && ln -sf LVHDSR.py LVMSR
-	cd $(SM_STAGING)$(SM_DEST) && rm -f RawISCSISR && ln -sf RawISCSISR.py ISCSISR
-	cd $(SM_STAGING)$(SM_DEST) && rm -f LVHDoISCSISR && ln -sf LVHDoISCSISR.py LVMoISCSISR
-	cd $(SM_STAGING)$(SM_DEST) && rm -f LVHDoHBASR && ln -sf LVHDoHBASR.py LVMoHBASR
+	rm $(SM_STAGING)$(OPT_SM_DEST)/SHMSR
+	cd $(SM_STAGING)$(OPT_SM_DEST) && rm -f LVHDSR && ln -sf LVHDSR.py LVMSR
+	cd $(SM_STAGING)$(OPT_SM_DEST) && rm -f RawISCSISR && ln -sf RawISCSISR.py ISCSISR
+	cd $(SM_STAGING)$(OPT_SM_DEST) && rm -f LVHDoISCSISR && ln -sf LVHDoISCSISR.py LVMoISCSISR
+	cd $(SM_STAGING)$(OPT_SM_DEST) && rm -f LVHDoHBASR && ln -sf LVHDoHBASR.py LVMoHBASR
 	install -m 755 drivers/02-vhdcleanup $(SM_STAGING)$(MASTER_SCRIPT_DEST)
 	install -m 755 drivers/lvhd-thin $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/on_slave.py $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)/on-slave
@@ -285,21 +286,21 @@ install: precheck
 	install -m 755 drivers/intellicache-clean $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	install -m 755 drivers/trim $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	mkdir -p $(SM_STAGING)$(SM_LIBEXEC)
-	mkdir -p $(SM_STAGING)$(SM_COMPAT_LIBEXEC)
+	mkdir -p $(SM_STAGING)$(OPT_LIBEXEC)
 	# Install libexec scripts with symlinks from the legacy location
 	for s in $(SM_LIBEXEC_SCRIPTS); do \
 	  install -m 755 scripts/$$s $(SM_STAGING)$(SM_LIBEXEC)/$$s; \
-	  ln -sf $(SM_LIBEXEC)/$$s $(SM_STAGING)$(SM_COMPAT_LIBEXEC)/$$s; \
+	  ln -sf $(SM_LIBEXEC)/$$s $(SM_STAGING)$(OPT_LIBEXEC)/$$s; \
 	done
 	# Install libexec commands with symlinks from the legacy location
 	for s in $(SM_LIBEXEC_PY_CMDS); do \
 	  install -m 755 drivers/$$s $(SM_STAGING)$(SM_LIBEXEC)/$$s; \
-	  ln -sf $(SM_LIBEXEC)/$$s $(SM_STAGING)$(SM_DEST)/"$$s".py; \
+	  ln -sf $(SM_LIBEXEC)/$$s $(SM_STAGING)$(OPT_SM_DEST)/"$$s".py; \
 	done
 	# Install libexec extras with symlinks from the legacy location
 	for s in $(SM_LIBEXEC_PY_XTRAS); do \
 	  install -D -m 755 drivers/"$$s".py $(SM_STAGING)$(SM_LIBEXEC)/xtra/$$s; \
-	  ln -sf $(SM_LIBEXEC)/xtra/$$s $(SM_STAGING)$(SM_DEST)/"$$s".py; \
+	  ln -sf $(SM_LIBEXEC)/xtra/$$s $(SM_STAGING)$(OPT_SM_DEST)/"$$s".py; \
 	done
 	mkdir -p $(SM_STAGING)/etc/xapi.d/xapi-pre-shutdown
 	for s in $(SM_XAPI_SHUTDOWN_SCRIPTS); do \
@@ -309,12 +310,12 @@ install: precheck
 	  install -m 755 scripts/$$s $(SM_STAGING)$(UDEV_SCRIPTS_DIR)/$$s; \
 	done
 	# Install mpathutil and compatibility symlinks
-	install -D -m 755 drivers/mpathutil.py $(SM_STAGING)/usr/bin/mpathutil
-	ln -sf /usr/bin/mpathutil $(SM_STAGING)$(SM_DEST)/mpathutil.py
-	ln -sf /usr/bin/mpathutil $(SM_STAGING)/sbin/mpathutil
+	install -D -m 755 drivers/mpathutil.py $(SM_STAGING)$(BIN_DEST)/mpathutil
+	ln -sf $(BIN_DEST)/mpathutil $(SM_STAGING)$(OPT_SM_DEST)/mpathutil.py
+	ln -sf $(BIN_DEST)/mpathutil $(SM_STAGING)/sbin/mpathutil
 	$(MAKE) -C dcopy install DESTDIR=$(SM_STAGING)
-	ln -sf $(SM_DEST)blktap2.py $(SM_STAGING)$(BIN_DEST)/blktap2
-	ln -sf $(SM_DEST)lcache.py $(SM_STAGING)$(BIN_DEST)tapdisk-cache-stats
+	ln -sf $(OPT_SM_DEST)blktap2.py $(SM_STAGING)$(OPT_BIN_DEST)/blktap2
+	ln -sf $(OPT_SM_DEST)lcache.py $(SM_STAGING)$(OPT_BIN_DEST)tapdisk-cache-stats
 
 .PHONY: clean
 clean:
