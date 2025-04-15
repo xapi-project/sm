@@ -4,5 +4,5 @@ Wants=xapi-init-complete.target
 
 [Service]
 Type=oneshot
-ExecStart=/opt/xensource/sm/sr_health_check.py
+ExecStart=/usr/libexec/sm/sr_health_check
 

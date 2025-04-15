@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 # Copyright (C) Cloud Software Group, Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -67,5 +65,3 @@ def main():
         session.xenapi.session.logout()
 
 
-if __name__ == "__main__":
-    main()

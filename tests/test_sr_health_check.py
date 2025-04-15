@@ -1,7 +1,7 @@
 import unittest
 import unittest.mock as mock
 
-import sr_health_check
+from sm import sr_health_check
 from sm.SR import SR
 
 TEST_HOST = 'test_host'
@@ -13,11 +13,11 @@ SR_UUID = 'sr uuid'
 class TestSrHealthCheck(unittest.TestCase):
 
     def setUp(self):
-        util_patcher = mock.patch('sr_health_check.util')
+        util_patcher = mock.patch('sm.sr_health_check.util')
         self.mock_util = util_patcher.start()
         self.mock_session = mock.MagicMock()
         self.mock_util.get_localAPI_session.return_value = self.mock_session
-        sr_patcher = mock.patch('sr_health_check.SR.SR', autospec=True)
+        sr_patcher = mock.patch('sm.sr_health_check.SR.SR', autospec=True)
         self.mock_sr = sr_patcher.start()
 
         self.addCleanup(mock.patch.stopall)
