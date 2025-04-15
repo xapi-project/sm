@@ -74,12 +74,12 @@ def multi(session, args):
 
 def _is_open(session, args):
     """Check if VDI <args["vdiUuid"]> is open by a tapdisk on this host"""
-    import SRCommand
+    from sm import SRCommand
     import SR
     import NFSSR
     import EXTSR
     import LVHDSR
-    import blktap2
+    from sm import blktap2
 
     util.SMlog("on-slave.is_open: %s" % args)
     vdiUuid = args["vdiUuid"]

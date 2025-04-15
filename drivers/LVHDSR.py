@@ -37,7 +37,7 @@ from sm import cleanup
 from sm import lvmcache
 from sm import vhdutil
 from sm import lvhdutil
-import blktap2
+from sm import blktap2
 from sm.journaler import Journaler
 from sm.refcounter import RefCounter
 from sm.ipc import IPCFlag

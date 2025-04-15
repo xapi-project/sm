@@ -34,6 +34,7 @@ SM_CORE_LIBS += libiscsi
 
 SM_LIBS :=
 SM_LIBS += BaseISCSI
+SM_LIBS += blktap2
 SM_LIBS += cbtutil
 SM_LIBS += cifutils
 SM_LIBS += cleanup
@@ -128,7 +129,6 @@ SM_COMPAT_LIBS += ipc
 SM_COMPAT_LIBS += srmetadata
 SM_COMPAT_LIBS += metadata
 SM_COMPAT_LIBS += lvmanager
-SM_COMPAT_LIBS += blktap2
 SM_COMPAT_LIBS += lcache
 SM_COMPAT_LIBS += resetvdis
 SM_COMPAT_LIBS += trim_util
@@ -171,7 +171,8 @@ SM_COMPAT_PY_FILES = $(foreach LIB, $(SM_COMPAT_LIBS), drivers/$(LIB).py) $(fore
 SM_XTRA_PY_FILES :=
 SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_CMDS), drivers/$(LIB))
 SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_XTRAS), drivers/$(LIB).py)
-
+SM_XTRA_PY_FILES += drivers/mpathutil.py
+SM_XTRA_PY_FILES += drivers/blktap2
 
 .PHONY: build
 build:
@@ -313,8 +314,11 @@ install: precheck
 	install -D -m 755 drivers/mpathutil.py $(SM_STAGING)$(BIN_DEST)/mpathutil
 	ln -sf $(BIN_DEST)/mpathutil $(SM_STAGING)$(OPT_SM_DEST)/mpathutil.py
 	ln -sf $(BIN_DEST)/mpathutil $(SM_STAGING)/sbin/mpathutil
+	# Install blktap2 and compatibility symlinks
+	install -D -m 755 drivers/blktap2 $(SM_STAGING)$(BIN_DEST)/blktap2
+	ln -sf $(BIN_DEST)/blktap2 $(SM_STAGING)$(OPT_BIN_DEST)/blktap2
+
 	$(MAKE) -C dcopy install DESTDIR=$(SM_STAGING)
-	ln -sf $(OPT_SM_DEST)blktap2.py $(SM_STAGING)$(OPT_BIN_DEST)/blktap2
 	ln -sf $(OPT_SM_DEST)lcache.py $(SM_STAGING)$(OPT_BIN_DEST)tapdisk-cache-stats
 
 .PHONY: clean

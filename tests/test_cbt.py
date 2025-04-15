@@ -78,7 +78,7 @@ class TestCBT(unittest.TestCase):
         self.sr.session.xenapi = self.xenapi
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('sm.blktap2.VDI', autospec=True)
     @mock.patch('sm.VDI.VDI._cbt_op', autospec=True)
     def test_configure_blocktracking_enable_success(self, context, mock_cbt, mock_bt_vdi):
         # Create the test object
@@ -90,7 +90,7 @@ class TestCBT(unittest.TestCase):
         self._check_tapdisk_paused_and_resumed(mock_bt_vdi, self.vdi_uuid)
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('sm.blktap2.VDI', autospec=True)
     @mock.patch('sm.VDI.cbtutil', autospec=True)
     def test_configure_blocktracking_enable_already_enabled(self, context, mock_cbt, mock_bt_vdi):
         # Create the test object
@@ -103,7 +103,7 @@ class TestCBT(unittest.TestCase):
         self._check_tapdisk_not_modified(mock_bt_vdi)
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('sm.blktap2.VDI', autospec=True)
     @mock.patch('sm.VDI.VDI._cbt_log_exists', autospec=True)
     @mock.patch('sm.VDI.VDI._cbt_op', autospec=True)
     @mock.patch('sm.VDI.Lock')
@@ -119,7 +119,7 @@ class TestCBT(unittest.TestCase):
         self._check_tapdisk_paused_and_resumed(mock_bt_vdi, self.vdi_uuid)
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('sm.blktap2.VDI', autospec=True)
     @mock.patch('sm.VDI.cbtutil', autospec=True)
     @mock.patch('sm.VDI.VDI._cbt_log_exists', autospec=True)
     @mock.patch('sm.VDI.Lock')
@@ -144,7 +144,7 @@ class TestCBT(unittest.TestCase):
         mock_cbt.set_cbt_child.assert_has_calls(child_call)
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('sm.blktap2.VDI', autospec=True)
     def test_configure_blocktracking_disable_already_disabled(self, context, mock_bt_vdi):
         # Create the test object
         self.vdi = TestVDI(self.sr, self.vdi_uuid)
@@ -172,7 +172,7 @@ class TestCBT(unittest.TestCase):
         with self.assertRaises(xs_errors.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
-    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('sm.blktap2.VDI', autospec=True)
     @mock.patch('sm.VDI.util', autospec=True)
     @mock.patch('sm.VDI.cbtutil', autospec=True)
     def test_configure_blocktracking_enable_pause_fail(
@@ -186,7 +186,7 @@ class TestCBT(unittest.TestCase):
         with self.assertRaises(xs_errors.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
-    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('sm.blktap2.VDI', autospec=True)
     @mock.patch('sm.VDI.util', autospec=True)
     def test_configure_blocktracking_disable_pause_fail(
             self, mock_util, mock_bt_vdi):
@@ -210,7 +210,7 @@ class TestCBT(unittest.TestCase):
         with self.assertRaises(xs_errors.SROSError):
             self.vdi.configure_blocktracking(self.sr_uuid, self.vdi_uuid, True)
 
-    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('sm.blktap2.VDI', autospec=True)
     @mock.patch('sm.VDI.cbtutil', autospec=True)
     def test_configure_blocktracking_enable_metadata_creation_fail(
             self, mock_cbt, mock_bt_vdi):
@@ -225,7 +225,7 @@ class TestCBT(unittest.TestCase):
         self._check_tapdisk_not_modified(mock_bt_vdi)
         self._check_setting_state(self.vdi, False)
 
-    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('sm.blktap2.VDI', autospec=True)
     @mock.patch('sm.VDI.cbtutil', autospec=True)
     def test_configure_blocktracking_enable_metadata_initialisation_fail(
             self, mock_cbt, mock_bt_vdi):
@@ -240,7 +240,7 @@ class TestCBT(unittest.TestCase):
         self._check_tapdisk_not_modified(mock_bt_vdi)
         self._check_setting_state(self.vdi, False)
 
-    @mock.patch('blktap2.VDI')
+    @mock.patch('sm.blktap2.VDI')
     @mock.patch('sm.VDI.Lock')
     def test_configure_blocktracking_disable_metadata_deletion_fail(
             self, mock_lock, mock_bt_vdi):
@@ -511,7 +511,7 @@ class TestCBT(unittest.TestCase):
         self.vdi.state_mock._delete_cbt_log.assert_called_with()
 
     @testlib.with_context
-    @mock.patch('blktap2.VDI', autospec=True)
+    @mock.patch('sm.blktap2.VDI', autospec=True)
     @mock.patch('sm.VDI.cbtutil', autospec=True)
     @mock.patch('sm.VDI.VDI._cbt_log_exists')
     @mock.patch('sm.VDI.Lock')
