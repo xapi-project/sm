@@ -71,6 +71,7 @@ SM_LIBEXEC_PY_CMDS :=
 SM_LIBEXEC_PY_CMDS += mpathcount
 SM_LIBEXEC_PY_CMDS += cleanup
 SM_LIBEXEC_PY_CMDS += sr_health_check
+SM_LIBEXEC_PY_CMDS += verifyVHDsOnSR
 
 # Things which are written as commands but have
 # a .py extension which may eventually be dropped
@@ -115,7 +116,6 @@ SM_COMPAT_LIBS += VDI
 SM_COMPAT_LIBS += BaseISCSI
 SM_COMPAT_LIBS += lvutil
 SM_COMPAT_LIBS += lvmcache
-SM_COMPAT_LIBS += verifyVHDsOnSR
 SM_COMPAT_LIBS += vhdutil
 SM_COMPAT_LIBS += lvhdutil
 SM_COMPAT_LIBS += cifutils
