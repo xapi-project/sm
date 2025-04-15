@@ -19,13 +19,14 @@
 # - at any time there is at most 1 rescan happening on a system for a hostid
 # - we have as few rescans as possible
 
-from sm.core import lock
-from sm.core import util
 import os
 import time
 import glob
 from datetime import datetime
 from xmlrpc.client import DateTime
+
+from sm.core import lock
+from sm.core import util
 
 HOST_LOCK_NAME_FORMAT = 'host%s'
 RESCAN_LOCK_NAME = 'rescan'

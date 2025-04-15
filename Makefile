@@ -65,7 +65,16 @@ SM_LIBS += vhdutil
 # Things used as commands which install in libexec
 # which are in python and need compatibility symlinks from
 # /opt
-SM_LIBEXEC_PY_CMDS := mpathcount cleanup
+SM_LIBEXEC_PY_CMDS :=
+SM_LIBEXEC_PY_CMDS += mpathcount
+SM_LIBEXEC_PY_CMDS += cleanup
+
+# Things which are written as commands but have
+# a .py extension which may eventually be dropped
+# They are installed in libexec under a subdirectory
+# and symlinked from /opt using their original names
+SM_LIBEXEC_PY_XTRAS :=
+SM_LIBEXEC_PY_XTRAS += scsi_host_rescan
 
 # SCRIPTS which install in libexec
 SM_LIBEXEC_SCRIPTS := local-device-change
@@ -104,7 +113,6 @@ SM_COMPAT_LIBS += BaseISCSI
 SM_COMPAT_LIBS += lvutil
 SM_COMPAT_LIBS += lvmcache
 SM_COMPAT_LIBS += verifyVHDsOnSR
-SM_COMPAT_LIBS += scsi_host_rescan
 SM_COMPAT_LIBS += vhdutil
 SM_COMPAT_LIBS += lvhdutil
 SM_COMPAT_LIBS += cifutils
@@ -158,7 +166,11 @@ SM_STAMP := $(MY_OBJ_DIR)/.staging_stamp
 SM_PY_FILES = $(foreach LIB, $(SM_LIBS), libs/sm/$(LIB).py) libs/sm/__init__.py
 SM_CORE_PY_FILES = $(foreach LIB, $(SM_CORE_LIBS), libs/sm/core/$(LIB).py) libs/sm/core/__init__.py
 SM_COMPAT_PY_FILES = $(foreach LIB, $(SM_COMPAT_LIBS), drivers/$(LIB).py) $(foreach DRIVER, $(SM_DRIVERS), drivers/$(DRIVER)SR.py)
-SM_LIBEXEC_PY_FILES = $(foreach LIB, $(SM_LIBEXEC_PY_CMDS), drivers/$(LIB))
+# Various bits of python which need to be included in pylint etc, but are installed via other means
+SM_XTRA_PY_FILES :=
+SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_CMDS), drivers/$(LIB))
+SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_XTRAS), drivers/$(LIB).py)
+
 
 .PHONY: build
 build:
@@ -181,7 +193,7 @@ precommit: build
 
 .PHONY: precheck
 precheck: build
-	PYTHONPATH=./drivers:./libs:./misc/fairlock:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $(SM_PY_FILES) $(SM_CORE_PY_FILES) $(SM_LIBEXEC_PY_FILES) $(SM_COMPAT_PY_FILES)
+	PYTHONPATH=./drivers:./libs:./misc/fairlock:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $(SM_PY_FILES) $(SM_CORE_PY_FILES) $(SM_XTRA_PY_FILES) $(SM_COMPAT_PY_FILES)
 	echo "Precheck succeeded with no outstanding issues found."
 
 .PHONY: install
@@ -283,6 +295,11 @@ install: precheck
 	for s in $(SM_LIBEXEC_PY_CMDS); do \
 	  install -m 755 drivers/$$s $(SM_STAGING)$(SM_LIBEXEC)/$$s; \
 	  ln -sf $(SM_LIBEXEC)/$$s $(SM_STAGING)$(SM_DEST)/"$$s".py; \
+	done
+	# Install libexec extras with symlinks from the legacy location
+	for s in $(SM_LIBEXEC_PY_XTRAS); do \
+	  install -D -m 755 drivers/"$$s".py $(SM_STAGING)$(SM_LIBEXEC)/xtra/$$s; \
+	  ln -sf $(SM_LIBEXEC)/xtra/$$s $(SM_STAGING)$(SM_DEST)/"$$s".py; \
 	done
 	mkdir -p $(SM_STAGING)/etc/xapi.d/xapi-pre-shutdown
 	for s in $(SM_XAPI_SHUTDOWN_SCRIPTS); do \
