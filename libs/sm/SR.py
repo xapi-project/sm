@@ -187,7 +187,7 @@ class SR(object):
         # NB. make srcmd, to please our supersized SR constructor.
         # FIXME
 
-        from SRCommand import SRCommand
+        from sm.SRCommand import SRCommand
         # pylint:  disable=E1101
         cmd = SRCommand(module.DRIVER_INFO)
         cmd.dconf = device_config
@@ -469,13 +469,20 @@ class SR(object):
                 self.mpath = "false"
                 self.mpathhandle = "null"
 
-            if not os.path.exists("/opt/xensource/sm/mpath_%s.py" % self.mpathhandle):
-                raise IOError("File does not exist = %s" % self.mpathhandle)
+            # Attempt to import the specified mpath module and return None
+            # if this does not throw an exception.
+            module_name = "sm.core.mpath_%s" % self.mpathhandle
+            self.mpathmodule = __import__(module_name, fromlist=[None])
+            return None
         except:
+            # If attempting to import the specified mpath module failed for any reason,
+            # repeat with the "null" mpath module. Any exception this throws is the caller's
+            # problem.
             self.mpath = "false"
             self.mpathhandle = "null"
-        module_name = "mpath_%s" % self.mpathhandle
-        self.mpathmodule = __import__(module_name)
+            module_name = "sm.core.mpath_%s" % self.mpathhandle
+            self.mpathmodule = __import__(module_name, fromlist=[None])
+        return None
 
     def _mpathHandle(self):
         if self.mpath == "true":

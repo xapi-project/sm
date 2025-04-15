@@ -57,6 +57,7 @@ SM_LIBS += refcounter
 SM_LIBS += resetvdis
 SM_LIBS += SR
 SM_LIBS += SRCommand
+SM_LIBS += sr_health_check
 SM_LIBS += srmetadata
 SM_LIBS += sysdevice
 SM_LIBS += trim_util
@@ -69,6 +70,7 @@ SM_LIBS += vhdutil
 SM_LIBEXEC_PY_CMDS :=
 SM_LIBEXEC_PY_CMDS += mpathcount
 SM_LIBEXEC_PY_CMDS += cleanup
+SM_LIBEXEC_PY_CMDS += sr_health_check
 
 # Things which are written as commands but have
 # a .py extension which may eventually be dropped
@@ -135,7 +137,6 @@ SM_COMPAT_LIBS += trim_util
 SM_COMPAT_LIBS += pluginutil
 SM_COMPAT_LIBS += constants
 SM_COMPAT_LIBS += cbtutil
-SM_COMPAT_LIBS += sr_health_check
 
 UDEV_RULES = 65-multipath 55-xs-mpath-scsidev 57-usb 58-xapi 99-purestorage
 MPATH_CUSTOM_CONF = custom.conf
