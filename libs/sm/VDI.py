@@ -306,7 +306,7 @@ class VDI(object):
         prior to deletion, otherwise the delete() will fail if the
         disk is still attached.
         """
-        import blktap2
+        from sm import blktap2
 
         if data_only == False and self._get_blocktracking_status():
             logpath = self._get_cbt_logpath(vdi_uuid)
@@ -574,7 +574,7 @@ class VDI(object):
 
     def configure_blocktracking(self, sr_uuid, vdi_uuid, enable):
         """Function for configuring blocktracking"""
-        import blktap2
+        from sm import blktap2
         vdi_ref = self.sr.srcmd.params['vdi_ref']
 
         # Check if raw VDI or snapshot

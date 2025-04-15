@@ -16,7 +16,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 import os
-import blktap2
+from sm import blktap2
 import glob
 import re
 from stat import *  # S_ISBLK(), ...

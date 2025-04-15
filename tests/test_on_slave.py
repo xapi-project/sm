@@ -13,7 +13,7 @@ import on_slave
 
 class Test_on_slave_is_open(unittest.TestCase):
 
-    MOCK_IMPORTS = ['SRCommand', 'SR', 'NFSSR', 'EXTSR', 'LVHDSR', 'blktap2']
+    MOCK_IMPORTS = ['SRCommand', 'SR', 'NFSSR', 'EXTSR', 'LVHDSR', 'sm']
 
     def fake_import(self, *args, **kwargs):
         print('Asked to import {}'.format(args[0]))
@@ -29,10 +29,8 @@ class Test_on_slave_is_open(unittest.TestCase):
         self.mock_import = import_patcher.start()
         self.mock_import.side_effect = self.fake_import
 
-        self.mock_sr = mock.MagicMock()
-        self.mocks['SR'] = self.mock_sr
-        self.mock_blktap2 = mock.MagicMock()
-        self.mocks['blktap2'] = self.mock_blktap2
+        self.mock_sr = self.mocks['SR']
+        self.mock_sm = self.mocks['sm']
 
     def test_is_open_nfssr_success(self):
         """
@@ -78,7 +76,7 @@ class Test_on_slave_is_open(unittest.TestCase):
         """
         VDI is not open
         """
-        self.mock_blktap2.Tapdisk.find_by_path.return_value = None
+        self.mock_sm.blktap2.Tapdisk.find_by_path.return_value = None
 
         vdi_uuid = uuid.uuid4()
         mock_session = mock.MagicMock()

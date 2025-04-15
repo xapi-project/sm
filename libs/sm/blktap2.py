@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -23,8 +21,6 @@ import re
 import stat
 import time
 import copy
-from sm.core.lock import Lock
-from sm.core import util
 import xmlrpc.client
 import http.client
 import errno
@@ -33,17 +29,18 @@ import subprocess
 import syslog as _syslog
 import glob
 import json
-from sm.core import xs_errors
-import XenAPI # pylint: disable=import-error
-from sm.core import scsiutil
 from syslog import openlog, syslog
 from stat import *  # S_ISBLK(), ...
-from sm import nfs
 
+import XenAPI # pylint: disable=import-error
+from sm.core.lock import Lock
+from sm.core import util
+from sm.core import xs_errors
+from sm.core import scsiutil
+from sm import nfs
 from sm import resetvdis
 from sm import vhdutil
 from sm import lvhdutil
-
 from sm import VDI as sm
 
 # For RRDD Plugin Registration
@@ -2545,154 +2542,3 @@ class BlkbackEventHandler(UEventHandler):
                       "pausing=%s closing=%s running=%s" % \
                           (pausing, closing, running))
 
-if __name__ == '__main__':
-
-    import sys
-    prog = os.path.basename(sys.argv[0])
-
-    #
-    # Simple CLI interface for manual operation
-    #
-    #  tap.*  level calls go down to local Tapdisk()s (by physical path)
-    #  vdi.*  level calls run the plugin calls across host boundaries.
-    #
-
-    def usage(stream):
-        print("usage: %s tap.{list|major}" % prog, file=stream)
-        print("       %s tap.{launch|find|get|pause|" % prog + \
-            "unpause|shutdown|stats} {[<tt>:]<path>} | [minor=]<int> | .. }", file=stream)
-        print("       %s vbd.uevent" % prog, file=stream)
-
-    try:
-        cmd = sys.argv[1]
-    except IndexError:
-        usage(sys.stderr)
-        sys.exit(1)
-
-    try:
-        _class, method = cmd.split('.')
-    except:
-        usage(sys.stderr)
-        sys.exit(1)
-
-    #
-    # Local Tapdisks
-    #
-
-    if cmd == 'tap.major':
-
-        print("%d" % Tapdisk.major())
-
-    elif cmd == 'tap.launch':
-
-        tapdisk = Tapdisk.launch_from_arg(sys.argv[2])
-        print("Launched %s" % tapdisk, file=sys.stderr)
-
-    elif _class == 'tap':
-
-        attrs = {}
-        for item in sys.argv[2:]:
-            try:
-                key, val = item.split('=')
-                attrs[key] = val
-                continue
-            except ValueError:
-                pass
-
-            try:
-                attrs['minor'] = int(item)
-                continue
-            except ValueError:
-                pass
-
-            try:
-                arg = Tapdisk.Arg.parse(item)
-                attrs['_type'] = arg.type
-                attrs['path'] = arg.path
-                continue
-            except Tapdisk.Arg.InvalidArgument:
-                pass
-
-            attrs['path'] = item
-
-        if cmd == 'tap.list':
-
-            for tapdisk in Tapdisk.list( ** attrs):
-                blktap = tapdisk.get_blktap()
-                print(tapdisk, end=' ')
-
-        elif cmd == 'tap.vbds':
-            # Find all Blkback instances for a given tapdisk
-
-            for tapdisk in Tapdisk.list( ** attrs):
-                print("%s:" % tapdisk, end=' ')
-                for vbd in Blkback.find_by_tap(tapdisk):
-                    print(vbd, end=' ')
-                print()
-
-        else:
-
-            if not attrs:
-                usage(sys.stderr)
-                sys.exit(1)
-
-            try:
-                tapdisk = Tapdisk.get( ** attrs)
-            except TypeError:
-                usage(sys.stderr)
-                sys.exit(1)
-
-            if cmd == 'tap.shutdown':
-                # Shutdown a running tapdisk, or raise
-                tapdisk.shutdown()
-                print("Shut down %s" % tapdisk, file=sys.stderr)
-
-            elif cmd == 'tap.pause':
-                # Pause an unpaused tapdisk, or raise
-                tapdisk.pause()
-                print("Paused %s" % tapdisk, file=sys.stderr)
-
-            elif cmd == 'tap.unpause':
-                # Unpause a paused tapdisk, or raise
-                tapdisk.unpause()
-                print("Unpaused %s" % tapdisk, file=sys.stderr)
-
-            elif cmd == 'tap.stats':
-                # Gather tapdisk status
-                stats = tapdisk.stats()
-                print("%s:" % tapdisk)
-                print(json.dumps(stats, indent=True))
-
-            else:
-                usage(sys.stderr)
-                sys.exit(1)
-
-    elif cmd == 'vbd.uevent':
-
-        hnd = BlkbackEventHandler(cmd)
-
-        if not sys.stdin.isatty():
-            try:
-                hnd.run()
-            except Exception as e:
-                hnd.error("Unhandled Exception: %s" % e)
-
-                import traceback
-                _type, value, tb = sys.exc_info()
-                trace = traceback.format_exception(_type, value, tb)
-                for entry in trace:
-                    for line in entry.rstrip().split('\n'):
-                        util.SMlog(line)
-        else:
-            hnd.run()
-
-    elif cmd == 'vbd.list':
-
-        for vbd in Blkback.find():
-            print(vbd, \
-                "physical-device=%s" % vbd.get_physical_device(), \
-                "pause=%s" % vbd.pause_requested())
-
-    else:
-        usage(sys.stderr)
-        sys.exit(1)

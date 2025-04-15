@@ -27,7 +27,7 @@ import os
 import errno
 from sm.core import xs_errors
 from sm import cleanup
-import blktap2
+from sm import blktap2
 import time
 import glob
 from uuid import uuid4

@@ -1,6 +1,6 @@
 import unittest
 
-from blktap2 import Tapdisk
+from sm.blktap2 import Tapdisk
 from lcache import CachingTap, LeafCachingTap
 
 class TestLcacheCachingTap(unittest.TestCase):

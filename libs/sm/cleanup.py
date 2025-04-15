@@ -30,7 +30,7 @@ import stat
 from sm.ipc import IPCFlag
 from functools import reduce
 from time import monotonic as _time
-import blktap2
+from sm import blktap2
 import XenAPI # pylint: disable=import-error
 
 from sm import lvutil
