@@ -18,7 +18,7 @@ import pickle
 import sys
 import time
 
-import lock
+from sm.core import lock
 from sm.core import util
 
 

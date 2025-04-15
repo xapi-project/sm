@@ -23,7 +23,7 @@ import re
 import stat
 import time
 import copy
-from lock import Lock
+from sm.core.lock import Lock
 from sm.core import util
 import xmlrpc.client
 import http.client

@@ -5,7 +5,7 @@ import sys
 import unittest
 import unittest.mock as mock
 
-import lock
+from sm.core import lock
 from sm import lock_queue
 
 ## Instead of saving the process queue to disk the mocks will save it here.
@@ -34,7 +34,7 @@ class Test_LockQueue(unittest.TestCase):
     @mock.patch('sm.lock_queue.pickle.dump', side_effect=mock_pickle_dump_fn)
     @mock.patch('sm.lock_queue.os.getpid')
     @mock.patch('sm.lock_queue.get_process_start_time')
-    @mock.patch('lock.Lock', autospec=False)
+    @mock.patch('sm.core.lock.Lock', autospec=False)
     def test_push_to_queue_3x(self, lock, start_time, getpid, pdump, pload):
         global saved_queue
 
@@ -54,7 +54,7 @@ class Test_LockQueue(unittest.TestCase):
     @mock.patch('sm.lock_queue.pickle.dump', side_effect=mock_pickle_dump_fn)
     @mock.patch('sm.lock_queue.os.getpid')
     @mock.patch('sm.lock_queue.get_process_start_time')
-    @mock.patch('lock.Lock', autospec=False)
+    @mock.patch('sm.core.lock.Lock', autospec=False)
     def test_context_manager(self, lock, start_time, getpid, pdump, pload):
         global saved_queue
 
@@ -72,7 +72,7 @@ class Test_LockQueue(unittest.TestCase):
     @mock.patch('sm.lock_queue.pickle.dump', side_effect=mock_pickle_dump_fn)
     @mock.patch('sm.lock_queue.os.getpid')
     @mock.patch('sm.lock_queue.get_process_start_time')
-    @mock.patch('lock.Lock', autospec=False)
+    @mock.patch('sm.core.lock.Lock', autospec=False)
     def test_context_manager_bad_entry(self, lock, start_time, getpid, pdump, pload):
         global saved_queue
 

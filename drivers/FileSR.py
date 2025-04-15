@@ -31,7 +31,7 @@ import blktap2
 import time
 import glob
 from uuid import uuid4
-from lock import Lock
+from sm.core.lock import Lock
 import xmlrpc.client
 import XenAPI # pylint: disable=import-error
 from sm.constants import CBTLOG_TAG

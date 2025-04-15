@@ -27,7 +27,7 @@ from sm import lvutil
 from sm import lvhdutil
 from sm import vhdutil
 
-from lock import Lock
+from sm.core.lock import Lock
 from sm.refcounter import RefCounter
 
 # Stores the vdi activated, comes handy while deactivating

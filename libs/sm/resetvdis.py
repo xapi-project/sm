@@ -19,7 +19,7 @@
 
 from sm import cleanup
 from sm.core import util
-import lock
+from sm.core import lock
 import sys
 import XenAPI # pylint: disable=import-error
 
