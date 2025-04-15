@@ -22,7 +22,7 @@ import sys
 import XenAPIPlugin
 sys.path.append("/opt/xensource/sm/")
 import blktap2, util
-from lock import Lock
+from sm.core.lock import Lock
 from sm.core import xs_errors
 import XenAPI
 from sm import lvhdutil

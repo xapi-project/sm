@@ -7,8 +7,8 @@ import struct
 
 import testlib
 
-import flock
-import lock
+from sm.core import flock
+from sm.core import lock
 
 
 class TestLock(unittest.TestCase):

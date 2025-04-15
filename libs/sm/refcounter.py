@@ -24,7 +24,7 @@
 
 import os
 from sm.core import util
-from lock import Lock
+from sm.core.lock import Lock
 import errno
 
 

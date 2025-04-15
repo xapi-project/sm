@@ -506,7 +506,7 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         self.mock_vhdutil.getDepth.return_value = 1
 
         # Act
-        with mock.patch('lock.Lock'):
+        with mock.patch('sm.core.lock.Lock'):
             snap = vdi.snapshot(sr.uuid, "Dummy UUID")
 
         # Assert

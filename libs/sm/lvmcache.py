@@ -20,7 +20,7 @@ import os
 from sm.core import util
 from sm import lvutil
 from sm import lvhdutil
-from lock import Lock
+from sm.core.lock import Lock
 from sm.refcounter import RefCounter
 
 

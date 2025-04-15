@@ -28,7 +28,7 @@ from sm.core import scsiutil
 import os
 from sm.core import xs_errors
 from sm import vhdutil
-from lock import Lock
+from sm.core.lock import Lock
 from sm.constants import EXT_PREFIX
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_SUPPORTS_LOCAL_CACHING",

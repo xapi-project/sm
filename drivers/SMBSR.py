@@ -26,7 +26,7 @@ import os
 import xmlrpc.client
 from sm.core import xs_errors
 from sm import vhdutil
-from lock import Lock
+from sm.core.lock import Lock
 from sm import cleanup
 from sm import cifutils
 
