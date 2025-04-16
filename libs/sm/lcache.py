@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -16,10 +14,10 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 import os
-from sm import blktap2
 import glob
 import re
 from stat import *  # S_ISBLK(), ...
+from sm import blktap2
 
 SECTOR_SHIFT = 9
 
@@ -339,70 +337,3 @@ class CacheFileSR(object):
 
 CacheSR = CacheFileSR
 
-if __name__ == '__main__':
-
-    import sys
-    from pprint import pprint
-
-    args = list(sys.argv)
-    prog = args.pop(0)
-    prog = os.path.basename(prog)
-
-
-    def usage(stream):
-        if prog == 'tapdisk-cache-stats':
-            print("usage: tapdisk-cache-stats [<sr-uuid>]", file=stream)
-        else:
-            print("usage: %s sr.{stats|topology} [<sr-uuid>]" % prog, file=stream)
-
-
-    def usage_error():
-        usage(sys.stderr)
-        sys.exit(1)
-
-    if prog == 'tapdisk-cache-stats':
-        cmd = 'sr.stats'
-    else:
-        try:
-            cmd = args.pop(0)
-        except IndexError:
-            usage_error()
-
-    try:
-        _class, method = cmd.split('.')
-    except:
-        usage(sys.stderr)
-        sys.exit(1)
-
-    if _class == 'sr':
-        try:
-            uuid = args.pop(0)
-        except IndexError:
-            cache_sr = CacheSR.from_cli()
-        else:
-            cache_sr = CacheSR.from_uuid(uuid)
-
-        if method == 'stats':
-
-            d = cache_sr.xapi_stats()
-            for item in d.items():
-                print("%s=%s" % item)
-
-        elif method == 'topology':
-            parents = cache_sr.fast_scan_topology()
-
-            for parent in parents:
-                print(parent, "hits/miss=%s total=%s" % \
-                    (parent.vdi_stats(), parent.vdi_stats_total()))
-                pprint(parent.stats)
-
-                for leaf in parent.leaves:
-                    print(leaf, "hits/miss=%s" % str(leaf.vdi_stats()))
-                    pprint(leaf.stats)
-
-            print("sr.total=%s" % str(cache_sr.vdi_stats_total()))
-
-        else:
-            usage_error()
-    else:
-        usage_error()

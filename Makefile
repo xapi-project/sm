@@ -131,7 +131,6 @@ SM_COMPAT_LIBS += ipc
 SM_COMPAT_LIBS += srmetadata
 SM_COMPAT_LIBS += metadata
 SM_COMPAT_LIBS += lvmanager
-SM_COMPAT_LIBS += lcache
 SM_COMPAT_LIBS += resetvdis
 SM_COMPAT_LIBS += trim_util
 SM_COMPAT_LIBS += pluginutil
@@ -174,6 +173,7 @@ SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_CMDS), drivers/$(LIB))
 SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_XTRAS), drivers/$(LIB).py)
 SM_XTRA_PY_FILES += drivers/mpathutil.py
 SM_XTRA_PY_FILES += drivers/blktap2
+SM_XTRA_PY_FILES += drivers/tapdisk-cache-stats
 
 .PHONY: build
 build:
@@ -292,17 +292,17 @@ install: precheck
 	# Install libexec scripts with symlinks from the legacy location
 	for s in $(SM_LIBEXEC_SCRIPTS); do \
 	  install -m 755 scripts/$$s $(SM_STAGING)$(SM_LIBEXEC)/$$s; \
-	  ln -sf $(SM_LIBEXEC)/$$s $(SM_STAGING)$(OPT_LIBEXEC)/$$s; \
+	  ln -sf $(SM_LIBEXEC)$$s $(SM_STAGING)$(OPT_LIBEXEC)/$$s; \
 	done
 	# Install libexec commands with symlinks from the legacy location
 	for s in $(SM_LIBEXEC_PY_CMDS); do \
 	  install -m 755 drivers/$$s $(SM_STAGING)$(SM_LIBEXEC)/$$s; \
-	  ln -sf $(SM_LIBEXEC)/$$s $(SM_STAGING)$(OPT_SM_DEST)/"$$s".py; \
+	  ln -sf $(SM_LIBEXEC)$$s $(SM_STAGING)$(OPT_SM_DEST)/"$$s".py; \
 	done
 	# Install libexec extras with symlinks from the legacy location
 	for s in $(SM_LIBEXEC_PY_XTRAS); do \
 	  install -D -m 755 drivers/"$$s".py $(SM_STAGING)$(SM_LIBEXEC)/xtra/$$s; \
-	  ln -sf $(SM_LIBEXEC)/xtra/$$s $(SM_STAGING)$(OPT_SM_DEST)/"$$s".py; \
+	  ln -sf $(SM_LIBEXEC)xtra/$$s $(SM_STAGING)$(OPT_SM_DEST)/"$$s".py; \
 	done
 	mkdir -p $(SM_STAGING)/etc/xapi.d/xapi-pre-shutdown
 	for s in $(SM_XAPI_SHUTDOWN_SCRIPTS); do \
@@ -313,14 +313,16 @@ install: precheck
 	done
 	# Install mpathutil and compatibility symlinks
 	install -D -m 755 drivers/mpathutil.py $(SM_STAGING)$(BIN_DEST)/mpathutil
-	ln -sf $(BIN_DEST)/mpathutil $(SM_STAGING)$(OPT_SM_DEST)/mpathutil.py
-	ln -sf $(BIN_DEST)/mpathutil $(SM_STAGING)/sbin/mpathutil
+	ln -sf $(BIN_DEST)mpathutil $(SM_STAGING)$(OPT_SM_DEST)/mpathutil.py
+	ln -sf $(BIN_DEST)mpathutil $(SM_STAGING)/sbin/mpathutil
 	# Install blktap2 and compatibility symlinks
 	install -D -m 755 drivers/blktap2 $(SM_STAGING)$(BIN_DEST)/blktap2
-	ln -sf $(BIN_DEST)/blktap2 $(SM_STAGING)$(OPT_BIN_DEST)/blktap2
+	ln -sf $(BIN_DEST)blktap2 $(SM_STAGING)$(OPT_BIN_DEST)/blktap2
+	# Install tapdisk-cache-stats and compatibility symlinks
+	install -D -m 755 drivers/tapdisk-cache-stats $(SM_STAGING)$(BIN_DEST)/tapdisk-cache-stats
+	ln -sf $(BIN_DEST)tapdisk-cache-stats $(SM_STAGING)$(OPT_BIN_DEST)/tapdisk-cache-stats
 
 	$(MAKE) -C dcopy install DESTDIR=$(SM_STAGING)
-	ln -sf $(OPT_SM_DEST)lcache.py $(SM_STAGING)$(OPT_BIN_DEST)tapdisk-cache-stats
 
 .PHONY: clean
 clean:
