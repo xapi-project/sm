@@ -246,7 +246,7 @@ install: precheck
 	install -m 644 multipath/$(MPATH_CUSTOM_CONF) \
 	  $(SM_STAGING)/$(MPATH_CUSTOM_CONF_DIR)
 	install -m 755 multipath/multipath-root-setup \
-	  $(SM_STAGING)/$(OPT_SM_DEST)
+	  $(SM_STAGING)/$(SM_LIBEXEC)/multipath-root-setup
 	install -m 644 etc/logrotate.d/$(SMLOG_CONF) \
 	  $(SM_STAGING)/$(LOGROTATE_DIR)
 	install -m 644 etc/make-dummy-sr.service \
