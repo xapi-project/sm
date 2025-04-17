@@ -67,11 +67,11 @@ mkdir -p %{buildroot}%{_datadir}/%{name}/
 # On upgrade, migrate from the old statefile to the new statefile so that
 # storage is not reinitialized.
 if [ $1 -gt 1 ] ; then
-    grep -q ^success /etc/firstboot.d/state/10-prepare-storage 2>/dev/null && touch /var/lib/misc/ran-storage-init || :
+    grep -q ^success "%{_sysconfdir}/firstboot.d/state/10-prepare-storage" 2>/dev/null && touch /var/lib/misc/ran-storage-init || :
 fi
 
-rm -f /etc/lvm/cache/.cache
-touch /etc/lvm/cache/.cache
+rm -f "%{_sysconfdir}/lvm/cache/.cache"
+touch "%{_sysconfdir}/lvm/cache/.cache"
 
 systemctl enable sr_health_check.timer
 systemctl start sr_health_check.timer
@@ -104,16 +104,16 @@ tests/run_python_unittests.sh
 %{_libexecdir}/sm
 %exclude %{_libexecdir}/sm/debug
 %exclude %{_libexecdir}/sm/plugins/keymanagerutil.py
-/etc/udev/scripts/xs-mpath-scsidev.sh
-/etc/xapi.d/plugins/coalesce-leaf
-/etc/xapi.d/plugins/lvhd-thin
-/etc/xapi.d/plugins/nfs-on-slave
-/etc/xapi.d/plugins/on-slave
-/etc/xapi.d/plugins/tapdisk-pause
-/etc/xapi.d/plugins/testing-hooks
-/etc/xapi.d/plugins/intellicache-clean
-/etc/xapi.d/plugins/trim
-/etc/xapi.d/xapi-pre-shutdown/*
+%{_sysconfdir}/udev/scripts/xs-mpath-scsidev.sh
+%{_sysconfdir}/xapi.d/plugins/coalesce-leaf
+%{_sysconfdir}/xapi.d/plugins/lvhd-thin
+%{_sysconfdir}/xapi.d/plugins/nfs-on-slave
+%{_sysconfdir}/xapi.d/plugins/on-slave
+%{_sysconfdir}/xapi.d/plugins/tapdisk-pause
+%{_sysconfdir}/xapi.d/plugins/testing-hooks
+%{_sysconfdir}/xapi.d/plugins/intellicache-clean
+%{_sysconfdir}/xapi.d/plugins/trim
+%{_sysconfdir}/xapi.d/xapi-pre-shutdown/*
 %{_bindir}/mpathutil
 %{_bindir}/blktap2
 %{_bindir}/tapdisk-cache-stats
@@ -128,14 +128,14 @@ tests/run_python_unittests.sh
 %{_unitdir}/sr_health_check.timer
 %{_unitdir}/sr_health_check.service
 %{_unitdir}/SMGC@.service
-%config /etc/udev/rules.d/65-multipath.rules
-%config /etc/udev/rules.d/55-xs-mpath-scsidev.rules
-%config /etc/udev/rules.d/58-xapi.rules
-%dir /etc/multipath/conf.d
-%config(noreplace) /etc/multipath/conf.d/custom.conf
-%config /etc/logrotate.d/SMlog
-%config /etc/udev/rules.d/57-usb.rules
-%config /etc/udev/rules.d/99-purestorage.rules
+%config %{_sysconfdir}/udev/rules.d/65-multipath.rules
+%config %{_sysconfdir}/udev/rules.d/55-xs-mpath-scsidev.rules
+%config %{_sysconfdir}/udev/rules.d/58-xapi.rules
+%dir %{_sysconfdir}/multipath/conf.d
+%config(noreplace) %{_sysconfdir}/multipath/conf.d/custom.conf
+%config %{_sysconfdir}/logrotate.d/SMlog
+%config %{_sysconfdir}/udev/rules.d/57-usb.rules
+%config %{_sysconfdir}/udev/rules.d/99-purestorage.rules
 %doc CONTRIB LICENSE MAINTAINERS README.md
 
 %package fairlock
@@ -203,7 +203,7 @@ callers which expect to find python files in /opt/xensource
 /opt/xensource/sm
 /opt/xensource/bin/blktap2
 /opt/xensource/bin/tapdisk-cache-stats
-/etc/xensource/master.d/02-vhdcleanup
+%{_sysconfdir}/xensource/master.d/02-vhdcleanup
 /opt/xensource/libexec/check-device-sharing
 /opt/xensource/libexec/local-device-change
 /opt/xensource/libexec/make-dummy-sr
