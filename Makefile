@@ -52,6 +52,7 @@ SM_LIBS += lvutil
 SM_LIBS += metadata
 SM_LIBS += mpathcount
 SM_LIBS += nfs
+SM_LIBS += on_slave
 SM_LIBS += pluginutil
 SM_LIBS += refcounter
 SM_LIBS += resetvdis
@@ -91,6 +92,16 @@ SM_LIBEXEC_SCRIPTS += storage-init
 
 SM_PLUGINS := __init__.py
 SM_PLUGINS += keymanagerutil.py
+
+SM_PLUGIN_SCRIPTS :=
+SM_PLUGIN_SCRIPTS += lvhd-thin
+SM_PLUGIN_SCRIPTS += on-slave
+SM_PLUGIN_SCRIPTS += testing-hooks
+SM_PLUGIN_SCRIPTS += coalesce-leaf
+SM_PLUGIN_SCRIPTS += nfs-on-slave
+SM_PLUGIN_SCRIPTS += tapdisk-pause
+SM_PLUGIN_SCRIPTS += intellicache-clean
+SM_PLUGIN_SCRIPTS += trim
 
 SM_UDEV_SCRIPTS := xs-mpath-scsidev.sh
 
@@ -169,11 +180,11 @@ SM_CORE_PY_FILES = $(foreach LIB, $(SM_CORE_LIBS), libs/sm/core/$(LIB).py) libs/
 SM_COMPAT_PY_FILES = $(foreach LIB, $(SM_COMPAT_LIBS), compat-libs/$(LIB).py) $(foreach DRIVER, $(SM_DRIVERS), drivers/$(DRIVER)SR.py)
 # Various bits of python which need to be included in pylint etc, but are installed via other means
 SM_XTRA_PY_FILES :=
-SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_CMDS), drivers/$(LIB))
-SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_XTRAS), drivers/$(LIB).py)
-SM_XTRA_PY_FILES += drivers/mpathutil.py
-SM_XTRA_PY_FILES += drivers/blktap2
-SM_XTRA_PY_FILES += drivers/tapdisk-cache-stats
+SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_CMDS), utils/$(LIB))
+SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_XTRAS), utils/$(LIB).py)
+SM_XTRA_PY_FILES += utils/mpathutil.py
+SM_XTRA_PY_FILES += utils/blktap2
+SM_XTRA_PY_FILES += utils/tapdisk-cache-stats
 
 .PHONY: build
 build:
@@ -278,15 +289,10 @@ install: precheck
 	cd $(SM_STAGING)$(OPT_SM_DEST) && rm -f RawISCSISR && ln -sf RawISCSISR.py ISCSISR
 	cd $(SM_STAGING)$(OPT_SM_DEST) && rm -f LVHDoISCSISR && ln -sf LVHDoISCSISR.py LVMoISCSISR
 	cd $(SM_STAGING)$(OPT_SM_DEST) && rm -f LVHDoHBASR && ln -sf LVHDoHBASR.py LVMoHBASR
-	install -m 755 drivers/02-vhdcleanup $(SM_STAGING)$(MASTER_SCRIPT_DEST)
-	install -m 755 drivers/lvhd-thin $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
-	install -m 755 drivers/on_slave.py $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)/on-slave
-	install -m 755 drivers/testing-hooks $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
-	install -m 755 drivers/coalesce-leaf $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
-	install -m 755 drivers/nfs-on-slave $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
-	install -m 755 drivers/tapdisk-pause $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
-	install -m 755 drivers/intellicache-clean $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
-	install -m 755 drivers/trim $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
+	install -m 755 scripts/02-vhdcleanup $(SM_STAGING)$(MASTER_SCRIPT_DEST)
+	for i in $(SM_PLUGIN_SCRIPTS); do \
+	  install -D -m 755 scripts/plugins/$$i $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)/$$i; \
+	done
 	mkdir -p $(SM_STAGING)$(SM_LIBEXEC)
 	mkdir -p $(SM_STAGING)$(OPT_LIBEXEC)
 	# Install libexec scripts with symlinks from the legacy location
@@ -296,12 +302,12 @@ install: precheck
 	done
 	# Install libexec commands with symlinks from the legacy location
 	for s in $(SM_LIBEXEC_PY_CMDS); do \
-	  install -m 755 drivers/$$s $(SM_STAGING)$(SM_LIBEXEC)/$$s; \
+	  install -m 755 utils/$$s $(SM_STAGING)$(SM_LIBEXEC)/$$s; \
 	  ln -sf $(SM_LIBEXEC)$$s $(SM_STAGING)$(OPT_SM_DEST)/"$$s".py; \
 	done
 	# Install libexec extras with symlinks from the legacy location
 	for s in $(SM_LIBEXEC_PY_XTRAS); do \
-	  install -D -m 755 drivers/"$$s".py $(SM_STAGING)$(SM_LIBEXEC)/xtra/$$s; \
+	  install -D -m 755 utils/"$$s".py $(SM_STAGING)$(SM_LIBEXEC)/xtra/$$s; \
 	  ln -sf $(SM_LIBEXEC)xtra/$$s $(SM_STAGING)$(OPT_SM_DEST)/"$$s".py; \
 	done
 	mkdir -p $(SM_STAGING)/etc/xapi.d/xapi-pre-shutdown
@@ -312,14 +318,14 @@ install: precheck
 	  install -m 755 scripts/$$s $(SM_STAGING)$(UDEV_SCRIPTS_DIR)/$$s; \
 	done
 	# Install mpathutil and compatibility symlinks
-	install -D -m 755 drivers/mpathutil.py $(SM_STAGING)$(BIN_DEST)/mpathutil
+	install -D -m 755 utils/mpathutil.py $(SM_STAGING)$(BIN_DEST)/mpathutil
 	ln -sf $(BIN_DEST)mpathutil $(SM_STAGING)$(OPT_SM_DEST)/mpathutil.py
 	ln -sf $(BIN_DEST)mpathutil $(SM_STAGING)/sbin/mpathutil
 	# Install blktap2 and compatibility symlinks
-	install -D -m 755 drivers/blktap2 $(SM_STAGING)$(BIN_DEST)/blktap2
+	install -D -m 755 utils/blktap2 $(SM_STAGING)$(BIN_DEST)/blktap2
 	ln -sf $(BIN_DEST)blktap2 $(SM_STAGING)$(OPT_BIN_DEST)/blktap2
 	# Install tapdisk-cache-stats and compatibility symlinks
-	install -D -m 755 drivers/tapdisk-cache-stats $(SM_STAGING)$(BIN_DEST)/tapdisk-cache-stats
+	install -D -m 755 utils/tapdisk-cache-stats $(SM_STAGING)$(BIN_DEST)/tapdisk-cache-stats
 	ln -sf $(BIN_DEST)tapdisk-cache-stats $(SM_STAGING)$(OPT_BIN_DEST)/tapdisk-cache-stats
 
 	$(MAKE) -C dcopy install DESTDIR=$(SM_STAGING)

@@ -8,7 +8,7 @@ from sm import lvmcache
 from sm.core import util
 from sm import vhdutil
 
-import on_slave
+from sm import on_slave
 
 
 class Test_on_slave_is_open(unittest.TestCase):
@@ -87,7 +87,7 @@ class Test_on_slave_is_open(unittest.TestCase):
                                    })
         self.assertEqual('False', is_open)
 
-    @mock.patch('on_slave.util')
+    @mock.patch('sm.on_slave.util')
     def test_is_open_xapi_exception(self, mock_util):
         """
         Exceptions from is_open are logged
@@ -123,7 +123,7 @@ class Test_on_slave_refresh_lun(unittest.TestCase):
     def setUp(self):
         self.mock_session = mock.MagicMock()
 
-    @mock.patch('on_slave.scsiutil')
+    @mock.patch('sm.on_slave.scsiutil')
     def test_refresh_success(self, mock_scsiutil):
         """
         Successfully refresh scsi lun size
@@ -135,7 +135,7 @@ class Test_on_slave_refresh_lun(unittest.TestCase):
         self.assertEqual('True', refreshed)
         mock_scsiutil.refresh_lun_size_by_SCSIid.assert_called_once_with('fake_id')
 
-    @mock.patch('on_slave.scsiutil')
+    @mock.patch('sm.on_slave.scsiutil')
     def test_refresh_failed(self, mock_scsiutil):
         """
         Refresh scsi lun size fails
@@ -155,7 +155,7 @@ class Test_on_slave_multi(unittest.TestCase):
     def setUp(self):
         self.session = mock.MagicMock()
 
-        lvmcache_patcher = mock.patch('on_slave.LVMCache', autospec=True)
+        lvmcache_patcher = mock.patch('sm.on_slave.LVMCache', autospec=True)
         self.addCleanup(lvmcache_patcher.stop)
         patched_lvmcache = lvmcache_patcher.start()
         self.mock_lvmcache = mock.MagicMock(lvmcache.LVMCache)
