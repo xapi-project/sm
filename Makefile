@@ -166,7 +166,7 @@ SM_STAMP := $(MY_OBJ_DIR)/.staging_stamp
 
 SM_PY_FILES = $(foreach LIB, $(SM_LIBS), libs/sm/$(LIB).py) libs/sm/__init__.py
 SM_CORE_PY_FILES = $(foreach LIB, $(SM_CORE_LIBS), libs/sm/core/$(LIB).py) libs/sm/core/__init__.py
-SM_COMPAT_PY_FILES = $(foreach LIB, $(SM_COMPAT_LIBS), drivers/$(LIB).py) $(foreach DRIVER, $(SM_DRIVERS), drivers/$(DRIVER)SR.py)
+SM_COMPAT_PY_FILES = $(foreach LIB, $(SM_COMPAT_LIBS), compat-libs/$(LIB).py) $(foreach DRIVER, $(SM_DRIVERS), drivers/$(DRIVER)SR.py)
 # Various bits of python which need to be included in pylint etc, but are installed via other means
 SM_XTRA_PY_FILES :=
 SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_CMDS), drivers/$(LIB))

@@ -6,9 +6,9 @@ from unittest import mock
 from uuid import uuid4
 
 from sm.core import util
+from sm.core.util import CommandException
 from sm.BaseISCSI import BaseISCSISR
 from shared_iscsi_test_base import ISCSITestCase
-from util import CommandException
 from sm.core import xs_errors
 
 @mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')

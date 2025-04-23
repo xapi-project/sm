@@ -72,7 +72,7 @@ class TestStandaloneFunctions(unittest.TestCase):
 
         import sys
         from io import StringIO
-        from xs_errors import SRException
+        from sm.core.xs_errors import SRException
         from DummySR import DRIVER_INFO
 
         # Save original sys.stdout file object.
@@ -160,9 +160,9 @@ class TestStandaloneFunctions(unittest.TestCase):
         self.assertIn('<value><int>154</int></value>',
                       mock_print.call_args[0][0])
 
-    @mock.patch("SRCommand.os.fsencode",
+    @mock.patch("sm.SRCommand.os.fsencode",
                 new=lambda s: s.encode("ascii", "surrogateescape"))
-    @mock.patch("SRCommand.os.fsdecode",
+    @mock.patch("sm.SRCommand.os.fsdecode",
                 new=lambda bs: bs.decode("ascii", "surrogateescape"))
     @mock.patch('sm.core.util.gen_uuid', autospec=True)
     def test_parse_handles_wide_chars(self, gen_uuid):

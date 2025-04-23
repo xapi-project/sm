@@ -74,7 +74,7 @@ class TestLVHDSR(unittest.TestCase, Stubs):
     @mock.patch('LVHDSR.lvutil.Fairlock', autospec=True)
     @mock.patch('LVHDSR.lvhdutil.lvRefreshOnAllSlaves', autospec=True)
     @mock.patch('LVHDSR.lvhdutil.getVDIInfo', autospec=True)
-    @mock.patch('journaler.Journaler.getAll', autospec=True)
+    @mock.patch('sm.journaler.Journaler.getAll', autospec=True)
     @mock.patch('LVHDSR.Lock', autospec=True)
     @mock.patch('LVHDSR.SR.XenAPI')
     def test_undoAllInflateJournals(
@@ -87,7 +87,7 @@ class TestLVHDSR(unittest.TestCase, Stubs):
             mock_lvutil_fairlock):
         """No LV refresh on slaves when Cleaning up local LVHD SR's journal"""
 
-        self.stubout('journaler.Journaler.remove')
+        self.stubout('sm.journaler.Journaler.remove')
         self.stubout('LVHDSR.util.zeroOut')
         self.stubout('LVHDSR.lvhdutil.deflate')
         self.stubout('LVHDSR.util.SMlog', new_callable=SMLog)
@@ -321,13 +321,11 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         self.mock_xmlrpclib = xmlrpclib_patcher.start()
         cbtutil_patcher = mock.patch('sm.VDI.cbtutil', autospec=True)
         self.mock_cbtutil = cbtutil_patcher.start()
-        doexec_patcher = mock.patch('util.doexec', autospec=True)
-        self.mock_doexec = doexec_patcher.start()
 
         self.stubout('LVHDSR.lvmcache.LVMCache')
         self.stubout('LVHDSR.LVHDSR._ensureSpaceAvailable')
-        self.stubout('journaler.Journaler.create')
-        self.stubout('journaler.Journaler.remove')
+        self.stubout('sm.journaler.Journaler.create')
+        self.stubout('sm.journaler.Journaler.remove')
         self.stubout('LVHDSR.RefCounter.set')
         self.stubout('LVHDSR.RefCounter.put')
         self.stubout('LVHDSR.LVMMetadataHandler')

@@ -1715,10 +1715,10 @@ class VDI(object):
 
     def _setup_cache(self, session, sr_uuid, vdi_uuid, local_sr_uuid,
             scratch_mode, options):
-        import SR
+        from sm import SR
         import EXTSR
         import NFSSR
-        from lock import Lock
+        from sm.core.lock import Lock
         from FileSR import FileVDI
 
         parent_uuid = vhdutil.getParent(self.target.vdi.path,
@@ -1859,10 +1859,10 @@ class VDI(object):
         return False
 
     def _remove_cache(self, session, local_sr_uuid):
-        import SR
+        from sm import SR
         import EXTSR
         import NFSSR
-        from lock import Lock
+        from sm.core.lock import Lock
         from FileSR import FileVDI
 
         parent_uuid = vhdutil.getParent(self.target.vdi.path,

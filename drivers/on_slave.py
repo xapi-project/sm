@@ -75,7 +75,7 @@ def multi(session, args):
 def _is_open(session, args):
     """Check if VDI <args["vdiUuid"]> is open by a tapdisk on this host"""
     from sm import SRCommand
-    import SR
+    from sm import SR
     import NFSSR
     import EXTSR
     import LVHDSR

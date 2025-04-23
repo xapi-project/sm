@@ -19,20 +19,22 @@
 # hardware based iSCSI
 #
 
-from sm import SR
-import LVHDSR
-from sm import SRCommand
-from sm import lvutil
-import HBASR
 import os
 import re
 import sys
-from sm.core import xs_errors
 import xmlrpc.client
+import glob
+
+import HBASR
+import LVHDSR
+
+from sm import SR
+from sm import SRCommand
+from sm import lvutil
+from sm.core import xs_errors
 from sm.core import util
 from sm.core import scsiutil
-import mpath_cli
-import glob
+from sm.core import mpath_cli
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_METADATA", "SR_TRIM",
                 "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",

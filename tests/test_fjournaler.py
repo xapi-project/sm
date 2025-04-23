@@ -44,16 +44,16 @@ class TestFjournaler(unittest.TestCase):
         self.mock_open = open_patcher.start()
         self.mock_open.side_effect = self.__open_selector
 
-        exists_patcher = mock.patch('fjournaler.util.pathexists',
+        exists_patcher = mock.patch('sm.fjournaler.util.pathexists',
                                     autospec=True)
         self.mock_exists = exists_patcher.start()
         self.mock_exists.side_effect = self.__fake_exists
 
-        unlink_patcher = mock.patch('fjournaler.os.unlink', autospec=True)
+        unlink_patcher = mock.patch('sm.fjournaler.os.unlink', autospec=True)
         self.mock_unlink = unlink_patcher.start()
         self.mock_unlink.side_effect = self.__fake_unlink
 
-        listdir_patcher = mock.patch('fjournaler.os.listdir', autospec=True)
+        listdir_patcher = mock.patch('sm.fjournaler.os.listdir', autospec=True)
         self.mock_listdir = listdir_patcher.start()
         self.mock_listdir.side_effect = self.__fake_listdir
 
