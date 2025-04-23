@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -14,8 +12,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
-#
-# A plugin for synchronizing slaves when something changes on the Master
 
 import sys
 sys.path.append("/opt/xensource/sm/")
@@ -124,11 +120,3 @@ def refresh_lun_size_by_SCSIid(session, args):
     else:
         util.SMlog("on-slave.refresh_lun_size_by_SCSIid with %s failed" % args)
         return "False"
-
-
-if __name__ == "__main__":
-    import XenAPIPlugin
-    XenAPIPlugin.dispatch({
-        "multi": multi,
-        "is_open": is_open,
-        "refresh_lun_size_by_SCSIid": refresh_lun_size_by_SCSIid})

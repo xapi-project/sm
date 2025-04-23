@@ -1,0 +1,28 @@
+#!/usr/bin/python3
+#
+# Copyright (C) Citrix Systems Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published
+# by the Free Software Foundation; version 2.1 only.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+#
+# A plugin for synchronizing slaves when something changes on the Master
+
+import sys
+from sm import on_slave
+import XenAPIPlugin
+
+if __name__ == "__main__":
+    XenAPIPlugin.dispatch({
+        "multi": on_slave.multi,
+        "is_open": on_slave.is_open,
+        "refresh_lun_size_by_SCSIid": on_slave.refresh_lun_size_by_SCSIid})
