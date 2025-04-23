@@ -177,7 +177,7 @@ class CacheFileSR(object):
 
     @classmethod
     def from_uuid(cls, sr_uuid):
-        import SR
+        from sm import SR
         sr_path = "%s/%s" % (SR.MOUNT_BASE, sr_uuid)
 
         cache_sr = cls(sr_path)
@@ -190,7 +190,7 @@ class CacheFileSR(object):
     @classmethod
     def from_session(cls, session):
         from sm.core import util
-        import SR as sm
+        from sm import SR as sm
 
         host_ref = util.get_localhost_ref(session)
 

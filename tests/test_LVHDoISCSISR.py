@@ -66,7 +66,7 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
     def setUp(self):
         patchers = [
             mock.patch(
-                'BaseISCSI.BaseISCSISR',
+                'sm.BaseISCSI.BaseISCSISR',
                 return_value=NonInitingISCSISR()
             ),
             mock.patch('LVHDoISCSISR.util._convertDNS', return_value='127.0.0.1'),

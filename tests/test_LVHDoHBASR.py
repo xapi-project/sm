@@ -118,7 +118,7 @@ class TestLVHDoHBASR(unittest.TestCase):
             self.sr_uuid = sr_uuid
             self.dconf = device_config
 
-        with mock.patch('SRCommand.SRCommand.parse', autospec=True) as parse:
+        with mock.patch('LVHDoHBASR.SRCommand.SRCommand.parse', autospec=True) as parse:
             parse.side_effect = mock_parse
             srcmd = SRCommand.SRCommand({})
             srcmd.parse()

@@ -29,7 +29,6 @@ class Test_on_slave_is_open(unittest.TestCase):
         self.mock_import = import_patcher.start()
         self.mock_import.side_effect = self.fake_import
 
-        self.mock_sr = self.mocks['SR']
         self.mock_sm = self.mocks['sm']
 
     def test_is_open_nfssr_success(self):
@@ -49,7 +48,7 @@ class Test_on_slave_is_open(unittest.TestCase):
                                        'vdiUuid': vdi_uuid,
                                        'srRef': 'opaqueref:sr_mine'
                                    })
-        self.mock_sr.driver.assert_called_once_with('nfssr')
+        self.mock_sm.SR.driver.assert_called_once_with('nfssr')
         self.assertEqual('True', is_open)
 
     def test_is_open_lvm_success(self):
@@ -69,7 +68,7 @@ class Test_on_slave_is_open(unittest.TestCase):
                                        'vdiUuid': vdi_uuid,
                                        'srRef': 'opaqueref:sr_mine'
                                    })
-        self.mock_sr.driver.assert_called_once_with('lvhd')
+        self.mock_sm.SR.driver.assert_called_once_with('lvhd')
         self.assertEqual('True', is_open)
 
     def test_is_open_false(self):
