@@ -32,7 +32,7 @@ class TestStandaloneFunctions(unittest.TestCase):
 
         from random import choice
         from string import ascii_letters
-        from DummySR import DRIVER_INFO
+        from sm.drivers.DummySR import DRIVER_INFO
 
         MSG_LEN = 2048
 
@@ -73,7 +73,7 @@ class TestStandaloneFunctions(unittest.TestCase):
         import sys
         from io import StringIO
         from sm.core.xs_errors import SRException
-        from DummySR import DRIVER_INFO
+        from sm.drivers.DummySR import DRIVER_INFO
 
         # Save original sys.stdout file object.
         saved_stdout = sys.stdout
@@ -120,7 +120,7 @@ class TestStandaloneFunctions(unittest.TestCase):
         """ If an exception other than SR.SRException is thrown, assert that it is wrapped and not thrown.
         """
 
-        from DummySR import DRIVER_INFO
+        from sm.drivers.DummySR import DRIVER_INFO
 
         # Create function to raise exception in SRCommand.run()
         mock_driver = mock.Mock(side_effect=SomeException)
@@ -139,7 +139,7 @@ class TestStandaloneFunctions(unittest.TestCase):
         """
         If XenAPI raises a protocol error convert to error code
         """
-        from DummySR import DRIVER_INFO
+        from sm.drivers.DummySR import DRIVER_INFO
 
         def raise_error(sr):
             raise xmlrpc.client.ProtocolError(
@@ -168,7 +168,7 @@ class TestStandaloneFunctions(unittest.TestCase):
     def test_parse_handles_wide_chars(self, gen_uuid):
         import os
         import xmlrpc.client
-        from DummySR import DRIVER_INFO
+        from sm.drivers.DummySR import DRIVER_INFO
 
         gen_uuid.return_value = '13c4384e-897b-e745-6b3e-9a89c06537be'
         xmlrpc_method = "vdi_create"

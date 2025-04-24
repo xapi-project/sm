@@ -1,0 +1,5 @@
+To test how an SR driver is invoked from the toolstack to determine its capabilities, run it like:
+
+<path>/ISOSR '<methodCall><methodName>sr_get_driver_info</methodName><params><param><value><struct><member><name>host_ref</name><value>OpaqueRef:NULL</value></member><member><name>command</name><value>sr_get_driver_info</value></member><member><name>args</name><value><array><data/></array></value></member><member><name>device_config</name><value><struct/></value></member></struct></value></param></params></methodCall>'
+
+The toolstack will find all executables called '*SR' in a particular directory and try to run them with this XML as an argument, to determine the SR driver's capabilities.

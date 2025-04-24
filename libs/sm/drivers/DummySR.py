@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -16,12 +14,13 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 # DummySR: an example dummy SR for the SDK
+#          matches with drivers/DummySR
+
+import time
 
 from sm import SR
 from sm import VDI
-from sm import SRCommand
 from sm.core import util
-import time
 from sm.core import xs_errors
 
 CAPABILITIES = ["SR_PROBE", "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
@@ -284,7 +283,5 @@ class DummyVDI(VDI.VDI):
 
         util.fistpoint.activate_custom_fn("LVHDRT_xapiSM_serialization_tests", fn)
 
-if __name__ == '__main__':
-    SRCommand.run(DummySR, DRIVER_INFO)
-else:
-    SR.registerSR(DummySR)
+# SR registration at import
+SR.registerSR(DummySR)
