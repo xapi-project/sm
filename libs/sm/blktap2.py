@@ -1717,7 +1717,7 @@ class VDI(object):
             scratch_mode, options):
         from sm import SR
         import EXTSR
-        import NFSSR
+        from sm.drivers import NFSSR
         from sm.core.lock import Lock
         from sm.drivers.FileSR import FileVDI
 
@@ -1861,7 +1861,7 @@ class VDI(object):
     def _remove_cache(self, session, local_sr_uuid):
         from sm import SR
         import EXTSR
-        import NFSSR
+        from sm.drivers import NFSSR
         from sm.core.lock import Lock
         from sm.drivers.FileSR import FileVDI
 

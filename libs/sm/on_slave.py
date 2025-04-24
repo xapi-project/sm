@@ -72,7 +72,7 @@ def _is_open(session, args):
     """Check if VDI <args["vdiUuid"]> is open by a tapdisk on this host"""
     from sm import SRCommand
     from sm import SR
-    import NFSSR
+    from sm.drivers import NFSSR
     import EXTSR
     import LVHDSR
     from sm import blktap2
