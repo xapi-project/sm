@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -15,23 +13,23 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
-# FileSR: local-file storage repository
+# NFSSR: NFS-based file storage repository
+#        matches with drivers/NFSSR
 
 import socket
-
-from sm import SR
-from sm import SRCommand
-from sm.drivers import FileSR
-from sm.core import util
 import errno
 import os
 import sys
 import xmlrpc.client
-from sm.core import xs_errors
+
+from sm import SR
 from sm import nfs
 from sm import vhdutil
-from sm.core.lock import Lock
 from sm import cleanup
+from sm.drivers import FileSR
+from sm.core import util
+from sm.core import xs_errors
+from sm.core.lock import Lock
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_CACHING",
                 "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
@@ -318,8 +316,5 @@ class NFSFileVDI(FileSR.FileVDI):
             raise xs_errors.XenError('SRUnavailable', \
                         opterr='Unable to attach from config')
 
-
-if __name__ == '__main__':
-    SRCommand.run(NFSSR, DRIVER_INFO)
-else:
-    SR.registerSR(NFSSR)
+# SR registration at import
+SR.registerSR(NFSSR)

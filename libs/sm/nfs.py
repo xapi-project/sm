@@ -290,7 +290,7 @@ def scan_srlist(path, transport, dconf):
         textnode = dom.createTextNode(val)
         subentry.appendChild(textnode)
 
-    from NFSSR import PROBEVERSION
+    from sm.drivers.NFSSR import PROBEVERSION
     if PROBEVERSION in dconf:
         util.SMlog("Add supported nfs versions to sr-probe")
         try:

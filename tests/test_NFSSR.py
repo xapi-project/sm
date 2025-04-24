@@ -1,7 +1,7 @@
 import errno
 import unittest.mock as mock
 from sm import nfs
-import NFSSR
+from sm.drivers import NFSSR
 from sm import SR
 import unittest
 from uuid import uuid4
@@ -43,18 +43,18 @@ class TestNFSSR(unittest.TestCase):
         nfssr.load(sr_uuid)
         return nfssr
 
-    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.Lock', autospec=True)
     def test_load(self, Lock):
         self.create_nfssr()
 
-    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.Lock', autospec=True)
     @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
     def test_load_validate_nfsversion_called(self, validate_nfsversion, Lock):
         nfssr = self.create_nfssr(nfsversion='aNfsversion')
 
         validate_nfsversion.assert_called_once_with('aNfsversion')
 
-    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.Lock', autospec=True)
     @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
     def test_load_validate_nfsversion_returnused(self, validate_nfsversion,
                                                  Lock):
@@ -62,7 +62,7 @@ class TestNFSSR(unittest.TestCase):
 
         self.assertEqual(self.create_nfssr().nfsversion, "aNfsversion")
 
-    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.Lock', autospec=True)
     @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
     def test_load_validate_nfsversion_exceptionraised(self,
                                                       validate_nfsversion,
@@ -71,10 +71,10 @@ class TestNFSSR(unittest.TestCase):
 
         self.assertRaises(nfs.NfsException, self.create_nfssr)
 
-    @mock.patch('NFSSR.util.makedirs')
-    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.util.makedirs')
+    @mock.patch('sm.drivers.NFSSR.Lock', autospec=True)
     @mock.patch('sm.nfs.soft_mount')
-    @mock.patch('NFSSR.util._testHost')
+    @mock.patch('sm.drivers.NFSSR.util._testHost')
     @mock.patch('sm.nfs.check_server_tcp')
     @mock.patch('sm.nfs.validate_nfsversion')
     def test_sr_create(self, validate_nfsversion, check_server_tcp, _testhost,
@@ -86,10 +86,10 @@ class TestNFSSR(unittest.TestCase):
         size = 100
         nfssr.create(sr_uuid, size)
 
-    @mock.patch('NFSSR.util.makedirs')
-    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.util.makedirs')
+    @mock.patch('sm.drivers.NFSSR.Lock', autospec=True)
     @mock.patch('sm.nfs.soft_mount')
-    @mock.patch('NFSSR.util._testHost')
+    @mock.patch('sm.drivers.NFSSR.util._testHost')
     @mock.patch('sm.nfs.check_server_tcp')
     @mock.patch('sm.nfs.validate_nfsversion')
     def test_sr_create_readonly(self, validate_nfsversion, check_server_tcp, _testhost,
@@ -112,10 +112,10 @@ class TestNFSSR(unittest.TestCase):
 
         self.assertEqual(srose.exception.errno, 461)
 
-    @mock.patch('NFSSR.util.makedirs')
-    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.util.makedirs')
+    @mock.patch('sm.drivers.NFSSR.Lock', autospec=True)
     @mock.patch('sm.nfs.soft_mount')
-    @mock.patch('NFSSR.util._testHost')
+    @mock.patch('sm.drivers.NFSSR.util._testHost')
     @mock.patch('sm.nfs.check_server_tcp')
     @mock.patch('sm.nfs.validate_nfsversion')
     def test_sr_create_noperm(self, validate_nfsversion, check_server_tcp, _testhost,
@@ -140,10 +140,10 @@ class TestNFSSR(unittest.TestCase):
         self.assertEqual(srose.exception.errno, 88)
 
 
-    @mock.patch('NFSSR.os.rmdir')
-    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.os.rmdir')
+    @mock.patch('sm.drivers.NFSSR.Lock', autospec=True)
     @mock.patch('sm.nfs.soft_mount')
-    @mock.patch('NFSSR.util._testHost')
+    @mock.patch('sm.drivers.NFSSR.util._testHost')
     @mock.patch('sm.nfs.check_server_tcp')
     @mock.patch('sm.nfs.validate_nfsversion')
     def test_sr_create_mount_error(
@@ -164,10 +164,10 @@ class TestNFSSR(unittest.TestCase):
 
     @mock.patch('sm.drivers.FileSR.SharedFileSR._check_writable', autospec=True)
     @mock.patch('sm.drivers.FileSR.SharedFileSR._check_hardlinks', autospec=True)
-    @mock.patch('NFSSR.util.makedirs', autospec=True)
-    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.util.makedirs', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.Lock', autospec=True)
     @mock.patch('sm.nfs.soft_mount', autospec=True)
-    @mock.patch('NFSSR.util._testHost', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.util._testHost', autospec=True)
     @mock.patch('sm.nfs.check_server_tcp', autospec=True)
     @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
     def test_attach(self, validate_nfsversion, check_server_tcp, _testhost,
@@ -190,11 +190,11 @@ class TestNFSSR(unittest.TestCase):
                                            nfsversion='aNfsversionChanged',
                                            retrans=4)
 
-    @mock.patch('NFSSR.util.makedirs', autospec=True)
-    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.util.makedirs', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.Lock', autospec=True)
     @mock.patch('sm.nfs.soft_mount', autospec=True)
     @mock.patch('sm.nfs.unmount', autospec=True)
-    @mock.patch('NFSSR.util._testHost', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.util._testHost', autospec=True)
     @mock.patch('sm.nfs.check_server_tcp', autospec=True)
     @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
     def test_attach_failure(self, validate_nfsversion, check_server_tcp,
@@ -209,8 +209,8 @@ class TestNFSSR(unittest.TestCase):
         unmount.assert_not_called()
 
     @mock.patch('sm.drivers.FileSR.SharedFileSR._checkmount', autospec=True)
-    @mock.patch('NFSSR.util.makedirs', autospec=True)
-    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.util.makedirs', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.Lock', autospec=True)
     @mock.patch('sm.nfs.soft_mount', autospec=True)
     def test_attach_already_mounted(self, soft_mount, Lock, makedirs,
                                     mock_checkmount):
@@ -225,11 +225,11 @@ class TestNFSSR(unittest.TestCase):
     @mock.patch('sm.drivers.FileSR.SharedFileSR._checkmount', autospec=True)
     @mock.patch('sm.drivers.FileSR.SharedFileSR._check_writable', autospec=True)
     @mock.patch('sm.drivers.FileSR.SharedFileSR._check_hardlinks', autospec=True)
-    @mock.patch('NFSSR.util.makedirs', autospec=True)
-    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.util.makedirs', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.Lock', autospec=True)
     @mock.patch('sm.nfs.soft_mount', autospec=True)
     @mock.patch('sm.nfs.unmount', autospec=True)
-    @mock.patch('NFSSR.util._testHost', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.util._testHost', autospec=True)
     @mock.patch('sm.nfs.check_server_tcp', autospec=True)
     @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
     def test_attach_not_writable(self, validate_nfsversion, check_server_tcp,
@@ -262,12 +262,12 @@ class TestNFSSR(unittest.TestCase):
         soft_mount.assert_called_once()
         unmount.assert_called_once_with('/run/sr-mount/UUID', True)
 
-    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.Lock', autospec=True)
     def test_load_ipv6(self, mock_lock):
         nfssr = self.create_nfssr(server='::1')
         self.assertEqual(nfssr.transport, 'tcp6')
 
-    @mock.patch('NFSSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.NFSSR.Lock', autospec=True)
     def test_load_no_server(self, mock_lock):
         """
         As called by on_slave.is_open
