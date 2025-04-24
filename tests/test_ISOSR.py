@@ -1,6 +1,6 @@
 import unittest.mock as mock
 from sm import nfs
-import ISOSR
+from sm.drivers import ISOSR
 import unittest
 from sm.core import util
 from sm import SR
@@ -71,15 +71,15 @@ class TestISOSR_overNFS(unittest.TestCase):
 
         self.assertRaises(nfs.NfsException, self.create_isosr)
 
-    @mock.patch('ISOSR.util.gen_uuid', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util.gen_uuid', autospec=True)
     @mock.patch('sm.nfs.soft_mount', autospec=True)
-    @mock.patch('ISOSR.util._convertDNS', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util._convertDNS', autospec=True)
     @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
-    @mock.patch('ISOSR.util.makedirs', autospec=True)
-    @mock.patch('ISOSR.util._testHost', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util.makedirs', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util._testHost', autospec=True)
     @mock.patch('sm.nfs.check_server_tcp', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
-    @mock.patch('ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
     def test_attach_nfs(self, _checkmount, check_server_tcp, testHost, makedirs,
                         validate_nfsversion, convertDNS, soft_mount, gen_uuid):
         validate_nfsversion.return_value = 'aNfsversionChanged'
@@ -106,15 +106,15 @@ class TestISOSR_overNFS(unittest.TestCase):
                                            useroptions='',
                                            nfsversion='aNfsversionChanged')
 
-    @mock.patch('ISOSR.util.gen_uuid', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util.gen_uuid', autospec=True)
     @mock.patch('sm.nfs.soft_mount', autospec=True)
-    @mock.patch('ISOSR.util._convertDNS', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util._convertDNS', autospec=True)
     @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
-    @mock.patch('ISOSR.util.makedirs', autospec=True)
-    @mock.patch('ISOSR.util._testHost', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util.makedirs', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util._testHost', autospec=True)
     @mock.patch('sm.nfs.check_server_tcp', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
-    @mock.patch('ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
     def test_attach_nfs_ipv6(self, _checkmount, check_server_tcp, testHost, makedirs,
                         validate_nfsversion, convertDNS, soft_mount, gen_uuid):
         validate_nfsversion.return_value = 'aNfsversionChanged'
@@ -141,13 +141,13 @@ class TestISOSR_overNFS(unittest.TestCase):
                                            useroptions='',
                                            nfsversion='aNfsversionChanged')
 
-    @mock.patch('ISOSR.util.gen_uuid', autospec=True)
-    @mock.patch('ISOSR.util._convertDNS', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util.gen_uuid', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util._convertDNS', autospec=True)
     @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
-    @mock.patch('ISOSR.util.makedirs', autospec=True)
-    @mock.patch('ISOSR.util._testHost', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util.makedirs', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util._testHost', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
-    @mock.patch('ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
     def test_attach_nfs_no_server(
             self, _checkmount, testHost, makedirs, validate_nfsversion,
             convertDNS, gen_uuid):
@@ -164,15 +164,15 @@ class TestISOSR_overNFS(unittest.TestCase):
 
         self.assertEqual(140, ose.exception.errno)
 
-    @mock.patch('ISOSR.util.gen_uuid', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util.gen_uuid', autospec=True)
     @mock.patch('sm.nfs.soft_mount', autospec=True)
-    @mock.patch('ISOSR.util._convertDNS', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util._convertDNS', autospec=True)
     @mock.patch('sm.nfs.validate_nfsversion', autospec=True)
-    @mock.patch('ISOSR.util.makedirs', autospec=True)
-    @mock.patch('ISOSR.util._testHost', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util.makedirs', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util._testHost', autospec=True)
     @mock.patch('sm.nfs.check_server_tcp', autospec=True)
     # Can't use autospec due to http://bugs.python.org/issue17826
-    @mock.patch('ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
     def test_attach_nfs_wrong_version(
             self, _checkmount, check_server_tcp, testHost, makedirs,
             validate_nfsversion, convertDNS, soft_mount, gen_uuid):
@@ -222,10 +222,10 @@ class TestISOSR_overSMB(unittest.TestCase):
         self.create_smbisosr()
 
     @testlib.with_context
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('ISOSR.util.pread', autospec=True)
-    @mock.patch('ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
     def test_attach_with_smb_version_1(self, context, _checkmount, pread,
                                        _checkTargetStr, makedirs):
         """
@@ -240,10 +240,10 @@ class TestISOSR_overSMB(unittest.TestCase):
                                   'cache=none,guest,vers=1.0'], True, new_env=None)
 
     @testlib.with_context
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('ISOSR.util.pread', autospec=True)
-    @mock.patch('ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
     def test_attach_with_smb_credentials(self, context, _checkmount, pread,
                                          _checkTargetStr, makedirs):
         """
@@ -260,10 +260,10 @@ class TestISOSR_overSMB(unittest.TestCase):
                                  new_env={'PASSWD': 'winter2019', 'USER': 'dot'})
 
     @testlib.with_context
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('ISOSR.util.pread', autospec=True)
-    @mock.patch('ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
     def test_attach_with_smb_credentials_domain(self, context,
                                                 _checkmount, pread,
                                                 _checkTargetStr, makedirs):
@@ -281,10 +281,10 @@ class TestISOSR_overSMB(unittest.TestCase):
                                  new_env={'PASSWD': 'winter2019', 'USER': 'jsmith'})
 
     @testlib.with_context
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('ISOSR.util.pread', autospec=True)
-    @mock.patch('ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
     def test_attach_with_smb_version_3(self, context, _checkmount, pread,
                                        _checkTargetStr, makedirs):
         """
@@ -298,11 +298,11 @@ class TestISOSR_overSMB(unittest.TestCase):
                                   'cache=none,guest,vers=3.0'], True, new_env=None)
 
     @testlib.with_context
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('ISOSR.util.pread', autospec=True)
-    @mock.patch('ISOSR.ISOSR._checkmount')
-    @mock.patch('ISOSR.ISOSR.updateSMBVersInPBDConfig')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.ISOSR.updateSMBVersInPBDConfig')
     def test_attach_with_smb_no_version(self, context,
                                         updateSMBVersInPBDConfig,
                                         _checkmount, pread,
@@ -318,11 +318,11 @@ class TestISOSR_overSMB(unittest.TestCase):
                                   'cache=none,guest,vers=3.0'], True, new_env=None)
 
     @testlib.with_context
-    @mock.patch('ISOSR.util.gen_uuid')
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('ISOSR.ISOSR._checkmount')
-    @mock.patch('ISOSR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util.gen_uuid')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.util.pread', autospec=True)
     def test_attach_smb_via_xemount_version_1(self, context, pread, _checkmount,
                                               _checkTargetStr, makedirs, gen_uuid):
         """
@@ -333,11 +333,11 @@ class TestISOSR_overSMB(unittest.TestCase):
         self.assertEqual(0, pread.call_count)
 
     @testlib.with_context
-    @mock.patch('ISOSR.util.gen_uuid')
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('ISOSR.ISOSR._checkmount')
-    @mock.patch('ISOSR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util.gen_uuid')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.util.pread', autospec=True)
     def test_attach_smb_via_xemount_version_3(self, context, pread,
                                               _checkmount, _checkTargetStr,
                                               makedirs, gen_uuid):
@@ -349,12 +349,12 @@ class TestISOSR_overSMB(unittest.TestCase):
         self.assertEqual(0, pread.call_count)
 
     @testlib.with_context
-    @mock.patch('ISOSR.util.gen_uuid')
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('ISOSR.ISOSR._checkmount')
-    @mock.patch('ISOSR.ISOSR.updateSMBVersInPBDConfig')
-    @mock.patch('ISOSR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util.gen_uuid')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.ISOSR.updateSMBVersInPBDConfig')
+    @mock.patch('sm.drivers.ISOSR.util.pread', autospec=True)
     def test_attach_smb_via_xemount_no_version(self, context, pread,
                                                updateSMBVersInPBDConfig,
                                                _checkmount,
@@ -367,10 +367,10 @@ class TestISOSR_overSMB(unittest.TestCase):
         smbsr.attach(None)
         self.assertEqual(0, pread.call_count)
 
-    @mock.patch('ISOSR.util.gen_uuid')
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('ISOSR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util.gen_uuid')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.util.pread', autospec=True)
     def test_attach_smb_wrongversion(self, pread, _checkTargetStr,
                                      makedirs, gen_uuid):
         """
@@ -385,9 +385,9 @@ class TestISOSR_overSMB(unittest.TestCase):
             'Given SMB version is not allowed. Choose either 1.0 or 3.0'
         )
 
-    @mock.patch('ISOSR.util.gen_uuid')
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.util.gen_uuid')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
     def test_attach_smb_wrongversion_via_xemount(self,
                                                  _checkTargetStr, makedirs,
                                                  gen_uuid):
@@ -404,12 +404,12 @@ class TestISOSR_overSMB(unittest.TestCase):
         )
 
     @testlib.with_context
-    @mock.patch('ISOSR.util.gen_uuid')
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('ISOSR.util.pread', autospec=True)
-    @mock.patch('ISOSR.ISOSR._checkmount')
-    @mock.patch('ISOSR.ISOSR.updateSMBVersInPBDConfig')
+    @mock.patch('sm.drivers.ISOSR.util.gen_uuid')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.ISOSR.updateSMBVersInPBDConfig')
     def test_attach_smb_version_fallback_with_smb_3_disabled(self, context,
             updateSMBVersInPBDConfig, _checkmount, pread, _checkTargetStr, makedirs, gen_uuid):
         """
@@ -423,11 +423,11 @@ class TestISOSR_overSMB(unittest.TestCase):
                                   '/run/sr-mount/asr_uuid', '-o',
                                   'cache=none,guest,vers=1.0'], True, new_env=None)
 
-    @mock.patch('ISOSR.util.gen_uuid')
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('ISOSR.util.pread', autospec=True)
-    @mock.patch('ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.util.gen_uuid')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
     def test_attach_smb_version_fallback_with_smb_1_3_disabled(self,
                                                                _checkmount,
                                                                pread,
@@ -449,11 +449,11 @@ class TestISOSR_overSMB(unittest.TestCase):
             'Could not mount the directory specified in Device Configuration [opterr=exec failed]'
         )
 
-    @mock.patch('ISOSR.util.gen_uuid')
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('ISOSR.util.pread', autospec=True)
-    @mock.patch('ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.util.gen_uuid')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
     def test_attach_smb_via_xemount_no_version_fallback(self,
                                                         _checkmount, pread,
                                                         _checkTargetStr,
@@ -465,10 +465,10 @@ class TestISOSR_overSMB(unittest.TestCase):
         pread.side_effect = iter([util.CommandException(errno.EHOSTDOWN), " "])
 
     @testlib.with_context
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('ISOSR.util.pread', autospec=True)
-    @mock.patch('ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
     def test_attach_smb_version_fallback_error(self, context, _checkmount,
                                                pread, _checkTargetStr,
                                                makedirs):
@@ -482,11 +482,11 @@ class TestISOSR_overSMB(unittest.TestCase):
         with self.assertRaises(Exception):
             smbsr.attach(None)
 
-    @mock.patch('ISOSR.util.makedirs')
-    @mock.patch('ISOSR.ISOSR._checkTargetStr')
-    @mock.patch('ISOSR.util.pread', autospec=True)
-    @mock.patch('ISOSR.util.find_my_pbd')
-    @mock.patch('ISOSR.ISOSR._checkmount')
+    @mock.patch('sm.drivers.ISOSR.util.makedirs')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkTargetStr')
+    @mock.patch('sm.drivers.ISOSR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.util.find_my_pbd')
+    @mock.patch('sm.drivers.ISOSR.ISOSR._checkmount')
     def test_mountoversmb_will_raise_on_error(
             self, _checkmount, find_my_pbd, pread, _checkTargetStr, makedirs):
         """
@@ -627,10 +627,10 @@ class TestISOSR_functions(unittest.TestCase):
             self.assertEqual(found, ["simple_ascii.iso"])
             self.assertEqual(num_ignored, 2)
 
-    @mock.patch('ISOSR.util.SMlog', autospec=True)
-    @mock.patch('ISOSR.os.path.isdir', autospec=True)
-    @mock.patch('ISOSR.os.listdir', autospec=True)
-    @mock.patch('ISOSR.is_consistent_utf8_filename')
+    @mock.patch('sm.drivers.ISOSR.util.SMlog', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.os.path.isdir', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.os.listdir', autospec=True)
+    @mock.patch('sm.drivers.ISOSR.is_consistent_utf8_filename')
     def test_list_images_reports_problem_filenames(self,
                                                    mock_is_consistent,
                                                    mock_listdir,
