@@ -19,7 +19,7 @@
 
 from sm import SR
 from sm import SRCommand
-import FileSR
+from sm.drivers import FileSR
 from sm.core import util
 import errno
 import os

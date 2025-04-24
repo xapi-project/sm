@@ -93,8 +93,8 @@ class Test_SMBSR(unittest.TestCase):
         smbsr.attach('asr_uuid')
         self.assertTrue(smbsr.attached)
 
-    @mock.patch('FileSR.SharedFileSR._check_writable', autospec=True)
-    @mock.patch('FileSR.SharedFileSR._check_hardlinks', autospec=True)
+    @mock.patch('sm.drivers.FileSR.SharedFileSR._check_writable', autospec=True)
+    @mock.patch('sm.drivers.FileSR.SharedFileSR._check_hardlinks', autospec=True)
     @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
     @mock.patch('SMBSR.SMBSR.makeMountPoint', autospec=True)
     @mock.patch('SMBSR.Lock', autospec=True)
@@ -111,8 +111,8 @@ class Test_SMBSR(unittest.TestCase):
             ['mount.cifs', '\\aServer', "/var/mount", '-o', 'cache=loose,vers=3.0,actimeo=0'],
             new_env={'PASSWD': 'aPassword', 'USER': 'aUsername'})
 
-    @mock.patch('FileSR.SharedFileSR._check_writable', autospec=True)
-    @mock.patch('FileSR.SharedFileSR._check_hardlinks', autospec=True)
+    @mock.patch('sm.drivers.FileSR.SharedFileSR._check_writable', autospec=True)
+    @mock.patch('sm.drivers.FileSR.SharedFileSR._check_hardlinks', autospec=True)
     @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
     @mock.patch('SMBSR.SMBSR.makeMountPoint', autospec=True)
     @mock.patch('SMBSR.Lock', autospecd=True)
@@ -127,8 +127,8 @@ class Test_SMBSR(unittest.TestCase):
         self.assertTrue(smbsr.attached)
         self.mock_pread.assert_called_with(['mount.cifs', '\\aServer', "/var/mount", '-o', 'cache=loose,vers=3.0,actimeo=0'], new_env={'PASSWD': 'winter2019', 'USER': 'aUsername'})
 
-    @mock.patch('FileSR.SharedFileSR._check_writable', autospec=True)
-    @mock.patch('FileSR.SharedFileSR._check_hardlinks', autospec=True)
+    @mock.patch('sm.drivers.FileSR.SharedFileSR._check_writable', autospec=True)
+    @mock.patch('sm.drivers.FileSR.SharedFileSR._check_hardlinks', autospec=True)
     @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
     @mock.patch('SMBSR.SMBSR.makeMountPoint', autospec=True)
     @mock.patch('SMBSR.Lock', autospecd=True)
@@ -144,8 +144,8 @@ class Test_SMBSR(unittest.TestCase):
         # We mocked listdir as this calls pread and assert_called_with only records the last call.
         self.mock_pread.assert_called_with(['mount.cifs', '\\aServer', "/var/mount", '-o', 'cache=loose,vers=3.0,actimeo=0,domain=citrix'], new_env={'PASSWD': 'winter2019', 'USER': 'jsmith'})
 
-    @mock.patch('FileSR.SharedFileSR._check_writable', autospec=True)
-    @mock.patch('FileSR.SharedFileSR._check_hardlinks', autospec=True)
+    @mock.patch('sm.drivers.FileSR.SharedFileSR._check_writable', autospec=True)
+    @mock.patch('sm.drivers.FileSR.SharedFileSR._check_hardlinks', autospec=True)
     @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
     @mock.patch('SMBSR.SMBSR.mount', autospec=True)
     @mock.patch('SMBSR.SMBSR.unmount', autospec=True)

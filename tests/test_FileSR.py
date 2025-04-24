@@ -8,7 +8,7 @@ import xmlrpc.client
 
 from xml.dom.minidom import parseString
 
-import FileSR
+from sm.drivers import FileSR
 from sm import SR
 from sm import SRCommand
 import testlib
@@ -29,26 +29,26 @@ class FakeFileVDI(FileSR.FileVDI):
 @mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestFileVDI(unittest.TestCase):
     def setUp(self):
-        startlog_patcher = mock.patch('FileSR.util.start_log_entry',
+        startlog_patcher = mock.patch('sm.drivers.FileSR.util.start_log_entry',
                                         autospec=True)
         self.mock_startlog = startlog_patcher.start()
-        endlog_patcher = mock.patch('FileSR.util.end_log_entry',
+        endlog_patcher = mock.patch('sm.drivers.FileSR.util.end_log_entry',
                                       autospec=True)
         self.mock_endlog = endlog_patcher.start()
-        os_link_patcher = mock.patch('FileSR.os.link', autospec=True)
+        os_link_patcher = mock.patch('sm.drivers.FileSR.os.link', autospec=True)
         self.mock_os_link = os_link_patcher.start()
-        os_stat_patcher = mock.patch('FileSR.os.stat')
+        os_stat_patcher = mock.patch('sm.drivers.FileSR.os.stat')
         self.mock_os_stat = os_stat_patcher.start()
-        os_rename_patcher = mock.patch('FileSR.os.rename', autospec=True)
+        os_rename_patcher = mock.patch('sm.drivers.FileSR.os.rename', autospec=True)
         self.mock_os_rename = os_rename_patcher.start()
-        os_unlink_patcher = mock.patch('FileSR.os.unlink', autospec=True)
+        os_unlink_patcher = mock.patch('sm.drivers.FileSR.os.unlink', autospec=True)
         self.mock_os_unlink = os_unlink_patcher.start()
-        pread_patcher = mock.patch('FileSR.util.pread')
+        pread_patcher = mock.patch('sm.drivers.FileSR.util.pread')
         self.mock_pread = pread_patcher.start()
-        gethidden_patch = mock.patch('FileSR.vhdutil.getHidden')
+        gethidden_patch = mock.patch('sm.drivers.FileSR.vhdutil.getHidden')
         self.mock_gethidden = gethidden_patch.start()
 
-        fist_patcher = mock.patch('FileSR.util.FistPoint.is_active',
+        fist_patcher = mock.patch('sm.drivers.FileSR.util.FistPoint.is_active',
                                   autospec=True)
         self.mock_fist = fist_patcher.start()
         self.active_fists = set()
@@ -137,11 +137,11 @@ class TestFileVDI(unittest.TestCase):
                     'string')[0].firstChild.nodeValue
                for x in vdi.getElementsByTagName('member')}
 
-    @mock.patch('FileSR.util.gen_uuid')
-    @mock.patch('FileSR.FileVDI._query_p_uuid')
-    @mock.patch('FileSR.util.pathexists', autospec=True)
-    @mock.patch('FileSR.vhdutil.getDepth', autospec=True)
-    @mock.patch('FileSR.blktap2', autospec=True)
+    @mock.patch('sm.drivers.FileSR.util.gen_uuid')
+    @mock.patch('sm.drivers.FileSR.FileVDI._query_p_uuid')
+    @mock.patch('sm.drivers.FileSR.util.pathexists', autospec=True)
+    @mock.patch('sm.drivers.FileSR.vhdutil.getDepth', autospec=True)
+    @mock.patch('sm.drivers.FileSR.blktap2', autospec=True)
     def test_clone_success(self, mock_blktap, mock_getDepth, mock_pathexists,
                             mock_query_p_uuid, mock_uuid):
         # Arrange
@@ -176,11 +176,11 @@ class TestFileVDI(unittest.TestCase):
                mock.call('sr_path/%s.vhd.new' % vdi_uuid,
                          'sr_path/%s.vhd' % vdi_uuid)])
 
-    @mock.patch('FileSR.util.gen_uuid')
-    @mock.patch('FileSR.FileVDI._query_p_uuid')
-    @mock.patch('FileSR.util.pathexists', autospec=True)
-    @mock.patch('FileSR.vhdutil.getDepth', autospec=True)
-    @mock.patch('FileSR.blktap2', autospec=True)
+    @mock.patch('sm.drivers.FileSR.util.gen_uuid')
+    @mock.patch('sm.drivers.FileSR.FileVDI._query_p_uuid')
+    @mock.patch('sm.drivers.FileSR.util.pathexists', autospec=True)
+    @mock.patch('sm.drivers.FileSR.vhdutil.getDepth', autospec=True)
+    @mock.patch('sm.drivers.FileSR.blktap2', autospec=True)
     def test_clone_no_links_success(
             self, mock_blktap, mock_getDepth, mock_pathexists,
             mock_query_p_uuid, mock_uuid):
@@ -217,12 +217,12 @@ class TestFileVDI(unittest.TestCase):
             mock.call('sr_path/%s.vhd.new' % vdi_uuid,
                       'sr_path/%s.vhd' % vdi_uuid)])
 
-    @mock.patch('FileSR.FileVDI._snap')
-    @mock.patch('FileSR.util.gen_uuid')
-    @mock.patch('FileSR.FileVDI._query_p_uuid')
-    @mock.patch('FileSR.util.pathexists', autospec=True)
-    @mock.patch('FileSR.vhdutil.getDepth', autospec=True)
-    @mock.patch('FileSR.blktap2', autospec=True)
+    @mock.patch('sm.drivers.FileSR.FileVDI._snap')
+    @mock.patch('sm.drivers.FileSR.util.gen_uuid')
+    @mock.patch('sm.drivers.FileSR.FileVDI._query_p_uuid')
+    @mock.patch('sm.drivers.FileSR.util.pathexists', autospec=True)
+    @mock.patch('sm.drivers.FileSR.vhdutil.getDepth', autospec=True)
+    @mock.patch('sm.drivers.FileSR.blktap2', autospec=True)
     def test_clone_nospace_snap_1(
                self, mock_blktap, mock_getDepth, mock_pathexists,
                mock_query_p_uuid, mock_uuid, mock_snap):
@@ -252,7 +252,7 @@ class TestFileVDI(unittest.TestCase):
 
         # Act
         with self.assertRaises(xs_errors.SROSError), \
-                mock.patch('FileSR.os.stat') as mock_stat:
+                mock.patch('sm.drivers.FileSR.os.stat') as mock_stat:
             mock_stat.side_effect = my_stat
             clone_xml = vdi.clone(sr_uuid, vdi_uuid)
 
@@ -264,12 +264,12 @@ class TestFileVDI(unittest.TestCase):
         self.assertEqual(1, mock_snap.call_count)
         self.assertEqual(0, self.mock_os_rename.call_count)
 
-    @mock.patch('FileSR.FileVDI._snap')
-    @mock.patch('FileSR.util.gen_uuid')
-    @mock.patch('FileSR.FileVDI._query_p_uuid')
-    @mock.patch('FileSR.util.pathexists', autospec=True)
-    @mock.patch('FileSR.vhdutil.getDepth', autospec=True)
-    @mock.patch('FileSR.blktap2', autospec=True)
+    @mock.patch('sm.drivers.FileSR.FileVDI._snap')
+    @mock.patch('sm.drivers.FileSR.util.gen_uuid')
+    @mock.patch('sm.drivers.FileSR.FileVDI._query_p_uuid')
+    @mock.patch('sm.drivers.FileSR.util.pathexists', autospec=True)
+    @mock.patch('sm.drivers.FileSR.vhdutil.getDepth', autospec=True)
+    @mock.patch('sm.drivers.FileSR.blktap2', autospec=True)
     def test_clone_nospace_snap_2(
                self, mock_blktap, mock_getDepth, mock_pathexists,
                mock_query_p_uuid, mock_uuid, mock_snap):
@@ -300,7 +300,7 @@ class TestFileVDI(unittest.TestCase):
 
         # Act
         with self.assertRaises(xs_errors.SROSError), \
-                mock.patch('FileSR.os.stat') as mock_stat:
+                mock.patch('sm.drivers.FileSR.os.stat') as mock_stat:
             mock_stat.side_effect = my_stat
             clone_xml = vdi.clone(sr_uuid, vdi_uuid)
 
@@ -316,7 +316,7 @@ class TestFileVDI(unittest.TestCase):
                mock.call('sr_path/%s.vhd' % new_vdi_uuid,
                          'sr_path/%s.vhd' % vdi_uuid)])
 
-    @mock.patch('FileSR.vhdutil', spec=True)
+    @mock.patch('sm.drivers.FileSR.vhdutil', spec=True)
     def test_create_vdi_vhd(self, mock_vhdutil):
         # Arrange
         mock_vhdutil.VDI_TYPE_VHD = vhdutil.VDI_TYPE_VHD
@@ -339,7 +339,7 @@ class TestFileVDI(unittest.TestCase):
             mock.call(["/usr/sbin/td-util", "query", "vhd", "-v",
                        expected_path])])
 
-    @mock.patch('FileSR.vhdutil', spec=True)
+    @mock.patch('sm.drivers.FileSR.vhdutil', spec=True)
     @mock.patch('builtins.open', new_callable=mock.mock_open())
     def test_create_vdi_raw(self, mock_open, mock_vhdutil):
         # Arrange
@@ -358,8 +358,8 @@ class TestFileVDI(unittest.TestCase):
         expected_path = f"sr_path/{vdi_uuid}.vhd"
         mock_open.assert_called_with(expected_path, 'w')
 
-    @mock.patch("FileSR.util.pathexists", autospec=True)
-    @mock.patch("FileSR.os.chdir", autospec=True)
+    @mock.patch("sm.drivers.FileSR.util.pathexists", autospec=True)
+    @mock.patch("sm.drivers.FileSR.os.chdir", autospec=True)
     def test_vdi_load_vhd(self, mock_chdir, mock_pathexists):
         # Arrange
         self.mock_pread.return_value = """10240
@@ -388,7 +388,7 @@ hidden: 0
             mock.call(sr_path),
             mock.call(sr_path)])
 
-    @mock.patch("FileSR.util.pathexists", autospec=True)
+    @mock.patch("sm.drivers.FileSR.util.pathexists", autospec=True)
     def test_vdi_generate_config(self, mock_pathexists):
         # Arrange
         sr_uuid = str(uuid.uuid4())
@@ -441,16 +441,16 @@ class TestShareFileSR(unittest.TestCase):
     ERROR_524 = "Unknown error 524"
 
     def setUp(self):
-        util_patcher = mock.patch('FileSR.util', autospec=True)
+        util_patcher = mock.patch('sm.drivers.FileSR.util', autospec=True)
         self.mock_util = util_patcher.start()
 
-        link_patcher = mock.patch('FileSR.os.link')
+        link_patcher = mock.patch('sm.drivers.FileSR.os.link')
         self.mock_link = link_patcher.start()
 
-        unlink_patcher = mock.patch('FileSR.util.force_unlink')
+        unlink_patcher = mock.patch('sm.drivers.FileSR.util.force_unlink')
         self.mock_unlink = unlink_patcher.start()
 
-        lock_patcher = mock.patch('FileSR.Lock')
+        lock_patcher = mock.patch('sm.drivers.FileSR.Lock')
         self.mock_lock = lock_patcher.start()
 
         lock_patcher_cleanup = mock.patch('sm.cleanup.lock.Lock')
@@ -461,9 +461,9 @@ class TestShareFileSR(unittest.TestCase):
         self.mock_session = mock.MagicMock()
         self.mock_xapi.xapi_local.return_value = self.mock_session
 
-        vhdutil_patcher = mock.patch('FileSR.vhdutil', autospec=True)
+        vhdutil_patcher = mock.patch('sm.drivers.FileSR.vhdutil', autospec=True)
         self.mock_vhdutil = vhdutil_patcher.start()
-        glob_patcher = mock.patch("FileSR.glob", autospec=True)
+        glob_patcher = mock.patch("sm.drivers.FileSR.glob", autospec=True)
         self.mock_glob = glob_patcher.start()
 
         self.session_ref = "dummy_session"
@@ -486,7 +486,7 @@ class TestShareFileSR(unittest.TestCase):
         """
         test_sr = self.create_test_sr()
 
-        with mock.patch('FileSR.open'):
+        with mock.patch('sm.drivers.FileSR.open'):
             test_sr.attach(self.sr_uuid)
 
         # Assert
@@ -501,7 +501,7 @@ class TestShareFileSR(unittest.TestCase):
         self.mock_link.side_effect = OSError(524, TestShareFileSR.ERROR_524)
 
         # Act
-        with mock.patch('FileSR.open'):
+        with mock.patch('sm.drivers.FileSR.open'):
             test_sr.attach(self.sr_uuid)
 
         # Assert
@@ -517,7 +517,7 @@ class TestShareFileSR(unittest.TestCase):
         self.mock_util.fistpoint.activate_custom_fn.side_effect = OSError(524, TestShareFileSR.ERROR_524)
 
         # Act
-        with mock.patch('FileSR.open'):
+        with mock.patch('sm.drivers.FileSR.open'):
             test_sr.attach(self.sr_uuid)
 
         # Assert
@@ -527,7 +527,7 @@ class TestShareFileSR(unittest.TestCase):
     def test_attach_not_writable(self):
         test_sr = self.create_test_sr()
 
-        with mock.patch('FileSR.open') as mock_open:
+        with mock.patch('sm.drivers.FileSR.open') as mock_open:
             mock_open.side_effect = OSError
 
             with self.assertRaises(xs_errors.SROSError) as cm:
@@ -566,7 +566,7 @@ class TestShareFileSR(unittest.TestCase):
 @mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestFileSR(unittest.TestCase):
     def setUp(self):
-        pread_patcher = mock.patch('FileSR.util.pread')
+        pread_patcher = mock.patch('sm.drivers.FileSR.util.pread')
         self.mock_pread = pread_patcher.start()
 
         sr_init_patcher = mock.patch('sm.SR.SR.__init__')
@@ -575,7 +575,7 @@ class TestFileSR(unittest.TestCase):
         self.mock_sr_init = sr_init_patcher.start()
         self.mock_sr_init.side_effect = fake_sr_init
 
-        checkmount_patcher = mock.patch('FileSR.FileSR._checkmount')
+        checkmount_patcher = mock.patch('sm.drivers.FileSR.FileSR._checkmount')
         self.mock_filesr_checkmount = checkmount_patcher.start()
         self.mock_filesr_checkmount.return_value = False
 
@@ -586,8 +586,8 @@ class TestFileSR(unittest.TestCase):
         sr.attach(None)
         self.assertTrue(sr.attached)
 
-    @mock.patch("FileSR.util.makedirs", autospec=True)
-    @mock.patch("FileSR.os.chmod", autospec=True)
+    @mock.patch("sm.drivers.FileSR.util.makedirs", autospec=True)
+    @mock.patch("sm.drivers.FileSR.os.chmod", autospec=True)
     def test_attach_will_mount_if_not_already_mounted(self, mock_chmod, mock_util_makedirs):
 
         mount_dst = "pancakes"
@@ -605,8 +605,8 @@ class TestFileSR(unittest.TestCase):
         self.assertIn(mount_src, mount_args)
         self.assertIn(mount_dst, mount_args)
 
-    @mock.patch("FileSR.util.makedirs", autospec=True)
-    @mock.patch("FileSR.os.chmod", autospec=True)
+    @mock.patch("sm.drivers.FileSR.util.makedirs", autospec=True)
+    @mock.patch("sm.drivers.FileSR.os.chmod", autospec=True)
     def test_attach_will_ignore_mkdir_error_if_dir_already_exists(self, mock_chmod, mock_util_makedirs):
         sr = FileSR.FileSR(None, None)
 
@@ -619,7 +619,7 @@ class TestFileSR(unittest.TestCase):
 
         self.assertTrue(sr.attached)
 
-    @mock.patch("FileSR.util.makedirs", autospec=True)
+    @mock.patch("sm.drivers.FileSR.util.makedirs", autospec=True)
     def test_attach_will_rethrow_any_oserrors_on_mkdir(self, mock_util_makedirs):
         sr = FileSR.FileSR(None, None)
 
@@ -632,7 +632,7 @@ class TestFileSR(unittest.TestCase):
         with self.assertRaises(xs_errors.SROSError):
             sr.attach(None)
 
-    @mock.patch("FileSR.util.makedirs", autospec=True)
+    @mock.patch("sm.drivers.FileSR.util.makedirs", autospec=True)
     def test_attach_will_rethrow_any_oserrors_on_mount(self, mock_util_makedirs):
         sr = FileSR.FileSR(None, None)
 
@@ -646,8 +646,8 @@ class TestFileSR(unittest.TestCase):
         with self.assertRaises(xs_errors.SROSError):
             sr.attach(None)
 
-    @mock.patch("FileSR.util.makedirs", autospec=True)
-    @mock.patch("FileSR.os.chmod", autospec=True)
+    @mock.patch("sm.drivers.FileSR.util.makedirs", autospec=True)
+    @mock.patch("sm.drivers.FileSR.os.chmod", autospec=True)
     def test_attach_will_mkdir_with_closed_mode(self, mock_chmod, mock_util_makedirs):
         dst_path = "pancakes"
         sr = FileSR.FileSR(None, None)
@@ -658,8 +658,8 @@ class TestFileSR(unittest.TestCase):
 
         mock_util_makedirs.assert_called_with(dst_path, mode=0o700)
 
-    @mock.patch("FileSR.util.makedirs", autospec=True)
-    @mock.patch("FileSR.os.chmod", autospec=True)
+    @mock.patch("sm.drivers.FileSR.util.makedirs", autospec=True)
+    @mock.patch("sm.drivers.FileSR.os.chmod", autospec=True)
     def test_attach_will_bind_mount_by_default(self, mock_chmod, mock_util_makedirs):
 
         mount_dst = "pancakes"
@@ -676,8 +676,8 @@ class TestFileSR(unittest.TestCase):
         mount_args = self.mock_pread.call_args[0][0]
         self.assertIn("--bind", mount_args)
 
-    @mock.patch("FileSR.util.makedirs", autospec=True)
-    @mock.patch("FileSR.os.chmod", autospec=True)
+    @mock.patch("sm.drivers.FileSR.util.makedirs", autospec=True)
+    @mock.patch("sm.drivers.FileSR.os.chmod", autospec=True)
     def test_attach_can_do_non_bind_mount(self, mock_chmod, mock_util_makedirs):
 
         mount_dst = "pancakes"
@@ -693,8 +693,8 @@ class TestFileSR(unittest.TestCase):
         mount_args = self.mock_pread.call_args[0][0]
         self.assertNotIn("--bind", mount_args)
 
-    @mock.patch("FileSR.util.makedirs", autospec=True)
-    @mock.patch("FileSR.os.chmod", autospec=True)
+    @mock.patch("sm.drivers.FileSR.util.makedirs", autospec=True)
+    @mock.patch("sm.drivers.FileSR.os.chmod", autospec=True)
     def test_attach_will_chmod_the_mount_point(self, mock_chmod, mock_util_makedirs):
 
         mount_dst = "pancakes"
