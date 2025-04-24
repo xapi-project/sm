@@ -25,7 +25,7 @@ import XenAPI # pylint: disable=import-error
 
 
 def reset_sr(session, host_uuid, sr_uuid, is_sr_master):
-    from vhdutil import LOCK_TYPE_SR
+    from sm.vhdutil import LOCK_TYPE_SR
 
     cleanup.abort(sr_uuid)
 

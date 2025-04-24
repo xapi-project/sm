@@ -35,7 +35,7 @@ class NonInitingLVHDoISCSISR(LVHDoISCSISR.LVHDoISCSISR):
     def __init__(self, extra_dconf=None, extra_params=None):
 
         from sm.SRCommand import SRCommand
-        from DummySR import DRIVER_INFO
+        from sm.drivers.DummySR import DRIVER_INFO
 
         self.mpath = "false"
         self.dconf = {

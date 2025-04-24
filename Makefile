@@ -1,22 +1,31 @@
 PYLINT=$(shell command -v pylint-3 || echo pylint)
 PYTHONLIBDIR = $(shell python3 -c "import sys; print(sys.path.pop())")
 
-SM_DRIVERS := File
-SM_DRIVERS += NFS
-SM_DRIVERS += EXT
-SM_DRIVERS += RawISCSI
-SM_DRIVERS += Dummy
-SM_DRIVERS += udev
-SM_DRIVERS += ISO
-SM_DRIVERS += HBA
-SM_DRIVERS += LVHD
-SM_DRIVERS += LVHDoISCSI
-SM_DRIVERS += LVHDoHBA
-SM_DRIVERS += SHM
-SM_DRIVERS += SMB
+SM_COMPAT_DRIVERS :=
+SM_COMPAT_DRIVERS += File
+SM_COMPAT_DRIVERS += NFS
+SM_COMPAT_DRIVERS += EXT
+SM_COMPAT_DRIVERS += RawISCSI
+SM_COMPAT_DRIVERS += udev
+SM_COMPAT_DRIVERS += ISO
+SM_COMPAT_DRIVERS += HBA
+SM_COMPAT_DRIVERS += LVHD
+SM_COMPAT_DRIVERS += LVHDoISCSI
+SM_COMPAT_DRIVERS += LVHDoHBA
+SM_COMPAT_DRIVERS += SHM
+SM_COMPAT_DRIVERS += SMB
+
+# Executable SR drivers
+SM_DRIVERS :=
+SM_DRIVERS += DummySR
+
+# Things which are library parts of SR drivers
+SM_DRIVER_LIBS :=
+SM_DRIVER_LIBS += DummySR
 
 # Libraries which have moved in to sm.core
-SM_CORE_LIBS := util
+SM_CORE_LIBS :=
+SM_CORE_LIBS += util
 SM_CORE_LIBS += scsiutil
 SM_CORE_LIBS += mpath_dmp
 SM_CORE_LIBS += mpath_cli
@@ -177,7 +186,8 @@ SM_STAMP := $(MY_OBJ_DIR)/.staging_stamp
 
 SM_PY_FILES = $(foreach LIB, $(SM_LIBS), libs/sm/$(LIB).py) libs/sm/__init__.py
 SM_CORE_PY_FILES = $(foreach LIB, $(SM_CORE_LIBS), libs/sm/core/$(LIB).py) libs/sm/core/__init__.py
-SM_COMPAT_PY_FILES = $(foreach LIB, $(SM_COMPAT_LIBS), compat-libs/$(LIB).py) $(foreach DRIVER, $(SM_DRIVERS), drivers/$(DRIVER)SR.py)
+SM_DRIVER_PY_FILES = $(foreach LIB, $(SM_DRIVER_LIBS), libs/sm/drivers/$(LIB).py) libs/sm/drivers/__init__.py $(foreach DRIVER, $(SM_DRIVERS), drivers/$(DRIVER))
+SM_COMPAT_PY_FILES = $(foreach LIB, $(SM_COMPAT_LIBS), compat-libs/$(LIB).py) $(foreach DRIVER, $(SM_COMPAT_DRIVERS), drivers/$(DRIVER)SR.py)
 # Various bits of python which need to be included in pylint etc, but are installed via other means
 SM_XTRA_PY_FILES :=
 SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_CMDS), utils/$(LIB))
@@ -193,7 +203,7 @@ build:
 .PHONY: precommit
 precommit: build
 	@ QUIT=0; \
-	CHANGED=$$(git status --porcelain $(SM_PY_FILES) $(SM_CORE_PY_FILES) $(SM_COMPAT_PY_FILES) | awk '{print $$2}'); \
+	CHANGED=$$(git status --porcelain $(SM_PY_FILES) $(SM_CORE_PY_FILES) $(SM_DRIVER_PY_FILES) $(SM_COMPAT_PY_FILES) | awk '{print $$2}'); \
 	for i in $$CHANGED; do \
 		echo Checking $${i} ...; \
 		PYTHONPATH=./drivers:./libs:./misc/fairlock:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $${i}; \
@@ -207,7 +217,7 @@ precommit: build
 
 .PHONY: precheck
 precheck: build
-	PYTHONPATH=./drivers:./libs:./misc/fairlock:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $(SM_PY_FILES) $(SM_CORE_PY_FILES) $(SM_XTRA_PY_FILES) $(SM_COMPAT_PY_FILES)
+	PYTHONPATH=./drivers:./libs:./misc/fairlock:$$PYTHONPATH $(PYLINT) --rcfile=tests/pylintrc $(SM_PY_FILES) $(SM_CORE_PY_FILES) $(SM_DRIVER_PY_FILES) $(SM_XTRA_PY_FILES) $(SM_COMPAT_PY_FILES)
 	echo "Precheck succeeded with no outstanding issues found."
 
 .PHONY: install
@@ -236,8 +246,15 @@ install: precheck
 	done
 	# Core libs
 	mkdir -p $(SM_STAGING)/$(PYTHONLIBDIR)/sm/core
-	for i in $(SM_CORE_PY_FILES); do \
-	  install -D -m 644 $$i $(SM_STAGING)$(PYTHONLIBDIR)/sm/core/; \
+	install -D -m 644 libs/sm/core/__init__.py $(SM_STAGING)$(PYTHONLIBDIR)/sm/core/__init__.py
+	for i in $(SM_CORE_LIBS); do \
+	  install -D -m 644 libs/sm/core/$$i.py $(SM_STAGING)$(PYTHONLIBDIR)/sm/core/; \
+	done
+	# Driver libs
+	mkdir -p $(SM_STAGING)/$(PYTHONLIBDIR)/sm/drivers
+	install -D -m 644 libs/sm/drivers/__init__.py $(SM_STAGING)$(PYTHONLIBDIR)/sm/drivers/__init__.py
+	for i in $(SM_DRIVER_LIBS); do \
+	  install -D -m 644 libs/sm/drivers/$$i.py $(SM_STAGING)$(PYTHONLIBDIR)/sm/drivers/; \
 	done
 	# Data files (primarily XML error definitions)
 	mkdir -p $(SM_STAGING)$(SM_DATADIR)
@@ -281,7 +298,13 @@ install: precheck
 	for i in $(UDEV_RULES); do \
 	  install -m 644 udev/$$i.rules \
 	    $(SM_STAGING)$(UDEV_RULES_DIR); done
-	cd $(SM_STAGING)$(OPT_SM_DEST) && for i in $(SM_DRIVERS); do \
+	# Install SR drivers with symlinks from the legacy location
+	for i in $(SM_DRIVERS); do \
+	  install -D -m 755 drivers/$$i $(SM_STAGING)/$(SM_LIBEXEC)/drivers/$$i; \
+	  ln -sf $(SM_LIBEXEC)drivers/$$i $(SM_STAGING)$(OPT_SM_DEST)/$$i; \
+	done
+	# Install legacy SR drivers
+	cd $(SM_STAGING)$(OPT_SM_DEST) && for i in $(SM_COMPAT_DRIVERS); do \
 	  ln -sf $$i"SR.py" $$i"SR"; \
 	done
 	rm $(SM_STAGING)$(OPT_SM_DEST)/SHMSR
