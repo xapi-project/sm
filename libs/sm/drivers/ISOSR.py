@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -16,16 +14,17 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 # ISOSR: remote iso storage repository
+#        matches with drivers/ISOSR
+
+import os
+import re
 
 from sm import SR
 from sm import VDI
-from sm import SRCommand
-from sm.core import util
 from sm import nfs
-import os
-import re
-from sm.core import xs_errors
 from sm import cifutils
+from sm.core import util
+from sm.core import xs_errors
 
 CAPABILITIES = ["VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
                 "SR_SCAN", "SR_ATTACH", "SR_DETACH"]
@@ -777,7 +776,5 @@ class ISOVDI(VDI.VDI):
     # delete, update, introduce unimplemented. super class will raise
     # exceptions
 
-if __name__ == '__main__':
-    SRCommand.run(ISOSR, DRIVER_INFO)
-else:
-    SR.registerSR(ISOSR)
+# SR registration at import
+SR.registerSR(ISOSR)
