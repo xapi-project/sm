@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -16,24 +14,26 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 # FileSR: local-file storage repository
+#         matches with drivers/FileSR
 
-from sm import SR
-from sm import VDI
-from sm import SRCommand
-from sm.core import util
-from sm.core import scsiutil
-from sm import vhdutil
 import os
 import errno
-from sm.core import xs_errors
-from sm import cleanup
-from sm import blktap2
 import time
 import glob
 from uuid import uuid4
-from sm.core.lock import Lock
 import xmlrpc.client
+
 import XenAPI # pylint: disable=import-error
+
+from sm import SR
+from sm import VDI
+from sm import vhdutil
+from sm import cleanup
+from sm import blktap2
+from sm.core import util
+from sm.core import scsiutil
+from sm.core import xs_errors
+from sm.core.lock import Lock
 from sm.constants import CBTLOG_TAG
 
 geneology = {}
@@ -1139,7 +1139,5 @@ class SharedFileSR(FileSR):
             # Can be caused by a concurrent access, not a major issue.
             util.SMlog('Failed to write hardlink conf: {}'.format(e))
 
-if __name__ == '__main__':
-    SRCommand.run(FileSR, DRIVER_INFO)
-else:
-    SR.registerSR(FileSR)
+# SR registration at import
+SR.registerSR(FileSR)

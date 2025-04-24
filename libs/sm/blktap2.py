@@ -1719,7 +1719,7 @@ class VDI(object):
         import EXTSR
         import NFSSR
         from sm.core.lock import Lock
-        from FileSR import FileVDI
+        from sm.drivers.FileSR import FileVDI
 
         parent_uuid = vhdutil.getParent(self.target.vdi.path,
                 FileVDI.extractUuid)
@@ -1863,7 +1863,7 @@ class VDI(object):
         import EXTSR
         import NFSSR
         from sm.core.lock import Lock
-        from FileSR import FileVDI
+        from sm.drivers.FileSR import FileVDI
 
         parent_uuid = vhdutil.getParent(self.target.vdi.path,
                 FileVDI.extractUuid)

@@ -2,7 +2,6 @@ PYLINT=$(shell command -v pylint-3 || echo pylint)
 PYTHONLIBDIR = $(shell python3 -c "import sys; print(sys.path.pop())")
 
 SM_COMPAT_DRIVERS :=
-SM_COMPAT_DRIVERS += File
 SM_COMPAT_DRIVERS += NFS
 SM_COMPAT_DRIVERS += EXT
 SM_COMPAT_DRIVERS += RawISCSI
@@ -18,10 +17,12 @@ SM_COMPAT_DRIVERS += SMB
 # Executable SR drivers
 SM_DRIVERS :=
 SM_DRIVERS += DummySR
+SM_DRIVERS += FileSR
 
 # Things which are library parts of SR drivers
 SM_DRIVER_LIBS :=
 SM_DRIVER_LIBS += DummySR
+SM_DRIVER_LIBS += FileSR
 
 # Libraries which have moved in to sm.core
 SM_CORE_LIBS :=

@@ -375,7 +375,7 @@ class TestVhdUtil(unittest.TestCase):
             return 0, "51200\n39621239296\nd90f890c-d173-4eaf-ba09-fc2d6e50f6c0.vhd has no parent\nhidden: 0\n18856", ""
 
         context.add_executable(VHD_UTIL, test_function)
-        import FileSR
+        from sm.drivers import FileSR
         vhdinfo = vhdutil.getVHDInfo(TEST_VHD_PATH, FileSR.FileVDI.extractUuid)
 
         # Act/Assert

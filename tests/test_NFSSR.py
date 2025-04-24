@@ -162,8 +162,8 @@ class TestNFSSR(unittest.TestCase):
         with self.assertRaises(xs_errors.SROSError):
             nfssr.create(sr_uuid, size)
 
-    @mock.patch('FileSR.SharedFileSR._check_writable', autospec=True)
-    @mock.patch('FileSR.SharedFileSR._check_hardlinks', autospec=True)
+    @mock.patch('sm.drivers.FileSR.SharedFileSR._check_writable', autospec=True)
+    @mock.patch('sm.drivers.FileSR.SharedFileSR._check_hardlinks', autospec=True)
     @mock.patch('NFSSR.util.makedirs', autospec=True)
     @mock.patch('NFSSR.Lock', autospec=True)
     @mock.patch('sm.nfs.soft_mount', autospec=True)
@@ -208,7 +208,7 @@ class TestNFSSR(unittest.TestCase):
 
         unmount.assert_not_called()
 
-    @mock.patch('FileSR.SharedFileSR._checkmount', autospec=True)
+    @mock.patch('sm.drivers.FileSR.SharedFileSR._checkmount', autospec=True)
     @mock.patch('NFSSR.util.makedirs', autospec=True)
     @mock.patch('NFSSR.Lock', autospec=True)
     @mock.patch('sm.nfs.soft_mount', autospec=True)
@@ -222,9 +222,9 @@ class TestNFSSR(unittest.TestCase):
 
         soft_mount.assert_not_called()
 
-    @mock.patch('FileSR.SharedFileSR._checkmount', autospec=True)
-    @mock.patch('FileSR.SharedFileSR._check_writable', autospec=True)
-    @mock.patch('FileSR.SharedFileSR._check_hardlinks', autospec=True)
+    @mock.patch('sm.drivers.FileSR.SharedFileSR._checkmount', autospec=True)
+    @mock.patch('sm.drivers.FileSR.SharedFileSR._check_writable', autospec=True)
+    @mock.patch('sm.drivers.FileSR.SharedFileSR._check_hardlinks', autospec=True)
     @mock.patch('NFSSR.util.makedirs', autospec=True)
     @mock.patch('NFSSR.Lock', autospec=True)
     @mock.patch('sm.nfs.soft_mount', autospec=True)

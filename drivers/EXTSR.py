@@ -20,7 +20,7 @@
 from sm import SR
 from sm.SR import deviceCheck
 from sm import SRCommand
-import FileSR
+from sm.drivers import FileSR
 from sm.core import util
 from sm import lvutil
 from sm.core import scsiutil
