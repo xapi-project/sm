@@ -88,6 +88,11 @@ SM_LIBEXEC_PY_CMDS += cleanup
 SM_LIBEXEC_PY_CMDS += sr_health_check
 SM_LIBEXEC_PY_CMDS += verifyVHDsOnSR
 
+# Things used as commands which install in libexec
+# which are in python and need a compatibility symlink
+# from /opt's plugins directory
+SM_PLUGIN_UTILS := keymanagerutil
+
 # Things which are written as commands but have
 # a .py extension which may eventually be dropped
 # They are installed in libexec under a subdirectory
@@ -104,8 +109,11 @@ SM_LIBEXEC_SCRIPTS += set-iscsi-initiator
 SM_LIBEXEC_SCRIPTS += make-dummy-sr
 SM_LIBEXEC_SCRIPTS += storage-init
 
-SM_PLUGINS := __init__.py
+# Populates the plugin library in the python lib path
+SM_PLUGINS :=
+SM_PLUGINS += __init__.py
 SM_PLUGINS += keymanagerutil.py
+
 
 SM_PLUGIN_SCRIPTS :=
 SM_PLUGIN_SCRIPTS += lvhd-thin
@@ -200,6 +208,7 @@ SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_XTRAS), utils/$(LIB).py)
 SM_XTRA_PY_FILES += utils/mpathutil.py
 SM_XTRA_PY_FILES += utils/blktap2
 SM_XTRA_PY_FILES += utils/tapdisk-cache-stats
+SM_XTRA_PY_FILES += utils/keymanagerutil
 
 .PHONY: build
 build:
@@ -242,6 +251,9 @@ install: precheck
 	mkdir -p $(SM_STAGING)$(MASTER_SCRIPT_DEST)
 	mkdir -p $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)
 	mkdir -p $(SM_STAGING)$(EXTENSION_SCRIPT_DEST)
+	mkdir -p $(SM_STAGING)$(SM_LIBEXEC)
+	mkdir -p $(SM_STAGING)$(OPT_LIBEXEC)
+	mkdir -p $(SM_STAGING)$(OPT_SM_DEST)/plugins
 	mkdir -p $(SM_STAGING)/sbin
 	# SM libs
 	mkdir -p $(SM_STAGING)/$(PYTHONLIBDIR)/sm
@@ -270,11 +282,14 @@ install: precheck
 	for i in $(SM_COMPAT_PY_FILES); do \
 	  install -m 755 $$i $(SM_STAGING)$(OPT_SM_DEST); \
 	done
-	# Plugin directory
-	mkdir -p $(SM_STAGING)$(SM_LIBEXEC)/plugins
-	ln -sf $(SM_LIBEXEC)/plugins $(SM_STAGING)$(OPT_SM_DEST)/plugins
+	# Plugin utilities
+	for i in $(SM_PLUGIN_UTILS); do \
+	  install -D -m 755 utils/$$i $(SM_STAGING)/$(SM_LIBEXEC)$$i; \
+	  ln -sf $(SM_LIBEXEC)$$i $(SM_STAGING)$(OPT_SM_DEST)plugins/$$i".py"; \
+	done
+	# Actual plugins (and plugin libraries)
 	for i in $(SM_PLUGINS); do \
-	  install -D -m 755 drivers/plugins/$$i $(SM_STAGING)/$(SM_LIBEXEC)/plugins/$$i; \
+	  install -D -m 755 libs/sm/plugins/$$i $(SM_STAGING)/$(PYTHONLIBDIR)/sm/plugins/$$i; \
 	done
 	install -m 644 multipath/$(MPATH_CUSTOM_CONF) \
 	  $(SM_STAGING)/$(MPATH_CUSTOM_CONF_DIR)
@@ -321,8 +336,6 @@ install: precheck
 	for i in $(SM_PLUGIN_SCRIPTS); do \
 	  install -D -m 755 scripts/plugins/$$i $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)/$$i; \
 	done
-	mkdir -p $(SM_STAGING)$(SM_LIBEXEC)
-	mkdir -p $(SM_STAGING)$(OPT_LIBEXEC)
 	# Install libexec scripts with symlinks from the legacy location
 	for s in $(SM_LIBEXEC_SCRIPTS); do \
 	  install -m 755 scripts/$$s $(SM_STAGING)$(SM_LIBEXEC)/$$s; \

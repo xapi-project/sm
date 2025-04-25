@@ -343,7 +343,7 @@ class TapCtl(object):
 
     @classmethod
     def _load_key(cls, key_hash, vdi_uuid):
-        import plugins
+        from sm import plugins
 
         return plugins.load_key(key_hash, vdi_uuid)
 

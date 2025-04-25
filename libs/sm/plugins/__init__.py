@@ -4,7 +4,6 @@ import os
 import sys
 import traceback
 
-sys.path.append('/opt/xensource/sm/')
 from sm.core import util
 
 plugindir = os.path.dirname(__file__)
