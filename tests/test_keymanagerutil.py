@@ -9,7 +9,7 @@ import unittest
 import unittest.mock as mock
 
 
-import plugins.keymanagerutil as keymanagerutil
+import sm.plugins.keymanagerutil as keymanagerutil
 
 from sm.core import util
 
@@ -19,7 +19,7 @@ class TestKeymanagerutil(unittest.TestCase):
     def setUp(self):
         self.addCleanup(mock.patch.stopall)
 
-        log_patcher = mock.patch('plugins.keymanagerutil.util.SMlog', autospec=True)
+        log_patcher = mock.patch('sm.plugins.keymanagerutil.util.SMlog', autospec=True)
         self.mock_log = log_patcher.start()
         self.mock_log.side_effect = self.log
 
@@ -30,10 +30,10 @@ class TestKeymanagerutil(unittest.TestCase):
         self.files = {}
 
         isfile_patcher = mock.patch(
-            'plugins.keymanagerutil.os.path.isfile', autospec=True)
+            'sm.plugins.keymanagerutil.os.path.isfile', autospec=True)
         self.mock_isfile = isfile_patcher.start()
 
-        json_patcher = mock.patch('plugins.keymanagerutil.json', autospec=True)
+        json_patcher = mock.patch('sm.plugins.keymanagerutil.json', autospec=True)
         self.mock_json = json_patcher.start()
 
     def log(self, message, ident="SM", priority=util.LOG_INFO):

@@ -12,15 +12,13 @@ import os
 import os.path
 import hashlib
 import json
-import argparse
 import string
 import sys
 from random import SystemRandom
 
-sys.path.append('/opt/xensource/sm/')
 from sm.core import util
+import XenAPI # pylint: disable=import-error
 
-import XenAPI
 
 PROGRAM_NAME = 'keymanagerutil'
 
@@ -260,49 +258,3 @@ class AlphaNumericKeyGenerator(object):
         """Generate a completely random alphanumeric sequence"""
         keys_from = string.ascii_letters + string.digits
         return ("".join([SystemRandom().choice(keys_from) for _ in range(self.key_length)])).encode("utf-8")
-
-
-if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('--generatekey', action='store_true', dest='generate',
-                        default=False,
-                        help="Generates the encryption key based on the given either keytype or keylength")
-
-    parser.add_argument('--getkey', action='store_true', dest='get_key',
-                        default=False, help="To get the key from the keystore based on the given key hash")
-
-    parser.add_argument('--getkeyhash', action='store_true', dest='get_key_hash',
-                        default=False, help="To get the key hash from the keystore based on the given key")
-
-    parser.add_argument('--updatekeystore', action='store_true', dest='update_keystore',
-                        default=False,
-                        help="If needs to update the already existing key in the keystore pass the keyHash and new key")
-
-    parser.add_argument('--keytype', action='store', dest='key_type', default=None,
-                        help='Type of the key: values expected weak or strong')
-
-    parser.add_argument('--keylength', action='store', default=None, type=int,
-                        dest='key_length',
-                        help='length of the encryption key in byte')
-
-    parser.add_argument('--keyhash', action='store', dest='key_hash', default=None,
-                        help='Encryption key')
-
-    parser.add_argument('--key', action='store', dest='key', default=None,
-                        help='Base64-encoded encryption key')
-
-    parser_input = parser.parse_args()
-
-    if parser_input.key:
-        parser_input.key = base64.b64decode(parser_input.key)
-
-    if parser_input.generate:
-        KeyManager(key_type=parser_input.key_type, key_length=parser_input.key_length).generate()
-    elif parser_input.get_key:
-        KeyManager(key_hash=parser_input.key_hash).get_key()
-    elif parser_input.get_key_hash:
-        KeyManager(key=parser_input.key).get_keyhash()
-    elif parser_input.update_keystore:
-        KeyManager(key_hash=parser_input.key_hash, key=parser_input.key).update_keystore()
