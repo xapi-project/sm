@@ -3,7 +3,7 @@ import unittest.mock as mock
 import uuid
 
 from sm import SR
-import SMBSR
+from sm.drivers import SMBSR
 import testlib
 from sm.core import util
 import errno
@@ -37,15 +37,15 @@ class Test_SMBSR(unittest.TestCase):
     def setUp(self):
         self.addCleanup(mock.patch.stopall)
 
-        pread_patcher = mock.patch('SMBSR.util.pread', autospec=True)
+        pread_patcher = mock.patch('sm.drivers.SMBSR.util.pread', autospec=True)
         self.mock_pread = pread_patcher.start()
         self.mock_pread.side_effect = self.pread
         self.pread_results = {}
 
-        listdir_patcher = mock.patch('SMBSR.util.listdir', autospec=True)
+        listdir_patcher = mock.patch('sm.drivers.SMBSR.util.listdir', autospec=True)
         self.mock_list_dir = listdir_patcher.start()
 
-        rmdir_patcher = mock.patch('SMBSR.os.rmdir', autospec=True)
+        rmdir_patcher = mock.patch('sm.drivers.SMBSR.os.rmdir', autospec=True)
         self.mock_rmdir = rmdir_patcher.start()
 
     def arg_key(self, args):
@@ -72,9 +72,9 @@ class Test_SMBSR(unittest.TestCase):
         return smbsr
 
     #Attach
-    @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
-    @mock.patch('SMBSR.SMBSR.mount', autospec=True)
-    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.checkmount', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.mount', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.Lock', autospec=True)
     def test_attach_smbexception_raises_xenerror(
             self, mock_lock, mock_mount, mock_checkmount):
         smbsr = self.create_smbsr()
@@ -85,8 +85,8 @@ class Test_SMBSR(unittest.TestCase):
         # Check that we get the SMBMount error from XE_SR_ERRORCODES.xml
         self.assertEqual(cm.exception.errno, 111)
 
-    @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
-    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.checkmount', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.Lock', autospec=True)
     def test_attach_if_mounted_then_attached(self, mock_lock, mock_checkmount):
         smbsr = self.create_smbsr()
         mock_checkmount.return_value = True
@@ -95,9 +95,9 @@ class Test_SMBSR(unittest.TestCase):
 
     @mock.patch('sm.drivers.FileSR.SharedFileSR._check_writable', autospec=True)
     @mock.patch('sm.drivers.FileSR.SharedFileSR._check_hardlinks', autospec=True)
-    @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
-    @mock.patch('SMBSR.SMBSR.makeMountPoint', autospec=True)
-    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.checkmount', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.makeMountPoint', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.Lock', autospec=True)
     @mock.patch('os.symlink', autospec=True)
     def test_attach_vanilla(self, symlink, mock_lock,
                             makeMountPoint, mock_checkmount, mock_checklinks,
@@ -113,9 +113,9 @@ class Test_SMBSR(unittest.TestCase):
 
     @mock.patch('sm.drivers.FileSR.SharedFileSR._check_writable', autospec=True)
     @mock.patch('sm.drivers.FileSR.SharedFileSR._check_hardlinks', autospec=True)
-    @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
-    @mock.patch('SMBSR.SMBSR.makeMountPoint', autospec=True)
-    @mock.patch('SMBSR.Lock', autospecd=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.checkmount', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.makeMountPoint', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.Lock', autospecd=True)
     @mock.patch('os.symlink', autospec=True)
     def test_attach_with_cifs_password(
             self, symlink, mock_lock, makeMountPoint,
@@ -129,9 +129,9 @@ class Test_SMBSR(unittest.TestCase):
 
     @mock.patch('sm.drivers.FileSR.SharedFileSR._check_writable', autospec=True)
     @mock.patch('sm.drivers.FileSR.SharedFileSR._check_hardlinks', autospec=True)
-    @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
-    @mock.patch('SMBSR.SMBSR.makeMountPoint', autospec=True)
-    @mock.patch('SMBSR.Lock', autospecd=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.checkmount', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.makeMountPoint', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.Lock', autospecd=True)
     @mock.patch('os.symlink', autospec=True)
     def test_attach_with_cifs_password_and_domain(
             self, symlink, mock_lock, makeMountPoint,
@@ -146,13 +146,13 @@ class Test_SMBSR(unittest.TestCase):
 
     @mock.patch('sm.drivers.FileSR.SharedFileSR._check_writable', autospec=True)
     @mock.patch('sm.drivers.FileSR.SharedFileSR._check_hardlinks', autospec=True)
-    @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
-    @mock.patch('SMBSR.SMBSR.mount', autospec=True)
-    @mock.patch('SMBSR.SMBSR.unmount', autospec=True)
-    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.checkmount', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.mount', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.unmount', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.Lock', autospec=True)
     @mock.patch('os.symlink', autospec=True)
     @mock.patch('os.unlink', autospec=True)
-    @mock.patch('SMBSR.util.pathexists', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.util.pathexists', autospec=True)
     def test_attach_not_writable(self, mock_pathexists, mock_unlink,
                                  mock_symlink, mock_lock, mock_unmount,
                                  mock_mount, mock_checkmount, mock_checklinks,
@@ -196,12 +196,12 @@ class Test_SMBSR(unittest.TestCase):
         mock_unmount.assert_called_once_with(smbsr, smbsr.mountpoint, True)
         mock_unlink.assert_called_once_with(smbsr.path)
 
-    @mock.patch('SMBSR.SMBSR.checkmount', autospec=True)
-    @mock.patch('SMBSR.SMBSR.mount', autospec=True)
-    @mock.patch('SMBSR.SMBSR.unmount', autospec=True)
-    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.checkmount', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.mount', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.unmount', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.Lock', autospec=True)
     @mock.patch('os.unlink', autospec=True)
-    @mock.patch('SMBSR.util.pathexists', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.util.pathexists', autospec=True)
     def test_attach_misc_mount_failure(self, mock_pathexists, mock_unlink,
                                        mock_lock, mock_unmount,
                                        mock_mount, mock_checkmount):
@@ -217,11 +217,11 @@ class Test_SMBSR(unittest.TestCase):
         mock_unlink.assert_not_called()
 
     #Detach
-    @mock.patch('SMBSR.SMBSR.checkmount', return_value=True, autospec=True)
-    @mock.patch('SMBSR.SMBSR.unmount', autospec=True)
-    @mock.patch('SMBSR.Lock', autospec=True)
-    @mock.patch('SMBSR.os.chdir', autospec=True)
-    @mock.patch('SMBSR.cleanup', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.checkmount', return_value=True, autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.unmount', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.os.chdir', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.cleanup', autospec=True)
     def test_detach_smbexception_raises_xenerror(
             self, mock_cleanup, mock_chdir, mock_lock,
             mock_unmount, mock_checkmount):
@@ -232,8 +232,8 @@ class Test_SMBSR(unittest.TestCase):
         # Check that we get the SMBUnMount error from XE_SR_ERRORCODES.xml
         self.assertEqual(cm.exception.errno, 112)
 
-    @mock.patch('SMBSR.SMBSR.checkmount', return_value=False, autospec=True)
-    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.SMBSR.checkmount', return_value=False, autospec=True)
+    @mock.patch('sm.drivers.SMBSR.Lock', autospec=True)
     def test_detach_not_detached_if_not_mounted(self, mock_lock, mock_checkmount):
         smbsr = self.create_smbsr()
         smbsr.attached = True
@@ -242,9 +242,9 @@ class Test_SMBSR(unittest.TestCase):
         self.assertTrue(smbsr.attached)
 
     #Mount
-    @mock.patch('SMBSR.util.isdir', autospec=True)
-    @mock.patch('SMBSR.Lock', autospec=True)
-    @mock.patch('SMBSR.util.time', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.util.isdir', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.util.time', autospec=True)
     def test_mount_mountpoint_isdir(self, mock_time, mock_lock, mock_isdir):
         # Not sure that the code rerying in an ioretry loop in the case of a
         # missing dir is correct?
@@ -254,15 +254,15 @@ class Test_SMBSR(unittest.TestCase):
         with self.assertRaises(SMBSR.SMBException) as cm:
             smbsr.mount()
 
-    @mock.patch('SMBSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.Lock', autospec=True)
     def test_mount_mountpoint_empty_string(self, mock_lock):
         smbsr = self.create_smbsr()
         self.assertRaises(SMBSR.SMBException, smbsr.mount, "")
 
-    @mock.patch('SMBSR.util.makedirs', autospec=True)
-    @mock.patch('SMBSR.util.get_pool_restrictions', autospec=True)
-    @mock.patch('SMBSR.Lock', autospec=True)
-    @mock.patch('SMBSR.os.symlink', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.util.makedirs', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.util.get_pool_restrictions', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.os.symlink', autospec=True)
     def test_create_success(self, symlink, lock, restrict, makedirs):
         # Arrange
         smbsr = self.create_smbsr()
@@ -280,10 +280,10 @@ class Test_SMBSR(unittest.TestCase):
              '-o', 'cache=loose,vers=3.0,actimeo=0'],
             new_env={'USER': 'aUsername', 'PASSWD': 'aPassword'})
 
-    @mock.patch('SMBSR.util.makedirs', autospec=True)
-    @mock.patch('SMBSR.util.get_pool_restrictions', autospec=True)
-    @mock.patch('SMBSR.Lock', autospec=True)
-    @mock.patch('SMBSR.os.symlink', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.util.makedirs', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.util.get_pool_restrictions', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.os.symlink', autospec=True)
     def test_create_read_only(self, symlink, lock, restrict, makedirs):
         # Arrange
         smbsr = self.create_smbsr()
@@ -309,10 +309,10 @@ class Test_SMBSR(unittest.TestCase):
         symlink.assert_not_called()
 
 
-    @mock.patch('SMBSR.util.makedirs', autospec=True)
-    @mock.patch('SMBSR.util.get_pool_restrictions', autospec=True)
-    @mock.patch('SMBSR.Lock', autospec=True)
-    @mock.patch('SMBSR.os.symlink', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.util.makedirs', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.util.get_pool_restrictions', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.SMBSR.os.symlink', autospec=True)
     def test_create_nospace(self, symlink, lock, restrict, makedirs):
         # Arrange
         smbsr = self.create_smbsr()
