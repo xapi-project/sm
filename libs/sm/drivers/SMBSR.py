@@ -17,18 +17,18 @@
 #
 # SMBSR: SMB filesystem based storage repository
 
-from sm import SR
-from sm import SRCommand
-from sm.drivers import FileSR
-from sm.core import util
 import errno
 import os
 import xmlrpc.client
-from sm.core import xs_errors
+
+from sm import SR
 from sm import vhdutil
-from sm.core.lock import Lock
 from sm import cleanup
 from sm import cifutils
+from sm.drivers import FileSR
+from sm.core import util
+from sm.core import xs_errors
+from sm.core.lock import Lock
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_CACHING",
                 "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
@@ -343,8 +343,5 @@ class SMBFileVDI(FileSR.FileVDI):
                         opterr='Unable to attach from config')
 
 
-if __name__ == '__main__':
-    SRCommand.run(SMBSR, DRIVER_INFO)
-else:
-    SR.registerSR(SMBSR)
-#
+# SR registration at import
+SR.registerSR(SMBSR)
