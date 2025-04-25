@@ -73,7 +73,7 @@ def _is_open(session, args):
     from sm import SRCommand
     from sm import SR
     from sm.drivers import NFSSR
-    import EXTSR
+    from sm.drivers import EXTSR
     import LVHDSR
     from sm import blktap2
 

@@ -16,20 +16,20 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 # EXTSR: Based on local-file storage repository, mounts ext3 partition
-
-from sm import SR
-from sm.SR import deviceCheck
-from sm import SRCommand
-from sm.drivers import FileSR
-from sm.core import util
-from sm import lvutil
-from sm.core import scsiutil
+#        matches with drivers/EXTSR
 
 import os
-from sm.core import xs_errors
+
+from sm import SR
+from sm import lvutil
 from sm import vhdutil
-from sm.core.lock import Lock
 from sm.constants import EXT_PREFIX
+from sm.drivers import FileSR
+from sm.SR import deviceCheck
+from sm.core import util
+from sm.core import scsiutil
+from sm.core import xs_errors
+from sm.core.lock import Lock
 
 CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_SUPPORTS_LOCAL_CACHING",
                 "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
@@ -229,7 +229,5 @@ class EXTFileVDI(FileSR.FileVDI):
         return super(EXTFileVDI, self).attach(sr_uuid, vdi_uuid)
 
 
-if __name__ == '__main__':
-    SRCommand.run(EXTSR, DRIVER_INFO)
-else:
-    SR.registerSR(EXTSR)
+# SR registration at import
+SR.registerSR(EXTSR)
