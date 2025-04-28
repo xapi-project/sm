@@ -1,5 +1,5 @@
 import unittest.mock as mock
-import HBASR
+from sm.drivers import HBASR
 import unittest
 from sm import SR
 import xml.dom.minidom
@@ -64,7 +64,7 @@ def fake_probe(self):
 @mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestHBASR(unittest.TestCase):
 
-    @mock.patch('HBASR.HBASR.__init__', mock_init)
+    @mock.patch('sm.drivers.HBASR.HBASR.__init__', mock_init)
     def test_handles(self):
 
         sr = HBASR.HBASR()
@@ -72,7 +72,7 @@ class TestHBASR(unittest.TestCase):
         self.assertFalse(sr.handles("blah"))
         self.assertTrue(sr.handles("hba"))
 
-    @mock.patch('HBASR.HBASR.__init__', mock_init)
+    @mock.patch('sm.drivers.HBASR.HBASR.__init__', mock_init)
     def test_load(self):
 
         sr_uuid = 123
@@ -104,9 +104,9 @@ class TestHBASR(unittest.TestCase):
         self.assertEqual(sr.procname, "")
         self.assertEqual(sr.devs, {})
 
-    @mock.patch('HBASR.HBASR.__init__', mock_init)
-    @mock.patch('HBASR.devscan.adapters', autospec=True)
-    @mock.patch('HBASR.scsiutil.cacheSCSIidentifiers', autospec=True)
+    @mock.patch('sm.drivers.HBASR.HBASR.__init__', mock_init)
+    @mock.patch('sm.drivers.HBASR.devscan.adapters', autospec=True)
+    @mock.patch('sm.drivers.HBASR.scsiutil.cacheSCSIidentifiers', autospec=True)
     def test__intit_bhadict_already_init(self, mock_cacheSCSIidentifiers,
                                          mock_devscan_adapters):
         sr = HBASR.HBASR()
@@ -115,9 +115,9 @@ class TestHBASR(unittest.TestCase):
         self.assertEqual(mock_cacheSCSIidentifiers.call_count, 0)
         self.assertEqual(mock_devscan_adapters.call_count, 0)
 
-    @mock.patch('HBASR.HBASR.__init__', mock_init)
-    @mock.patch('HBASR.devscan.adapters', autospec=True)
-    @mock.patch('HBASR.scsiutil.cacheSCSIidentifiers', autospec=True)
+    @mock.patch('sm.drivers.HBASR.HBASR.__init__', mock_init)
+    @mock.patch('sm.drivers.HBASR.devscan.adapters', autospec=True)
+    @mock.patch('sm.drivers.HBASR.scsiutil.cacheSCSIidentifiers', autospec=True)
     def test__init_hbadict(self, mock_cacheSCSIidentifiers,
                            mock_devscan_adapters):
         sr = HBASR.HBASR()
@@ -145,9 +145,9 @@ class TestHBASR(unittest.TestCase):
         self.assertTrue(sr2.attached)
         self.assertEqual(sr2.devs, "123445")
 
-    @mock.patch('HBASR.HBASR.__init__', mock_init)
-    @mock.patch('HBASR.HBASR._probe_hba', autospec=True)
-    @mock.patch('HBASR.xml.dom.minidom.parseString', autospec=True)
+    @mock.patch('sm.drivers.HBASR.HBASR.__init__', mock_init)
+    @mock.patch('sm.drivers.HBASR.HBASR._probe_hba', autospec=True)
+    @mock.patch('sm.drivers.HBASR.xml.dom.minidom.parseString', autospec=True)
     def test__init_hbahostname_assert(self, mock_parseString, mock_probe_hba):
         sr = HBASR.HBASR()
         mock_probe_hba.return_value = "blah"
@@ -158,16 +158,16 @@ class TestHBASR(unittest.TestCase):
                          "Unable to parse XML "
                          "[opterr=HBA Host WWN scanning failed]")
 
-    @mock.patch('HBASR.HBASR.__init__', mock_init)
-    @mock.patch('HBASR.HBASR._probe_hba', fake_probe)
+    @mock.patch('sm.drivers.HBASR.HBASR.__init__', mock_init)
+    @mock.patch('sm.drivers.HBASR.HBASR._probe_hba', fake_probe)
     def test__init_hbahostname(self):
         sr = HBASR.HBASR()
         res = sr._init_hba_hostname()
         self.assertEqual(res, "20-00-00-e0-8b-18-20-8b")
 
-    @mock.patch('HBASR.HBASR.__init__', mock_init)
-    @mock.patch('HBASR.HBASR._probe_hba', autospec=True)
-    @mock.patch('HBASR.xml.dom.minidom.parseString', autospec=True)
+    @mock.patch('sm.drivers.HBASR.HBASR.__init__', mock_init)
+    @mock.patch('sm.drivers.HBASR.HBASR._probe_hba', autospec=True)
+    @mock.patch('sm.drivers.HBASR.xml.dom.minidom.parseString', autospec=True)
     def test__init_hbas_assert(self, mock_parseString, mock_probe_hba):
         sr = HBASR.HBASR()
         mock_probe_hba.return_value = "blah"
@@ -178,16 +178,16 @@ class TestHBASR(unittest.TestCase):
                          "Unable to parse XML "
                          "[opterr=HBA scanning failed]")
 
-    @mock.patch('HBASR.HBASR.__init__', mock_init)
-    @mock.patch('HBASR.HBASR._probe_hba', fake_probe)
+    @mock.patch('sm.drivers.HBASR.HBASR.__init__', mock_init)
+    @mock.patch('sm.drivers.HBASR.HBASR._probe_hba', fake_probe)
     def test__init_hbas(self):
         sr = HBASR.HBASR()
         res = sr._init_hbas()
         self.assertEqual(res, {'host2': '50-01-43-80-24-26-ba-f4',
                                'host1': '50-01-43-80-24-26-ba-f4'})
 
-    @mock.patch('HBASR.HBASR.__init__', mock_init)
-    @mock.patch('HBASR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.HBASR.HBASR.__init__', mock_init)
+    @mock.patch('sm.drivers.HBASR.util.pread', autospec=True)
     def test__probe_hba_assert(self, mock_pread):
         sr = HBASR.HBASR()
         mock_pread.side_effect = Exception("bad")
@@ -197,9 +197,9 @@ class TestHBASR(unittest.TestCase):
                          "Unable to parse XML "
                          "[opterr=HBA probe failed]")
 
-    @mock.patch('HBASR.HBASR.__init__', mock_init)
-    @mock.patch('HBASR.util.pread', autospec=True)
-    @mock.patch('HBASR.util.listdir', autospec=True)
+    @mock.patch('sm.drivers.HBASR.HBASR.__init__', mock_init)
+    @mock.patch('sm.drivers.HBASR.util.pread', autospec=True)
+    @mock.patch('sm.drivers.HBASR.util.listdir', autospec=True)
     def test__probe_hba(self, mock_listdir, mock_pread):
         sr = HBASR.HBASR()
         mock_listdir.return_value = iter(["host1", "host2"])
@@ -215,8 +215,8 @@ class TestHBASR(unittest.TestCase):
         res = sr._probe_hba()
         self.assertEqual(res, imp_fake_probe())
 
-    @mock.patch('HBASR.HBASR.__init__', mock_init)
-    @mock.patch('HBASR.HBASR._mpathHandle', autospec=True)
+    @mock.patch('sm.drivers.HBASR.HBASR.__init__', mock_init)
+    @mock.patch('sm.drivers.HBASR.HBASR._mpathHandle', autospec=True)
     def test_attach(self, mock_mpath):
         sr = HBASR.HBASR()
         sr.attach(1234)

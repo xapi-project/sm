@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -17,10 +15,10 @@
 #
 # HBASR: Hardware HBA LUN driver, e.g. Fibre Channel or SAS or
 # hardware based iSCSI
+#        matches with drivers/HBASR
 #
 
 from sm import SR
-from sm import SRCommand
 from sm import devscan
 from sm.core import scsiutil
 from sm.core import util
@@ -292,7 +290,5 @@ class HBASR(SR.SR):
             subentry.appendChild(textnode)
         return dom.toprettyxml()
 
-if __name__ == '__main__':
-    SRCommand.run(HBASR, DRIVER_INFO)
-else:
-    SR.registerSR(HBASR)
+# SR registration at import
+SR.registerSR(HBASR)
