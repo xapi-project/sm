@@ -19,7 +19,7 @@
 #
 
 from sm import SR
-import LVHDSR
+from sm.drivers import LVHDSR
 from sm import BaseISCSI
 from sm import SRCommand
 from sm.core import util
