@@ -3,7 +3,6 @@ PYTHONLIBDIR = $(shell python3 -c "import sys; print(sys.path.pop())")
 
 SM_COMPAT_DRIVERS :=
 SM_COMPAT_DRIVERS += RawISCSI
-SM_COMPAT_DRIVERS += udev
 SM_COMPAT_DRIVERS += HBA
 SM_COMPAT_DRIVERS += LVHD
 SM_COMPAT_DRIVERS += LVHDoISCSI
@@ -18,6 +17,7 @@ SM_DRIVERS += FileSR
 SM_DRIVERS += ISOSR
 SM_DRIVERS += NFSSR
 SM_DRIVERS += SMBSR
+SM_DRIVERS += udevSR
 
 # Things which are library parts of SR drivers
 SM_DRIVER_LIBS :=
@@ -27,6 +27,7 @@ SM_DRIVER_LIBS += FileSR
 SM_DRIVER_LIBS += ISOSR
 SM_DRIVER_LIBS += NFSSR
 SM_DRIVER_LIBS += SMBSR
+SM_DRIVER_LIBS += udevSR
 
 # Libraries which have moved in to sm.core
 SM_CORE_LIBS :=

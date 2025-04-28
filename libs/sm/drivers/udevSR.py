@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -17,10 +15,10 @@
 #
 # udevSR: represents VDIs which are hotplugged into dom0 via udev e.g.
 #         USB CDROM/disk devices
+#         matches with drivers/udevSR
 
 from sm import SR
 from sm import VDI
-from sm import SRCommand
 from sm.core import util
 import os
 import time
@@ -207,7 +205,5 @@ class udevVDI(VDI.VDI):
     def detach(self, sr_uuid, vdi_uuid):
         pass
 
-if __name__ == '__main__':
-    SRCommand.run(udevSR, DRIVER_INFO)
-else:
-    SR.registerSR(udevSR)
+# SR registration at import
+SR.registerSR(udevSR)
