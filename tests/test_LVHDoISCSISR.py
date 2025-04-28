@@ -154,9 +154,9 @@ class TestLVHDoISCSISR(ISCSITestCase):
 
         self.mock_copy.side_effect = deepcopy
 
-        lock_patcher = mock.patch('LVHDSR.Lock')
+        lock_patcher = mock.patch('sm.drivers.LVHDSR.Lock')
         self.mock_lock = lock_patcher.start()
-        lvlock_patcher = mock.patch('LVHDSR.lvutil.Fairlock')
+        lvlock_patcher = mock.patch('sm.drivers.LVHDSR.lvutil.Fairlock')
         self.mock_lvlock = lvlock_patcher.start()
 
         self.addCleanup(mock.patch.stopall)

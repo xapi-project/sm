@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -16,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 # LVHDSR: VHD on LVM storage repository
+#         matches with drivers/LVHDSR
 #
 import os
 import sys
@@ -27,7 +26,6 @@ import glob
 from sm import SR
 from sm.SR import deviceCheck
 from sm import VDI
-from sm import SRCommand
 from sm.core import util
 from sm.core import scsiutil
 from sm.core import xs_errors
@@ -133,19 +131,13 @@ class LVHDSR(SR.SR):
 
     legacyMode = True
 
+    @staticmethod
     def handles(type):
         """Returns True if this SR class understands the given dconf string"""
-        # we can pose as LVMSR or EXTSR for compatibility purposes
-        if __name__ == '__main__':
-            name = sys.argv[0]
-        else:
-            name = __name__
-        if name.endswith("LVMSR"):
-            return type == "lvm"
-        elif name.endswith("EXTSR"):
-            return type == "ext"
+        # we can pose as LVMSR for compatibility purposes
+        if type == "lvm":
+            return True
         return type == LVHDSR.DRIVER_TYPE
-    handles = staticmethod(handles)
 
     def load(self, sr_uuid):
         self.ops_exclusive = OPS_EXCLUSIVE
@@ -2226,7 +2218,5 @@ class LVHDVDI(VDI.VDI):
     def _cbt_log_exists(self, logpath):
         return lvutil.exists(logpath)
 
-if __name__ == '__main__':
-    SRCommand.run(LVHDSR, DRIVER_INFO)
-else:
-    SR.registerSR(LVHDSR)
+# SR registration at import
+SR.registerSR(LVHDSR)
