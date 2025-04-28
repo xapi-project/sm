@@ -25,7 +25,7 @@ import sys
 import xmlrpc.client
 import glob
 
-import HBASR
+from sm.drivers import HBASR
 from sm.drivers import LVHDSR
 
 from sm import SR

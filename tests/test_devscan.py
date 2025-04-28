@@ -3,7 +3,7 @@ import unittest
 import unittest.mock as mock
 
 from sm import SRCommand
-import HBASR
+from sm.drivers import HBASR
 import xmlrpc.client
 
 from sm import devscan
