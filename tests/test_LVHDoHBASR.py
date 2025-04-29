@@ -1,5 +1,5 @@
 import unittest.mock as mock
-import LVHDoHBASR
+from sm.drivers import LVHDoHBASR
 import unittest
 import xmlrpc.client
 from sm import SRCommand
@@ -15,9 +15,9 @@ def mock_init(self, sr, sr_uuid):
 
 @mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestLVHDoHBAVDI(unittest.TestCase):
-    @mock.patch('LVHDoHBASR.LVHDoHBASR', autospec=True)
-    @mock.patch('LVHDoHBASR.LVHDoHBAVDI.__init__', mock_init)
-    @mock.patch('LVHDoHBASR.lvutil._checkLV', autospec=True)
+    @mock.patch('sm.drivers.LVHDoHBASR.LVHDoHBASR', autospec=True)
+    @mock.patch('sm.drivers.LVHDoHBASR.LVHDoHBAVDI.__init__', mock_init)
+    @mock.patch('sm.drivers.LVHDoHBASR.lvutil._checkLV', autospec=True)
     def test_generate_config(self,
                              mock_checkLV,
                              mock_SR):
@@ -46,9 +46,9 @@ class TestLVHDoHBAVDI(unittest.TestCase):
         self.assertEqual(load_object[0][0]["device_config"]["multipathhandle"],
                          mpath_handle)
 
-    @mock.patch('LVHDoHBASR.LVHDoHBASR', autospec=True)
-    @mock.patch('LVHDoHBASR.LVHDoHBAVDI.__init__', mock_init)
-    @mock.patch('LVHDoHBASR.lvutil._checkLV', autospec=True)
+    @mock.patch('sm.drivers.LVHDoHBASR.LVHDoHBASR', autospec=True)
+    @mock.patch('sm.drivers.LVHDoHBASR.LVHDoHBAVDI.__init__', mock_init)
+    @mock.patch('sm.drivers.LVHDoHBASR.lvutil._checkLV', autospec=True)
     def test_generate_config_bad_path_assert(self,
                                              mock_checkLV,
                                              mock_SR):
@@ -83,9 +83,9 @@ class TestLVHDoHBASR(unittest.TestCase):
 
         lock_patcher = mock.patch('sm.drivers.LVHDSR.Lock', autospec=True)
         self.mock_lock = lock_patcher.start()
-        lvhdsr_patcher = mock.patch('LVHDoHBASR.LVHDSR')
+        lvhdsr_patcher = mock.patch('sm.drivers.LVHDoHBASR.LVHDSR')
         self.mock_lvhdsr = lvhdsr_patcher.start()
-        util_patcher = mock.patch('LVHDoHBASR.util', autospec=True)
+        util_patcher = mock.patch('sm.drivers.LVHDoHBASR.util', autospec=True)
         self.mock_util = util_patcher.start()
         lc_patcher = mock.patch('sm.drivers.LVHDSR.lvmcache.lvutil.Fairlock', autospec=True)
         self.mock_lc = lc_patcher.start()
@@ -95,37 +95,26 @@ class TestLVHDoHBASR(unittest.TestCase):
         self.addCleanup(mock.patch.stopall)
 
     def create_sr_cmd(self, cmd):
-        host_ref = self.host_ref
-        scsi_id = self.scsi_id
-        session_ref = self.session_ref
-        sr_ref = self.sr_ref
-        sr_uuid = self.sr_uuid
-
-        def mock_parse(self):
-            self.cmd = cmd
-            device_config = {
-                'SCSIid': scsi_id,
-                'SRmaster': 'true'
-            }
-            self.params = {
-                'command': cmd,
-                'device_config': device_config,
-                'host_ref': host_ref,
-                'session_ref': session_ref,
-                'sr_ref': sr_ref,
-                'sr_uuid': sr_uuid
-            }
-            self.sr_uuid = sr_uuid
-            self.dconf = device_config
-
-        with mock.patch('LVHDoHBASR.SRCommand.SRCommand.parse', autospec=True) as parse:
-            parse.side_effect = mock_parse
-            srcmd = SRCommand.SRCommand({})
-            srcmd.parse()
-        return srcmd
+        device_config = {
+            'SCSIid': self.scsi_id,
+            'SRmaster': 'true'
+        }
+        sr_cmd = SRCommand.SRCommand(LVHDoHBASR.DRIVER_INFO)
+        sr_cmd.cmd = cmd
+        sr_cmd.params = {
+            'command': cmd,
+            'device_config': device_config,
+            'host_ref': self.host_ref,
+            'session_ref': self.session_ref,
+            'sr_ref': self.sr_ref,
+            'sr_uuid': self.sr_uuid
+        }
+        sr_cmd.sr_uuid = self.sr_uuid
+        sr_cmd.dconf = device_config
+        return sr_cmd
 
     @mock.patch("builtins.open", new_callable=mock.mock_open())
-    @mock.patch('LVHDoHBASR.glob.glob', autospec=True)
+    @mock.patch('sm.drivers.LVHDoHBASR.glob.glob', autospec=True)
     def test_sr_delete_no_multipath(self, mock_glob, mock_open):
         # Arrange
         srcmd = self.create_sr_cmd("sr_delete")

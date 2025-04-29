@@ -2,7 +2,6 @@ PYLINT=$(shell command -v pylint-3 || echo pylint)
 PYTHONLIBDIR = $(shell python3 -c "import sys; print(sys.path.pop())")
 
 SM_COMPAT_DRIVERS :=
-SM_COMPAT_DRIVERS += LVHDoHBA
 SM_COMPAT_DRIVERS += SHM
 
 # Executable SR drivers
@@ -12,8 +11,10 @@ SM_DRIVERS += EXTSR
 SM_DRIVERS += FileSR
 SM_DRIVERS += HBASR
 SM_DRIVERS += ISOSR
+SM_DRIVERS += LVHDoHBASR
 SM_DRIVERS += LVHDoISCSISR
 SM_DRIVERS += LVHDSR
+SM_DRIVERS += LVMoHBASR
 SM_DRIVERS += LVMoISCSISR
 SM_DRIVERS += LVMSR
 SM_DRIVERS += NFSSR
@@ -28,6 +29,7 @@ SM_DRIVER_LIBS += EXTSR
 SM_DRIVER_LIBS += FileSR
 SM_DRIVER_LIBS += HBASR
 SM_DRIVER_LIBS += ISOSR
+SM_DRIVER_LIBS += LVHDoHBASR
 SM_DRIVER_LIBS += LVHDoISCSISR
 SM_DRIVER_LIBS += LVHDSR
 SM_DRIVER_LIBS += NFSSR
@@ -335,7 +337,6 @@ install: precheck
 	  ln -sf $$i"SR.py" $$i"SR"; \
 	done
 	rm $(SM_STAGING)$(OPT_SM_DEST)/SHMSR
-	cd $(SM_STAGING)$(OPT_SM_DEST) && rm -f LVHDoHBASR && ln -sf LVHDoHBASR.py LVMoHBASR
 	install -m 755 scripts/02-vhdcleanup $(SM_STAGING)$(MASTER_SCRIPT_DEST)
 	for i in $(SM_PLUGIN_SCRIPTS); do \
 	  install -D -m 755 scripts/plugins/$$i $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)/$$i; \
