@@ -7,7 +7,7 @@ import traceback
 from uuid import uuid4
 
 from sm import SR
-import LVHDoISCSISR
+from sm.drivers import LVHDoISCSISR
 from sm.core import iscsi
 from sm.BaseISCSI import BaseISCSISR
 from sm import SRCommand
@@ -69,7 +69,7 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
                 'sm.BaseISCSI.BaseISCSISR',
                 return_value=NonInitingISCSISR()
             ),
-            mock.patch('LVHDoISCSISR.util._convertDNS', return_value='127.0.0.1'),
+            mock.patch('sm.drivers.LVHDoISCSISR.util._convertDNS', return_value='127.0.0.1'),
             mock.patch('sm.SR.driver'),
         ]
 
@@ -85,7 +85,7 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
 
         self.addCleanup(mock.patch.stopall)
 
-    @mock.patch('LVHDoISCSISR.iscsi.ensure_daemon_running_ok')
+    @mock.patch('sm.drivers.LVHDoISCSISR.iscsi.ensure_daemon_running_ok')
     def test_1st_try_block_raise_XenError(
             self,
             mock_iscsi_ensure_daemon_running_ok):
@@ -103,7 +103,7 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
             'Failed to set ISCSI initiator [opterr=Raise XenError]'
         )
 
-    @mock.patch('LVHDoISCSISR.iscsi.ensure_daemon_running_ok')
+    @mock.patch('sm.drivers.LVHDoISCSISR.iscsi.ensure_daemon_running_ok')
     def test_1st_try_block_raise_RandomError(
             self,
             mock_iscsi_ensure_daemon_running_ok):
@@ -124,21 +124,21 @@ class TestLVHDoISCSISR_load(unittest.TestCase):
 @mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
 class TestLVHDoISCSISR(ISCSITestCase):
 
-    TEST_CLASS = 'LVHDoISCSISR'
+    TEST_CLASS = 'sm.drivers.LVHDoISCSISR'
 
     def setUp(self):
-        util_patcher = mock.patch('LVHDoISCSISR.util', autospec=True)
+        util_patcher = mock.patch('sm.drivers.LVHDoISCSISR.util', autospec=True)
         self.mock_util = util_patcher.start()
         # self.mock_util.SMlog.side_effect = print
         self.mock_util.isVDICommand = util.isVDICommand
         self.mock_util.sessions_less_than_targets = util.sessions_less_than_targets
 
         self.base_srs = set()
-        baseiscsi_patcher = mock.patch('LVHDoISCSISR.BaseISCSI.BaseISCSISR',
+        baseiscsi_patcher = mock.patch('sm.drivers.LVHDoISCSISR.BaseISCSI.BaseISCSISR',
                                        autospec=True)
         patched_baseiscsi = baseiscsi_patcher.start()
         patched_baseiscsi.side_effect = self.baseiscsi
-        lvhdsr_patcher = mock.patch ('LVHDoISCSISR.LVHDSR')
+        lvhdsr_patcher = mock.patch('sm.drivers.LVHDoISCSISR.LVHDSR')
 
         self.mock_lvhdsr = lvhdsr_patcher.start()
         self.mock_session = mock.MagicMock()
@@ -146,7 +146,7 @@ class TestLVHDoISCSISR(ISCSITestCase):
         mock_xenapi = xenapi_patcher.start()
         mock_xenapi.xapi_local.return_value = self.mock_session
 
-        copy_patcher = mock.patch('LVHDoISCSISR.SR.copy.deepcopy')
+        copy_patcher = mock.patch('sm.drivers.LVHDoISCSISR.SR.copy.deepcopy')
         self.mock_copy = copy_patcher.start()
 
         def deepcopy(to_copy):

@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -16,12 +14,12 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
 # LVHDoISCSISR: LVHD over ISCSI software initiator SR driver
+#               matches with drivers/LVHDoISCSISR
 #
 
 from sm import SR
 from sm.drivers import LVHDSR
 from sm import BaseISCSI
-from sm import SRCommand
 from sm.core import util
 from sm.core import scsiutil
 from sm import lvutil
@@ -70,17 +68,13 @@ DRIVER_INFO = {
 class LVHDoISCSISR(LVHDSR.LVHDSR):
     """LVHD over ISCSI storage repository"""
 
+    @staticmethod
     def handles(type):
-        if __name__ == '__main__':
-            name = sys.argv[0]
-        else:
-            name = __name__
-        if name.endswith("LVMoISCSISR"):
-            return type == "lvmoiscsi"
+        if type == "lvmoiscsi":
+            return True
         if type == "lvhdoiscsi":
             return True
         return False
-    handles = staticmethod(handles)
 
     def load(self, sr_uuid):
         if not sr_uuid:
@@ -573,8 +567,5 @@ class LVHDoISCSIVDI(LVHDSR.LVHDVDI):
             raise xs_errors.XenError('SRUnavailable', \
                         opterr='Unable to attach the heartbeat disk')
 
-
-if __name__ == '__main__':
-    SRCommand.run(LVHDoISCSISR, DRIVER_INFO)
-else:
-    SR.registerSR(LVHDoISCSISR)
+# SR registration at import
+SR.registerSR(LVHDoISCSISR)
