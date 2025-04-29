@@ -34,7 +34,7 @@ class TestBaseISCSI(ISCSITestCase):
         mock_xenapi = xenapi_patcher.start()
         mock_xenapi.xapi_local.return_value = self.mock_session
 
-        copy_patcher = mock.patch('LVHDoISCSISR.SR.copy.deepcopy')
+        copy_patcher = mock.patch('sm.drivers.LVHDoISCSISR.SR.copy.deepcopy')
         self.mock_copy = copy_patcher.start()
 
         def deepcopy(to_copy):
