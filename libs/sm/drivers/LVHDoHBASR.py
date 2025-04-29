@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -15,8 +13,9 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #
-# LVHDoISCSISR: LVHD over Hardware HBA LUN driver, e.g. Fibre Channel or
+# LVHDoHBASR: LVHD over Hardware HBA LUN driver, e.g. Fibre Channel or
 # hardware based iSCSI
+#               matches with drivers/LVHDoHBASR
 #
 
 import os
@@ -29,7 +28,6 @@ from sm.drivers import HBASR
 from sm.drivers import LVHDSR
 
 from sm import SR
-from sm import SRCommand
 from sm import lvutil
 from sm.core import xs_errors
 from sm.core import util
@@ -60,17 +58,13 @@ DRIVER_INFO = {
 class LVHDoHBASR(LVHDSR.LVHDSR):
     """LVHD over HBA storage repository"""
 
+    @staticmethod
     def handles(type):
-        if __name__ == '__main__':
-            name = sys.argv[0]
-        else:
-            name = __name__
-        if name.endswith("LVMoHBASR"):
-            return type == "lvmohba"  # for the initial switch from LVM
+        if type == "lvmohba":
+            return True
         if type == "lvhdohba":
             return True
         return False
-    handles = staticmethod(handles)
 
     def load(self, sr_uuid):
         driver = SR.driver('hba')
@@ -254,7 +248,5 @@ def match_scsidev(s):
     regex = re.compile("^/dev/disk/by-id|^/dev/mapper")
     return regex.search(s, 0)
 
-if __name__ == '__main__':
-    SRCommand.run(LVHDoHBASR, DRIVER_INFO)
-else:
-    SR.registerSR(LVHDoHBASR)
+# SR registration at import
+SR.registerSR(LVHDoHBASR)
