@@ -1,8 +1,8 @@
 PYLINT=$(shell command -v pylint-3 || echo pylint)
 PYTHONLIBDIR = $(shell python3 -c "import sys; print(sys.path.pop())")
 
+# Sompatibility drivers
 SM_COMPAT_DRIVERS :=
-SM_COMPAT_DRIVERS += SHM
 
 # Executable SR drivers
 SM_DRIVERS :=
@@ -336,7 +336,6 @@ install: precheck
 	cd $(SM_STAGING)$(OPT_SM_DEST) && for i in $(SM_COMPAT_DRIVERS); do \
 	  ln -sf $$i"SR.py" $$i"SR"; \
 	done
-	rm $(SM_STAGING)$(OPT_SM_DEST)/SHMSR
 	install -m 755 scripts/02-vhdcleanup $(SM_STAGING)$(MASTER_SCRIPT_DEST)
 	for i in $(SM_PLUGIN_SCRIPTS); do \
 	  install -D -m 755 scripts/plugins/$$i $(SM_STAGING)$(PLUGIN_SCRIPT_DEST)/$$i; \
