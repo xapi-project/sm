@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-#
 # Copyright (C) Citrix Systems Inc.
 #
 # This program is free software; you can redistribute it and/or modify
@@ -17,7 +15,6 @@
 
 from sm import SR
 from sm import VDI
-from sm import SRCommand
 from sm.core import util
 import os
 from sm.core import xs_errors
@@ -129,7 +126,5 @@ class SHMVDI(VDI.VDI):
     def snapshot(self, sr_uuid, vdi_uuid):
         return self.get_params()
 
-if __name__ == '__main__':
-    SRCommand.run(SHMSR, DRIVER_INFO)
-else:
-    SR.registerSR(SHMSR)
+# SR registration at import
+SR.registerSR(SHMSR)
