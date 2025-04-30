@@ -19,10 +19,6 @@
 Health check for SR, to be triggered periodically by a systemd timer. What is checked is
 SR implementation type dependent.
 """
-# This path adjustment can be removed eventually
-import sys
-sys.path.append("/opt/xensource/sm/")
-
 from sm import sr_health_check
 
 if __name__ == "__main__":

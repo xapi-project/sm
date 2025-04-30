@@ -21,7 +21,6 @@
 import getopt
 import sys
 
-sys.path.append("/opt/xensource/sm/")
 from sm import cleanup
 
 

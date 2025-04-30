@@ -4,7 +4,7 @@
 if [ -d /sys/class/iscsi_session ] ; then
     for dir in /sys/class/iscsi_session/* ; do
      if [ -d "$dir" ] ; then
-       # Ensure that the SR backend /opt/xensource/sm does not deactivate
+       # Ensure that the SR backend does not deactivate
        # this iSCSI session by saying it is in use by a "dummy" SR
        iqn="$(cat $dir/targetname)"
        dummy_sr="00000000-0000-0000-0000-000000000000"

@@ -17,7 +17,6 @@
 #
 # A plugin for synchronizing slaves when something changes on the Master
 
-import sys; sys.path.append("/opt/xensource/sm/")
 from sm.core import util
 import os, glob, errno
 
