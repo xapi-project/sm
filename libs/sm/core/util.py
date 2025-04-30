@@ -1229,7 +1229,7 @@ def p_id_fork():
             print("Fork failed: %s (%d)" % (e.strerror, e.errno))
             sys.exit(-1)
         if (p_id == 0):
-            os.chdir('/opt/xensource/sm')
+            os.chdir('/')
             os.umask(0)
         else:
             os._exit(0)
