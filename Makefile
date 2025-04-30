@@ -92,8 +92,9 @@ SM_LIBS += vhdutil
 # which are in python and need compatibility symlinks from
 # /opt
 SM_LIBEXEC_PY_CMDS :=
-SM_LIBEXEC_PY_CMDS += mpathcount
 SM_LIBEXEC_PY_CMDS += cleanup
+SM_LIBEXEC_PY_CMDS += lvhdutil
+SM_LIBEXEC_PY_CMDS += mpathcount
 SM_LIBEXEC_PY_CMDS += sr_health_check
 SM_LIBEXEC_PY_CMDS += verifyVHDsOnSR
 

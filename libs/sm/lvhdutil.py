@@ -352,19 +352,3 @@ def setInnerNodeRefcounts(lvmCache, srUuid):
             pathsNotInUse.append(path)
 
     return pathsNotInUse
-
-if __name__ == "__main__":
-    # used by the master changeover script
-    cmd = sys.argv[1]
-    if cmd == "fixrefcounts":
-        from lvmcache import LVMCache
-        srUuid = sys.argv[2]
-        try:
-            vgName = VG_PREFIX + srUuid
-            lvmCache = LVMCache(vgName)
-            setInnerNodeRefcounts(lvmCache, srUuid)
-        except:
-            util.logException("setInnerNodeRefcounts")
-    else:
-        util.SMlog("Invalid usage")
-        print("Usage: %s fixrefcounts <sr_uuid>" % sys.argv[0])
