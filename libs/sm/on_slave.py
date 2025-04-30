@@ -13,8 +13,6 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-import sys
-sys.path.append("/opt/xensource/sm/")
 from sm.core import util
 from sm.core import lock
 from sm.lvmcache import LVMCache

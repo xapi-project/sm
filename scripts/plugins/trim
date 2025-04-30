@@ -18,10 +18,8 @@
 # A plugin for enabling trim on LVM based SRs to free up storage space
 # in Storage arrays.
 
-import sys
 import XenAPIPlugin
+from sm import trim_util
 
 if __name__ == "__main__":
-    sys.path.append("/opt/xensource/sm/")
-    from sm import trim_util
     XenAPIPlugin.dispatch({"do_trim": trim_util.do_trim})

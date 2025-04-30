@@ -20,7 +20,6 @@
 
 import sys
 import XenAPIPlugin
-sys.path.append("/opt/xensource/sm/")
 from sm.core import util
 from sm import lvhdutil
 from sm.lvmcache import LVMCache
