@@ -21,7 +21,7 @@
 . /etc/init.d/functions
 
 CLEANUP_SCRIPT="/usr/libexec/sm/cleanup"
-LVHD_UTIL_SCRIPT="/opt/xensource/sm/lvhdutil.py"
+LVHD_UTIL_SCRIPT="/usr/libexec/sm/lvhdutil"
 
 start() {
     echo -n $"Fixing refcounts on new master: "
