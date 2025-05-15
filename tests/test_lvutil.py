@@ -6,6 +6,7 @@ import unittest
 import testlib
 import lvmlib
 from sm.core import util
+from sm.core import xs_errors
 
 from sm import lvutil
 
@@ -394,6 +395,27 @@ class TestGetPVsInVG(unittest.TestCase):
         ])
         mock_smlog.assert_called_with("PVs in VG vg1: []")
 
+    @mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
+    @mock.patch('sm.lvutil.scsiutil.getSCSIid', autospec=True)
+    def test_check_PV_SCSI_IDs_failure(self, mock_get_scsi_id, mock_smlog, mock_cmd_lvm):
+        mock_cmd_lvm.return_value = """  /dev/disk/by-id/scsi-360014057b7f26e2962843fa8a0645fbd VG_XenStorage-401d198b-60ab-1f21-1359-bd4f127b8f38 lvm2 d--       0      0
+  /dev/disk/by-id/scsi-36001405fdd436fa7f854cd685fc3b1fd VG_XenStorage-401d198b-60ab-1f21-1359-bd4f127b8f38 lvm2 a--  <49.99g 49.98g
+"""  # noqa: E501
+        mock_get_scsi_id.side_effect = ['36001405fdd436fa7f854cd685fc3b1fd',
+                                        '360014057b7f26e2962843fa8a0645fbd']
+        with self.assertRaises(xs_errors.SROSError) as srose:
+            lvutil.checkPVScsiIds('VG_XenStorage-401d198b-60ab-1f21-1359-bd4f127b8f38',
+                                  '36001405fdd436fa7f854cd685fc3b1fd')
+        self.assertEqual(119, srose.exception.errno)
+
+    @mock.patch('sm.lvutil.scsiutil.getSCSIid', autospec=True)
+    def test_check_PV_SCSI_IDs_success(self, mock_get_scsi_id, mock_smlog, mock_cmd_lvm):
+        mock_cmd_lvm.return_value = """  /dev/disk/by-id/scsi-360014057b7f26e2962843fa8a0645fbd VG_XenStorage-401d198b-60ab-1f21-1359-bd4f127b8f38 lvm2 d--       0      0"""  # noqa: E501
+        mock_get_scsi_id.side_effect = ['36001405fdd436fa7f854cd685fc3b1fd']
+        lvutil.checkPVScsiIds('VG_XenStorage-401d198b-60ab-1f21-1359-bd4f127b8f38',
+                              '36001405fdd436fa7f854cd685fc3b1fd')
+
+
 @mock.patch('sm.lvutil.cmd_lvm')
 @mock.patch('sm.core.util.SMlog', autospec=True)
 class TestGetPVsWithUUID(unittest.TestCase):
@@ -431,3 +453,4 @@ class TestGetPVsWithUUID(unittest.TestCase):
             mock.call("Warning: Invalid or empty line in pvs output: Invalid return value."),
             mock.call("PVs with uuid uuid1: []")
         ])
+
