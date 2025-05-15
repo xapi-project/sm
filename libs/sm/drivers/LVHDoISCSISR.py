@@ -471,11 +471,21 @@ class LVHDoISCSISR(LVHDSR.LVHDSR):
                     scsiutil.rescan([self.iscsi.adapter[a]])
 
             self._pathrefresh(LVHDoISCSISR)
+
+            # Check that we only have PVs for the volume group with the expected SCSI ID
+            lvutil.checkPVScsiIds(self.vgname, self.SCSIid)
+
             LVHDSR.LVHDSR.attach(self, sr_uuid)
         except Exception as inst:
             for i in self.iscsiSRs:
                 i.detach(sr_uuid)
+
+            # If we already have a proper error just raise it
+            if isinstance(inst, xs_errors.SROSError):
+                raise
+
             raise xs_errors.XenError("SRUnavailable", opterr=inst)
+
         self._setMultipathableFlag(SCSIid=self.SCSIid)
 
     def detach(self, sr_uuid):

@@ -23,6 +23,7 @@ import errno
 import time
 
 from fairlock import Fairlock
+from sm.core import scsiutil
 from sm.core import util
 from sm.core import xs_errors
 import xml.dom.minidom
@@ -612,6 +613,19 @@ def setActiveVG(path, active):
         val = "y"
     text = cmd_lvm([CMD_VGCHANGE, "-a" + val, path])
 
+
+def checkPVScsiIds(vgname, SCSIid):
+    # Get all the PVs for the specified vgName even if not active
+    cmd = [CMD_PVS, '-a', '--select', f'vgname={vgname}', '--no-headings']
+    text = cmd_lvm(cmd)
+    pv_paths = [x.split()[0] for x in text.splitlines()]
+    for pv_path in pv_paths:
+        pv_scsi_id = scsiutil.getSCSIid(pv_path)
+        if pv_scsi_id != SCSIid:
+            raise xs_errors.XenError(
+                'PVMultiIDs',
+                opterr=f'Found PVs {",".join(pv_paths)} and unexpected '
+                       f'SCSI ID {pv_scsi_id}, expected {SCSIid}')
 
 @lvmretry
 def create(name, size, vgname, tag=None, size_in_percentage=None):
