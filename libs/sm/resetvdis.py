@@ -17,11 +17,10 @@
 # Clear the attach status for all VDIs in the given SR on this host.
 # Additionally, reset the paused state if this host is the master.
 
+import XenAPI # pylint: disable=import-error
 from sm import cleanup
 from sm.core import util
 from sm.core import lock
-import sys
-import XenAPI # pylint: disable=import-error
 
 
 def reset_sr(session, host_uuid, sr_uuid, is_sr_master):
@@ -127,62 +126,3 @@ def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True):
         if term_output:
             print(msg)
     return clean
-
-
-def usage():
-    print("Usage:")
-    print("all <HOST UUID> <SR UUID> [--master]")
-    print("single <VDI UUID> [--force]")
-    print()
-    print("*WARNING!* calling with 'all' on an attached SR, or using " + \
-            "--force may cause DATA CORRUPTION if the VDI is still " + \
-            "attached somewhere. Always manually double-check that " + \
-            "the VDI is not in use before running this script.")
-    sys.exit(1)
-
-if __name__ == '__main__':
-    import sys
-    import atexit
-
-    if len(sys.argv) not in [3, 4, 5]:
-        usage()
-
-    session = XenAPI.xapi_local()
-    session.xenapi.login_with_password('root', '', '', 'SM')
-    atexit.register(session.xenapi.session.logout)
-
-    mode = sys.argv[1]
-    if mode == "all":
-        if len(sys.argv) not in [4, 5]:
-            usage()
-        host_uuid = sys.argv[2]
-        sr_uuid = sys.argv[3]
-        is_master = False
-        if len(sys.argv) == 5:
-            if sys.argv[4] == "--master":
-                is_master = True
-            else:
-                usage()
-        reset_sr(session, host_uuid, sr_uuid, is_master)
-    elif mode == "single":
-        vdi_uuid = sys.argv[2]
-        force = False
-        if len(sys.argv) == 4 and sys.argv[3] == "--force":
-            force = True
-        reset_vdi(session, vdi_uuid, force)
-    elif len(sys.argv) in [3, 4]:
-        # backwards compatibility: the arguments for the "all" case used to be
-        # just host_uuid, sr_uuid, [is_master] (i.e., no "all" string, since it
-        # was the only mode available). To avoid having to change XAPI, accept
-        # the old format here as well.
-        host_uuid = sys.argv[1]
-        sr_uuid = sys.argv[2]
-        is_master = False
-        if len(sys.argv) == 4:
-            if sys.argv[3] == "--master":
-                is_master = True
-            else:
-                usage()
-        reset_sr(session, host_uuid, sr_uuid, is_master)
-    else:
-        usage()
