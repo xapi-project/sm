@@ -95,6 +95,7 @@ SM_LIBEXEC_PY_CMDS :=
 SM_LIBEXEC_PY_CMDS += cleanup
 SM_LIBEXEC_PY_CMDS += lvhdutil
 SM_LIBEXEC_PY_CMDS += mpathcount
+SM_LIBEXEC_PY_CMDS += resetvdis
 SM_LIBEXEC_PY_CMDS += sr_health_check
 SM_LIBEXEC_PY_CMDS += verifyVHDsOnSR
 
@@ -174,7 +175,6 @@ SM_COMPAT_LIBS += ipc
 SM_COMPAT_LIBS += srmetadata
 SM_COMPAT_LIBS += metadata
 SM_COMPAT_LIBS += lvmanager
-SM_COMPAT_LIBS += resetvdis
 SM_COMPAT_LIBS += trim_util
 SM_COMPAT_LIBS += pluginutil
 SM_COMPAT_LIBS += constants
