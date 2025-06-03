@@ -156,7 +156,7 @@ def get_SCSIidlist(devconfig, sm_config):
         SCSIidlist = sm_config['SCSIid'].split(',')
     elif 'SCSIid' in devconfig:
         SCSIidlist.append(devconfig['SCSIid'])
-    elif 'provider' in devconfig:
+    elif 'provider' in devconfig and 'ScsiId' in devconfig:
         SCSIidlist.append(devconfig['ScsiId'])
     else:
         for key in sm_config:
