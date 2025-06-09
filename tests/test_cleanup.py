@@ -184,8 +184,7 @@ class TestSR(unittest.TestCase):
 
     @mock.patch('sm.cleanup._create_init_file', autospec=True)
     @mock.patch('sm.cleanup.SR', autospec=True)
-    @mock.patch('sm.cleanup._ensure_xapi_initialised', autospec=True)
-    def test_loop_exits_on_term(self, mock_init, mock_sr, mock_check_xapi):
+    def test_loop_exits_on_term(self, mock_init, mock_sr):
         # Set the term signel
         cleanup.receiveSignal(signal.SIGTERM, None)
         mock_session = mock.MagicMock(name='MockSession')
@@ -1679,71 +1678,6 @@ class TestSR(unittest.TestCase):
         self.assertIn('Failed to tag vdi', str(sme.exception))
 
         self.assertGreater(self.mock_time_sleep.call_count, 5)
-
-    @mock.patch('sm.cleanup.util.get_this_host', autospec=True)
-    @mock.patch('sm.cleanup._gcLoop', autospec=True)
-    @mock.patch('sm.cleanup.SR.getInstance')
-    def test_check_for_xapi_running(
-            self, mock_sr, mock_loop, mock_this_host):
-        """
-        Check we start immediately if xapi is enabled
-        """
-        host_uuid = uuid4()
-        mock_this_host.return_value = host_uuid
-
-        mock_session = mock.MagicMock(name='MockSession')
-        mock_session.xenapi.host.get_record.return_value = {
-            'enabled': True
-        }
-        sr_uuid = uuid4()
-
-        cleanup._gc(mock_session, sr_uuid, False)
-
-    @mock.patch('sm.cleanup.util.get_this_host', autospec=True)
-    @mock.patch('sm.cleanup.util.get_localAPI_session', autospec=True)
-    @mock.patch('sm.cleanup._gcLoop', autospec=True)
-    @mock.patch('sm.cleanup.SR.getInstance')
-    def test_check_for_xapi_running_no_session(
-            self, mock_sr, mock_loop, mock_get_session, mock_this_host):
-        """
-        Check we start immediately if xapi is enabled
-        """
-        host_uuid = uuid4()
-        mock_this_host.return_value = host_uuid
-        mock_session = mock.MagicMock(name='MockSession')
-        mock_get_session.return_value = mock_session
-
-        mock_session.xenapi.host.get_record.return_value = {
-            'enabled': True
-        }
-        sr_uuid = uuid4()
-
-        cleanup._gc(None, sr_uuid, False)
-
-    @mock.patch('sm.cleanup.util.get_this_host', autospec=True)
-    @mock.patch('sm.cleanup.util.get_localAPI_session', autospec=True)
-    @mock.patch('sm.cleanup._gcLoop', autospec=True)
-    @mock.patch('sm.cleanup.SR.getInstance')
-    def test_waits_for_xapi_running(
-            self, mock_sr, mock_loop, mock_get_session, mock_this_host):
-        """
-        Check we start immediately if xapi is enabled
-        """
-        host_uuid = uuid4()
-        mock_this_host.return_value = host_uuid
-        mock_session = mock.MagicMock(name='MockSession')
-        mock_get_session.return_value = mock_session
-
-        mock_session.xenapi.host.get_record.side_effect = [
-            {'enabled': False},
-            {'enabled': False},
-            {'enabled': True}
-        ]
-        sr_uuid = uuid4()
-
-        cleanup._gc(None, sr_uuid, False)
-
-        self.assertEqual(3, mock_session.xenapi.host.get_record.call_count)
 
     def init_gc_loop_sr(self):
         sr_uuid = str(uuid4())

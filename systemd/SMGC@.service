@@ -1,6 +1,7 @@
 [Unit]
 Description=Garbage Collector for SR %I
 DefaultDependencies=no
+Requires=xapi-init-complete.target
 
 [Service]
 Type=oneshot
