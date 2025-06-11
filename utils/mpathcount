@@ -61,7 +61,7 @@ if __name__ == '__main__':
         mpathcount.mpc_exit(session, -1)
 
     try:
-        pbds = session.xenapi.PBD.get_all_records_where("field \"host\" = \"%s\"" % localhost)
+        pbds = session.xenapi.PBD.get_all_records_where(f'field "host" = "{localhost}"')
     except:
         mpathcount.mpc_exit(session, -1)
 
@@ -86,7 +86,7 @@ if __name__ == '__main__':
         util.atomicFileWrite(mpathcount.MPATH_FILE_NAME, mpathcount.MPATHS_DIR, json.dumps(mpath_status))
         os.chmod(mpathcount.MPATH_FILE_NAME, 0o0644)
     except:
-        util.SMlog("MPATH: Failure updating db. %s" % sys.exc_info())
+        util.SMlog(f'MPATH: Failure updating db. {sys.exc_info()}')
         mpathcount.mpc_exit(session, -1)
 
     util.SMlog("MPATH: Update done")
