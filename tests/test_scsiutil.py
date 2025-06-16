@@ -49,6 +49,7 @@ class TestScsiUtil(unittest.TestCase):
         exists_patcher = mock.patch(
             'sm.core.scsiutil.os.path.exists', autospece=True)
         self.mock_exists = exists_patcher.start()
+        self.mock_exists.side_effect = self.exists
         self.path_map = {}
         realpath_patcher = mock.patch(
             'sm.core.scsiutil.os.path.realpath', autospec=True)
@@ -91,8 +92,13 @@ class TestScsiUtil(unittest.TestCase):
         self.mock_files[file_name] = mock_file
         return mock_file
 
+    def exists(self, path):
+        return path in self.path_map
+
     def test_get_size_exists_success(self):
-        self.mock_exists.return_value = True
+        self.path_map = {
+            '/sys/block/sda/size': True
+        }
 
         with mock.patch("builtins.open",
                         new_callable=mock.mock_open, read_data='976773168') as m:
@@ -104,11 +110,9 @@ class TestScsiUtil(unittest.TestCase):
         m.assert_called_with("/sys/block/sda/size", "r")
 
     def test_get_size_mapper_exists_success(self):
-        self.mock_exists.return_value = True
-
-        self.path_map[
-            "/dev/disk/by-id/scsi-360a98000534b4f4e46704c76692d6d33"] = \
-                "/dev/sde"
+        self.path_map = {
+            '/sys/block/sde/size': True,
+            "/dev/disk/by-id/scsi-360a98000534b4f4e46704c76692d6d33": "/dev/sde"}
 
         with mock.patch("builtins.open",
                         new_callable=mock.mock_open, read_data='976773168') as m:
@@ -120,8 +124,6 @@ class TestScsiUtil(unittest.TestCase):
         m.assert_called_with("/sys/block/sde/size", "r")
 
     def test_get_size_not_exists_0(self):
-        self.mock_exists.return_value = False
-
         with mock.patch("builtins.open",
                         new_callable=mock.mock_open, read_data='976773168') as m:
             # Nastiness due to python2 mock_open not supporting readline
@@ -159,3 +161,12 @@ class TestScsiUtil(unittest.TestCase):
 
         #  Assert
         self.assertTrue(thin_provisioned)
+
+    def test_lun_is_thin_provisioned_not_found(self):
+        self.path_map = {}
+
+        # Act
+        thin_provisioned = scsiutil.device_is_thin_provisioned('360a98000534b4f4e46704c76692d6d33')
+
+        # Assert
+        self.assertFalse(thin_provisioned)
