@@ -222,19 +222,31 @@ def getdev(path):
 
 
 def get_devices_by_SCSIid(SCSIid):
-    devices = os.listdir(os.path.join('/dev/disk/by-scsid', SCSIid))
+    id_path = os.path.join('/dev/disk/by-scsid', SCSIid)
+    if not os.path.exists(id_path):
+        util.SMlog(f'SCSId Path not found for {id_path}')
+        return []
+
+    devices = os.listdir(id_path)
     if 'mapper' in devices:
         devices.remove('mapper')
     return devices
 
 
 def get_device_provisioning_mode(SCSIid):
-    device = get_devices_by_SCSIid(SCSIid)[0]
+    devices = get_devices_by_SCSIid(SCSIid)
+    if not devices:
+        # Device can't be found so assume full
+        return 'full'
+
+    device = devices[0]
     glob_pattern = os.path.join('/sys', 'block', device, 'device', 'scsi_disk', '*', 'provisioning_mode')
+    mode = 'full'
     for file in glob.glob(glob_pattern):
         with open(file, 'r') as device_mode:
             mode = device_mode.readline().strip()
-            return mode
+
+    return mode
 
 
 def device_is_thin_provisioned(SCSIid):
