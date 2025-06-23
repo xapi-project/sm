@@ -764,7 +764,8 @@ class TestCBT(unittest.TestCase):
         data = b'\x0c\xbb3a\xf75Jy\x17\x04\x92;\x0b\x93\xf3E'
         bitmap2.frombytes(data)
         mock_size.side_effect = [vdi_size1, vdi_size2]
-        mock_call.side_effect = [bitmap1.tobytes(), data]
+        mock_call.side_effect = [base64.b64encode(bitmap1.tobytes()).decode(),
+                                base64.b64encode(data).decode()]
         bitmap1.bytereverse()
         bitmap2.bytereverse()
         expected_string = base64.b64encode((bitmap1 | bitmap2).tobytes()).decode()
