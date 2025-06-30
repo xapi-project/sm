@@ -66,6 +66,7 @@ SM_LIBS += devscan
 SM_LIBS += fjournaler
 SM_LIBS += ipc
 SM_LIBS += journaler
+SM_LIBS += lcache
 SM_LIBS += lock_queue
 SM_LIBS += LUNperVDI
 SM_LIBS += lvhdutil
