@@ -23,7 +23,7 @@ from sm.core import util
 from sm.core import xs_errors
 from sm.core import mpath_cli
 
-supported = ['iscsi', 'lvmoiscsi', 'rawhba', 'lvmohba', 'ocfsohba', 'ocfsoiscsi', 'netapp', 'gfs2']
+supported = ['iscsi', 'lvmoiscsi', 'lvmohba', 'gfs2']
 
 LOCK_TYPE_HOST = "host"
 LOCK_NS1 = "mpathcount1"
