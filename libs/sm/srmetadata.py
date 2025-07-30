@@ -712,8 +712,8 @@ class LVMMetadataHandler(MetadataHandler):
             # which will be called by all classes
             # and one specific to this class
             if generateSector == 1 or generateSector == 0:
-                label = xml.sax.saxutils.escape(Dict[NAME_LABEL_TAG])
-                desc = xml.sax.saxutils.escape(Dict[NAME_DESCRIPTION_TAG])
+                label = xml.sax.saxutils.escape(util.to_plain_string(Dict[NAME_LABEL_TAG]))
+                desc = xml.sax.saxutils.escape(util.to_plain_string(Dict[NAME_DESCRIPTION_TAG]))
                 label_length = len(to_utf8(label))
                 desc_length = len(to_utf8(desc))
 
