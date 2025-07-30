@@ -116,8 +116,9 @@ def roundup(divisor, value):
 def to_plain_string(obj):
     if obj is None:
         return None
-    if type(obj) == str:
-        return obj
+    if isinstance(obj, dict) and len(obj) == 0:
+        SMlog(f"util.to_plain_string() corrected empty dict to empty str")
+        return ""
     return str(obj)
 
 
