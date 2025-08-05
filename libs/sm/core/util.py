@@ -118,6 +118,8 @@ def to_plain_string(obj):
         return None
     if type(obj) == str:
         return obj
+    if type(obj) == dict and len(obj) == 0:
+        return ""
     return str(obj)
 
 
