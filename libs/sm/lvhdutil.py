@@ -81,8 +81,7 @@ def extractUuid(path):
     if uuid.startswith(VG_PREFIX):
         # we are dealing with realpath
         uuid = uuid.replace("--", "-")
-        uuid = uuid.replace(VG_PREFIX, "")
-        return uuid
+
     for t in VDI_TYPES:
         if uuid.find(LV_PREFIX[t]) != -1:
             uuid = uuid.split(LV_PREFIX[t])[-1]
