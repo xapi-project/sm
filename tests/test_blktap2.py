@@ -143,21 +143,49 @@ class TestVDI(unittest.TestCase):
         self.mock_target.vdi.sr.handles.side_effect = mock_handles
         self.mock_target.session = self.mock_session
         mock_target.session = self.mock_session
+        self.caps = {}
+        self.mock_target.has_cap.side_effect = self.get_caps
 
         self.vdi_uuid = str(uuid.uuid4())
         self.sr_uuid = str(uuid.uuid4())
 
         self.vdi = blktap2.VDI(self.vdi_uuid, mock_target, None)
+        self.vdi.target.vdi.uuid = self.vdi_uuid
+
+        phylink_patcher = mock.patch('sm.blktap2.VDI.PhyLink')
+        self.mock_phylink = phylink_patcher.start()
+        self.mock_phylink.from_uuid.return_value = blktap2.VDI.PhyLink("dummy path")
+        self.mock_phylink.readlink.side_effect = None
 
         log_patcher = mock.patch('sm.blktap2.util.SMlog', autospec=True)
         self.mock_log = log_patcher.start()
 
+        self.log_lines = []
         def log_stderr(message, ident="SM", priority=syslog.LOG_INFO):
+            self.log_lines.append(message)
             print(message, file=sys.stderr)
+
         self.mock_log.side_effect = log_stderr
 
         sm_vdi_patcher = mock.patch('sm.blktap2.sm')
         self.mock_sm_vdi = sm_vdi_patcher.start()
+
+        sr_patcher = mock.patch('sm.SR.SR', autospec=True)
+        self.mock_sr = sr_patcher.start()
+        def from_uuid(_, sr_uuid):
+            sr = mock.create_autospec('sm.SR.SR')
+            sr.path = os.path.join('/run/', sr_uuid)
+            return sr
+        self.mock_sr.from_uuid.side_effect = from_uuid
+
+        vhdutil_patcher = mock.patch("sm.blktap2.vhdutil", autospec=True)
+        self.mock_vhdutil = vhdutil_patcher.start()
+
+        mkdir_patcher = mock.patch('sm.blktap2.os.mkdir', autospec=True)
+        self.mock_mkdir = mkdir_patcher.start()
+
+    def get_caps(self, name):
+        return name in self.caps
 
     def test_tap_wanted_returns_true_for_udev_device(self):
         result = self.vdi.tap_wanted()
@@ -191,11 +219,10 @@ class TestVDI(unittest.TestCase):
     @mock.patch('sm.blktap2.time.sleep', autospec=True)
     @mock.patch('sm.blktap2.util.get_this_host', autospec=True)
     @mock.patch('sm.blktap2.VDI._attach', autospec=True)
-    @mock.patch('sm.blktap2.VDI.PhyLink', autospec=True)
     @mock.patch('sm.blktap2.VDI.NBDLink', autospec=True)
     @mock.patch('sm.blktap2.Tapdisk')
     def test_activate(self, mock_tapdisk, mock_nbd_link,
-                      mock_phy, mock_attach,
+                      mock_attach,
                       mock_this_host, mock_sleep):
         """
         Test blktap2.VDI.activate, no cache, RW, success
@@ -219,12 +246,11 @@ class TestVDI(unittest.TestCase):
     @mock.patch('sm.blktap2.time.sleep', autospec=True)
     @mock.patch('sm.blktap2.util.get_this_host', autospec=True)
     @mock.patch('sm.blktap2.VDI._attach', autospec=True)
-    @mock.patch('sm.blktap2.VDI.PhyLink', autospec=True)
     @mock.patch('sm.blktap2.VDI.NBDLink', autospec=True)
     @mock.patch('sm.blktap2.Tapdisk')
     def test_activate_relink_retry(
             self, mock_tapdisk, mock_nbd_link,
-            mock_phy, mock_attach,
+            mock_attach,
             mock_this_host, mock_sleep):
         """
         Test blktap2.VDI.activate, relinking, retry 1, success
@@ -246,12 +272,11 @@ class TestVDI(unittest.TestCase):
     @mock.patch('sm.blktap2.time.sleep', autospec=True)
     @mock.patch('sm.blktap2.util.get_this_host', autospec=True)
     @mock.patch('sm.blktap2.VDI._attach', autospec=True)
-    @mock.patch('sm.blktap2.VDI.PhyLink', autospec=True)
     @mock.patch('sm.blktap2.VDI.NBDLink', autospec=True)
     @mock.patch('sm.blktap2.Tapdisk')
     def test_activate_pause_retry(
             self, mock_tapdisk, mock_nbd_link,
-            mock_phy, mock_attach,
+            mock_attach,
             mock_this_host, mock_sleep):
         """
         Test blktap2.VDI.activate, paused, retry 1, success
@@ -272,12 +297,11 @@ class TestVDI(unittest.TestCase):
     @mock.patch('sm.blktap2.time.sleep', autospec=True)
     @mock.patch('sm.blktap2.util.get_this_host', autospec=True)
     @mock.patch('sm.blktap2.VDI._attach', autospec=True)
-    @mock.patch('sm.blktap2.VDI.PhyLink', autospec=True)
     @mock.patch('sm.blktap2.VDI.NBDLink', autospec=True)
     @mock.patch('sm.blktap2.Tapdisk')
     def test_activate_paused_while_tagging(
             self, mock_tapdisk, mock_nbd_link,
-            mock_phy, mock_attach,
+            mock_attach,
             mock_this_host, mock_sleep):
         """
         Test blktap2.VDI.activate, paused, while tagging, success
@@ -304,12 +328,11 @@ class TestVDI(unittest.TestCase):
     @mock.patch('sm.blktap2.time.sleep', autospec=True)
     @mock.patch('sm.blktap2.util.get_this_host', autospec=True)
     @mock.patch('sm.blktap2.VDI._attach', autospec=True)
-    @mock.patch('sm.blktap2.VDI.PhyLink', autospec=True)
     @mock.patch('sm.blktap2.VDI.NBDLink', autospec=True)
     @mock.patch('sm.blktap2.Tapdisk')
     def test_activate_relink_while_tagging(
             self, mock_tapdisk, mock_nbd_link,
-            mock_phy, mock_attach,
+            mock_attach,
             mock_this_host, mock_sleep):
         """
         Test blktap2.VDI.activate, relinking, while tagging, retry 1, success
@@ -336,12 +359,11 @@ class TestVDI(unittest.TestCase):
     @mock.patch('sm.blktap2.time.sleep', autospec=True)
     @mock.patch('sm.blktap2.util.get_this_host', autospec=True)
     @mock.patch('sm.blktap2.VDI._attach', autospec=True)
-    @mock.patch('sm.blktap2.VDI.PhyLink', autospec=True)
     @mock.patch('sm.blktap2.VDI.NBDLink', autospec=True)
     @mock.patch('sm.blktap2.Tapdisk')
     def test_activate_ro_already_activating_retry(
             self, mock_tapdisk, mock_nbd_link,
-            mock_phy, mock_attach,
+            mock_attach,
             mock_this_host, mock_sleep):
         """
         If we're activating for read-only access, with someone else (let's
@@ -373,12 +395,11 @@ class TestVDI(unittest.TestCase):
     @mock.patch('sm.blktap2.time.sleep', autospec=True)
     @mock.patch('sm.blktap2.util.get_this_host', autospec=True)
     @mock.patch('sm.blktap2.VDI._attach', autospec=True)
-    @mock.patch('sm.blktap2.VDI.PhyLink', autospec=True)
     @mock.patch('sm.blktap2.VDI.NBDLink', autospec=True)
     @mock.patch('sm.blktap2.Tapdisk')
     def test_activate_rw_already_activating_fail(
             self, mock_tapdisk, mock_nbd_link, 
-            mock_phy, mock_attach,
+            mock_attach,
             mock_this_host, mock_sleep):
         """
         If we're activating for read-write access, with someone else (let's
@@ -401,6 +422,110 @@ class TestVDI(unittest.TestCase):
 
         self.assertEqual(46, srose.exception.errno)
         self.assertIn( 'MAP_DUPLICATE_KEY', str(srose.exception))
+
+    def test_setup_cache_not_allowed(self):
+        params = {'vdi_allow_caching': 'false'}
+
+        self.vdi.setup_cache(self.sr_uuid, self.vdi_uuid, params)
+
+    def test_setup_cache_no_capability(self):
+        params = {'vdi_allow_caching': 'true'}
+
+        self.caps = {}
+
+        self.vdi.setup_cache(self.sr_uuid, self.vdi_uuid, params)
+
+        self.assertIn('local caching not supported by this SR', self.log_lines[-1])
+
+    def test_setup_cache_reset_no_cap(self):
+        params = {'vdi_allow_caching': 'true',
+                  'vdi_on_boot': 'reset'}
+
+        self.caps = {"SR_CACHING"}
+
+        self.vdi.setup_cache(self.sr_uuid, self.vdi_uuid, params)
+
+        self.assertIn('scratch mode not supported by this SR', self.log_lines[-1])
+
+    def test_setup_cache_no_local_cache_sr(self):
+        params = {'vdi_allow_caching': 'true'}
+
+        self.caps = {"SR_CACHING"}
+
+        self.vdi.setup_cache(self.sr_uuid, self.vdi_uuid, params)
+
+        self.assertIn('Local cache SR not specified, not enabling', self.log_lines[-1])
+
+    def test_setup_cache_no_parent(self):
+        local_cache_sr = str(uuid.uuid4())
+        params = {'vdi_allow_caching': 'true',
+                  'local_cache_sr': local_cache_sr}
+
+        self.caps = {"SR_CACHING"}
+
+        self.vdi.setup_cache(self.sr_uuid, self.vdi_uuid, params)
+
+        self.assertRegex(self.log_lines[-1], r'Parent VDI .* has parent, not enabling')
+
+    @mock.patch('sm.blktap2.Blktap', autospec=True)
+    @mock.patch("sm.blktap2.Tapdisk.launch_on_tap")
+    @mock.patch("sm.blktap2.Tapdisk.find_by_path")
+    def test_setup_cache_success_prt_td_present(self, mock_find_by_path, mock_launch, mock_blktap):
+        local_cache_sr = str(uuid.uuid4())
+        params = {'vdi_allow_caching': 'true',
+                  'local_cache_sr': local_cache_sr}
+
+        self.caps = {"SR_CACHING"}
+
+        mock_vdi_uuid = str(uuid.uuid4())
+        mock_vdi = mock.create_autospec(blktap2.VDI)
+        self.mock_target.vdi.sr.vdi.return_value = mock_vdi
+        mock_vdi.parent = None
+        mock_vdi.uuid = mock_vdi_uuid
+        mock_vdi.path = "prt_path"
+
+        # Return some sizes (all the same here)
+        self.mock_vhdutil.getSizeVirt.return_value = 20 * 1024 * 1024
+
+        prt_tapdisk = blktap2.Tapdisk(
+            1457, 3, 'vhd', 'dummy', 1)
+        # Find the parent, don't find the leaf
+        prt_path = os.path.join('/run/', local_cache_sr, f'{mock_vdi_uuid}.vhdcache')
+        paths = {
+            prt_path: prt_tapdisk
+        }
+        def find_by_path(path):
+            return paths.get(path)
+        mock_find_by_path.side_effect = find_by_path
+
+        self.vdi.setup_cache(self.sr_uuid, self.vdi_uuid, params)
+        mock_launch.assert_called_once()
+
+    @mock.patch('sm.blktap2.Blktap', autospec=True)
+    @mock.patch("sm.blktap2.Tapdisk.launch_on_tap")
+    @mock.patch("sm.blktap2.Tapdisk.find_by_path")
+    def test_setup_cache_success_no_prt_td_present(self, mock_find_by_path, mock_launch, mock_blktap):
+        local_cache_sr = str(uuid.uuid4())
+        params = {'vdi_allow_caching': 'true',
+                  'local_cache_sr': local_cache_sr}
+
+        self.caps = {"SR_CACHING"}
+
+        mock_vdi_uuid = str(uuid.uuid4())
+        mock_vdi = mock.create_autospec(blktap2.VDI)
+        self.mock_target.vdi.sr.vdi.return_value = mock_vdi
+        mock_vdi.parent = None
+        mock_vdi.uuid = mock_vdi_uuid
+        mock_vdi.path = "prt_path"
+
+        # Return some sizes (all the same here)
+        self.mock_vhdutil.getSizeVirt.return_value = 20 * 1024 * 1024
+
+        # No existing tapdisk paths
+        mock_find_by_path.return_value = {}
+
+        self.vdi.setup_cache(self.sr_uuid, self.vdi_uuid, params)
+        self.assertEqual(2, mock_launch.call_count)
 
 
 @mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
