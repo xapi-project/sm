@@ -1786,7 +1786,7 @@ class VDI(object):
                 raise
 
         secondary = "%s:%s" % (self.target.get_vdi_type(),
-                self.PhyLink.from_uuid(sr_uuid, vdi_uuid).readlink())
+                               (self.PhyLink.from_uuid(sr_uuid, vdi_uuid).readlink()))
 
         util.SMlog("Parent tapdisk: %s" % prt_tapdisk)
         leaf_tapdisk = Tapdisk.find_by_path(local_leaf_path)
@@ -1798,6 +1798,8 @@ class VDI(object):
             child_options["existing_prt"] = prt_tapdisk.minor
             child_options["secondary"] = secondary
             child_options["standby"] = scratch_mode
+            # Disable memory read caching
+            child_options.pop("o_direct", None)
             try:
                 leaf_tapdisk = \
                     Tapdisk.launch_on_tap(blktap, local_leaf_path,
