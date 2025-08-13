@@ -1606,7 +1606,7 @@ class VDI(object):
 
         minor = nbd_link.read_minor_from_path()
         self._tap_deactivate(minor)
-        self.remove_cache(sr_uuid, vdi_uuid, caching_params)
+        self.remove_cache(caching_params)
 
         # Remove the backend link
         nbd_link.unlink()
@@ -1814,7 +1814,7 @@ class VDI(object):
         self.tap = leaf_tapdisk
         return leaf_tapdisk.get_devpath()
 
-    def remove_cache(self, sr_uuid, vdi_uuid, params):
+    def remove_cache(self, params):
         if not self.target.has_cap("SR_CACHING"):
             return
 
