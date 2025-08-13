@@ -184,6 +184,12 @@ class TestVDI(unittest.TestCase):
         mkdir_patcher = mock.patch('sm.blktap2.os.mkdir', autospec=True)
         self.mock_mkdir = mkdir_patcher.start()
 
+        exists_patcher = mock.patch("sm.blktap2.util.pathexists")
+        self.mock_exists = exists_patcher.start()
+
+        unlink_patcher = mock.patch("sm.blktap2.os.unlink")
+        self.mock_unlink = unlink_patcher.start()
+
     def get_caps(self, name):
         return name in self.caps
 
@@ -526,6 +532,72 @@ class TestVDI(unittest.TestCase):
 
         self.vdi.setup_cache(self.sr_uuid, self.vdi_uuid, params)
         self.assertEqual(2, mock_launch.call_count)
+
+    def test_remove_cache_no_cap(self):
+        params = {'vdi_allow_caching': 'true'}
+        self.caps = {}
+        self.vdi.remove_cache(params)
+
+    def test_remove_cache_no_local_cache_sr(self):
+        params = {'vdi_allow_caching': 'true'}
+
+        self.caps = {"SR_CACHING"}
+
+        self.vdi.remove_cache(params)
+        self.assertIn('Local cache SR not specified, ignore', self.log_lines[-1])
+
+    def test_remove_cache_no_parent(self):
+        local_cache_sr = str(uuid.uuid4())
+        params = {'vdi_allow_caching': 'true',
+                  'local_cache_sr': local_cache_sr}
+
+        self.caps = {"SR_CACHING"}
+        self.vdi.target.vdi.parent = None
+
+        # Act
+        self.vdi.remove_cache(params)
+
+        # Assert
+        self.assertRegex(self.log_lines[-1], r'No parent for VDI .* ignore')
+
+    @mock.patch("sm.blktap2.VDI._is_tapdisk_in_use")
+    @mock.patch("sm.blktap2.Tapdisk.shutdown")
+    @mock.patch("sm.blktap2.Tapdisk.find_by_path")
+    def test_remove_cache_no_prt_use_teardown(self, mock_find_by_path, mock_shutdown, mock_in_use):
+        local_cache_sr = str(uuid.uuid4())
+        params = {'vdi_allow_caching': 'true',
+                  'local_cache_sr': local_cache_sr}
+
+        self.caps = {"SR_CACHING"}
+
+        mock_vdi_uuid = str(uuid.uuid4())
+        mock_vdi = mock.create_autospec(blktap2.VDI)
+        self.mock_target.vdi.sr.vdi.return_value = mock_vdi
+        mock_vdi.parent = None
+        mock_vdi.uuid = mock_vdi_uuid
+        mock_vdi.path = "prt_path"
+
+        prt_tapdisk = blktap2.Tapdisk(
+            1457, 3, 'vhd', 'dummy', 1)
+        # Find the parent, don't find the leaf
+        prt_path = os.path.join('/run/', local_cache_sr, f'{mock_vdi_uuid}.vhdcache')
+        paths = {
+            prt_path: prt_tapdisk
+        }
+
+        def find_by_path(path):
+            return paths.get(path)
+
+        mock_find_by_path.side_effect = find_by_path
+
+        self.mock_exists.return_value = True
+        mock_in_use.return_value = False
+
+        # Act
+        self.vdi.remove_cache(params)
+
+        # Assert
+        mock_shutdown.assert_called_once()
 
 
 @mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')
