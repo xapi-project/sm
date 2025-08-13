@@ -34,7 +34,7 @@ import glob
 import copy
 import xml.dom.minidom
 
-CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_METADATA", "SR_TRIM",
+CAPABILITIES = ["SR_PROBE", "SR_UPDATE", "SR_METADATA", "SR_TRIM", "SR_CACHING",
                 "VDI_CREATE", "VDI_DELETE", "VDI_ATTACH", "VDI_DETACH",
                 "VDI_GENERATE_CONFIG", "VDI_CLONE", "VDI_SNAPSHOT",
                 "VDI_RESIZE", "ATOMIC_PAUSE", "VDI_RESET_ON_BOOT/2",
