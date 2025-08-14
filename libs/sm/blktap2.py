@@ -994,8 +994,6 @@ class VDI(object):
 
     @classmethod
     def from_cli(cls, uuid):
-        import VDI as sm
-
         session = XenAPI.xapi_local()
         session.xenapi.login_with_password('root', '', '', 'SM')
 
@@ -1608,7 +1606,7 @@ class VDI(object):
 
         minor = nbd_link.read_minor_from_path()
         self._tap_deactivate(minor)
-        self.remove_cache(sr_uuid, vdi_uuid, caching_params)
+        self.remove_cache(caching_params)
 
         # Remove the backend link
         nbd_link.unlink()
@@ -1717,20 +1715,14 @@ class VDI(object):
             scratch_mode, options):
         from sm import SR
         from sm.drivers import EXTSR
-        from sm.drivers import NFSSR
-        from sm.core.lock import Lock
-        from sm.drivers.FileSR import FileVDI
 
-        parent_uuid = vhdutil.getParent(self.target.vdi.path,
-                FileVDI.extractUuid)
-        if not parent_uuid:
-            util.SMlog("ERROR: VDI %s has no parent, not enabling" % \
-                    self.target.vdi.uuid)
+        if self._no_parent(self.target.vdi):
+            util.SMlog("ERROR: VDI %s has no parent, not enabling" %
+                       self.target.vdi.uuid)
             return
 
         util.SMlog("Setting up cache")
-        parent_uuid = parent_uuid.strip()
-        shared_target = NFSSR.NFSFileVDI(self.target.vdi.sr, parent_uuid)
+        shared_target = self.target.vdi.sr.vdi(self.target.vdi.parent)
 
         if shared_target.parent:
             util.SMlog("ERROR: Parent VDI %s has parent, not enabling" %
@@ -1740,14 +1732,14 @@ class VDI(object):
         SR.registerSR(EXTSR.EXTSR)
         local_sr = SR.SR.from_uuid(session, local_sr_uuid)
 
-        lock = Lock(self.LOCK_CACHE_SETUP, parent_uuid)
+        lock = Lock(self.LOCK_CACHE_SETUP, shared_target.uuid)
         lock.acquire()
 
         # read cache
         read_cache_path = "%s/%s.vhdcache" % (local_sr.path, shared_target.uuid)
         if util.pathexists(read_cache_path):
-            util.SMlog("Read cache node (%s) already exists, not creating" % \
-                    read_cache_path)
+            util.SMlog("Read cache node (%s) already exists, not creating" %
+                       read_cache_path)
         else:
             try:
                 vhdutil.snapshot(read_cache_path, shared_target.path, False)
@@ -1761,8 +1753,8 @@ class VDI(object):
         local_leaf_path = "%s/%s.vhdcache" % \
                 (local_sr.path, self.target.vdi.uuid)
         if util.pathexists(local_leaf_path):
-            util.SMlog("Local leaf node (%s) already exists, deleting" % \
-                    local_leaf_path)
+            util.SMlog("Local leaf node (%s) already exists, deleting" %
+                       local_leaf_path)
             os.unlink(local_leaf_path)
         try:
             vhdutil.snapshot(local_leaf_path, read_cache_path, False,
@@ -1775,10 +1767,8 @@ class VDI(object):
         local_leaf_size = vhdutil.getSizeVirt(local_leaf_path)
         if leaf_size > local_leaf_size:
             util.SMlog("Leaf size %d > local leaf cache size %d, resizing" %
-                    (leaf_size, local_leaf_size))
+                       (leaf_size, local_leaf_size))
             vhdutil.setSizeVirtFast(local_leaf_path, leaf_size)
-
-        vdi_type = self.target.get_vdi_type()
 
         prt_tapdisk = Tapdisk.find_by_path(read_cache_path)
         if not prt_tapdisk:
@@ -1796,7 +1786,7 @@ class VDI(object):
                 raise
 
         secondary = "%s:%s" % (self.target.get_vdi_type(),
-                self.PhyLink.from_uuid(sr_uuid, vdi_uuid).readlink())
+                               (self.PhyLink.from_uuid(sr_uuid, vdi_uuid).readlink()))
 
         util.SMlog("Parent tapdisk: %s" % prt_tapdisk)
         leaf_tapdisk = Tapdisk.find_by_path(local_leaf_path)
@@ -1808,6 +1798,8 @@ class VDI(object):
             child_options["existing_prt"] = prt_tapdisk.minor
             child_options["secondary"] = secondary
             child_options["standby"] = scratch_mode
+            # Disable memory read caching
+            child_options.pop("o_direct", None)
             try:
                 leaf_tapdisk = \
                     Tapdisk.launch_on_tap(blktap, local_leaf_path,
@@ -1818,13 +1810,13 @@ class VDI(object):
 
         lock.release()
 
-        util.SMlog("Local read cache: %s, local leaf: %s" % \
-                (read_cache_path, local_leaf_path))
+        util.SMlog("Local read cache: %s, local leaf: %s" %
+                   (read_cache_path, local_leaf_path))
 
         self.tap = leaf_tapdisk
         return leaf_tapdisk.get_devpath()
 
-    def remove_cache(self, sr_uuid, vdi_uuid, params):
+    def remove_cache(self, params):
         if not self.target.has_cap("SR_CACHING"):
             return
 
@@ -1861,26 +1853,20 @@ class VDI(object):
     def _remove_cache(self, session, local_sr_uuid):
         from sm import SR
         from sm.drivers import EXTSR
-        from sm.drivers import NFSSR
-        from sm.core.lock import Lock
-        from sm.drivers.FileSR import FileVDI
 
-        parent_uuid = vhdutil.getParent(self.target.vdi.path,
-                FileVDI.extractUuid)
-        if not parent_uuid:
-            util.SMlog("ERROR: No parent for VDI %s, ignore" % \
-                    self.target.vdi.uuid)
+        if self._no_parent(self.target.vdi):
+            util.SMlog("ERROR: No parent for VDI %s, ignore" %
+                       self.target.vdi.uuid)
             return
 
         util.SMlog("Tearing down the cache")
 
-        parent_uuid = parent_uuid.strip()
-        shared_target = NFSSR.NFSFileVDI(self.target.vdi.sr, parent_uuid)
+        shared_target = self.target.vdi.sr.vdi(self.target.vdi.parent)
 
         SR.registerSR(EXTSR.EXTSR)
         local_sr = SR.SR.from_uuid(session, local_sr_uuid)
 
-        lock = Lock(self.LOCK_CACHE_SETUP, parent_uuid)
+        lock = Lock(self.LOCK_CACHE_SETUP, shared_target.uuid)
         lock.acquire()
 
         # local write node
@@ -1895,8 +1881,8 @@ class VDI(object):
         if not prt_tapdisk:
             util.SMlog("Parent tapdisk not found")
         elif not self._is_tapdisk_in_use(prt_tapdisk.minor):
-            util.SMlog("Parent tapdisk not in use: shutting down %s" % \
-                    read_cache_path)
+            util.SMlog("Parent tapdisk not in use: shutting down %s" %
+                       read_cache_path)
             try:
                 prt_tapdisk.shutdown()
             except:
@@ -1907,6 +1893,11 @@ class VDI(object):
         # GC run
 
         lock.release()
+
+    @staticmethod
+    def _no_parent(vdi):
+        return vdi.parent is None or vdi.parent == ''
+
 
 PythonKeyError = KeyError
 

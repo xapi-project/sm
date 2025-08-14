@@ -2006,12 +2006,16 @@ class LVHDVDI(VDI.VDI):
             self.sm_config_override["vdi_type"] = self.vdi_type
         else:
             self.sm_config_override = {'vdi_type': self.vdi_type}
+        if 'vhd-parent' in self.sm_config_override:
+            self.parent = self.sm_config_override['vhd-parent']
         if self.vdi_type == vhdutil.VDI_TYPE_RAW:
             self.loaded = True
 
     def _initFromVHDInfo(self, vhdInfo):
         self.size = vhdInfo.sizeVirt
-        self.parent = vhdInfo.parentUuid
+        if (self.parent == '' or (vhdInfo.parentUuid != ''
+                                  and vhdInfo.parentUuid != self.parent)):
+            self.parent = vhdInfo.parentUuid
         self.hidden = vhdInfo.hidden
         self.loaded = True
 
