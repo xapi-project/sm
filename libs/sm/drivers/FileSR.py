@@ -561,7 +561,10 @@ class FileVDI(VDI.VDI):
 
         if self.vdi_type == vhdutil.VDI_TYPE_VHD:
             try:
-                size = vhdutil.validate_and_round_vhd_size(int(size))
+                size = vhdutil.validate_and_round_vhd_size(
+                    int(size),
+                    vhdutil.DEFAULT_VHD_BLOCK_SIZE
+                )
                 mb = 1024 * 1024
                 size_mb = size // mb
                 util.ioretry(lambda: self._create(str(size_mb), self.path))
@@ -656,7 +659,7 @@ class FileVDI(VDI.VDI):
             return VDI.VDI.get_params(self)
 
         # We already checked it is a VDI_TYPE_VHD
-        size = vhdutil.validate_and_round_vhd_size(int(size))
+        size = vhdutil.validate_and_round_vhd_size(int(size), self.block_size)
         
         jFile = JOURNAL_FILE_PREFIX + self.uuid
         try:
