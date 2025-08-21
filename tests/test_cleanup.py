@@ -398,7 +398,7 @@ class TestSR(unittest.TestCase):
         cleanup.lockGCActive = TestRelease()
         cleanup.lockGCActive.release = mock.Mock(return_value=None)
 
-        ret = cleanup.abort(mock_sr, False)
+        ret = cleanup.abort(str(mock_sr.uuid), False)
 
         # Pass on the return from _abort.
         self.assertEqual(True, ret)
