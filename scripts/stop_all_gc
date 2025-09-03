@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-/usr/bin/systemctl list-units SMGC@* --all --no-legend | /usr/bin/cut -d ' ' -f1 | sed 's/\\/\\\\/g' | while read service;
+/usr/bin/systemctl list-units SMGC@* --all --no-legend | /usr/bin/awk '{print $1}' | sed 's/\\/\\\\/g' | while read service;
 do
     echo "Stopping $service"
     /usr/bin/systemctl stop "$service"
