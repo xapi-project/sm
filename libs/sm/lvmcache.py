@@ -144,7 +144,7 @@ class LVMCache:
             count = RefCounter.get(ref, binary, ns)
             if count == 1:
                 try:
-                    self.activateNoRefcount(lvName)
+                    self.activateNoRefcount(lvName, True)
                 except util.CommandException:
                     RefCounter.put(ref, binary, ns)
                     raise
