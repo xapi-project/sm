@@ -2030,7 +2030,7 @@ class SR:
     class CoalesceTracker:
         GRACE_ITERATIONS = 2
         MAX_ITERATIONS_NO_PROGRESS = 3
-        MAX_ITERATIONS = 10
+        MAX_ITERATIONS = 20
         MAX_INCREASE_FROM_MINIMUM = 1.2
         HISTORY_STRING = "Iteration: {its} -- Initial size {initSize}" \
                          " --> Final size {finSize}"
@@ -2039,18 +2039,37 @@ class SR:
             self.itsNoProgress = 0
             self.its = 0
             self.minSize = float("inf")
-            self.history = []
+            self._history = []
             self.reason = ""
             self.startSize = None
             self.finishSize = None
             self.sr = sr
             self.grace_remaining = self.GRACE_ITERATIONS
 
+        @property
+        def history(self):
+            return [x['msg'] for x in self._history]
+
+        def moving_average(self):
+            """
+            Calculate a three point moving average
+            """
+            assert len(self._history) >= 3
+
+            mv_average = sum([x['finalsize'] for x in self._history]) / len(self._history)
+            util.SMlog(f'Calculated moving average as {mv_average}')
+            return mv_average
+
         def abortCoalesce(self, prevSize, curSize):
             self.its += 1
-            self.history.append(self.HISTORY_STRING.format(its=self.its,
-                                                           initSize=prevSize,
-                                                           finSize=curSize))
+            self._history.append(
+                {
+                    'finalsize': curSize,
+                    'msg': self.HISTORY_STRING.format(its=self.its,
+                                                      initSize=prevSize,
+                                                      finSize=curSize)
+                }
+            )
 
             self.finishSize = curSize
 
@@ -2063,18 +2082,18 @@ class SR:
             if prevSize < self.minSize:
                 self.minSize = prevSize
 
-            if self.its == 1:
-                # Skip evaluating conditions on first iteration
+            if self.its < 4:
+                # Perform at least three iterations
                 return False
 
-            if prevSize < curSize:
+            if prevSize >= curSize or curSize < self.moving_average():
+                # We made progress
+                return False
+            else:
                 self.itsNoProgress += 1
                 Util.log("No progress, attempt:"
                          " {attempt}".format(attempt=self.itsNoProgress))
                 util.fistpoint.activate("cleanup_tracker_no_progress", self.sr.uuid)
-            else:
-                # We made progress
-                return False
 
             if self.its > self.MAX_ITERATIONS:
                 max = self.MAX_ITERATIONS

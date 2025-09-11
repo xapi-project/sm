@@ -724,7 +724,7 @@ class TestSR(unittest.TestCase):
         vdi_uuid = uuid4()
         vdi = cleanup.VDI(sr, str(vdi_uuid), False)
 
-        mock_vhdSize.side_effect = iter([1024, 4096, 4096, 8000, 8000, 16000])
+        mock_vhdSize.side_effect = iter([1024, 4096, 4096, 8000, 8500, 9000, 9500, 10000, 10500, 16000])
 
         sr._snapshotCoalesce = mock.MagicMock(autospec=True)
         sr._snapshotCoalesce.return_value = True
@@ -1393,16 +1393,16 @@ class TestSR(unittest.TestCase):
         self.trackerReportOk(tracker, expectedHistory,
                              expectedReason, start, finish, minimum)
 
-    def exerciseTracker(self, tracker, sizes1, sizes2, its, expectedHistory,
+    def exerciseTracker(self, tracker, start_sizes, end_sizes, its, expectedHistory,
                         expectedReason, start, finish, minimum):
         for x in range(its):
-            size1 = sizes1.pop(0)
-            size2 = sizes2.pop(0)
+            size1 = start_sizes.pop(0)
+            size2 = end_sizes.pop(0)
             res = tracker.abortCoalesce(size1, size2)
             self.assertFalse(res)
 
-        size1 = sizes1.pop(0)
-        size2 = sizes2.pop(0)
+        size1 = start_sizes.pop(0)
+        size2 = end_sizes.pop(0)
         res = tracker.abortCoalesce(size1, size2)
         self.autopsyTracker(tracker, res, expectedHistory, expectedReason,
                             start, finish, minimum)
@@ -1425,6 +1425,8 @@ class TestSR(unittest.TestCase):
             "Iteration: 1 -- Initial size 100 --> Final size 100",
             "Iteration: 2 -- Initial size 100 --> Final size 121",
             "Iteration: 3 -- Initial size 100 --> Final size 141",
+            "Iteration: 4 -- Initial size 100 --> Final size 150",
+            "Iteration: 5 -- Initial size 100 --> Final size 160",
         ]
         expectedReason = "Unexpected bump in size," \
                          " compared to minimum achieved"
@@ -1433,10 +1435,18 @@ class TestSR(unittest.TestCase):
         res = tracker.abortCoalesce(100, 121)
         self.assertFalse(res)
         res = tracker.abortCoalesce(100, 141)
+        self.assertFalse(res)
+        res = tracker.abortCoalesce(100, 150)
+        self.assertFalse(res)
+        res = tracker.abortCoalesce(100, 160)
         self.autopsyTracker(tracker, res, expectedHistory,
-                            expectedReason, 100, 141, 100)
+                            expectedReason, 100, 160, 100)
 
     def test_leafCoaleesceTracker_too_many_iterations(self):
+        """
+        Make the GC fail after max iterations
+        """
+        # Note this test is rather brittle if the criteria change
         sr = create_cleanup_sr(self.xapi_mock)
 
         # Test initialization
@@ -1444,24 +1454,34 @@ class TestSR(unittest.TestCase):
 
         # 10 iterations no progress 11th fails.
         expectedHistory = [
-            "Iteration: 1 -- Initial size 20 --> Final size 19",
-            "Iteration: 2 -- Initial size 19 --> Final size 18",
-            "Iteration: 3 -- Initial size 18 --> Final size 17",
-            "Iteration: 4 -- Initial size 17 --> Final size 16",
-            "Iteration: 5 -- Initial size 16 --> Final size 15",
-            "Iteration: 6 -- Initial size 15 --> Final size 14",
-            "Iteration: 7 -- Initial size 14 --> Final size 13",
-            "Iteration: 8 -- Initial size 13 --> Final size 12",
-            "Iteration: 9 -- Initial size 12 --> Final size 11",
-            "Iteration: 10 -- Initial size 11 --> Final size 10",
-            "Iteration: 11 -- Initial size 10 --> Final size 12"
+            "Iteration: 1 -- Initial size 20 --> Final size 20",
+            "Iteration: 2 -- Initial size 20 --> Final size 20",
+            "Iteration: 3 -- Initial size 20 --> Final size 20",
+            "Iteration: 4 -- Initial size 20 --> Final size 20",
+            "Iteration: 5 -- Initial size 20 --> Final size 20",
+            "Iteration: 6 -- Initial size 20 --> Final size 20",
+            "Iteration: 7 -- Initial size 20 --> Final size 20",
+            "Iteration: 8 -- Initial size 20 --> Final size 20",
+            "Iteration: 9 -- Initial size 20 --> Final size 20",
+            "Iteration: 10 -- Initial size 20 --> Final size 20",
+            "Iteration: 11 -- Initial size 20 --> Final size 20",
+            "Iteration: 12 -- Initial size 20 --> Final size 20",
+            "Iteration: 13 -- Initial size 20 --> Final size 20",
+            "Iteration: 14 -- Initial size 20 --> Final size 20",
+            "Iteration: 15 -- Initial size 20 --> Final size 20",
+            "Iteration: 16 -- Initial size 20 --> Final size 20",
+            "Iteration: 17 -- Initial size 20 --> Final size 20",
+            "Iteration: 18 -- Initial size 20 --> Final size 21",
+            "Iteration: 19 -- Initial size 21 --> Final size 22",
+            "Iteration: 20 -- Initial size 22 --> Final size 23",
+            "Iteration: 21 -- Initial size 23 --> Final size 24",
         ]
-        expectedReason = "Max iterations (10) exceeded"
+        expectedReason = "Max iterations (20) exceeded"
         self.exerciseTracker(tracker,
-                             [20,19,18,17,16,15,14,13,12,11,10],
-                             [19,18,17,16,15,14,13,12,11,10,12],
-                             10, expectedHistory,
-                             expectedReason, 20, 12, 10)
+                             [20] * 18 + [21, 22, 23],
+                             [20] * 17 + [21, 22, 23, 24],
+                             20, expectedHistory,
+                             expectedReason, 20, 24, 20)
 
     def test_leafCoalesceTracker_getting_bigger(self):
         sr = create_cleanup_sr(self.xapi_mock)
@@ -1475,14 +1495,16 @@ class TestSR(unittest.TestCase):
             "Iteration: 2 -- Initial size 101 --> Final size 102",
             "Iteration: 3 -- Initial size 102 --> Final size 103",
             "Iteration: 4 -- Initial size 103 --> Final size 104",
-            "Iteration: 5 -- Initial size 104 --> Final size 105"
+            "Iteration: 5 -- Initial size 104 --> Final size 105",
+            "Iteration: 6 -- Initial size 105 --> Final size 106",
+            "Iteration: 7 -- Initial size 106 --> Final size 107",
         ]
         expectedReason = "No progress made for 3 iterations"
         self.exerciseTracker(tracker,
-                             [100,101,102,103,104],
-                             [101,102,103,104,105],
-                             4, expectedHistory,
-                             expectedReason, 100, 105, 100)
+                             [100,101,102,103,104,105,106],
+                             [101,102,103,104,105,106,107],
+                             6, expectedHistory,
+                             expectedReason, 100, 107, 100)
 
     def runAbortable(self, func, ret, ns, abortTest, pollInterval, timeOut):
         return func()
