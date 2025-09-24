@@ -716,7 +716,10 @@ class LVHDSR(SR.SR):
                                     util.roundup(lvutil.LVM_SIZE_INCREMENT,
                                       vhdutil.calcOverheadEmpty(lvhdutil.MSIZE))
                             else:
-                                utilisation = lvhdutil.calcSizeVHDLV(int(size))
+                                utilisation = lvhdutil.calcSizeVHDLV(
+                                    int(size),
+                                    vhdutil.getBlockSize(lvPath)
+                                )
 
                         vdi_ref = self.session.xenapi.VDI.db_introduce(
                                         vdi_uuid,
@@ -984,7 +987,10 @@ class LVHDSR(SR.SR):
 
         # inflate the parent to fully-allocated size
         if base.vdiType == vhdutil.VDI_TYPE_VHD:
-            fullSize = lvhdutil.calcSizeVHDLV(vhdInfo.sizeVirt)
+            fullSize = lvhdutil.calcSizeVHDLV(
+                vhdInfo.sizeVirt,
+                vhdutil.getBlockSize(basePath)
+            )
             lvhdutil.inflate(self.journaler, self.uuid, baseUuid, fullSize)
 
         # rename back
@@ -1173,7 +1179,7 @@ class LVHDSR(SR.SR):
             util.SMlog("Found VHD journal %s, reverting %s" % (uuid, vdi.path))
             self.lvActivator.activate(uuid, vdi.lvname, False)
             self.lvmCache.activateNoRefcount(jlvName)
-            fullSize = lvhdutil.calcSizeVHDLV(vdi.size)
+            fullSize = lvhdutil.calcSizeVHDLV(vdi.size, vdi.block_size)
             lvhdutil.inflate(self.journaler, self.uuid, vdi.uuid, fullSize)
             try:
                 jFile = os.path.join(self.path, jlvName)
@@ -1184,7 +1190,7 @@ class LVHDSR(SR.SR):
                 util.SMlog("VHD revert failed but VHD ok: removing journal")
             # Attempt to reclaim unused space
             vhdInfo = vhdutil.getVHDInfo(vdi.path, lvhdutil.extractUuid, False)
-            NewSize = lvhdutil.calcSizeVHDLV(vhdInfo.sizeVirt)
+            NewSize = lvhdutil.calcSizeVHDLV(vhdInfo.sizeVirt, vdi.block_size)
             if NewSize < fullSize:
                 lvhdutil.deflate(self.lvmCache, vdi.lvname, int(NewSize))
             lvhdutil.lvRefreshOnAllSlaves(self.session, self.uuid,
@@ -1343,7 +1349,10 @@ class LVHDVDI(VDI.VDI):
         if self.exists:
             raise xs_errors.XenError('VDIExists')
 
-        size = vhdutil.validate_and_round_vhd_size(int(size))
+        size = vhdutil.validate_and_round_vhd_size(
+            int(size),
+            vhdutil.DEFAULT_VHD_BLOCK_SIZE
+        )
 
         util.SMlog("LVHDVDI.create: type = %s, %s (size=%s)" % \
                 (self.vdi_type, self.path, size))
@@ -1356,7 +1365,10 @@ class LVHDVDI(VDI.VDI):
                 lvSize = util.roundup(lvutil.LVM_SIZE_INCREMENT,
                         vhdutil.calcOverheadEmpty(lvhdutil.MSIZE))
             elif self.sr.provision == "thick":
-                lvSize = lvhdutil.calcSizeVHDLV(int(size))
+                lvSize = lvhdutil.calcSizeVHDLV(
+                    int(size),
+                    vhdutil.DEFAULT_VHD_BLOCK_SIZE
+                )
 
         self.sr._ensureSpaceAvailable(lvSize)
 
@@ -1459,7 +1471,10 @@ class LVHDVDI(VDI.VDI):
             needInflate = False
         else:
             self._loadThis()
-            if self.utilisation >= lvhdutil.calcSizeVHDLV(self.size):
+            if (
+                self.utilisation >=
+                lvhdutil.calcSizeVHDLV(self.size, self.block_size)
+            ):
                 needInflate = False
 
         if needInflate:
@@ -1479,7 +1494,7 @@ class LVHDVDI(VDI.VDI):
         util.SMlog("LVHDVDI.detach for %s" % self.uuid)
         self._loadThis()
         already_deflated = (self.utilisation < \
-                lvhdutil.calcSizeVHDLV(self.size))
+                lvhdutil.calcSizeVHDLV(self.size, self.block_size))
         needDeflate = True
         if self.vdi_type == vhdutil.VDI_TYPE_RAW or already_deflated:
             needDeflate = False
@@ -1520,7 +1535,7 @@ class LVHDVDI(VDI.VDI):
                     '(current size: %d, new size: %d)' % (self.size, size))
             raise xs_errors.XenError('VDISize', opterr='shrinking not allowed')
 
-        size = vhdutil.validate_and_round_vhd_size(int(size))
+        size = vhdutil.validate_and_round_vhd_size(int(size), self.block_size)
 
         if size == self.size:
             return VDI.VDI.get_params(self)
@@ -1530,7 +1545,7 @@ class LVHDVDI(VDI.VDI):
             lvSizeNew = util.roundup(lvutil.LVM_SIZE_INCREMENT, size)
         else:
             lvSizeOld = self.utilisation
-            lvSizeNew = lvhdutil.calcSizeVHDLV(size)
+            lvSizeNew = lvhdutil.calcSizeVHDLV(size, self.block_size)
             if self.sr.provision == "thin":
                 # VDI is currently deflated, so keep it deflated
                 lvSizeNew = lvSizeOld
@@ -1696,7 +1711,7 @@ class LVHDVDI(VDI.VDI):
         self.issnap = self.session.xenapi.VDI.get_is_a_snapshot( \
                                                 self.sr.srcmd.params['vdi_ref'])
 
-        fullpr = lvhdutil.calcSizeVHDLV(self.size)
+        fullpr = lvhdutil.calcSizeVHDLV(self.size, self.block_size)
         thinpr = util.roundup(lvutil.LVM_SIZE_INCREMENT, \
                 vhdutil.calcOverheadEmpty(lvhdutil.MSIZE))
         lvSizeOrig = thinpr

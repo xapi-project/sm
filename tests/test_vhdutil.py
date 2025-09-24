@@ -20,27 +20,38 @@ VHD_UTIL = '/usr/bin/vhd-util'
 class TestVhdUtil(unittest.TestCase):
 
     def test_validate_and_round_min_size(self):
-        size = vhdutil.validate_and_round_vhd_size(2 * 1024 * 1024)
+        size = vhdutil.validate_and_round_vhd_size(
+            2 * 1024 * 1024,
+            vhdutil.DEFAULT_VHD_BLOCK_SIZE
+        )
 
         self.assertTrue(size == 2 * 1024 * 1024)
 
     def test_validate_and_round_max_size(self):
-        size = vhdutil.validate_and_round_vhd_size(vhdutil.MAX_VHD_SIZE)
+        size = vhdutil.validate_and_round_vhd_size(
+            vhdutil.MAX_VHD_SIZE,
+            vhdutil.DEFAULT_VHD_BLOCK_SIZE
+        )
 
         self.assertTrue(size == vhdutil.MAX_VHD_SIZE)
 
     def test_validate_and_round_odd_size_up_to_next_boundary(self):
-        size = vhdutil.validate_and_round_vhd_size(vhdutil.MAX_VHD_SIZE - 1)
+        size = vhdutil.validate_and_round_vhd_size(
+            vhdutil.MAX_VHD_SIZE - 1,
+            vhdutil.DEFAULT_VHD_BLOCK_SIZE)
 
         self.assertTrue(size == vhdutil.MAX_VHD_SIZE)
 
     def test_validate_and_round_negative(self):
         with self.assertRaises(xs_errors.SROSError):
-            vhdutil.validate_and_round_vhd_size(-1)
+            vhdutil.validate_and_round_vhd_size(-1, vhdutil.DEFAULT_VHD_BLOCK_SIZE)
 
     def test_validate_and_round_too_large(self):
         with self.assertRaises(xs_errors.SROSError):
-            vhdutil.validate_and_round_vhd_size(vhdutil.MAX_VHD_SIZE + 1)
+            vhdutil.validate_and_round_vhd_size(
+                vhdutil.MAX_VHD_SIZE + 1,
+                vhdutil.DEFAULT_VHD_BLOCK_SIZE
+            )
 
     @testlib.with_context
     def test_calc_overhead_empty_small(self, context):
@@ -65,14 +76,20 @@ class TestVhdUtil(unittest.TestCase):
     def test_calc_overhead_bitmap_round_blocks(self, context):
         virtual_size = 24 * 1024 * 1024
 
-        result = vhdutil.calcOverheadBitmap(virtual_size)
+        result = vhdutil.calcOverheadBitmap(
+            virtual_size,
+            vhdutil.DEFAULT_VHD_BLOCK_SIZE
+        )
 
         self.assertEqual(49152, result)
     @testlib.with_context
     def test_calc_overhead_bitmap_extra_block(self, context):
         virtual_size = 25 * 1024 * 1024
 
-        result = vhdutil.calcOverheadBitmap(virtual_size)
+        result = vhdutil.calcOverheadBitmap(
+            virtual_size,
+            vhdutil.DEFAULT_VHD_BLOCK_SIZE
+        )
 
         self.assertEqual(53248, result)
 
@@ -376,10 +393,14 @@ class TestVhdUtil(unittest.TestCase):
 
         context.add_executable(VHD_UTIL, test_function)
         from sm.drivers import FileSR
-        vhdinfo = vhdutil.getVHDInfo(TEST_VHD_PATH, FileSR.FileVDI.extractUuid)
+        with unittest.mock.patch(
+                "sm.vhdutil.getBlockSize",
+                return_value=vhdutil.DEFAULT_VHD_BLOCK_SIZE
+        ):
+            vhdinfo = vhdutil.getVHDInfo(TEST_VHD_PATH, FileSR.FileVDI.extractUuid)
 
-        # Act/Assert
-        self.assertEqual(18856*2*1024*1024 , vhdinfo.sizeAllocated)
+            # Act/Assert
+            self.assertEqual(18856*2*1024*1024 , vhdinfo.sizeAllocated)
 
     @testlib.with_context
     def test_get_allocated_size(self, context):
@@ -396,7 +417,12 @@ class TestVhdUtil(unittest.TestCase):
         context.add_executable(VHD_UTIL, test_function)
 
         # Act
-        result = vhdutil.getAllocatedSize(TEST_VHD_NAME)
+        result = 0
+        with unittest.mock.patch(
+                "sm.vhdutil.getBlockSize",
+                return_value=vhdutil.DEFAULT_VHD_BLOCK_SIZE
+        ):
+            result = vhdutil.getAllocatedSize(TEST_VHD_NAME)
 
         # Assert
         self.assertEqual(18856*2*1024*1024, result)
@@ -404,3 +430,22 @@ class TestVhdUtil(unittest.TestCase):
             [VHD_UTIL, "query", "--debug", "-a",
              "-n", TEST_VHD_NAME],
             call_args)
+
+    @testlib.with_context
+    def test_get_block_size(self, context):
+        """
+        Test that vhdutil.getBlockSize returns the block size in bytes
+        """
+
+        # Arrange
+        call_args = None
+
+        def test_function(args, inp):
+            nonlocal call_args
+            call_args = args
+            return 0, "Header version: 0x00010000\nBlock size: {} (2 MB)".format(vhdutil.DEFAULT_VHD_BLOCK_SIZE), ""
+
+        context.add_executable(VHD_UTIL, test_function)
+
+        # Act/Assert
+        self.assertEqual(vhdutil.DEFAULT_VHD_BLOCK_SIZE, vhdutil.getBlockSize(TEST_VHD_NAME))
