@@ -1620,6 +1620,7 @@ class SR:
                 candidate.setConfig(VDI.DB_GC_NO_SPACE, msg_id)
         elif msg_id is not None:
             # Everything was coalescable, remove the message
+            xapi_session.xenapi.SR.remove_from_sm_config(self.xapi.srRef, VDI.DB_GC_NO_SPACE)
             xapi_session.xenapi.message.destroy(msg_id)
 
     def clear_no_space_msg(self, vdi):
