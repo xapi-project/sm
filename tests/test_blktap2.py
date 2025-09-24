@@ -47,8 +47,8 @@ class TestTapdisk(unittest.TestCase):
     def test_cgclassify_exception_swallow(self, mock_log, mock_pread2):
         mock_pread2.side_effect = util.CommandException(999)
         blktap2.Tapdisk.cgclassify(123)
-        mock_pread2.assert_called_with(['cgclassify', '123'])
-        self.assertEqual(mock_log.call_count, 1)
+        mock_pread2.assert_called_with(['cgcreate', '-g', 'cpu:vm.slice/tapdisk'])
+        self.assertEqual(mock_log.call_count, 2)
 
     @mock.patch('sm.blktap2.Tapdisk.cgclassify')
     def test_cgclassify_called_by_launch_on_tap(self, mock_cgclassify):

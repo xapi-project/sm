@@ -758,14 +758,23 @@ class Tapdisk(object):
 
     @staticmethod
     def cgclassify(pid):
-
-        # We dont provide any <controllers>:<path>
-        # so cgclassify uses /etc/cgrules.conf which
-        # we have configured in the spec file.
-        cmd = ["cgclassify", str(pid)]
         try:
-            util.pread2(cmd)
-        except util.CommandException as e:
+            # We dont provide any <controllers>:<path>
+            # so cgclassify uses /etc/cgrules.conf which
+            # we have configured in the spec file.
+            cmd = ["cgclassify", str(pid)]
+            try:
+                util.pread2(cmd)
+            except util.CommandException as e:
+                util.logException(e)
+                # cgroup-v2 path
+                cmd = ["cgcreate", "-g", "cpu:vm.slice/tapdisk"]
+                util.pread2(cmd)
+                cgroup_slice_dir = os.path.join("/sys/fs/cgroup", "vm.slice", "tapdisk")
+                procs_file = os.path.join(cgroup_slice_dir, "cgroup.procs")
+                with open(procs_file, 'w') as f:
+                    f.write(str(pid))
+        except Exception as e:
             util.logException(e)
 
     @classmethod
