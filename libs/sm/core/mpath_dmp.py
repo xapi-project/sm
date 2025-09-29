@@ -14,6 +14,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 from sm.core import util
+from sm.core.util import CommandException
 from sm.core import xs_errors
 from sm.core import iscsi
 from sm.core import mpath_cli
@@ -82,8 +83,16 @@ def _resetDMP(sid, explicit_unmap=False):
             util.retry(
                 lambda: util.pread2(['/usr/sbin/multipath', '-w', sid]),
                 maxretry=3, period=4)
-            util.retry(lambda: util.pread2(['/usr/sbin/multipath', '-f', sid]),
-                       maxretry=3, period=4)
+
+            try:
+                util.retry(
+                    lambda: util.pread2(['/usr/sbin/multipath', '-f', sid]),
+                    maxretry=3, period=4)
+            except CommandException as ce:
+                # If the device is already gone then that is what we want
+                if "device not found" not in ce.reason:
+                    raise
+
             util.retry(lambda: util.pread2(['/usr/sbin/multipath', '-W']),
                        maxretry=3, period=4)
     else:
