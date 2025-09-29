@@ -213,6 +213,8 @@ sys.exit(resp.get("returncode", 0))
             "sr-param-set uuid=uuid-for-sr-udev-1 other-config:i18n-original-value-name_label=DVD drives",
             "sr-param-set uuid=uuid-for-sr-udev-1 name-description=Physical DVD drives",
             "sr-param-set uuid=uuid-for-sr-udev-1 other-config:i18n-original-value-name_description=Physical DVD drives",
+            "host-param-set uuid=uuid-for-installation multipathing=true",
+            "host-param-set uuid=uuid-for-installation other-config:multipathhandle=dmp",
             "pool-sync-database"
         ]
 
@@ -284,6 +286,8 @@ sys.exit(resp.get("returncode", 0))
             "sr-param-set uuid=uuid-for-sr-udev-1 other-config:i18n-original-value-name_label=DVD drives",
             "sr-param-set uuid=uuid-for-sr-udev-1 name-description=Physical DVD drives",
             "sr-param-set uuid=uuid-for-sr-udev-1 other-config:i18n-original-value-name_description=Physical DVD drives",
+            "host-param-set uuid=uuid-for-installation multipathing=true",
+            "host-param-set uuid=uuid-for-installation other-config:multipathhandle=dmp",
             "pool-sync-database"
         ]
         self.assertListEqual([" ".join(call) for call in self.misc_xe_calls],

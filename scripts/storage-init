@@ -258,16 +258,12 @@ create_udev_srs() {
 }
 
 ##
-# For fresh installs the default is to enable multipathed SRs if the root disk is multipathed,
-# and to disable multipathed SRs otherwise.  This is just a default and can be changed later.
-# On upgrade the setting is left unchanged.
+# For fresh installs the default is to enable multipathed SRs.
 #
-# The host-installer enables multipathed SRs by writing a config file in the firstboot data dir.
+# For upgrade this should not be called.
 configure_multipathing() {
-    if [ "$MULTIPATHING_ENABLED" = True ] ; then
-        xe host-param-set uuid=${INSTALLATION_UUID} other-config:multipathing=true
-        xe host-param-set uuid=${INSTALLATION_UUID} other-config:multipathhandle=dmp
-    fi
+      xe host-param-set uuid=${INSTALLATION_UUID} multipathing=true
+      xe host-param-set uuid=${INSTALLATION_UUID} other-config:multipathhandle=dmp
 }
 
 if [ ! "$UPGRADE" = "true" ]; then
@@ -283,8 +279,6 @@ if [ ! "$UPGRADE" = "true" ]; then
   configure_multipathing
   # Ensure changes are synced to disk
   xe pool-sync-database
-else
-  configure_multipathing
 fi
 
 touch /var/lib/misc/ran-storage-init
