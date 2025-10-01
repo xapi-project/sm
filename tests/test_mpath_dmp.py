@@ -427,3 +427,43 @@ class TestMpathDmp(unittest.TestCase):
 
         with self.assertRaises(SROSError):
             mpath_dmp.refresh('360a98000534b4f4e46704f5270674d70', 0)
+
+    @mock.patch("sm.core.mpath_dmp._is_mpath_daemon_running", mock.MagicMock(return_value=True))
+    @mock.patch('sm.core.mpath_dmp.util.pread2', autospec=True)
+    @mock.patch('sm.core.mpath_dmp.util.time.sleep', autospec=True)
+    @mock.patch('sm.core.mpath_dmp.os.path.exists', autospec=True)
+    def test_reset_device_not_found(
+            self, mock_exists, mock_sleep, mock_pread):
+
+        mock_exists.return_value = False
+
+        device_not_found_exception = util.CommandException(1, "", "device not found")
+
+        side_effects = [0]
+        side_effects += 4 * [device_not_found_exception]
+        side_effects += [0]
+        mock_pread.side_effect = side_effects
+
+        mpath_dmp.reset('360a98000534b4f4e46704f5270674d70', explicit_unmap=True)
+
+        self.assertEqual(6, mock_pread.call_count)
+
+    @mock.patch("sm.core.mpath_dmp._is_mpath_daemon_running", mock.MagicMock(return_value=True))
+    @mock.patch('sm.core.mpath_dmp.util.pread2', autospec=True)
+    @mock.patch('sm.core.mpath_dmp.util.time.sleep', autospec=True)
+    @mock.patch('sm.core.mpath_dmp.os.path.exists', autospec=True)
+    def test_reset_flush_error(
+            self, mock_exists, mock_sleep, mock_pread):
+
+        mock_exists.return_value = False
+
+        device_not_found_exception = util.CommandException(1, "", "Some Random error")
+
+        side_effects = [0]
+        side_effects += 4 * [device_not_found_exception]
+        mock_pread.side_effect = side_effects
+
+        with self.assertRaises(util.CommandException):
+            mpath_dmp.reset('360a98000534b4f4e46704f5270674d70', explicit_unmap=True)
+
+        self.assertEqual(5, mock_pread.call_count)
