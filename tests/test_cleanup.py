@@ -384,12 +384,14 @@ class TestSR(unittest.TestCase):
         # Never call runAbortable
         self.assertEqual(0, mock_abortable.call_count)
 
+    @mock.patch('sm.cleanup._gc_service_cmd', autospec=True)
     @mock.patch('sm.cleanup.SR', autospec=True)
     @mock.patch('sm.cleanup._abort')
     def test_lock_released_by_abort_when_held(
             self,
             mock_abort,
-            mock_sr):
+            mock_sr,
+            mock_stop):
         """
         If _abort returns True make sure we release the lockGCActive which will
         have been held by _abort, also check that we return True.
@@ -402,6 +404,39 @@ class TestSR(unittest.TestCase):
         # Setup mock of release function.
         cleanup.lockGCActive = TestRelease()
         cleanup.lockGCActive.release = mock.Mock(return_value=None)
+
+        mock_stop.return_value = (0, "", "")
+
+        ret = cleanup.abort(str(mock_sr.uuid), False)
+
+        # Pass on the return from _abort.
+        self.assertEqual(True, ret)
+
+        # We hold lockGCActive so make sure we release it.
+        self.assertEqual(cleanup.lockGCActive.release.call_count, 1)
+
+    @mock.patch('sm.cleanup._gc_service_cmd', autospec=True)
+    @mock.patch('sm.cleanup.SR', autospec=True)
+    @mock.patch('sm.cleanup._abort')
+    def test_lock_released_by_abort_when_held_stop_fail(
+            self,
+            mock_abort,
+            mock_sr,
+            mock_stop):
+        """
+        If _abort returns True make sure we release the lockGCActive which will
+        have been held by _abort, also check that we return True.
+        """
+        self.setup_mock_sr(mock_sr)
+
+        # Fake that abort returns True, so we hold lockGCActive.
+        mock_abort.return_value = True
+
+        # Setup mock of release function.
+        cleanup.lockGCActive = TestRelease()
+        cleanup.lockGCActive.release = mock.Mock(return_value=None)
+
+        mock_stop.return_value = (1, "", "")
 
         ret = cleanup.abort(str(mock_sr.uuid), False)
 
