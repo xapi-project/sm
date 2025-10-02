@@ -307,9 +307,13 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         self.mock_lvhdutil.LV_PREFIX = lvhdutil.LV_PREFIX
         vhdutil_patcher = mock.patch('sm.drivers.LVHDSR.vhdutil', autospec=True)
         self.mock_vhdutil = vhdutil_patcher.start()
+        self.mock_vhdutil.getBlockSize.return_value = vhdutil.DEFAULT_VHD_BLOCK_SIZE
         self.mock_vhdutil.VDI_TYPE_VHD = vhdutil.VDI_TYPE_VHD
         self.mock_vhdutil.VDI_TYPE_RAW = vhdutil.VDI_TYPE_RAW
         self.mock_vhdutil.MAX_CHAIN_SIZE = vhdutil.MAX_CHAIN_SIZE
+        vdi_vhdutil_patcher = mock.patch('sm.VDI.vhdutil', autospec=True)
+        self.mock_vdi_vhdutil = vdi_vhdutil_patcher.start()
+        self.mock_vdi_vhdutil.getBlockSize.return_value = vhdutil.DEFAULT_VHD_BLOCK_SIZE
         lvutil_patcher = mock.patch('sm.drivers.LVHDSR.lvutil', autospec=True)
         self.mock_lvutil = lvutil_patcher.start()
         vdi_util_patcher = mock.patch('sm.VDI.util', autospec=True)
