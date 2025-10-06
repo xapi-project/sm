@@ -183,6 +183,10 @@ def vm_leaf_coalesce(session, vm_uuid):
         # do regular GC now to minimize downtime
         cleanup.run_gc(session, sr_uuid, False, immediate=True)
 
+    for sr_uuid in coalesceable_vdis:
+        # wait for the GC process for this SR to complete
+        cleanup.wait_for_completion(sr_uuid)
+
     suspended = False
     if vm_rec["power_state"] == "Running":
         log_msg("Suspending VM %s" % vm_rec["uuid"])

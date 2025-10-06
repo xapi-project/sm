@@ -1,5 +1,6 @@
 import errno
 import signal
+import subprocess
 import unittest
 import unittest.mock as mock
 import uuid
@@ -2102,3 +2103,52 @@ class TestFileSR(TestSR):
         self.xapi_mock.forgetVDI.side_effect = forgetVdi
 
         self.mock_sr._finishInterruptedCoalesceLeaf(child_vdi_uuid, parent_vdi_uuid)
+
+
+class TestService(unittest.TestCase):
+
+    def setUp(self):
+        self.addCleanup(mock.patch.stopall)
+        run_patcher = mock.patch("sm.cleanup.subprocess.run", autospec=True)
+        self.mock_run = run_patcher.start()
+
+        sleep_patcher = mock.patch("sm.cleanup.time.sleep", autospec=True)
+        self.mock_sleep = sleep_patcher.start()
+
+    def test_wait_for_completion_noop(self):
+        # Arrange
+        sr_uuid = str(uuid4())
+        sr_uuid_esc = sr_uuid.replace("-", "\\x2d")
+        self.mock_run.return_value = subprocess.CompletedProcess("", 0, b"unknown")
+
+        # Act
+        cleanup.wait_for_completion(sr_uuid)
+
+        # Assert
+        self.mock_run.assert_called_once_with(
+            ["/usr/bin/systemctl", "is-active", f"SMGC@{sr_uuid_esc}"],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+
+    def test_wait_for_completion_wait_2(self):
+        # Arrange
+        sr_uuid = str(uuid4())
+        sr_uuid_esc = sr_uuid.replace("-", "\\x2d")
+
+        activating_process = subprocess.CompletedProcess("", 0, b"activating")
+        finished_process = subprocess.CompletedProcess("", 0, b"unknown")
+        self.mock_run.side_effect = [activating_process, activating_process, finished_process]
+
+        # Act
+        cleanup.wait_for_completion(sr_uuid)
+
+        # Assert
+        self.mock_run.assert_has_calls([
+            mock.call(
+                ["/usr/bin/systemctl", "is-active", f"SMGC@{sr_uuid_esc}"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True),
+            mock.call(
+                ["/usr/bin/systemctl", "is-active", f"SMGC@{sr_uuid_esc}"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True),
+            mock.call(
+                ["/usr/bin/systemctl", "is-active", f"SMGC@{sr_uuid_esc}"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)])
