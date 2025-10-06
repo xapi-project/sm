@@ -3356,6 +3356,11 @@ def stop_gc_service(sr_uuid):
         util.SMlog(f"Failed to stop gc service `SMGC@{sr_uuid}`: `{stderr}`")
 
 
+def wait_for_completion(sr_uuid):
+    while get_state(sr_uuid):
+        time.sleep(5)
+
+
 def gc_force(session, srUuid, force=False, dryRun=False, lockSR=False):
     """Garbage collect all deleted VDIs in SR "srUuid". The caller must ensure
     the SR lock is held.
