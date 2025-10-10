@@ -178,12 +178,13 @@ def buildHeader(length, major=metadata.MD_MAJOR, minor=metadata.MD_MINOR):
 
 
 def unpackHeader(header):
-    vals = from_utf8(header).split(HEADER_SEP)
+    decoded = from_utf8(header)
+    if len(decoded.rstrip('\x00')) == 0:
+        raise xs_errors.XenError('MetadataError', opterr='Empty header')
+    vals = decoded.split(HEADER_SEP)
     if len(vals) != 4 or vals[0] != metadata.HDR_STRING:
-        util.SMlog("Exception unpacking metadata header: "
-                   "Error: Bad header '%s'" % (header))
-        raise xs_errors.XenError('MetadataError', \
-                        opterr='Bad header')
+        util.SMlog(f"Exception unpacking metadata header: Error: Bad header {header!r}")
+        raise xs_errors.XenError('MetadataError', opterr='Bad header')
     return (vals[0], vals[1], vals[2], vals[3])
 
 

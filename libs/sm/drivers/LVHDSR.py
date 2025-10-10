@@ -239,6 +239,10 @@ class LVHDSR(SR.SR):
             for vdi in self.session.xenapi.SR.get_VDIs(self.sr_ref):
                 vdi_uuid = self.session.xenapi.VDI.get_uuid(vdi)
 
+                vdi_type = self.session.xenapi.VDI.get_sm_config(vdi).get('vdi_type')
+                if not vdi_type:
+                    raise xs_errors.XenError('MetadataError', opterr=f"Missing `vdi_type` for VDI {vdi_uuid}")
+
                 # Create the VDI entry in the SR metadata
                 vdi_info[vdi_uuid] = \
                 {
@@ -254,7 +258,7 @@ class LVHDSR(SR.SR):
                     TYPE_TAG: \
                         self.session.xenapi.VDI.get_type(vdi),
                     VDI_TYPE_TAG: \
-                       self.session.xenapi.VDI.get_sm_config(vdi)['vdi_type'],
+                       vdi_type,
                     READ_ONLY_TAG: \
                         int(self.session.xenapi.VDI.get_read_only(vdi)),
                     METADATA_OF_POOL_TAG: \
