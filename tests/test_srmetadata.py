@@ -5,6 +5,7 @@ import testlib
 import uuid
 import unittest
 import unittest.mock as mock
+from sm.core import xs_errors
 
 from sm.srmetadata import (LVMMetadataHandler, buildHeader, buildXMLSector,
                         getMetadataLength, unpackHeader, updateLengthInHeader,
@@ -25,6 +26,42 @@ class TestSRMetadataFunctions(unittest.TestCase):
         self.assertEqual(int(length), 4096)
         self.assertEqual(int(major), 1)
         self.assertEqual(int(minor), 2)
+
+    def test_unpackHeader_empty(self):
+        # Given
+        headers = [b"", b"\x00", b"\x00"]
+
+        for header in headers:
+            # When
+            with self.assertRaises(xs_errors.SROSError) as error:
+                unpackHeader(header)
+
+            # Then
+            self.assertEqual(
+                error.exception.message(),
+                'Error in Metadata volume operation for SR. [opterr=Empty header]'
+            )
+
+    def test_unpackHeader_bad(self):
+        # Given
+        headers = [
+            b"BAD:4096      :1:2" + (b' ' * 493),
+            b"BAD:4096      :1:2",
+            b"XSSM:4096      :1",
+            b"XSSM:4096      ",
+            b"XSSM",
+        ]
+
+        for header in headers:
+            # When
+            with self.assertRaises(xs_errors.SROSError) as error:
+                unpackHeader(header)
+
+            # Then
+            self.assertEqual(
+                error.exception.message(),
+                'Error in Metadata volume operation for SR. [opterr=Bad header]'
+            )
 
     def test_buildHeader_unpackHeader_roundTrip(self):
         # Given
