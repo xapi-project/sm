@@ -114,7 +114,6 @@ tests/run_python_unittests.sh
 %{_sysconfdir}/xapi.d/plugins/intellicache-clean
 %{_sysconfdir}/xapi.d/plugins/trim
 %{_sysconfdir}/xapi.d/xapi-pre-shutdown/*
-%{_bindir}/mpathutil
 %{_bindir}/blktap2
 %{_bindir}/tapdisk-cache-stats
 %{_unitdir}/make-dummy-sr.service
@@ -199,7 +198,6 @@ callers which expect to find python files in /opt/xensource
 
 
 %files -n python%{python3_pkgversion}-sm-compat
-/sbin/mpathutil
 /opt/xensource/sm
 /opt/xensource/bin/blktap2
 /opt/xensource/bin/tapdisk-cache-stats
