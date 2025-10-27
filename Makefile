@@ -216,7 +216,6 @@ SM_COMPAT_PY_FILES = $(foreach LIB, $(SM_COMPAT_LIBS), compat-libs/$(LIB).py) $(
 SM_XTRA_PY_FILES :=
 SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_CMDS), utils/$(LIB))
 SM_XTRA_PY_FILES += $(foreach LIB, $(SM_LIBEXEC_PY_XTRAS), utils/$(LIB).py)
-SM_XTRA_PY_FILES += utils/mpathutil.py
 SM_XTRA_PY_FILES += utils/blktap2
 SM_XTRA_PY_FILES += utils/tapdisk-cache-stats
 SM_XTRA_PY_FILES += utils/keymanagerutil
@@ -364,10 +363,6 @@ install: precheck
 	for s in $(SM_UDEV_SCRIPTS); do \
 	  install -m 755 scripts/$$s $(SM_STAGING)$(UDEV_SCRIPTS_DIR)/$$s; \
 	done
-	# Install mpathutil and compatibility symlinks
-	install -D -m 755 utils/mpathutil.py $(SM_STAGING)$(BIN_DEST)/mpathutil
-	ln -sf $(BIN_DEST)mpathutil $(SM_STAGING)$(OPT_SM_DEST)/mpathutil.py
-	ln -sf $(BIN_DEST)mpathutil $(SM_STAGING)/sbin/mpathutil
 	# Install blktap2 and compatibility symlinks
 	install -D -m 755 utils/blktap2 $(SM_STAGING)$(BIN_DEST)/blktap2
 	ln -sf $(BIN_DEST)blktap2 $(SM_STAGING)$(OPT_BIN_DEST)/blktap2
