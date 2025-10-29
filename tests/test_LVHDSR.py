@@ -278,6 +278,16 @@ class TestLVHDSR(unittest.TestCase, Stubs):
             self.assertEqual(1, lvm_cache.activate.call_count)
             self.assertEqual(1, lvm_cache.deactivate.call_count)
 
+        # Act (3)
+        # This tests SR metadata updates
+        sr.updateSRMetadata('thick')
+
+        # Test that removing vdi_type on a vdi does crash properly
+        del vdi_data['vdi2_ref']['sm-config']['vdi_type']
+        with self.assertRaises(Exception):
+            # Fail on vdi2_ref
+            sr.updateSRMetadata('thick')
+
     def convert_vdi_to_meta(self, vdi_data):
         metadata = {}
         for item in vdi_data.items():
