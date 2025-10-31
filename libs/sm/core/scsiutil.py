@@ -629,6 +629,9 @@ def refresh_lun_size_by_SCSIid(SCSIid):
                                        "current capacity."
                                        % devicesthatneedrefresh)
 
+        if any([getsize(x) != sg_readcap(x) for x in devices]):
+            raise util.SMException(f"Not all devices in {devices} agree on size and capacity")
+
     def refresh_mapper_if_needed(primarydevice, SCSIid, currentcapacity):
         if "/dev/mapper/" in primarydevice \
            and get_outdated_size_devices(currentcapacity, [primarydevice]):
