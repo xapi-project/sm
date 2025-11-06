@@ -1,3 +1,4 @@
+import base64
 import errno
 import json
 from io import StringIO
@@ -598,6 +599,17 @@ class TestVDI(unittest.TestCase):
 
         # Assert
         mock_shutdown.assert_called_once()
+
+    def test_scsi_page_data(self):
+        """
+        Check that the scsi page data is correctly encoded
+        """
+        page_80 = base64.b64decode(self.vdi.xenstore_data["scsi/0x12/0x80"])
+        page_83 = base64.b64decode(self.vdi.xenstore_data["scsi/0x12/0x83"])
+
+        self.assertEqual(b'\x00\x80\x00\x12', page_80[:4])
+        self.assertEqual(b'\x00\x83\x00\x31\x02\x01\x00\x2d', page_83[:8])
+        self.assertEqual('XENSRC  ', page_83[8:16].decode())
 
 
 @mock.patch('sm.core.xs_errors.XML_DEFS', 'libs/sm/core/XE_SR_ERRORCODES.xml')

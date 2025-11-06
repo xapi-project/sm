@@ -340,21 +340,21 @@ def gen_synthetic_page_data(uuid):
     # we set the vendor ID to XENSRC
     # Note that the Page 80 serial number must be limited
     # to 16 characters
-    page80 = ""
-    page80 += "\x00\x80"
-    page80 += "\x00\x12"
-    page80 += uuid[0:16]
-    page80 += "  "
+    page80 = b''
+    page80 += b'\x00\x80'
+    page80 += b'\x00\x12'
+    page80 += str.encode(uuid[0:16])
+    page80 += str.encode("  ")
 
-    page83 = ""
-    page83 += "\x00\x83"
-    page83 += "\x00\x31"
-    page83 += "\x02\x01\x00\x2d"
-    page83 += "XENSRC  "
-    page83 += uuid
-    page83 += " "
-    return ["", base64.b64encode(str.encode(page80)).decode(),
-            base64.b64encode(str.encode(page83)).decode()]
+    page83 = b''
+    page83 += b'\x00\x83'
+    page83 += b'\x00\x31'
+    page83 += b'\x02\x01\x00\x2d'
+    page83 += str.encode("XENSRC  ")
+    page83 += str.encode(uuid)
+    page83 += str.encode(" ")
+    return ["", base64.b64encode(page80).decode(),
+            base64.b64encode(page83).decode()]
 
 
 def gen_raw_page_data(path):
