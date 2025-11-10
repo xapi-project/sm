@@ -3247,6 +3247,19 @@ def abort(srUuid, soft=False):
         return False
 
 
+def run_gc(session, srUuid, dryRun, immediate=False):
+    try:
+        _gc(session, srUuid, dryRun, immediate=immediate)
+        return 0
+    except AbortException:
+        Util.log("Aborted")
+        return 2
+    except Exception:
+        Util.logException("gc")
+        Util.log("* * * * * SR %s: ERROR\n" % srUuid)
+        return 1
+
+
 def gc(session, srUuid, inBackground, dryRun=False):
     """Garbage collect all deleted VDIs in SR "srUuid". Fork & return
     immediately if inBackground=True.
@@ -3272,16 +3285,10 @@ def gc(session, srUuid, inBackground, dryRun=False):
             # because there is no other way to propagate them back at this
             # point
 
-            try:
-                _gc(None, srUuid, dryRun)
-            except AbortException:
-                Util.log("Aborted")
-            except Exception:
-                Util.logException("gc")
-                Util.log("* * * * * SR %s: ERROR\n" % srUuid)
+            run_gc(None, srUuid, dryRun)
             os._exit(0)
     else:
-        _gc(session, srUuid, dryRun, immediate=True)
+        os._exit(run_gc(session, srUuid, dryRun, immediate=True))
 
 
 def start_gc(session, sr_uuid):
