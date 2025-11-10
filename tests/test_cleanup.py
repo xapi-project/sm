@@ -187,9 +187,10 @@ class TestSR(unittest.TestCase):
 
         self.assertTrue(cleanup.SIGTERM)
 
+    @mock.patch('sm.cleanup.os._exit', autospec=True)
     @mock.patch('sm.cleanup._create_init_file', autospec=True)
     @mock.patch('sm.cleanup.SR', autospec=True)
-    def test_loop_exits_on_term(self, mock_init, mock_sr):
+    def test_loop_exits_on_term(self, mock_init, mock_sr, mock_exit):
         # Set the term signel
         cleanup.receiveSignal(signal.SIGTERM, None)
         mock_session = mock.MagicMock(name='MockSession')
@@ -1814,9 +1815,10 @@ class TestSR(unittest.TestCase):
         mock_sr.coalesce.assert_called_with(vdis['vdi'], False)
         mock_sr.coalesceLeaf.assert_called_with(vdis['vdi'], False)
 
+    @mock.patch('sm.cleanup.os._exit', autospec=True)
     @mock.patch('sm.cleanup.Util')
     @mock.patch('sm.cleanup._gc', autospec=True)
-    def test_gc_foreground_is_immediate(self, mock_gc, mock_util):
+    def test_gc_foreground_is_immediate(self, mock_gc, mock_util, mock_exit):
         """
         GC called in foreground will run immediate
         """
@@ -1830,6 +1832,42 @@ class TestSR(unittest.TestCase):
         ## Assert
         mock_gc.assert_called_with(mock_session, sr_uuid,
                                    False, immediate=True)
+
+    @mock.patch('sm.cleanup.os._exit', autospec=True)
+    @mock.patch('sm.cleanup.Util')
+    @mock.patch('sm.cleanup._gc', autospec=True)
+    def test_gc_foreground_abort_exit_code(self, mock_gc, mock_util, mock_exit):
+        """
+        GC called in foreground will run immediate
+        """
+        ## Arrange
+        mock_session = mock.MagicMock(name='MockSession')
+        sr_uuid = str(uuid4())
+        mock_gc.side_effect = cleanup.AbortException
+
+        ## Act
+        cleanup.gc(mock_session, sr_uuid, inBackground=False)
+
+        ## Assert
+        mock_exit.assert_called_once_with(2)
+
+    @mock.patch('sm.cleanup.os._exit', autospec=True)
+    @mock.patch('sm.cleanup.Util')
+    @mock.patch('sm.cleanup._gc', autospec=True)
+    def test_gc_foreground_exception_exit_code(self, mock_gc, mock_util, mock_exit):
+        """
+        GC called in foreground will run immediate
+        """
+        ## Arrange
+        mock_session = mock.MagicMock(name='MockSession')
+        sr_uuid = str(uuid4())
+        mock_gc.side_effect = Exception
+
+        ## Act
+        cleanup.gc(mock_session, sr_uuid, inBackground=False)
+
+        ## Assert
+        mock_exit.assert_called_once_with(1)
 
     @mock.patch('sm.cleanup.os._exit', autospec=True)
     @mock.patch('sm.cleanup.daemonize', autospec=True)
@@ -1849,7 +1887,7 @@ class TestSR(unittest.TestCase):
         cleanup.gc(mock_session, sr_uuid, inBackground=True)
 
         ## Assert
-        mock_gc.assert_called_with(None, sr_uuid, False)
+        mock_gc.assert_called_with(None, sr_uuid, False, immediate=False)
         mock_daemonize.assert_called_with()
 
     def test_not_plugged(self):

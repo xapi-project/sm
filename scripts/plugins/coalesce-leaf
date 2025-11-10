@@ -111,7 +111,7 @@ def leaf_coalesce(session, coalesceable_vdis):
                 cleanup.Util.logException("leaf_coalesce")
                 return RET_ERROR_XAPI
         log_msg("Coalescing all in SR %s..." % sr_uuid)
-        cleanup.gc(session, sr_uuid, False)
+        cleanup.run_gc(session, sr_uuid, False, immediate=True)
     return RET_SUCCESS
 
 
@@ -181,7 +181,7 @@ def vm_leaf_coalesce(session, vm_uuid):
 
     for sr_uuid in coalesceable_vdis:
         # do regular GC now to minimize downtime
-        cleanup.gc(session, sr_uuid, False)
+        cleanup.run_gc(session, sr_uuid, False, immediate=True)
 
     suspended = False
     if vm_rec["power_state"] == "Running":
@@ -200,7 +200,7 @@ def vm_leaf_coalesce(session, vm_uuid):
             session.xenapi.VM.resume(vm_ref, False, False)
         for sr_uuid in list(coalesceable_vdis.keys()):
             # cleans up any potential failures
-            cleanup.gc(session, sr_uuid, True)
+            cleanup.run_gc(session, sr_uuid, True, immediate=True)
     return ret, messages
 
 
