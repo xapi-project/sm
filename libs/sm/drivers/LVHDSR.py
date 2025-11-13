@@ -238,6 +238,7 @@ class LVHDSR(SR.SR):
             vdi_info = {}
             for vdi in self.session.xenapi.SR.get_VDIs(self.sr_ref):
                 vdi_uuid = self.session.xenapi.VDI.get_uuid(vdi)
+                is_a_snapshot = int(self.session.xenapi.VDI.get_is_a_snapshot(vdi))
 
                 vdi_type = self.session.xenapi.VDI.get_sm_config(vdi).get('vdi_type')
                 if not vdi_type:
@@ -250,9 +251,9 @@ class LVHDSR(SR.SR):
                     NAME_LABEL_TAG: util.to_plain_string(self.session.xenapi.VDI.get_name_label(vdi)),
                     NAME_DESCRIPTION_TAG: util.to_plain_string(self.session.xenapi.VDI.get_name_description(vdi)),
                     IS_A_SNAPSHOT_TAG: \
-                        int(self.session.xenapi.VDI.get_is_a_snapshot(vdi)),
+                        is_a_snapshot,
                     SNAPSHOT_OF_TAG: \
-                        self.session.xenapi.VDI.get_snapshot_of(vdi),
+                        self.session.xenapi.VDI.get_uuid(self.session.xenapi.VDI.get_snapshot_of(vdi)) if bool(is_a_snapshot) else '',
                    SNAPSHOT_TIME_TAG: \
                         self.session.xenapi.VDI.get_snapshot_time(vdi),
                     TYPE_TAG: \
