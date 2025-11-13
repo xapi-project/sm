@@ -699,7 +699,6 @@ class LVMMetadataHandler(MetadataHandler):
             if created:
                 # Now delete the dummy VDI created above
                 self.deleteVdi(uuid)
-                return
 
     # This function generates VDI info based on the passed in information
     # it also takes in a parameter to determine whether both the sector
