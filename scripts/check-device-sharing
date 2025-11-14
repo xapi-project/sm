@@ -24,9 +24,9 @@ import os, sys
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print "Usage:"
-        print "    %s <device>" % (sys.argv[0])
-        print "    -- return zero if the device (eg 'sda' 'sdb') is not in-use; non-zero otherwise"
+        print( "Usage:")
+        print( "    %s <device>" % (sys.argv[0]))
+        print( "    -- return zero if the device (eg 'sda' 'sdb') is not in-use; non-zero otherwise")
         sys.exit(2)
 
     device = sys.argv[1]
