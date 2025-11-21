@@ -1197,19 +1197,24 @@ class LVHDSR(SR.SR):
         delattr(self, "vdiInfo")
         delattr(self, "allVDIs")
 
-    def _updateSlavesPreClone(self, hostRefs, origOldLV):
-        masterRef = util.get_this_host_ref(self.session)
-        args = {"vgName": self.vgname,
-                "action1": "deactivateNoRefcount",
-                "lvName1": origOldLV}
-        for hostRef in hostRefs:
-            if hostRef == masterRef:
+    def call_on_slave(self, args, host_refs, message: str):
+        master_ref = util.get_this_host_ref(self.session)
+        for hostRef in host_refs:
+            if hostRef == master_ref:
                 continue
-            util.SMlog("Deactivate VDI on %s" % hostRef)
-            rv = self.session.xenapi.host.call_plugin(hostRef, self.PLUGIN_ON_SLAVE, "multi", args)
+            util.SMlog(f"{message} on slave {hostRef}")
+            rv = self.session.xenapi.host.call_plugin(
+                hostRef, self.PLUGIN_ON_SLAVE, "multi", args)
             util.SMlog("call-plugin returned: %s" % rv)
             if not rv:
                 raise Exception('plugin %s failed' % self.PLUGIN_ON_SLAVE)
+
+    def _updateSlavesPreClone(self, hostRefs, origOldLV):
+        args = {"vgName": self.vgname,
+                "action1": "deactivateNoRefcount",
+                "lvName1": origOldLV}
+        message = "Deactivate VDI"
+        self.call_on_slave(args, hostRefs, message)
 
     def _updateSlavesOnClone(self, hostRefs, origOldLV, origLV,
             baseUuid, baseLV):
@@ -1224,17 +1229,8 @@ class LVHDSR(SR.SR):
                 "lvName2": baseLV,
                 "uuid2": baseUuid}
 
-        masterRef = util.get_this_host_ref(self.session)
-        for hostRef in hostRefs:
-            if hostRef == masterRef:
-                continue
-            util.SMlog("Updating %s, %s, %s on slave %s" % \
-                    (origOldLV, origLV, baseLV, hostRef))
-            rv = self.session.xenapi.host.call_plugin(
-                hostRef, self.PLUGIN_ON_SLAVE, "multi", args)
-            util.SMlog("call-plugin returned: %s" % rv)
-            if not rv:
-                raise Exception('plugin %s failed' % self.PLUGIN_ON_SLAVE)
+        message = f"Updating {origOldLV}, {origLV}, {baseLV}"
+        self.call_on_slave(args, hostRefs, message)
 
     def _updateSlavesOnCBTClone(self, hostRefs, cbtlog):
         """Reactivate and refresh CBT log file on slaves"""
@@ -1244,16 +1240,8 @@ class LVHDSR(SR.SR):
                 "action2": "refresh",
                 "lvName2": cbtlog}
 
-        masterRef = util.get_this_host_ref(self.session)
-        for hostRef in hostRefs:
-            if hostRef == masterRef:
-                continue
-            util.SMlog("Updating %s on slave %s" % (cbtlog, hostRef))
-            rv = self.session.xenapi.host.call_plugin(
-                hostRef, self.PLUGIN_ON_SLAVE, "multi", args)
-            util.SMlog("call-plugin returned: %s" % rv)
-            if not rv:
-                raise Exception('plugin %s failed' % self.PLUGIN_ON_SLAVE)
+        message = f"Updating {cbtlog}"
+        self.call_on_slave(args, hostRefs, message)
 
     def _updateSlavesOnRemove(self, hostRefs, baseUuid, baseLV):
         """Tell the slave we deleted the base image"""
@@ -1262,16 +1250,8 @@ class LVHDSR(SR.SR):
                 "uuid1": baseUuid,
                 "ns1": lvhdutil.NS_PREFIX_LVM + self.uuid}
 
-        masterRef = util.get_this_host_ref(self.session)
-        for hostRef in hostRefs:
-            if hostRef == masterRef:
-                continue
-            util.SMlog("Cleaning locks for %s on slave %s" % (baseLV, hostRef))
-            rv = self.session.xenapi.host.call_plugin(
-                hostRef, self.PLUGIN_ON_SLAVE, "multi", args)
-            util.SMlog("call-plugin returned: %s" % rv)
-            if not rv:
-                raise Exception('plugin %s failed' % self.PLUGIN_ON_SLAVE)
+        message = f"Cleaning locks for {baseLV}"
+        self.call_on_slave(args, hostRefs, message)
 
     def _cleanup(self, skipLockCleanup=False):
         """delete stale refcounter, flag, and lock files"""
@@ -2202,6 +2182,18 @@ class LVHDVDI(VDI.VDI):
         oldname = os.path.basename(oldpath)
         newname = os.path.basename(newpath)
         self.sr.lvmCache.rename(oldname, newname)
+
+    def update_slaves_on_cbt_disable(self, cbtlog):
+        args = {
+            "vgName": self.sr.vgname,
+            "action1": "deactivateNoRefcount",
+            "lvName1": cbtlog
+        }
+
+        host_refs = util.get_hosts_attached_on(self.session, [self.uuid])
+
+        message = f"Deactivating {cbtlog}"
+        self.sr.call_on_slave(args, host_refs, message)
 
     def _activate_cbt_log(self, lv_name):
         self.sr.lvmCache.refresh()

@@ -572,6 +572,10 @@ class VDI(object):
             return False
         return True
 
+    def update_slaves_on_cbt_disable(self, cbtlog):
+        # Override in implementation as required.
+        pass
+
     def configure_blocktracking(self, sr_uuid, vdi_uuid, enable):
         """Function for configuring blocktracking"""
         from sm import blktap2
@@ -626,6 +630,8 @@ class VDI(object):
                     if self._cbt_log_exists(parent_path):
                         self._cbt_op(parent, cbtutil.set_cbt_child,
                                      parent_path, uuid.UUID(int=0))
+                    if disk_state:
+                        self.update_slaves_on_cbt_disable(logpath)
                 except Exception as error:
                     raise xs_errors.XenError('CBTDeactivateFailed', str(error))
                 finally:
