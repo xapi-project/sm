@@ -481,6 +481,38 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
 
     @mock.patch('sm.drivers.LVHDSR.Lock', autospec=True)
     @mock.patch('sm.drivers.LVHDSR.SR.XenAPI')
+    def test_update_slaves_on_cbt_disable(self, mock_xenapi, mock_lock):
+        """
+        Ensure we tell the supporter host when we disable CBT for one of its VMs
+        """
+        # Arrange
+        xapi_session = mock_xenapi.xapi_local.return_value
+
+        vdi_uuid = str(uuid.uuid4)
+        mock_lv = self.get_dummy_vdi(vdi_uuid)
+        self.get_dummy_vhd(vdi_uuid, False)
+
+        sr = self.create_LVHDSR()
+        sr.isMaster = True
+
+        vdi = sr.vdi(vdi_uuid)
+        vdi.vdi_type = vhdutil.VDI_TYPE_VHD
+
+        self.mock_sr_util.get_this_host_ref.return_value = 'ref1'
+        self.mock_sr_util.get_hosts_attached_on.return_value = ['ref2']
+
+        # Act
+        log_file_path = "test_log_path"
+        vdi.update_slaves_on_cbt_disable(log_file_path)
+
+        # Assert
+        self.assertEqual(1, xapi_session.xenapi.host.call_plugin.call_count)
+        xapi_session.xenapi.host.call_plugin.assert_has_calls([
+            mock.call('ref2', 'on-slave', 'multi', mock.ANY)
+        ])
+
+    @mock.patch('sm.drivers.LVHDSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.LVHDSR.SR.XenAPI')
     def test_snapshot_secondary_success(self, mock_xenapi, mock_lock):
         """
         LVHDSR.snapshot, attached on host with secondary mirror
