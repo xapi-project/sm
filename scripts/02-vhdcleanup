@@ -31,7 +31,7 @@ start() {
         srUuids=`xe sr-list type=$type params=uuid --minimal | sed "s/,/ /g"`
         for uuid in $srUuids; do
             echo -n "Fixing $type"
-            python $LVHD_UTIL_SCRIPT fixrefcounts $uuid
+            python3 $LVHD_UTIL_SCRIPT fixrefcounts $uuid
         done
     done
 	echo -n $"OK"
