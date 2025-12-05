@@ -95,11 +95,11 @@ def calcSizeLV(sizeVHD):
     return util.roundup(LVM_SIZE_INCREMENT, sizeVHD)
 
 
-def calcSizeVHDLV(sizeVirt):
+def calcSizeVHDLV(sizeVirt, block_size):
     # all LVHD VDIs have the metadata area preallocated for the maximum
     # possible virtual size (for fast online VDI.resize)
     metaOverhead = vhdutil.calcOverheadEmpty(MSIZE)
-    bitmapOverhead = vhdutil.calcOverheadBitmap(sizeVirt)
+    bitmapOverhead = vhdutil.calcOverheadBitmap(sizeVirt, block_size)
     return calcSizeLV(sizeVirt + metaOverhead + bitmapOverhead)
 
 
@@ -208,7 +208,12 @@ def setSizeVirt(journaler, srUuid, vdiUuid, size, jFile):
     lvName = LV_PREFIX[vhdutil.VDI_TYPE_VHD] + vdiUuid
     vgName = VG_PREFIX + srUuid
     path = os.path.join(VG_LOCATION, vgName, lvName)
-    inflate(journaler, srUuid, vdiUuid, calcSizeVHDLV(size))
+    inflate(
+        journaler,
+        srUuid,
+        vdiUuid,
+        calcSizeVHDLV(size, vhdutil.getBlockSize(path))
+    )
     vhdutil.setSizeVirt(path, size, jFile)
 
 
@@ -233,7 +238,8 @@ def attachThin(journaler, srUuid, vdiUuid):
     _tryAcquire(lock)
     lvmCache.refresh()
     vhdInfo = vhdutil.getVHDInfoLVM(lvName, extractUuid, vgName)
-    newSize = calcSizeVHDLV(vhdInfo.sizeVirt)
+    path = os.path.join(VG_LOCATION, vgName, lvName)
+    newSize = calcSizeVHDLV(vhdInfo.sizeVirt, vhdutil.getBlockSize(path))
     currSizeLV = lvmCache.getSize(lvName)
     if newSize <= currSizeLV:
         return
