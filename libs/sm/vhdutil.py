@@ -21,6 +21,7 @@ from sm.core import util
 import errno
 import zlib
 import re
+import base64
 from sm.core import xs_errors
 import time
 
@@ -298,8 +299,10 @@ def getDepth(path):
 
 
 def getBlockBitmap(path):
-    cmd = [VHD_UTIL, "read", OPT_LOG_ERR, "-B", "-n", path]
-    text = ioretry(cmd, text=False)
+    cmd = [VHD_UTIL, "read", OPT_LOG_ERR, "-B", "-n", path, "-E"]
+    text = ioretry(cmd)
+    if text is not None:
+        text = base64.b64decode(text.strip())
     return zlib.compress(text)
 
 
