@@ -634,7 +634,6 @@ class MetadataHandler:
         util.SMlog("Entering getMetadataToWrite")
         try:
             value = b""
-            vdi_map = {}
 
             # if lower is less than SR info
             if lower < SECTOR_SIZE * SR_INFO_SIZE_IN_SECTORS:
