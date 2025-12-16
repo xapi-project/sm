@@ -43,7 +43,7 @@ class TestLVHDSR(unittest.TestCase, Stubs):
     def tearDown(self):
         self.remove_stubs()
 
-    def create_LVHDSR(self, master=False, command='foo', sr_uuid=None):
+    def create_LVHDSR(self, master=False, command='foo', sr_uuid=None, extra_params={}):
         srcmd = mock.Mock()
         srcmd.dconf = {'device': '/dev/bar'}
         if master:
@@ -52,6 +52,7 @@ class TestLVHDSR(unittest.TestCase, Stubs):
             'command': command,
             'session_ref': 'some session ref',
             'sr_ref': 'test_sr_ref'}
+        srcmd.params.update(extra_params)
         if sr_uuid is None:
             sr_uuid = str(uuid.uuid4())
         return LVHDSR.LVHDSR(srcmd, sr_uuid)
@@ -177,8 +178,6 @@ class TestLVHDSR(unittest.TestCase, Stubs):
             lambda x: get_vdi_data('name_description', x))
         mock_session.xenapi.VDI.get_is_a_snapshot.side_effect = (
             lambda x: get_vdi_data('is_a_snapshot', x))
-        mock_session.xenapi.VDI.get_snapshot_of.side_effect = (
-            lambda x: get_vdi_data('snapshot_of', x))
         mock_session.xenapi.VDI.get_snapshot_time.side_effect = (
             lambda x: get_vdi_data('snapshot_time', x))
         mock_session.xenapi.VDI.get_type.side_effect = (
@@ -304,6 +303,205 @@ class TestLVHDSR(unittest.TestCase, Stubs):
             }
         return metadata
 
+    @mock.patch('sm.drivers.LVHDSR.cleanup', autospec=True)
+    @mock.patch('sm.drivers.LVHDSR.IPCFlag', autospec=True)
+    @mock.patch('sm.drivers.LVHDSR.Lock', autospec=True)
+    @mock.patch('sm.drivers.LVHDSR.lvhdutil.getLVInfo', autospec=True)
+    @mock.patch('sm.drivers.LVHDSR.lvhdutil.getVDIInfo', autospec=True)
+    @mock.patch('sm.drivers.LVHDSR.SR.XenAPI')
+    @testlib.with_context
+    def test_snapshotof_success(self,
+                            context,
+                            mock_xenapi,
+                            mock_getVDIInfo,
+                            mock_getLVInfo,
+                            mock_lock,
+                            mock_ipc,
+                            mock_cleanup):
+        sr_uuid = str(uuid.uuid4())
+        self.stubout('sm.drivers.LVHDSR.lvutil._checkVG', autospec=True)
+        mock_lvm_cache = self.stubout('sm.drivers.LVHDSR.lvmcache.LVMCache')
+        mock_get_vg_stats = self.stubout('sm.drivers.LVHDSR.lvutil._getVGstats', autospec=True)
+        mock_scsi_get_size = self.stubout('sm.drivers.LVHDSR.scsiutil.getsize', autospec=True)
+        mock_vhdutil_getAllVHDs = self.stubout('sm.drivers.LVHDSR.vhdutil.getAllVHDs', autospec=True)
+        mock_sr_util_pathexists = self.stubout('sm.drivers.LVHDSR.util.pathexists', autospec=True)
+        mock_sr_util_gen_uuid = self.stubout('sm.drivers.LVHDSR.util.gen_uuid', autospec=True)
+        mock_cleanup.SR.TMP_RENAME_PREFIX = cleanup.SR.TMP_RENAME_PREFIX
+
+        device_size = 100 * 1024 * 1024
+        device_free = 10 * 1024 * 1024
+        mock_get_vg_stats.return_value = {
+            'physical_size': device_size,
+            'physical_utilisation': device_free,
+            'freespace': device_size - device_free}
+        mock_scsi_get_size.return_value = device_size
+        mock_lvm_cache.return_value.checkLV.return_value = False
+        mock_lvm_cache.return_value.getSize.return_value = 10240
+
+        mock_session = mock_xenapi.xapi_local.return_value
+        mock_session.xenapi.SR.get_sm_config.return_value = {
+            'allocation': 'thick',
+            'use_vhd': 'true'
+        }
+        vdi_data = {
+            'vdi1_ref': {
+                'uuid': str(uuid.uuid4()),
+                'name_label': "VDI1",
+                'name_description': "First VDI",
+                'is_a_snapshot': False,
+                'snapshot_of': None,
+                'snapshot_time': None,
+                'type': 'User',
+                'metadata-of-pool': None,
+                'sm-config': {
+                    'vdi_type': 'vhd'
+                }
+            }
+        }
+        metadata = {}
+
+        def get_vdis(sr_ref):
+            return list(vdi_data.keys())
+
+        def get_vdi_data(vdi_key, vdi_ref):
+            return vdi_data[vdi_ref][vdi_key]
+
+        def get_vdi_by_uuid(vdi_uuid):
+            return [v for v in vdi_data if vdi_data[v]['uuid'] == vdi_uuid][0]
+
+        def db_introduce(uuid, label, description, sr_ref, ty, shareable, read_only, other_config, location, xenstore_data, sm_config, managed, size, utilisation, metadata_of_pool, is_a_snapshot, snapshot_time, snapshot_of, cbt_enabled):
+            vdi_data.update({
+                'vdi3_ref': {
+                    'uuid': uuid,
+                    'name_label': label,
+                    'name_description': description,
+                    'is_a_snapshot': is_a_snapshot,
+                    'snapshot_of': snapshot_of,
+                    'snapshot_time': snapshot_time,
+                    'type': ty,
+                    'metadata-of-pool': metadata_of_pool,
+                    'sm-config': {
+                        'vdi_type': 'vhd'
+                    }
+                }})
+            return 'vdi3_ref'
+
+        mock_session.xenapi.VDI.get_uuid.side_effect = (
+            lambda x: get_vdi_data('uuid', x))
+        mock_session.xenapi.VDI.get_name_label.side_effect = (
+            lambda x: get_vdi_data('name_label', x))
+        mock_session.xenapi.VDI.get_name_description.side_effect = (
+            lambda x: get_vdi_data('name_description', x))
+        mock_session.xenapi.VDI.get_is_a_snapshot.side_effect = (
+            lambda x: get_vdi_data('is_a_snapshot', x))
+        mock_session.xenapi.VDI.get_snapshot_of.side_effect = (
+            lambda x: get_vdi_data('snapshot_of', x))
+        mock_session.xenapi.VDI.get_snapshot_time.side_effect = (
+            lambda x: get_vdi_data('snapshot_time', x))
+        mock_session.xenapi.VDI.get_type.side_effect = (
+            lambda x: get_vdi_data('type', x))
+        mock_session.xenapi.VDI.get_metadata_of_pool.side_effect = (
+            lambda x: get_vdi_data('metadata-of-pool', x))
+        mock_session.xenapi.VDI.get_sm_config.side_effect = (
+            lambda x: get_vdi_data('sm-config', x))
+        mock_session.xenapi.SR.get_VDIs.side_effect = get_vdis
+        mock_session.xenapi.VDI.get_by_uuid.side_effect = get_vdi_by_uuid
+        mock_session.xenapi.VDI.db_introduce.side_effect = db_introduce
+
+        sr = self.create_LVHDSR(master=True, command='sr_attach',
+                                sr_uuid=sr_uuid,
+                                extra_params={'driver_params': {'type': 'double'}, 'vdi_ref': 'vdi1_ref'})
+        os.makedirs(sr.path)
+
+        # Act (1)
+        # This introduces the metadata volume
+        sr.attach(sr.uuid)
+
+        # Create and check snapshot in metadata
+        vdis_info = {}
+        def addVdi(vdi_info):
+            uuid = vdi_info['uuid']
+            metadata[uuid] = {
+                'uuid': uuid,
+                'is_a_snapshot': vdi_info['is_a_snapshot'],
+                'snapshot_of': vdi_info['snapshot_of'],
+                'vdi_type':  vdi_info['vdi_type'],
+                'name_label': vdi_info['name_label'],
+                'name_description': vdi_info['name_description'],
+                'type': vdi_info['type'],
+                'read_only':  False,
+                'managed': True
+                }
+            vdi_data['vdi3_ref']['snapshot_of'] = 'vdi3_ref'
+            vdi_data['vdi3_ref']['is_a_snapshot'] = vdi_info['is_a_snapshot']
+            vdis_info.update({uuid: lvhdutil.VDIInfo(uuid)})
+
+        def write_metadata(sr_info, vdi_info):
+            for item in vdi_info.items():
+                metadata[item[0]] = {
+                    'uuid': item[1]['uuid'],
+                    'is_a_snapshot': item[1]['is_a_snapshot'],
+                    'snapshot_of': item[1]['snapshot_of'],
+                    'vdi_type': item[1]['vdi_type'],
+                    'name_label': item[1]['name_label'],
+                    'name_description': item[1]['name_description'],
+                    'type': item[1]['type'],
+                    'read_only': False,
+                    'managed': True,
+                }
+            return metadata
+
+        mock_metadata = self.stubout('sm.drivers.LVHDSR.LVMMetadataHandler')
+        mock_metadata.return_value.addVdi.side_effect = addVdi
+        mock_metadata.return_value.writeMetadata.side_effect = write_metadata
+
+        self.stubout('sm.journaler.Journaler.create')
+        self.stubout('sm.journaler.Journaler.remove')
+        self.stubout('sm.drivers.LVHDSR.RefCounter.set')
+        self.stubout('sm.drivers.LVHDSR.RefCounter.put')
+
+        vdi_uuid = get_vdi_data('uuid', 'vdi1_ref')
+
+        for vdi_meta in vdi_data.values():
+            vdis_info.update({vdi_meta['uuid']: lvhdutil.VDIInfo(vdi_meta['uuid'])})
+        mock_getVDIInfo.return_value = vdis_info
+
+        mock_lv = lvutil.LVInfo('test-lv')
+        mock_lv.size = 10240
+        mock_lv.active = True
+        mock_lv.hidden = False
+        mock_lv.vdiType = vhdutil.VDI_TYPE_VHD
+
+        mock_getLVInfo.return_value = {vdi_uuid: mock_lv}
+
+        vhdInfo = vhdutil.VHDInfo(vdi_uuid)
+        vhdInfo.hidden = False
+
+        mock_vhdutil = self.stubout('sm.drivers.LVHDSR.vhdutil', autospec=True)
+        mock_vhdutil.VDI_TYPE_VHD = vhdutil.VDI_TYPE_VHD
+        mock_vhdutil.VDI_TYPE_RAW = vhdutil.VDI_TYPE_RAW
+        mock_vhdutil.MAX_CHAIN_SIZE = vhdutil.MAX_CHAIN_SIZE
+        mock_vhdutil.getVHDInfo.return_value = vhdInfo
+
+        mock_vhdutil_getAllVHDs.return_value = {vhdInfo.uuid: vhdInfo}
+
+        vdi = sr.vdi(vdi_uuid)
+        vdi.vdi_type = vhdutil.VDI_TYPE_VHD
+        mock_sr_util_pathexists.return_value = True
+        def gen_uuid():
+            return str(uuid.uuid4())
+        mock_sr_util_gen_uuid.side_effect = gen_uuid
+        mock_vhdutil.getDepth.return_value = 1
+
+        snap = vdi.snapshot(sr.uuid, vdi_uuid)
+        snapshot_of = metadata[get_vdi_data('uuid', 'vdi3_ref')]['snapshot_of']
+        self.assertEqual(snapshot_of.startswith('OpaqueRef:'), False)
+
+        # Update SR metadata and recheck snapshot field
+        metadata = {}
+        sr.updateSRMetadata('thick')
+        snapshot_of = metadata[get_vdi_data('uuid', 'vdi3_ref')]['snapshot_of']
+        self.assertEqual(snapshot_of.startswith('OpaqueRef:'), False)
 
 class TestLVHDVDI(unittest.TestCase, Stubs):
 

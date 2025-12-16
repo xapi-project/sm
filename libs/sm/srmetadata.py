@@ -634,7 +634,6 @@ class MetadataHandler:
         util.SMlog("Entering getMetadataToWrite")
         try:
             value = b""
-            vdi_map = {}
 
             # if lower is less than SR info
             if lower < SECTOR_SIZE * SR_INFO_SIZE_IN_SECTORS:
@@ -699,7 +698,6 @@ class LVMMetadataHandler(MetadataHandler):
             if created:
                 # Now delete the dummy VDI created above
                 self.deleteVdi(uuid)
-                return
 
     # This function generates VDI info based on the passed in information
     # it also takes in a parameter to determine whether both the sector
