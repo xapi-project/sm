@@ -2,6 +2,7 @@
 import unittest
 import unittest.mock as mock
 import zlib
+import base64
 
 from sm import lvhdutil
 from sm import vhdutil
@@ -147,8 +148,8 @@ class TestVhdUtil(unittest.TestCase):
         def test_function(args, inp):
             nonlocal call_args
             call_args = args
-            # Not a real bitmap data
-            return 0, b"some dummy text", b""
+            # Since vhd-util now returns base64 encoded data with -E flag
+            return 0, base64.b64encode(b"some dummy text"), b""
 
         context.add_executable(VHD_UTIL, test_function)
 
@@ -160,7 +161,7 @@ class TestVhdUtil(unittest.TestCase):
         self.assertEqual("some dummy text", zlib.decompress(result).decode())
         self.assertEqual([
             VHD_UTIL, "read", "--debug", "-B",
-            "-n", TEST_VHD_NAME],
+            "-n", TEST_VHD_NAME, "-E"],
             call_args)
 
     @testlib.with_context
