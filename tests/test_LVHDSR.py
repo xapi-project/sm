@@ -15,6 +15,51 @@ import testlib
 
 PV_FOR_VG_DATA = "/dev/mapper/3600a098038314650465d523777417142"
 
+VHD_UTIL = '/usr/bin/vhd-util'
+
+TEST_VHD_HEADER = """
+VHD Footer Summary:
+-------------------
+Cookie              : conectix
+Features            : (0x00000002) <RESV>
+File format version : Major: 1, Minor: 0
+Data offset         : 512
+Timestamp           : Mon Apr 14 09:32:51 2025
+Creator Application : 'tap'
+Creator version     : Major: 1, Minor: 3
+Creator OS          : Unknown!
+Original disk size  : 49096 MB (51480887296 Bytes)
+Current disk size   : 49096 MB (51480887296 Bytes)
+Geometry            : Cyl: 24644, Hds: 16, Sctrs: 255
+                    : = 49095 MB (51480330240 Bytes)
+Disk type           : Dynamic hard disk
+Checksum            : 0xffffed34|0xffffed34 (Good!)
+UUID                : e21541f1-0daf-4394-9d80-3c0bfe957b1b
+Saved state         : No
+Hidden              : 0
+
+VHD Header Summary:
+-------------------
+Cookie              : cxsparse
+Data offset (unusd) : 18446744073709551615
+Table offset        : 1536
+Header version      : 0x00010000
+Max BAT size        : 24548
+Block size          : 2097152 (2 MB)
+Parent name         :
+Parent UUID         : 00000000-0000-0000-0000-000000000000
+Parent timestamp    : Sat Jan  1 00:00:00 2000
+Checksum            : 0xfffff334|0xfffff334 (Good!)
+
+VHD Batmap Summary:
+-------------------
+Batmap offset       : 100352
+Batmap size (secs)  : 6
+Batmap version      : 0x00010002
+Checksum            : 0xfffeb525|0xfffeb525 (Good!)
+"""
+
+
 
 class SMLog(object):
     def __call__(self, *args):
@@ -318,6 +363,12 @@ class TestLVHDSR(unittest.TestCase, Stubs):
                             mock_lock,
                             mock_ipc,
                             mock_cleanup):
+
+        def test_function(args, inp):
+            assert args[1] == "read"
+            return 0, TEST_VHD_HEADER, ""
+
+        context.add_executable(VHD_UTIL, test_function)
         sr_uuid = str(uuid.uuid4())
         self.stubout('sm.drivers.LVHDSR.lvutil._checkVG', autospec=True)
         mock_lvm_cache = self.stubout('sm.drivers.LVHDSR.lvmcache.LVMCache')
