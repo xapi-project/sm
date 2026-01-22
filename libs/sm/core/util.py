@@ -1016,6 +1016,12 @@ def _isSCSIid(s):
     return regex.search(s, 0)
 
 
+def is_usb_device(device):
+    cmd = ["udevadm", "info", "-q", "path", "-n", device]
+    result = pread2(cmd).split('/')
+    return len(result) >= 5 and result[4].startswith('usb')
+
+
 def test_scsiserial(session, device):
     device = os.path.realpath(device)
     if not scsiutil._isSCSIdev(device):
@@ -1039,6 +1045,14 @@ def test_scsiserial(session, device):
                    % device)
         return False
 
+    # USB devices can have identical SCSI IDs - prefer matching with serial number
+    try:
+        usb_device_with_serial = serial and is_usb_device(device)
+    except:
+        usb_device_with_serial = False
+        SMlog("Unable to check if device is USB:")
+        SMlog(traceback.format_exc())
+
     try:
         SRs = session.xenapi.SR.get_all_records()
     except:
@@ -1048,7 +1062,7 @@ def test_scsiserial(session, device):
         conf = record["sm_config"]
         if 'devserial' in conf:
             for dev in conf['devserial'].split(','):
-                if _isSCSIid(dev):
+                if not usb_device_with_serial and _isSCSIid(dev):
                     if match_scsiID(dev, scsiID):
                         return True
                 elif len(serial) and dev == serial:
