@@ -376,14 +376,10 @@ class TestVhdUtil(unittest.TestCase):
 
         context.add_executable(VHD_UTIL, test_function)
         from sm.drivers import FileSR
-        with unittest.mock.patch(
-                "sm.vhdutil.getBlockSize",
-                return_value=vhdutil.DEFAULT_VHD_BLOCK_SIZE
-        ):
-            vhdinfo = vhdutil.getVHDInfo(TEST_VHD_PATH, FileSR.FileVDI.extractUuid)
+        vhdinfo = vhdutil.getVHDInfo(TEST_VHD_PATH, FileSR.FileVDI.extractUuid)
 
-            # Act/Assert
-            self.assertEqual(18856*2*1024*1024 , vhdinfo.sizeAllocated)
+        # Act/Assert
+        self.assertEqual(18856*2*1024*1024 , vhdinfo.sizeAllocated)
 
     @testlib.with_context
     def test_get_allocated_size(self, context):
@@ -400,12 +396,7 @@ class TestVhdUtil(unittest.TestCase):
         context.add_executable(VHD_UTIL, test_function)
 
         # Act
-        result = 0
-        with unittest.mock.patch(
-                "sm.vhdutil.getBlockSize",
-                return_value=vhdutil.DEFAULT_VHD_BLOCK_SIZE
-        ):
-            result = vhdutil.getAllocatedSize(TEST_VHD_NAME)
+        result = vhdutil.getAllocatedSize(TEST_VHD_NAME)
 
         # Assert
         self.assertEqual(18856*2*1024*1024, result)
@@ -413,22 +404,3 @@ class TestVhdUtil(unittest.TestCase):
             [VHD_UTIL, "query", "--debug", "-a",
              "-n", TEST_VHD_NAME],
             call_args)
-
-    @testlib.with_context
-    def test_get_block_size(self, context):
-        """
-        Test that vhdutil.getBlockSize returns the block size in bytes
-        """
-
-        # Arrange
-        call_args = None
-
-        def test_function(args, inp):
-            nonlocal call_args
-            call_args = args
-            return 0, "Header version: 0x00010000\nBlock size: {} (2 MB)".format(vhdutil.DEFAULT_VHD_BLOCK_SIZE), ""
-
-        context.add_executable(VHD_UTIL, test_function)
-
-        # Act/Assert
-        self.assertEqual(vhdutil.DEFAULT_VHD_BLOCK_SIZE, vhdutil.getBlockSize(TEST_VHD_NAME))
