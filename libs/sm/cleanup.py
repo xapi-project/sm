@@ -535,18 +535,11 @@ class VDI:
         self.sizeVirt = -1
         self._sizeVHD = -1
         self._sizeAllocated = -1
-        self._block_size = -1
         self._hidden = False
         self.parent = None
         self.children = []
         self._vdiRef = None
         self._clearRef()
-
-    @property
-    def block_size(self):
-        if self._block_size < 0:
-            self._block_size = vhdutil.getBlockSize(self.path)
-        return self._block_size
 
     @staticmethod
     def extractUuid(path):
@@ -1085,16 +1078,14 @@ class VDI:
         blocksParent = self.parent.getVHDBlocks()
         numBlocks = Util.countBits(blocksChild, blocksParent)
         Util.log("Num combined blocks = %d" % numBlocks)
-        sizeData = numBlocks * self.block_size
+        sizeData = numBlocks * vhdutil.VHD_BLOCK_SIZE
         assert(sizeData <= self.sizeVirt)
         return sizeData
 
     def _calcExtraSpaceForCoalescing(self):
         sizeData = self._getCoalescedSizeData()
-        sizeCoalesced = sizeData + vhdutil.calcOverheadBitmap(
-            sizeData,
-            self.block_size
-        ) + vhdutil.calcOverheadEmpty(self.sizeVirt)
+        sizeCoalesced = sizeData + vhdutil.calcOverheadBitmap(sizeData) + \
+                vhdutil.calcOverheadEmpty(self.sizeVirt)
         Util.log("Coalesced size = %s" % Util.num2str(sizeCoalesced))
         return sizeCoalesced - self.parent.getSizeVHD()
 
@@ -1250,7 +1241,7 @@ class LVHDVDI(VDI):
         self._sizeAllocated = -1
 
     def inflateFully(self):
-        self.inflate(lvhdutil.calcSizeVHDLV(self.sizeVirt, self.block_size))
+        self.inflate(lvhdutil.calcSizeVHDLV(self.sizeVirt))
 
     def inflateParentForCoalesce(self):
         """Inflate the parent only as much as needed for the purposes of
@@ -1476,10 +1467,7 @@ class LVHDVDI(VDI):
     def _calcExtraSpaceForCoalescing(self):
         if self.parent.raw:
             return 0  # raw parents are never deflated in the first place
-        sizeCoalesced = lvhdutil.calcSizeVHDLV(
-            self._getCoalescedSizeData(),
-            self.block_size
-        )
+        sizeCoalesced = lvhdutil.calcSizeVHDLV(self._getCoalescedSizeData())
         Util.log("Coalesced size = %s" % Util.num2str(sizeCoalesced))
         return sizeCoalesced - self.parent.sizeLV
 
@@ -2821,7 +2809,7 @@ class LVHDSR(SR):
             parent.deflate()
 
     def _calcExtraSpaceNeeded(self, child, parent):
-        return lvhdutil.calcSizeVHDLV(parent.sizeVirt, parent.block_size) - parent.sizeLV
+        return lvhdutil.calcSizeVHDLV(parent.sizeVirt) - parent.sizeLV
 
     def _handleInterruptedCoalesceLeaf(self):
         entries = self.journaler.getAll(VDI.JRN_LEAF)
