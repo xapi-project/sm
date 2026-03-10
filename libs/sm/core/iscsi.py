@@ -26,6 +26,8 @@ from sm.core import xs_errors
 from sm.core import lock
 import glob
 import tempfile
+from contextlib import contextmanager
+from pathlib import Path
 from configparser import RawConfigParser
 import io
 
@@ -119,15 +121,21 @@ def save_rootdisk_nodes(tmpdirname):
     root_iqns = get_rootdisk_IQNs()
     if root_iqns:
         srcdirs = [os.path.join(_ISCSI_DB_PATH, 'nodes', iqn) for iqn in root_iqns]
-        util.doexec(['/bin/cp', '-a'] + srcdirs + [tmpdirname])
+        (rc, stdout, stderr) = util.doexec(['/bin/cp', '-a'] + srcdirs + [tmpdirname])
+        if rc != 0:
+            util.SMlog("save_rootdisk_nodes: cp FAILED rc=%d stderr=%r stdout=%r"
+                       % (rc, stderr, stdout))
 
 
 def restore_rootdisk_nodes(tmpdirname):
     root_iqns = get_rootdisk_IQNs()
     if root_iqns:
         srcdirs = [os.path.join(tmpdirname, iqn) for iqn in root_iqns]
-        util.doexec(['/bin/cp', '-a'] + srcdirs +
-                    [os.path.join(_ISCSI_DB_PATH, 'nodes')])
+        (rc, stdout, stderr) = util.doexec(['/bin/cp', '-a'] + srcdirs +
+                                           [os.path.join(_ISCSI_DB_PATH, 'nodes')])
+        if rc != 0:
+            util.SMlog("restore_rootdisk_nodes: cp FAILED rc=%d stderr=%r stdout=%r"
+                       % (rc, stderr, stdout))
 
 
 def rescan_target(portal, target):
@@ -159,12 +167,7 @@ def discovery(target, port, chapuser, chappass, targetIQN="any",
     # Save configuration of root LUN nodes and restore after discovery
     # otherwise when we do a discovery on the same filer as is hosting
     # our root disk we'll reset the config of the root LUNs
-
-    # FIXME: Replace this with TemporaryDirectory when moving to Python3
-    tmpdirname = tempfile.mkdtemp()
     try:
-        save_rootdisk_nodes(tmpdirname)
-
         if ':' in target:
             targetstring = "[%s]:%s" % (target, str(port))
         else:
@@ -180,7 +183,8 @@ def discovery(target, port, chapuser, chappass, targetIQN="any",
                       "-n", "discovery.sendtargets.auth.password", "-v", chappass]
         fail_msg = "Discovery failed. Check target settings and " \
                    "username/password (if applicable)"
-        try:
+
+        with saved_rootdisk_nodes():
             if chapuser != "" and chappass != "":
                 exn_on_failure(cmd_discdb + ["-o", "new"], fail_msg)
                 exn_on_failure(cmd_discdb + ["-o", "update"] + auth_args, fail_msg)
@@ -188,12 +192,10 @@ def discovery(target, port, chapuser, chappass, targetIQN="any",
             else:
                 cmd = cmd_disc
             (stdout, stderr) = exn_on_failure(cmd, fail_msg)
-        except:
-            raise xs_errors.XenError('ISCSILogin')
-        finally:
-            restore_rootdisk_nodes(tmpdirname)
-    finally:
-        shutil.rmtree(tmpdirname)
+    except xs_errors.XenError:
+        raise
+    except:
+        raise xs_errors.XenError('ISCSILogin')
 
     return parse_node_output(stdout, targetIQN)
 
@@ -412,20 +414,37 @@ def stop_daemon():
         exn_on_failure(cmd, failuremessage)
 
 
+def _clear_dir(dirpath):
+    """Remove all *contents* of dirpath, keeping the directory itself.
+    Creates the directory if it does not yet exist.  Errors on individual
+    entries are logged and swallowed so that a single bad entry does not
+    abort the entire wipe."""
+    p = Path(dirpath)
+    p.mkdir(parents=True, exist_ok=True)
+    for child in p.iterdir():
+        try:
+            if child.is_dir(follow_symlinks=False):
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+        except Exception as e:
+            util.SMlog("_clear_dir: failed to remove %s: %s" % (child, e))
+
+
 def restart_daemon():
-    stop_daemon()
-    if os.path.exists(os.path.join(_ISCSI_DB_PATH, 'nodes')):
-        try:
-            shutil.rmtree(os.path.join(_ISCSI_DB_PATH, 'nodes'))
-        except:
-            pass
-        try:
-            shutil.rmtree(os.path.join(_ISCSI_DB_PATH, 'send_targets'))
-        except:
-            pass
-    cmd = ["/usr/bin/systemctl", "start", "iscsid.service"]
-    failuremessage = "Failed to start iscsi daemon"
-    exn_on_failure(cmd, failuremessage)
+    """Stop iscsid, wipe the node/send_targets DB, then restart.
+
+    Boot-IQN node entries are saved before the wipe and restored
+    afterwards via the saved_rootdisk_nodes context manager so that
+    the boot nodes survive the restart.
+    """
+    with saved_rootdisk_nodes():
+        stop_daemon()
+        for subdir in ('nodes', 'send_targets'):
+            _clear_dir(os.path.join(_ISCSI_DB_PATH, subdir))
+        cmd = ["/usr/bin/systemctl", "start", "iscsid.service"]
+        failuremessage = "Failed to start iscsi daemon"
+        exn_on_failure(cmd, failuremessage)
 
 
 def wait_for_devs(targetIQN, portal):
@@ -563,6 +582,23 @@ def _checkAnyTGT():
         if not iqn in rootIQNs:
             return True
     return False
+
+
+@contextmanager
+def saved_rootdisk_nodes():
+    """Context manager that snapshots the boot-IQN node DB entries into a
+    temporary directory on entry and restores them on exit.
+
+    The restore runs unconditionally in the finally block so it is safe to
+    use around operations that may raise.  The temporary directory is
+    cleaned up automatically when the context exits.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        save_rootdisk_nodes(tmpdir)
+        try:
+            yield
+        finally:
+            restore_rootdisk_nodes(tmpdir)
 
 
 def ensure_daemon_running_ok(localiqn):
