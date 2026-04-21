@@ -1,17 +1,12 @@
 Maintainers list
 ----------------
 
-The project is maintained by many people but as a reference
-person contact
+The project is maintained by
 
-* Mark Syms <mark.syms@citrix.com>
+* Ronan Abhamon <ronan.abhamon@vates.tech>
+* Damien Thenot <damien.thenot@vates.tech>
+* Anthoine Bourgeois <anthoine.bourgeois@vates.tech>
 
-Issues can be raised at
+Issues and pull requests can be created at
 
 * https://github.com/xapi-project/sm
-
-while for technical discussions of general interest
-use the public mailing lists
-
-* xs-devel@lists.xenserver.org
-* xen-api@lists.xen.org 
