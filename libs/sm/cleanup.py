@@ -2598,7 +2598,7 @@ class FileSR(SR):
                 raise AbortException("Aborting due to signal")
             try:
                 self._checkSlave(hostRef, vdi)
-            except util.CommandException:
+            except XenAPI.Failure:
                 if hostRef in onlineHosts:
                     raise
 
