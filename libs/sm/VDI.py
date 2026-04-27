@@ -101,6 +101,7 @@ class VDI(object):
         self.description = ''
         self.vbds = []
         self.size = 0
+        self._block_size = -1
         self.utilisation = 0
         self.vdi_type = ''
         self.has_child = 0
@@ -119,6 +120,13 @@ class VDI(object):
         self.cbt_enabled = False
 
         self.load(uuid)
+
+    @property
+    def block_size(self):
+        if self._block_size < 0:
+            self._block_size = vhdutil.getBlockSize(self.path) if self.vdi_type == vhdutil.VDI_TYPE_VHD \
+                else vhdutil.DEFAULT_VHD_BLOCK_SIZE
+        return self._block_size
 
     @staticmethod
     def from_uuid(session, vdi_uuid):
