@@ -1344,8 +1344,12 @@ class VDI(object):
             util.SMlog("Paused or host_ref key found [%s]" % sm_config)
             return False
         try:
+            # Store the host ref as the value so that a lock leaked by a
+            # host crash mid-activation can be attributed to its owner and
+            # cleaned up when that host re-attaches the SR (see
+            # resetvdis.reset_sr)
             self._session.xenapi.VDI.add_to_sm_config(
-                vdi_ref, 'activating', 'True')
+                vdi_ref, 'activating', host_ref)
         except XenAPI.Failure as e:
             if e.details[0] == 'MAP_DUPLICATE_KEY' and not writable:
                 # Someone else is activating - a retry might succeed

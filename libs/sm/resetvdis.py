@@ -49,6 +49,13 @@ def reset_sr(session, host_uuid, sr_uuid, is_sr_master):
         if sm_config.get(host_key):
             util.SMlog("Clearing attached status for VDI %s" % vdi_uuid)
             session.xenapi.VDI.remove_from_sm_config(vdi_ref, host_key)
+        if sm_config.get("activating") == host_ref:
+            # this host crashed while activating the VDI: the flag would
+            # otherwise stay behind forever, failing all subsequent
+            # activations with MAP_DUPLICATE_KEY
+            util.SMlog("Clearing stale activating status for VDI %s" %
+                       vdi_uuid)
+            session.xenapi.VDI.remove_from_sm_config(vdi_ref, "activating")
         if is_sr_master and sm_config.get("paused"):
             util.SMlog("Clearing paused status for VDI %s" % vdi_uuid)
             session.xenapi.VDI.remove_from_sm_config(vdi_ref, "paused")
@@ -118,6 +125,24 @@ def reset_vdi(session, vdi_uuid, force, term_output=True, writable=True):
                 util.SMlog(msg)
                 if term_output:
                     print(msg)
+
+    activating = sm_config.get("activating")
+    if activating:
+        clear_activating = force
+        if not clear_activating and activating.startswith("OpaqueRef:"):
+            # the owning host is encoded in the value: if it is no longer
+            # part of the pool, the flag is necessarily stale
+            try:
+                session.xenapi.host.get_record(activating)
+            except XenAPI.Failure:
+                clear_activating = True
+
+        if clear_activating:
+            session.xenapi.VDI.remove_from_sm_config(vdi_ref, "activating")
+            msg = "Cleared activating flag for %s" % vdi_uuid
+            util.SMlog(msg)
+            if term_output:
+                print(msg)
 
     if not host_ref:
         msg = "VDI %s is not marked as attached anywhere, nothing to do" \

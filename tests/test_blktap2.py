@@ -243,7 +243,7 @@ class TestVDI(unittest.TestCase):
         self.vdi.activate(self.sr_uuid, self.vdi_uuid, True, {})
 
         self.mock_session.xenapi.VDI.add_to_sm_config.assert_has_calls(
-            [mock.call('vref1', 'activating', 'True'),
+            [mock.call('vref1', 'activating', 'href1'),
              mock.call('vref1', 'host_href1', "RW")],
              any_order=True)
         self.mock_session.xenapi.VDI.remove_from_sm_config.assert_has_calls(
@@ -272,7 +272,7 @@ class TestVDI(unittest.TestCase):
         self.vdi.activate(self.sr_uuid, self.vdi_uuid, True, {})
 
         self.mock_session.xenapi.VDI.add_to_sm_config.assert_has_calls(
-            [mock.call('vref1', 'activating', 'True'),
+            [mock.call('vref1', 'activating', 'href1'),
              mock.call('vref1', 'host_href1', "RW")],
              any_order=True)
 
@@ -297,7 +297,7 @@ class TestVDI(unittest.TestCase):
 
         self.vdi.activate(self.sr_uuid, self.vdi_uuid, True, {})
         self.mock_session.xenapi.VDI.add_to_sm_config.assert_has_calls(
-            [mock.call('vref1', 'activating', 'True'),
+            [mock.call('vref1', 'activating', 'href1'),
              mock.call('vref1', 'host_href1', "RW")],
              any_order=True)
 
@@ -324,7 +324,7 @@ class TestVDI(unittest.TestCase):
         self.vdi.activate(self.sr_uuid, self.vdi_uuid, True, {})
 
         self.mock_session.xenapi.VDI.add_to_sm_config.assert_has_calls(
-            [mock.call('vref1', 'activating', 'True'),
+            [mock.call('vref1', 'activating', 'href1'),
              mock.call('vref1', 'host_href1', "RW")],
              any_order=True)
         self.mock_session.xenapi.VDI.remove_from_sm_config.assert_has_calls(
@@ -355,7 +355,7 @@ class TestVDI(unittest.TestCase):
         self.vdi.activate(self.sr_uuid, self.vdi_uuid, True, {})
 
         self.mock_session.xenapi.VDI.add_to_sm_config.assert_has_calls(
-            [mock.call('vref1', 'activating', 'True'),
+            [mock.call('vref1', 'activating', 'href1'),
              mock.call('vref1', 'host_href1', "RW")],
              any_order=True)
         self.mock_session.xenapi.VDI.remove_from_sm_config.assert_has_calls(
@@ -393,8 +393,8 @@ class TestVDI(unittest.TestCase):
         self.vdi.activate(self.sr_uuid, self.vdi_uuid, False, {})
 
         self.mock_session.xenapi.VDI.add_to_sm_config.assert_has_calls(
-            [mock.call('vref1', 'activating', 'True'),
-             mock.call('vref1', 'activating', 'True'),
+            [mock.call('vref1', 'activating', 'href1'),
+             mock.call('vref1', 'activating', 'href1'),
              mock.call('vref1', 'host_href1', "RO")])
         self.mock_session.xenapi.VDI.remove_from_sm_config.assert_has_calls(
             [mock.call('vref1', 'activating')])
