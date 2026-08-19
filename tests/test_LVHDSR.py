@@ -324,9 +324,11 @@ class TestLVHDSR(unittest.TestCase, Stubs):
         mock_get_vg_stats = self.stubout('sm.drivers.LVHDSR.lvutil._getVGstats', autospec=True)
         mock_scsi_get_size = self.stubout('sm.drivers.LVHDSR.scsiutil.getsize', autospec=True)
         mock_vhdutil_getAllVHDs = self.stubout('sm.drivers.LVHDSR.vhdutil.getAllVHDs', autospec=True)
+        mock_vhdutil_getBlockSize = self.stubout('sm.drivers.LVHDSR.vhdutil.getBlockSize', autospec=True)
         mock_sr_util_pathexists = self.stubout('sm.drivers.LVHDSR.util.pathexists', autospec=True)
         mock_sr_util_gen_uuid = self.stubout('sm.drivers.LVHDSR.util.gen_uuid', autospec=True)
         mock_cleanup.SR.TMP_RENAME_PREFIX = cleanup.SR.TMP_RENAME_PREFIX
+        mock_vhdutil_getBlockSize.return_value = vhdutil.DEFAULT_VHD_BLOCK_SIZE
 
         device_size = 100 * 1024 * 1024
         device_free = 10 * 1024 * 1024
@@ -515,9 +517,13 @@ class TestLVHDVDI(unittest.TestCase, Stubs):
         self.mock_lvhdutil.LV_PREFIX = lvhdutil.LV_PREFIX
         vhdutil_patcher = mock.patch('sm.drivers.LVHDSR.vhdutil', autospec=True)
         self.mock_vhdutil = vhdutil_patcher.start()
+        self.mock_vhdutil.getBlockSize.return_value = vhdutil.DEFAULT_VHD_BLOCK_SIZE
         self.mock_vhdutil.VDI_TYPE_VHD = vhdutil.VDI_TYPE_VHD
         self.mock_vhdutil.VDI_TYPE_RAW = vhdutil.VDI_TYPE_RAW
         self.mock_vhdutil.MAX_CHAIN_SIZE = vhdutil.MAX_CHAIN_SIZE
+        vdi_vhdutil_patcher = mock.patch('sm.VDI.vhdutil', autospec=True)
+        self.mock_vdi_vhdutil = vdi_vhdutil_patcher.start()
+        self.mock_vdi_vhdutil.getBlockSize.return_value = vhdutil.DEFAULT_VHD_BLOCK_SIZE
         lvutil_patcher = mock.patch('sm.drivers.LVHDSR.lvutil', autospec=True)
         self.mock_lvutil = lvutil_patcher.start()
         vdi_util_patcher = mock.patch('sm.VDI.util', autospec=True)

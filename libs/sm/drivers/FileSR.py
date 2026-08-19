@@ -656,7 +656,7 @@ class FileVDI(VDI.VDI):
             return VDI.VDI.get_params(self)
 
         # We already checked it is a VDI_TYPE_VHD
-        size = vhdutil.validate_and_round_vhd_size(int(size))
+        size = vhdutil.validate_and_round_vhd_size(int(size), self.block_size)
         
         jFile = JOURNAL_FILE_PREFIX + self.uuid
         try:
