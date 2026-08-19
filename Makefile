@@ -295,7 +295,7 @@ install: precheck
 	# Plugin utilities
 	for i in $(SM_PLUGIN_UTILS); do \
 	  install -D -m 755 utils/$$i $(SM_STAGING)/$(SM_LIBEXEC)$$i; \
-	  ln -sf $(SM_LIBEXEC)$$i $(SM_STAGING)$(OPT_SM_DEST)plugins/$$i".py"; \
+	  ln -sf --relative $(SM_STAGING)$(SM_LIBEXEC)$$i $(SM_STAGING)$(OPT_SM_DEST)plugins/$$i".py"; \
 	done
 	# Actual plugins (and plugin libraries)
 	for i in $(SM_PLUGINS); do \
@@ -331,7 +331,7 @@ install: precheck
 	# Install SR drivers with symlinks from the legacy location
 	for i in $(SM_DRIVERS); do \
 	  install -D -m 755 drivers/$$i $(SM_STAGING)/$(SM_LIBEXEC)/drivers/$$i; \
-	  ln -sf $(SM_LIBEXEC)drivers/$$i $(SM_STAGING)$(OPT_SM_DEST)/$$i; \
+	  ln -sf --relative $(SM_STAGING)$(SM_LIBEXEC)drivers/$$i $(SM_STAGING)$(OPT_SM_DEST)/$$i; \
 	done
 	# Install legacy SR drivers
 	cd $(SM_STAGING)$(OPT_SM_DEST) && for i in $(SM_COMPAT_DRIVERS); do \
@@ -344,17 +344,17 @@ install: precheck
 	# Install libexec scripts with symlinks from the legacy location
 	for s in $(SM_LIBEXEC_SCRIPTS); do \
 	  install -m 755 scripts/$$s $(SM_STAGING)$(SM_LIBEXEC)/$$s; \
-	  ln -sf $(SM_LIBEXEC)$$s $(SM_STAGING)$(OPT_LIBEXEC)/$$s; \
+	  ln -sf --relative $(SM_STAGING)$(SM_LIBEXEC)$$s $(SM_STAGING)$(OPT_LIBEXEC)/$$s; \
 	done
 	# Install libexec commands with symlinks from the legacy location
 	for s in $(SM_LIBEXEC_PY_CMDS); do \
 	  install -m 755 utils/$$s $(SM_STAGING)$(SM_LIBEXEC)/$$s; \
-	  ln -sf $(SM_LIBEXEC)$$s $(SM_STAGING)$(OPT_SM_DEST)/"$$s".py; \
+	  ln -sf --relative $(SM_STAGING)$(SM_LIBEXEC)$$s $(SM_STAGING)$(OPT_SM_DEST)/"$$s".py; \
 	done
 	# Install libexec extras with symlinks from the legacy location
 	for s in $(SM_LIBEXEC_PY_XTRAS); do \
 	  install -D -m 755 utils/"$$s".py $(SM_STAGING)$(SM_LIBEXEC)/xtra/$$s; \
-	  ln -sf $(SM_LIBEXEC)xtra/$$s $(SM_STAGING)$(OPT_SM_DEST)/"$$s".py; \
+	  ln -sf --relative $(SM_STAGING)$(SM_LIBEXEC)xtra/$$s $(SM_STAGING)$(OPT_SM_DEST)/"$$s".py; \
 	done
 	mkdir -p $(SM_STAGING)/etc/xapi.d/xapi-pre-shutdown
 	for s in $(SM_XAPI_SHUTDOWN_SCRIPTS); do \
@@ -365,10 +365,10 @@ install: precheck
 	done
 	# Install blktap2 and compatibility symlinks
 	install -D -m 755 utils/blktap2 $(SM_STAGING)$(BIN_DEST)/blktap2
-	ln -sf $(BIN_DEST)blktap2 $(SM_STAGING)$(OPT_BIN_DEST)/blktap2
+	ln -sf --relative $(SM_STAGING)$(BIN_DEST)blktap2 $(SM_STAGING)$(OPT_BIN_DEST)/blktap2
 	# Install tapdisk-cache-stats and compatibility symlinks
 	install -D -m 755 utils/tapdisk-cache-stats $(SM_STAGING)$(BIN_DEST)/tapdisk-cache-stats
-	ln -sf $(BIN_DEST)tapdisk-cache-stats $(SM_STAGING)$(OPT_BIN_DEST)/tapdisk-cache-stats
+	ln -sf --relative $(SM_STAGING)$(BIN_DEST)tapdisk-cache-stats $(SM_STAGING)$(OPT_BIN_DEST)/tapdisk-cache-stats
 
 	$(MAKE) -C dcopy install DESTDIR=$(SM_STAGING)
 
