@@ -19,6 +19,7 @@
 
 from sm.core import util
 import uuid
+import base64
 from sm.constants import CBT_UTIL
 
 
@@ -81,10 +82,10 @@ def get_cbt_consistency(file_name):
 
 def get_cbt_bitmap(file_name):
     """Get bitmap field from log file"""
-    cmd = [CBT_UTIL, "get", "-n", file_name, "-b"]
-    ret = _call_cbt_util(cmd, text=False)
-    # Do not strip the return string. It's a byte string and stripping
-    # it sometimes leads to loss of information
+    cmd = [CBT_UTIL, "get", "-n", file_name, "-b", "-E"]
+    ret = _call_cbt_util(cmd)
+    if ret is not None:
+        ret = base64.b64decode(ret.strip())
     return ret
 
 

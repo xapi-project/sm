@@ -29,6 +29,7 @@ import subprocess
 import syslog as _syslog
 import glob
 import json
+import base64
 from syslog import openlog, syslog
 from stat import *  # S_ISBLK(), ...
 
@@ -379,8 +380,7 @@ class TapCtl(object):
 
             if not key:
                 raise util.SMException("No key found with key hash {}".format(key_hash))
-            input = key
-            text_mode = False
+            input = base64.b64encode(key).decode('utf-8')
             args.append('-E')
 
         cls._pread(args=args, input=input, text_mode=text_mode)
